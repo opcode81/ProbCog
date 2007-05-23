@@ -86,6 +86,17 @@ public class Database implements Cloneable {
 		}
 	}
 	
+	public void outputBLOGDatabase(PrintStream out) {
+		for(Object obj : objects) {
+			for(Entry<String, String> entry : obj.getAttributes().entrySet()) {
+				out.printf("%s(%s) = %s;\n", entry.getKey(), obj.MLNid(), this.upperCaseString(entry.getValue())); 
+			}
+		}
+		for(Link link : links) {
+			out.printf("%s = true;\n", link.getLogicalAtom());
+		}
+	}
+	
 	/**
 	 * outputs the basic MLN for this database, which contains domain definitions, predicate declarations and rules of mutual exclusion   
 	 * @param out the stream to write to
