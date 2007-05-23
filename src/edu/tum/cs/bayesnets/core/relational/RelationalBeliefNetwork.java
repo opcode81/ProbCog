@@ -1,10 +1,10 @@
 package edu.tum.cs.bayesnets.core.relational;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Stack;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
@@ -12,7 +12,7 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
-public class RelationalBeliefNetwork extends BeliefNetworkEx {
+public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	protected HashMap<String,RelationalNode> relNodesByName;
 	protected HashMap<Integer,RelationalNode> relNodesByIdx;
 	
@@ -35,6 +35,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public RelationalNode getRelationalNode(int idx) {
 		return relNodesByIdx.get(new Integer(idx));
+	}
+	
+	public Collection<RelationalNode> getRelationalNodes() {
+		return relNodesByIdx.values();
 	}
 	
 	protected void writeCPTs(PrintStream out, CPF cpf, Discrete[] domains, int[] addr, int i) {
@@ -136,6 +140,18 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			out.println("](" + args.toString() + ");");
 		}
 	}
+	
+	public abstract Signature getSignature(String nodeName);
+	
+	public class Signature {
+		public String returnType;
+		public String[] argTypes;
+		public Signature(String returnType, String[] argTypes) {
+			this.returnType = returnType;
+			this.argTypes = argTypes;
+		}
+	}
+
 }
 
 

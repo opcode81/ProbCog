@@ -130,8 +130,16 @@ public class DomainLearner extends Learner {
 	 * @param bn the belief network
 	 */
 	public DomainLearner(BeliefNetwork bn) {
+		this(new BeliefNetworkEx(bn));
+	}
+	
+	/**
+	 * constructs a DomainLearner where the domains of all nodes are to be learnt directly from the set of examples (i.e. every value that occurs in the examples is also a possible outcome in the domain) 
+	 * @param bn the belief network
+	 */
+	public DomainLearner(BeliefNetworkEx bn) {
 		super(bn);
-		BeliefNode[] nodes = bn.getNodes();
+		BeliefNode[] nodes = bn.bn.getNodes();
 		String[] directDomains = new String[nodes.length];
 		for(int i = 0; i < nodes.length; i++)
 			directDomains[i] = nodes[i].getName();
