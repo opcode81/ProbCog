@@ -3,25 +3,33 @@ package edu.tum.cs.bayesnets.core.relational;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.srldb.Database;
 
 public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
+	/**
+	 * maps a node name (function/predicate name) to the corresponding node
+	 */
 	protected HashMap<String,RelationalNode> relNodesByName;
+	/**
+	 * maps a node index to the corresponding node
+	 */
 	protected HashMap<Integer,RelationalNode> relNodesByIdx;
+	/**
+	 * maps a node name (function/predicate name) to its signature
+	 */
+	private HashMap<String, Signature> signatures;
 	
 	public RelationalBeliefNetwork(String xmlbifFile) throws Exception {
-		super(xmlbifFile);		
-		// store node data
-		BeliefNode[] nodes = bn.getNodes();
+		super(xmlbifFile);
+		signatures = new HashMap<String, Signature>();
 		relNodesByName = new HashMap<String, RelationalNode>();
 		relNodesByIdx = new HashMap<Integer, RelationalNode>();
+		// store node data
+		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode d = new RelationalNode(this, nodes[i]);			
 			relNodesByName.put(d.name, d);
@@ -41,108 +49,81 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return relNodesByIdx.values();
 	}
 	
-	protected void writeCPTs(PrintStream out, CPF cpf, Discrete[] domains, int[] addr, int i) {
-		if(i == addr.length) {
-			out.print("[");
-			int order = domains[0].getOrder();
-			for(int j = 0; j < domains[0].getOrder(); j++) {
-				addr[0] = j;
-				int realAddr = cpf.addr2realaddr(addr);
-				double value = ((ValueDouble)cpf.get(realAddr)).getValue();
-				if(j > 0)
-					out.print(",");
-				out.print(value);
-			}
-			out.print("]");
-		}
-		else {
-			for(int j = 0; j < domains[i].getOrder(); j++) {
-				addr[i] = j;
-				writeCPTs(out, cpf, domains, addr, i+1);
-			}
-		}
-	}
-	
-	protected boolean isBooleanDomain(Discrete domain) {
-		if(domain.getOrder() != 2)
+	public boolean isBooleanDomain(Discrete domain) {
+		if(domain.getOrder() > 2)
 			return false;
+		if(domain.getOrder() == 1) {
+			if(domain.getName(0).equalsIgnoreCase("true") || domain.getName(0).equalsIgnoreCase("false"))
+				return true;
+			return false;
+		}			
 		if(domain.getName(0).equalsIgnoreCase("true") || domain.getName(1).equalsIgnoreCase("true"))
 			return true;
 		return false;
 	}
 	
-	public void writeBLOGModel(PrintStream out) {
-		BeliefNode[] nodes = bn.getNodes();
-		
-		// write type decls 
-		Set<String> objTypes = new HashSet<String>();
-		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode node = getRelationalNode(i);
-			Discrete domain = (Discrete)node.node.getDomain();
-			if(!isBooleanDomain(domain))
-				out.println("Type Dom" + getRelationalNode(i).name + ";");
-			for(int j = 0; j < node.params.length; j++) {
-				if(objTypes.contains(node.params[j]))
-					continue;
-				out.println("Type ObjType" + node.params[j] + ";");
-				objTypes.add(node.params[j]);
-			}
-		}
-		out.println();
-		
-		// write domains
-		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode node = getRelationalNode(i);
-			Discrete domain = (Discrete)node.node.getDomain();
-			if(!isBooleanDomain(domain)) {
-				out.print("Guaranteed Dom" + node.name + " ");			
-				for(int j = 0; j < domain.getOrder(); j++) {
-					if(j > 0) out.print(", ");
-					out.print(domain.getName(j));
+	/**
+	 * obtains the names of parents of the variable that is given by a node name and its actual arguments
+	 * @param nodeName 
+	 * @param actualArgs
+	 * @return an array of variable names
+	 * @throws Exception
+	 */
+	public String[] getParentVariableNames(String nodeName, String[] actualArgs) throws Exception {
+		RelationalNode child = getRelationalNode(nodeName);
+		BeliefNode[] parents = bn.getParents(child.node);
+		String[] ret = new String[parents.length];
+		for(int i = 0; i < parents.length; i++) {
+			RelationalNode parent = getRelationalNode(getNodeIndex(parents[i].getName()));
+			StringBuffer varName = new StringBuffer(parent.name + "(");
+			String param = null;
+			for(int iCur = 0; iCur < parent.params.length; iCur++) {
+				for(int iMain = 0; iMain < child.params.length; iMain++) {
+					if(child.params[iMain].equals(parent.params[iCur])) {
+						param = actualArgs[iMain];
+						break;
+					}
 				}
-				out.println(";");
+				if(param == null)
+					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.name, nodeName + actualArgs.toString()));
+				varName.append(param);
+				if(iCur < parent.params.length-1)
+					varName.append(",");
 			}
+			varName.append(")");
+			ret[i] = varName.toString();
 		}
-		out.println();
-		
-		// functions
-		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode node = getRelationalNode(i);
-			Discrete domain = (Discrete)node.node.getDomain();
-			out.print("random ");
-			out.print(isBooleanDomain(domain) ? "Boolean" : ("Dom" + node.name));
-			out.print(" " + node.name + "(");
-			for(int j = 0; j < node.params.length; j++) {
-				if(j > 0) out.print(", ");
-				out.print("ObjType" + node.params[j]);
-			}
-			out.println(");");
-		}
-		out.println();
-		
-		// CPTs
-		for(int i = 0; i < nodes.length; i++) {
-			CPF cpf = nodes[i].getCPF();
-			BeliefNode[] deps = cpf.getDomainProduct();
-			out.print(nodes[i].getName() + " ~ TabularCPT[");
-			Discrete[] domains = new Discrete[deps.length];
-			StringBuffer args = new StringBuffer();
-			int[] addr = new int[deps.length];
-			for(int j = 0; j < deps.length; j++) {
-				if(j > 0) {
-					args.append(deps[j].getName());
-					if(j < deps.length-1)
-						args.append(", ");
-				}
-				domains[j] = (Discrete)deps[j].getDomain();
-			}
-			writeCPTs(out, cpf, domains, addr, 1);
-			out.println("](" + args.toString() + ");");
-		}
+		return ret;
 	}
 	
-	public abstract Signature getSignature(String nodeName);
+	public void addSignature(String nodeName, Signature sig) {
+		signatures.put(nodeName.toLowerCase(), sig);
+	}
 	
+	public Signature getSignature(String nodeName) {
+		return signatures.get(nodeName.toLowerCase());
+	}
+	
+	public Collection<Signature> getSignatures() {
+		return signatures.values();
+	}
+	
+	/**
+	 * guesses the model's function signatures by assuming the same type whenever the same variable name is used (ignoring any numeric suffixes), setting the domain name to ObjType_x when x is the variable,
+	 * and assuming a different domain of return values for each node, using Dom{NodeName} as the domain name.
+	 *
+	 */
+	public void guessSignatures() {
+		for(RelationalNode node : relNodesByIdx.values()) {
+			String[] argTypes = new String[node.params.length];
+			for(int i = 0; i < node.params.length; i++) {
+				String param = node.params[i].replaceAll("\\d+", "");
+				argTypes[i] = "ObjType_" + param;
+			}
+			addSignature(node.name, new Signature("Dom" + node.name, argTypes));		
+		}
+	}
+
 	public class Signature {
 		public String returnType;
 		public String[] argTypes;
@@ -151,7 +132,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 			this.argTypes = argTypes;
 		}
 	}
-
+	
 }
 
 

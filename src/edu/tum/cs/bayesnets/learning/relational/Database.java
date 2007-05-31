@@ -33,14 +33,14 @@ public class Database {
 	 * @return
 	 */
 	public String getVariableValue(String varName, boolean closedWorld) {
-		Variable var = this.entries.get(varName);
+		Variable var = this.entries.get(varName.toLowerCase());
 		if(var != null)
 			return var.value;
 		if(closedWorld) {
 			String nodeName = varName.substring(0, varName.indexOf('('));
 			Signature sig = bn.getSignature(nodeName);
 			if(sig.returnType.equals("Boolean"))
-				return "false";
+				return "False";
 		}
 		return null;
 	}
@@ -64,9 +64,8 @@ public class Database {
 			if(matcher.matches()) {
 				String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
 				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3));
-				System.out.println(var.toString());
-				entries.put(key, var);
-				//System.out.println("key '" +  key +"'");
+				//System.out.println(var.toString());
+				entries.put(key.toLowerCase(), var);
 			}
 		}
 		
@@ -75,7 +74,7 @@ public class Database {
 		for(Variable var : entries.values()) {
 			Signature sig = bn.getSignature(var.nodeName);
 			if(sig == null)
-				throw new Exception(String.format("Error: type %s not declared in BLOG model.", var.nodeName));
+				throw new Exception(String.format("Error: node %s not declared in BLOG model.", var.nodeName));
 			fillDomain(sig.returnType, var.value);
 			for(int i = 0; i < sig.argTypes.length; i++)
 				fillDomain(sig.argTypes[i], var.params[i]);

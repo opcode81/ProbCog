@@ -13,35 +13,57 @@ public class learnBLOG {
 
 	public static void main(String[] args) {
 		try {
-			if(args.length < 4) {
-				System.out.println("\n usage: learnBLOG <BLOG input file> <xml BIF file> <training database file> <output file> [-s] [-d]\n\n"+
-						             "    -s  show learned Bayesian network\n" +
-						             "    -d  learn domains\n\n" +
-						             "    The BLOG input file must contain all function/predicate declarations.\n");
-				return;
-			}
 			boolean showBN = false, learnDomains = false;
-			for(int i = 4; i < args.length; i++) {
+			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
+			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-s"))
 					showBN = true;
-				if(args[i].equals("-d"))
+				else if(args[i].equals("-d"))
 					learnDomains = true;
+				else if(args[i].equals("-b"))
+					blogFile = args[++i];
+				else if(args[i].equals("-x"))
+					bifFile = args[++i];
+				else if(args[i].equals("-t"))
+					dbFile = args[++i];
+				else if(args[i].equals("-o"))
+					outFile = args[++i];
 			}
-			RelationalBeliefNetwork bn = new BLOGModel(args[0], args[1]);
+			if(bifFile == null || dbFile == null || outFile == null) {
+				System.out.println("\n usage: learnBLOG [-b <BLOG file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
+							         "    -b  BLOG file from which to read function signatures\n" +
+						             "    -s  show learned Bayesian network\n" +
+						             "    -d  learn domains\n");
+				return;
+			}
+			BLOGModel bn;			
+			if(blogFile != null)
+				bn = new BLOGModel(blogFile, bifFile);
+			else
+				bn = new BLOGModel(bifFile);
+			System.out.println("Reading data...");
 			Database db = new Database(bn);
-			db.readBLOGDB(args[2]);
+			db.readBLOGDB(dbFile);			
 			if(learnDomains) {
+				System.out.println("Learning domains...");
 				DomainLearner domLearner = new DomainLearner(bn);
 				domLearner.learn(db);
 				domLearner.finish();
 			}
+			System.out.println("Learning parameters...");
 			CPTLearner cptLearner = new CPTLearner(bn);
 			cptLearner.learnTyped(db, true);
 			cptLearner.finish();
-			PrintStream out = new PrintStream(new File(args[3]));
-			bn.writeBLOGModel(out);
-			if(showBN)
+			System.out.println("Writing BLOG output...");
+			PrintStream out = new PrintStream(new File(outFile));
+			bn.write(out);			
+			out.close();
+			System.out.println("Writing XML-BIF output...");
+			bn.saveXMLBIF(bifFile);
+			if(showBN) {
+				System.out.println("Showing Bayesian network...");
 				bn.show();
+			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
