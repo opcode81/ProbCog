@@ -478,7 +478,17 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
-	 * performs sampling on the network returns a sample of the distribution represented by this Bayesian network; evidences that are set during sampling are removed
+	 * gets a topological ordering of the network's nodes  
+	 * @return an array of integers containing node indices
+	 */
+	public int[] getTopologicalOrder() {
+		TopologicalSort topsort = new TopologicalSort();
+		topsort.execute(bn.getGraph());
+		return topsort.alpha;
+	}
+	
+	/**
+	 * performs sampling on the network and returns a sample of the distribution represented by this Bayesian network; evidences that are set during sampling are removed
 	 * afterwards in order to retain the original state of the network.
 	 * @return a hashmap of (node name, string value) pairs representing the sample
 	 * @param generator random number generator to use to generate sample (null to create one) 

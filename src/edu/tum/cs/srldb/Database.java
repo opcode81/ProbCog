@@ -93,7 +93,7 @@ public class Database implements Cloneable {
 			}
 		}
 		for(Link link : links) {
-			out.printf("%s = true;\n", link.getLogicalAtom());
+			out.printf("%s = True;\n", link.getLogicalAtom());
 		}
 	}
 	

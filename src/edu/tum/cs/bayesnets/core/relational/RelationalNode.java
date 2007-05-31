@@ -6,9 +6,21 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 
 public class RelationalNode {
+	/**
+	 * index into the network's array of BeliefNodes
+	 */
 	public int index;
+	/**
+	 * name of the node, which is equal to the function/predicate name without any arguments
+	 */
 	public String name;
+	/**
+	 * the list of node parameters
+	 */
 	public String[] params;
+	/**
+	 * a reference to the BeliefNode that this node extends
+	 */
 	public BeliefNode node;
 	
 	public static String join(String glue, String[] elems) {
@@ -19,6 +31,19 @@ public class RelationalNode {
 				res.append(glue);
 		}
 		return res.toString();
+	}
+	
+	public static String formatName(String nodeName, String[] args) {
+		return String.format("%s(%s)", nodeName, join(",", args));
+	}
+	
+	/**
+	 * extracts the node name (function/predicate name) from a variable name (which contains arguments)
+	 * @param varName
+	 * @return
+	 */
+	public static String extractNodeName(String varName) {		
+		return varName.substring(0, varName.indexOf('('));
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
@@ -34,6 +59,6 @@ public class RelationalNode {
 	}
 	
 	public String toString() {
-		return name + "(" + join(",", params);			
+		return formatName(this.name, this.params);			
 	}
 }

@@ -26,6 +26,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		ExampleCounter counter = this.counters[nd.index];
 		// get the main variable's name
 		String varName = nodeName + "(" + RelationalNode.join(",", params) + ")";
+		//System.out.println("counting " + varName);
 		
 		// set the domain indices of all relevant nodes (node itself and parents)
 		int domainIndices[] = new int[this.nodes.length];
@@ -52,9 +53,14 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			String value = db.getVariableValue(curVarName.toString(), closedWorld);
 			if(value == null)
 				throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarName, varName));
-			int domain_idx = ((Discrete)(ndCurrent.node.getDomain())).findName(value);
-			if(domain_idx == -1)
-				throw new Exception("'" + value + "' not found in domain of " + ndCurrent.name);				
+			Discrete dom = (Discrete)(ndCurrent.node.getDomain());
+			int domain_idx = dom.findName(value);
+			if(domain_idx == -1) {	
+				String[] domElems = new String[dom.getOrder()];
+				for(int j = 0; j < domElems.length; j++)
+					domElems[j] = dom.getName(j);
+				throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.name, RelationalNode.join(",", domElems), varName));
+			}
 			domainIndices[ndCurrent.index] = domain_idx;
 		}
 		// count this example
