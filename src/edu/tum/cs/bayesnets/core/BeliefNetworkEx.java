@@ -532,4 +532,16 @@ public class BeliefNetworkEx {
 		}
 		return ret;
 	}
+	
+	public static String[] getDiscreteDomainAsArray(BeliefNode node) {
+		Discrete domain = (Discrete)node.getDomain();
+		String[] ret = new String[domain.getOrder()];
+		for(int i = 0; i < ret.length; i++)
+			ret[i] = domain.getName(i);
+		return ret;		
+	}
+	
+	public String[] getDiscreteDomainAsArray(String nodeName) {
+		return getDiscreteDomainAsArray(getNode(nodeName));
+	}
 }
