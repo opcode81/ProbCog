@@ -17,6 +17,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 	
@@ -167,7 +168,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		}
 	}
 	
-	public void write(PrintStream out) {
+	public void write(PrintStream out) throws Exception {
 		BeliefNode[] nodes = bn.getNodes();
 		
 		// write type decls 

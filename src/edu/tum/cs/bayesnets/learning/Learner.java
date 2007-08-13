@@ -83,8 +83,9 @@ public abstract class Learner {
 	 * completes the learning process, performing final processing.
 	 * Only when this function has been called can you be sure that all the learnt 
 	 * examples are reflected in the network's properties.
+	 * @throws Exception 
 	 */
-	public void finish() {
+	public void finish() throws Exception {
 		if(!finished) {
 			end_learning();
 			finished = true;
@@ -95,7 +96,7 @@ public abstract class Learner {
 	 * This function must be overridden by each subclass. It is called
 	 * by finish to complete the learning process.
 	 */
-	protected abstract void end_learning();
+	protected abstract void end_learning() throws Exception;
 	
 	public abstract void learn(ResultSet rs) throws Exception;
 }

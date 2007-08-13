@@ -22,6 +22,7 @@ public class RelationalNode {
 	 * a reference to the BeliefNode that this node extends
 	 */
 	public BeliefNode node;
+	public Signature sig;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -61,4 +62,18 @@ public class RelationalNode {
 	public String toString() {
 		return formatName(this.name, this.params);			
 	}
+	
+	public boolean isBoolean() {
+		return sig.returnType.equals("Boolean");
+	}
+
+	public static class Signature {
+		public String returnType;
+		public String[] argTypes;
+		public Signature(String returnType, String[] argTypes) {
+			this.returnType = returnType;
+			this.argTypes = argTypes;
+		}
+	}
 }
+
