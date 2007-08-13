@@ -117,4 +117,8 @@ public abstract class Item {
 	public boolean hasAttribute(String attribName) {
 		return attribs.containsKey(attribName);
 	}
+	
+	public int getGUID() {
+		return this.id;
+	}
 }
