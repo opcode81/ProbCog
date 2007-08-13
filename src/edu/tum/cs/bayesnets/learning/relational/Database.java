@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import edu.tum.cs.bayesnets.core.relational.BLOGModel;
 import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.core.relational.RelationalNode;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork.Signature;
+import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 
 public class Database {
 
@@ -31,8 +31,9 @@ public class Database {
 	 * @param varName
 	 * @param closedWorld
 	 * @return
+	 * @throws Exception 
 	 */
-	public String getVariableValue(String varName, boolean closedWorld) {
+	public String getVariableValue(String varName, boolean closedWorld) throws Exception {
 		Variable var = this.entries.get(varName.toLowerCase());
 		if(var != null)
 			return var.value;

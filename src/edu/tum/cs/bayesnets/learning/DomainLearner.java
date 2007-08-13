@@ -366,7 +366,7 @@ public class DomainLearner extends Learner {
 	 * and applies all the new domains. (This method is called by finish(),
 	 * which should be called when all the examples have been passed.)
 	 */
-	protected void end_learning() {
+	protected void end_learning() throws Exception {
 		if (directDomains != null)
 			for (int i = 0; i < directDomains.length; i++) {
 				if (verbose)
@@ -420,8 +420,9 @@ public class DomainLearner extends Learner {
 	 * 
 	 * @return the array of clusterers. It is ordered according to the array of
 	 *         "clustered domains" that was passed at construction.
+	 * @throws Exception 
 	 */
-	public SimpleKMeans[] getClusterers() {
+	public SimpleKMeans[] getClusterers() throws Exception {
 		finish(); // make sure learning is completed
 		return clusterers;
 	}

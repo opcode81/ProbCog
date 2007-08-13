@@ -7,14 +7,14 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.core.relational.RelationalNode;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork.Signature;
+import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 
 public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 	public DomainLearner(RelationalBeliefNetwork bn) {
 		super(bn);		
 	}
 	
-	public void learn(Database db) {
+	public void learn(Database db) throws Exception {
 		// directly learned domains
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
@@ -27,7 +27,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		}
 	}
 	
-	protected void end_learning() {
+	protected void end_learning() throws Exception {
 		super.end_learning();
 		
 		// standardize boolean domains
