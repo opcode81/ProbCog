@@ -7,28 +7,28 @@ import edu.tum.cs.srldb.Database;
 
 public class DDRelation extends DDItem {
 
-	protected DDObject[] objects;
+	protected IDDRelationArgument[] arguments;
 	protected boolean[] singleVal;
 	
-	public DDRelation(String name, DDObject obj1, DDObject obj2) throws Exception {
-		this(name, obj1, obj2, false, false);
+	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2) throws Exception {
+		this(name, arg1, arg2, false, false);
 	}
 
-	public DDRelation(String name, DDObject obj1, DDObject obj2, boolean singleValue1, boolean singleValue2) throws Exception {
-		this(name, new DDObject[]{obj1, obj2}, new boolean[]{singleValue1, singleValue2});
+	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2, boolean singleValue1, boolean singleValue2) throws Exception {
+		this(name, new IDDRelationArgument[]{arg1, arg2}, new boolean[]{singleValue1, singleValue2});
 	}
 	
-	public DDRelation(String name, DDObject[] objects) throws Exception {
-		this(name, objects, null);
+	public DDRelation(String name, IDDRelationArgument[] arguments) throws Exception {
+		this(name, arguments, null);
 	}
 
-	public DDRelation(String name, DDObject[] objects, boolean[] singleVal) throws Exception {
+	public DDRelation(String name, IDDRelationArgument[] arguments, boolean[] singleVal) throws Exception {
 		super(name);
 		if(singleVal == null)
-			singleVal = new boolean[objects.length];
-		if(objects.length != singleVal.length)
+			singleVal = new boolean[arguments.length];
+		if(arguments.length != singleVal.length)
 			throw new Exception("single value array dimension differs from object array dimension");
-		this.objects = objects;
+		this.arguments = arguments;
 		this.singleVal = singleVal;
 	}
 	
@@ -37,19 +37,22 @@ public class DDRelation extends DDItem {
 		return false;
 	}
 	
-	public DDObject[] getObjects() {
-		return objects;
+	public IDDRelationArgument[] getArguments() {
+		return arguments;
 	}
 	
 	public void MLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
+		// get the relation's argument domains in a comma-separated list of domain names eclosed in brackets 
 		StringBuffer params = new StringBuffer("(");
-		for(int i = 0; i < objects.length; i++) {
+		for(int i = 0; i < arguments.length; i++) {
 			if(i > 0) 
 				params.append(", ");				
-			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(objects[i].getName())));
+			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(arguments[i].getDomainName())));
 		}
 		params.append(")");
+		// output the main predicate declaration
 		out.println(Database.stdPredicateName(getName()) + params);
+		// output additional declarations for each boolean attribute of the relation
 		for(DDAttribute attr : attributes.values()) {
 			out.println(Database.stdPredicateName(attr.getName()) + params); 
 		}
@@ -67,10 +70,10 @@ public class DDRelation extends DDItem {
 		StringBuffer params = new StringBuffer("(");
 		int single = 0;
 		idNamer.resetCounts();
-		for(int i = 0; i < objects.length; i++) {			
+		for(int i = 0; i < arguments.length; i++) {			
 			if(i > 0) 
 				params.append(", ");				
-			params.append(idNamer.getCountedShortIdentifier("var", objects[i].getName()));
+			params.append(idNamer.getCountedShortIdentifier("var", arguments[i].getDomainName()));
 			if(singleVal[i]) {
 				params.append("!");
 				single++;

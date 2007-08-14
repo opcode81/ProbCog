@@ -5,13 +5,14 @@ import de.tum.in.fipm.base.data.GameData;
 
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.Object;
+import edu.tum.cs.srldb.datadict.DDException;
 
 public class Game extends Object {
 
 	protected GameData gameData;
 	protected HashMap<Integer, Player> players;
 	
-	public Game(Database database, GameData data) {
+	public Game(Database database, GameData data) throws DDException {
 		super(database);
 		this.players = new HashMap<Integer,Player>();
 		this.gameData = data;

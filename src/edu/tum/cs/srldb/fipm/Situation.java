@@ -2,6 +2,8 @@ package edu.tum.cs.srldb.fipm;
 
 import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
+import edu.tum.cs.srldb.datadict.DDException;
+
 import java.sql.*;
 import fipm.data.db.models.DBMotionReader;
 import de.tum.in.fipm.base.data.GameData;
@@ -90,12 +92,13 @@ public class Situation extends Object {
 	 * @param mr
 	 * @throws MotionQueryException
 	 * @throws SQLException
+	 * @throws DDException 
 	 */
-	public Situation(Connection connGame, Game game, int time, DBMotionReader mr) throws MotionQueryException, SQLException {
+	public Situation(Connection connGame, Game game, int time, DBMotionReader mr) throws MotionQueryException, SQLException, DDException {
 		this(connGame, game, time, mr, null);
 	}
 	
-	public Situation(Connection connGame, Game game, int time, DBMotionReader mr, Player playerInPossession) throws MotionQueryException, SQLException {
+	public Situation(Connection connGame, Game game, int time, DBMotionReader mr, Player playerInPossession) throws MotionQueryException, SQLException, DDException {
 		super(game.getDatabase());
 		
 		GameData gameData = game.getData();
@@ -178,13 +181,13 @@ public class Situation extends Object {
 		link("possession", game.getPlayer(playerNoInPossession));
 	}	
 	
-	public void setPossession(Player player) {
+	public void setPossession(Player player) throws DDException {
 		Link possession = this.getLink("possession");
-		possession.setSecondObject(player);
+		possession.setSecondArgument(player);
 		setBallPositionAttrs(player.team.teamNo);
 	}
 	
-	protected void setBallPositionAttrs(int teamNo) {
+	protected void setBallPositionAttrs(int teamNo) throws DDException {
 		float targetX = teamNo == 0 ? fieldXDim : -fieldXDim;
 		float base = -targetX;
 		float percent =  (ballPos.x-base) / (targetX-base);

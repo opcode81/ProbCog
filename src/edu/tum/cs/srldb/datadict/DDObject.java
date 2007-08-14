@@ -5,7 +5,7 @@ import java.io.PrintStream;
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
 
-public class DDObject extends DDItem {
+public class DDObject extends DDItem implements IDDRelationArgument {
 	public DDObject(String name) {
 		super(name);
 	}
@@ -40,5 +40,9 @@ public class DDObject extends DDItem {
 			out.print(", ");
 			out.println(idNamer.getCountedShortIdentifier("var", attr.getDomain().getName()) + "!)");
 		}
+	}
+	
+	public String getDomainName() {
+		return name;
 	}
 }

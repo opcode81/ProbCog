@@ -217,7 +217,7 @@ public class MLN_RDN_BallActions {
 						}
 						
 						System.out.println("    successful: " + action.getString("successful"));
-						System.out.println("    possession: " + sitBefore.getLink("possession").getObjects()[1] + " -> " + sitAfter.getLink("possession").getObjects()[1]);
+						System.out.println("    possession: " + sitBefore.getLink("possession").getArguments()[1] + " -> " + sitAfter.getLink("possession").getArguments()[1]);
 						if(action instanceof Pass) {
 							if(action.getBoolean("successful")) {
 								System.out.println("    " + sitBefore.getAttributeValue("ballPosX") + "," + action.getString("direction") + "," + player.getString("position") + "->" + playerInPossAfter.getString("position"));

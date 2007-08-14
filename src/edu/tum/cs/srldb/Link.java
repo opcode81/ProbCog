@@ -1,21 +1,20 @@
 package edu.tum.cs.srldb;
-import edu.tum.cs.srldb.Object;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 
 public class Link extends Item {
 	protected String linkName;
-	protected Object[] objects;
+	protected IRelationArgument[] arguments;
 		
-	public Link(Database database, String linkName, Object o1, Object o2) {
-		this(database, linkName, new Object[]{o1, o2});
+	public Link(Database database, String linkName, IRelationArgument arg1, IRelationArgument arg2) {
+		this(database, linkName, new IRelationArgument[]{arg1, arg2});
 	}
 	
-	public Link(Database database, String linkName, Object[] objects) {
+	public Link(Database database, String linkName, IRelationArgument[] arguments) {
 		super(database);
 		this.linkName = linkName;
-		this.objects = objects;		
+		this.arguments = arguments;		
 	}
 	
 	/*public void addAttribute(String attribute, String value, DataTypeEnum type) {
@@ -24,10 +23,10 @@ public class Link extends Item {
 	
 	protected String getLinkParams() {
 		String linkParams = "(";
-		for(int i = 0; i < objects.length; i++) {
+		for(int i = 0; i < arguments.length; i++) {
 			if(i > 0)
 				linkParams += ", ";
-			linkParams += objects[i].MLNid();
+			linkParams += Database.upperCaseString(arguments[i].getConstantName());
 		}
 		linkParams += ")";		
 		return linkParams;
@@ -77,19 +76,19 @@ public class Link extends Item {
 		return this.linkName;
 	}
 	
-	public Object[] getObjects() {
-		return this.objects;
+	public IRelationArgument[] getArguments() {
+		return this.arguments;
 	}
 	
-	public void setSecondObject(Object o) {
-		objects[1] = o;
+	public void setSecondArgument(IRelationArgument arg) {
+		arguments[1] = arg;
 	}
 	
-	public void setFirstObject(Object o) {
-		objects[0] = o;
+	public void setFirstArgument(IRelationArgument arg) {
+		arguments[0] = arg;
 	}
 	
-	public void setObjects(Object[] objs) {
-		this.objects = objs;
+	public void setArguments(IRelationArgument[] arguments) {
+		this.arguments = arguments;
 	}
 }

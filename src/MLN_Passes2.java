@@ -68,7 +68,7 @@ public class MLN_Passes2 {
 						pass.commit();
 						
 						new Link(database, "beforePossession", pass, fromPlayer).commit();
-						new Link(database, "afterPossession", pass, sitAfter.getLink("possession").getObjects()[1]).commit();
+						new Link(database, "afterPossession", pass, sitAfter.getLink("possession").getArguments()[1]).commit();
 					}
 				}
 			};

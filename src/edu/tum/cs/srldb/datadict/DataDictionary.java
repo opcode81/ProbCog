@@ -6,7 +6,9 @@ import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
+import edu.tum.cs.srldb.ConstantArgument;
 import edu.tum.cs.srldb.Database;
+import edu.tum.cs.srldb.IRelationArgument;
 import edu.tum.cs.srldb.Item;
 import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
@@ -15,11 +17,16 @@ public class DataDictionary {
 	protected HashMap<String, DDObject> objects;
 	protected HashMap<String, DDRelation> relations;
 	protected HashMap<String, DDAttribute> attributes;
+	/**
+	 * !!! this map is not guaranteed to contain all relevant entries (is not certain to be in sync)
+	 */
+	protected HashMap<String, Domain> domains;
 	
 	public DataDictionary() {
 		objects = new HashMap<String, DDObject>();
 		attributes = new HashMap<String, DDAttribute>();
 		relations = new HashMap<String, DDRelation>();
+		domains = new HashMap<String, Domain>();
 	}
 	
 	public void addObject(DDObject obj) throws DDException {
@@ -51,11 +58,13 @@ public class DataDictionary {
 			throw new DDException("Duplicate attribute " + attr.getName() + "; already defined for item " + attr.getOwner().getName());
 		}
 		attributes.put(attr.getName(), attr);
+		domains.put(attr.getDomain().getName(), attr.getDomain());
 	}
 	
 	public void addRelation(DDRelation rel) throws DDException {
 		relations.put(rel.getName(), rel);
 		addAttributes(rel);
+		//System.out.println("datadict now contains " + relations.size());
 	}
 	
 	public Collection<DDAttribute> getAttributes() {
@@ -70,8 +79,12 @@ public class DataDictionary {
 		return relations.get(name);
 	}
 	
-	public DDAttribute getAttribute(String name) {
+	public DDAttribute getAttribute(String name) throws DDException {
 		return attributes.get(name);
+	}
+	
+	public Domain getDomain(String name) {
+		return domains.get(name);
 	}
 
 	public Collection<DDObject> getObjects() {
@@ -144,7 +157,7 @@ public class DataDictionary {
 		}
 		// ensure that attribute names do not coincide with link names
 		Set<String> attrNames = this.attributes.keySet();
-		Set<String> linkNames = this.relations.keySet();
+		Set<String> linkNames = new HashSet<String>(this.relations.keySet());
 		linkNames.retainAll(attrNames);
 		if(!linkNames.isEmpty()) {
 			throw new DDException("Error: Duplicate predicate name(s); the name(s) " + linkNames.toString() + " cannot be used for attributes and links simultaneously!");
@@ -192,14 +205,25 @@ public class DataDictionary {
 		if(ddlink == null)
 			throw new DDException("unknown relation " + link.getName() + "; not in data dictionary!");
 		// check number of arguments
-		if(link.getObjects().length != ddlink.getObjects().length)
+		if(link.getArguments().length != ddlink.getArguments().length)
 			throw new DDException("The link " + link.toString() + " has the wrong number of parameters!");
 		// check argument types
 		int i = 0;
-		for(Object o : link.getObjects()) {
-			DDObject argtype = ddlink.getObjects()[i];
-			if(o.objType() != argtype.getName())
-				throw new DDException(String.format("Type mismatch for the %dth argument of %s; should be %s!", i+1, link.toString(), argtype.getName()));
+		for(IRelationArgument arg : link.getArguments()) {
+			IDDRelationArgument argtype = ddlink.getArguments()[i];
+			if(arg instanceof Object) {
+				Object o = (Object)arg;
+				if(o.objType() != argtype.getDomainName())
+					throw new DDException(String.format("Type mismatch for the %dth argument of %s; should be %s!", i+1, link.toString(), argtype.getDomainName()));
+			}
+			else {
+				if(!(arg instanceof ConstantArgument)) {
+					throw new DDException(String.format("Type mismatch for argument %d of %s; expected a constant argument!", i+1, link.toString()));
+				}
+				DDConstantArgument ddconst = (DDConstantArgument) argtype;
+				if(!ddconst.getDomain().contains(arg.getConstantName()))
+					throw new DDException(String.format("Domain of argument %d of %s does not contain %s!", i+1, link.toString(), arg.getConstantName()));
+			}
 			i++;		
 		}
 		// check attributes
