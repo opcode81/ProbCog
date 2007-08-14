@@ -18,6 +18,7 @@ public class genDB {
 				System.out.println("\n  usage: genDB <-m|-b> <Jython generator script> <output file>\n" +
 						             "           -m   output MLN format\n" +
 						             "           -b   output BLOG format\n\n" +
+						             "           -bm  output basic MLN\n\n" +
 						             "         The Jython script must create a Database object named 'db' in the global scope.\n");
 				return;
 			}
@@ -32,12 +33,12 @@ public class genDB {
 			Database db = (Database) jython.get("db").__tojava__(Database.class);
 			db.check();
 			PrintStream outDB = new PrintStream(new java.io.File(args[2]));
-			if(args[0].equals("-m")) {
+			if(args[0].equals("-m"))
 				db.outputMLNDatabase(outDB);
-				//db.outputBasicMLN(new PrintStream(new java.io.File("mln/kitchen/meals_empty.mln")));
-		    }
 			else if(args[0].equals("-b"))
 				db.outputBLOGDatabase(outDB);
+			else if(args[0].equals("-bm"))
+				db.outputBasicMLN(outDB);
 			System.out.println("done!");
 		}
 		catch(Exception e) {

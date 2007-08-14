@@ -9,6 +9,9 @@ public class DDAttribute implements Cloneable {
 	protected Domain domain;
 	protected boolean doClustering;
 	protected boolean discarded;
+	/**
+	 * the item that owns this attribute (usually a DDObject)
+	 */
 	protected DDItem owner;
 	
 	protected DDAttribute(String name) {

@@ -103,7 +103,6 @@ public class BN2SRLDB {
 			System.out.println(sample);
 		}
 		
-		datadict.check();		
 		db.check();
 
 		return db;

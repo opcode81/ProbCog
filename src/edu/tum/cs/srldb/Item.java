@@ -52,8 +52,10 @@ public abstract class Item {
 	 * adds an attribute to the object; if the attribute was previously defined, the old value is overwritten
 	 * @param attribute  the name of the attribute
 	 * @param value  the attribute value
+	 * @throws DDException 
+	 * @throws DDException 
 	 */
-	public void addAttribute(String attribute, String value) {
+	public void addAttribute(String attribute, String value) throws DDException {
 		DDAttribute attrib = database.getDataDictionary().getAttribute(attribute);
 		if(attrib != null) {
 			Domain domain = attrib.getDomain();

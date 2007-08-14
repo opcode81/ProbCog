@@ -1,5 +1,6 @@
 package edu.tum.cs.srldb.fipm;
 import edu.tum.cs.srldb.Object;
+import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.tools.*;
 
 import java.sql.*;
@@ -10,7 +11,7 @@ public class Player extends Object {
 	public Team team;
 	public int playerNo;
 	
-	public Player(Connection conn, Team team, int playerNo) throws SQLException {
+	public Player(Connection conn, Team team, int playerNo) throws SQLException, DDException {
 		super(team.getDatabase());
 
 		this.team = team;
@@ -67,7 +68,7 @@ public class Player extends Object {
 		link("inTeam", team);
 	}
 	
-	public String addShareAttribute(Connection conn, String attrName, String reference, String query) throws SQLException {
+	public String addShareAttribute(Connection conn, String attrName, String reference, String query) throws SQLException, NumberFormatException, DDException {
 		String res = DatabaseTool.queryResult(conn, query);
 		addAttribute(attrName, Double.toString(Double.parseDouble(res) / Double.parseDouble(reference)));
 		return res;

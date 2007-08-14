@@ -8,7 +8,7 @@ import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
-public class Object extends Item {
+public class Object extends Item implements IRelationArgument {
 	
 	protected HashMap<String, Link> links;
 	protected String objTypeName = null;
@@ -65,12 +65,12 @@ public class Object extends Item {
 	/**
 	 * @return a string, i.e. a constant name, that (uniquely) identifies this object in an MLN database
 	 */
-	public String MLNid() {
+	public String getConstantName() {
 		return "O" + objType() + id;
 	}
 	
 	public String toString() {
-		return MLNid();
+		return getConstantName();
 	}
 	
 	public void MLNprintFacts(PrintStream out) throws DDException {		
@@ -89,11 +89,11 @@ public class Object extends Item {
 		// parameters other than the object name
 		if(ddAttrib.isBoolean()) {
 			BooleanDomain domain = (BooleanDomain) ddAttrib.getDomain(); 
-			out.println((!domain.isTrue(strValue) ? "!" : "") + predicate + "(" + MLNid() + ")");			
+			out.println((!domain.isTrue(strValue) ? "!" : "") + predicate + "(" + getConstantName() + ")");			
 		}
 		// otherwise use a predicate with two parameters: object name and value
 		else {			
-			out.println(predicate + "(" + MLNid() + ", " + Database.stdAttribStringValue(strValue) + ")");
+			out.println(predicate + "(" + getConstantName() + ", " + Database.stdAttribStringValue(strValue) + ")");
 		}
 	}
 	

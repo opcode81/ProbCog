@@ -18,4 +18,15 @@ public abstract class Domain<T> {
 	public abstract boolean isFinite();
 	public abstract String[] getValues();
 	public abstract DataTypeEnum getType();
+	
+	public String toString() {
+		StringBuffer buf = new StringBuffer("{");
+		int i = 0;
+		for(String value : getValues()) {
+			if(i > 0) buf.append(", ");
+			buf.append(value);
+		}
+		buf.append("}");
+		return buf.toString();
+	}
 }

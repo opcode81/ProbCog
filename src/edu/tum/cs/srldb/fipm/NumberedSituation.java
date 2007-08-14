@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import de.tum.in.fipm.base.models.motion.MotionQueryException;
+import edu.tum.cs.srldb.datadict.DDException;
 import fipm.data.db.models.DBMotionReader;
 
 public class NumberedSituation extends Situation {
@@ -12,18 +13,18 @@ public class NumberedSituation extends Situation {
 	
 	public NumberedSituation(Connection connGame, Game game,
 			int time, DBMotionReader mr, int number, Player playerInPossession)
-			throws MotionQueryException, SQLException {
+			throws MotionQueryException, SQLException, DDException {
 		super(connGame, game, time, mr, playerInPossession);
 		this.number = number;
 	}
 
 	public NumberedSituation(Connection connGame, Game game,
 			int time, DBMotionReader mr, int number)
-			throws MotionQueryException, SQLException {
+			throws MotionQueryException, SQLException, DDException {
 		this(connGame, game, time, mr, number, null);
 	}
 
-	public String MLNid() {
+	public String getConstantName() {
 		return Integer.toString(number);
 	}	
 	
