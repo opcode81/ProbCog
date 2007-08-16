@@ -15,6 +15,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
 import edu.ksu.cis.bnj.ver3.streams.*;
 import edu.ksu.cis.bnj.ver3.core.*;
 import edu.ksu.cis.bnj.ver3.core.values.*;
@@ -51,6 +52,10 @@ public class BeliefNetworkEx {
 	 * the format constant for the PMML-based format (PMML version 3.0 with custom extensions) 
 	 */
 	public static final int FORMAT_PMML = 1;
+	/**
+	 * the name of the currently loaded belief network file
+	 */
+	protected String filename;
 	
 	/**
 	 * constructs a BeliefNetworkEx object from a BNJ BeliefNetwork object
@@ -66,6 +71,7 @@ public class BeliefNetworkEx {
 	 */
 	public BeliefNetworkEx(String xmlbifFile) throws FileNotFoundException {
 		this.bn = load(xmlbifFile, new Converter_xmlbif());
+		this.filename = xmlbifFile;
 	}
 	
 	/**
@@ -83,7 +89,8 @@ public class BeliefNetworkEx {
 			break;
 		default:
 			throw new Exception("Can't load - unknown format!");
-		}		
+		}	
+		this.filename = filename;
 	}
 	
 	/**
@@ -339,6 +346,19 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * writes the Bayesian network to the same file it was loaded from
+	 * @throws Exception 
+	 *
+	 */
+	public void save() throws Exception {
+		IOPlugInLoader pil = IOPlugInLoader.getInstance();
+		if(filename == null)
+			throw new Exception("Cannot save - filename not given!");
+		Exporter exporter = pil.GetExportersByExt(pil.GetExt(filename));
+		save(filename, exporter);
+	}
+	
+	/**
 	 * sorts the domain of the node with the given name alphabetically (if numeric is false) or
 	 * numerically (if numeric is true) - in ascending order
 	 * @param nodeName		the name of the node whose domain is to be sorted
@@ -392,7 +412,7 @@ public class BeliefNetworkEx {
 	public void show() {
 		edu.ksu.cis.bnj.gui.GUIWindow window = new edu.ksu.cis.bnj.gui.GUIWindow();
 		window.register();		
-		window.open(bn);
+		window.open(bn, filename);
 	}
 	
 	/**
