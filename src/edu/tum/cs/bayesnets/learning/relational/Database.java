@@ -2,10 +2,12 @@ package edu.tum.cs.bayesnets.learning.relational;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +48,10 @@ public class Database {
 		return null;
 	}
 	
+	public boolean contains(String varName) {
+		return entries.containsKey(varName.toLowerCase());
+	}
+	
 	public void readBLOGDB(String databaseFilename) throws Exception {
 		// read file content
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
@@ -70,7 +76,7 @@ public class Database {
 			}
 		}
 		
-		// fill domains
+		// fill domains (of both return types and arguments)
 		domains = new HashMap<String, HashSet<String>>();
 		for(Variable var : entries.values()) {
 			Signature sig = bn.getSignature(var.nodeName);
@@ -90,6 +96,36 @@ public class Database {
 		}
 		if(!dom.contains(value))
 			dom.add(value);		
+	}
+	
+	/**
+	 * checks the domains for overlaps and merges domains if necessary
+	 *
+	 */
+	public void checkDomains(boolean verbose) {
+		ArrayList<HashSet<String>> doms = new ArrayList<HashSet<String>>();
+		ArrayList<String> domNames = new ArrayList<String>();
+		for(Entry<String, HashSet<String>> entry : domains.entrySet()) {
+			doms.add(entry.getValue());
+			domNames.add(entry.getKey());
+		}
+		for(int i = 0; i < doms.size(); i++) {
+			for(int j = i+1; j < doms.size(); j++) {
+				// compare the i-th domain to the j-th
+				HashSet<String> dom1 = doms.get(i);
+				HashSet<String> dom2 = doms.get(j);
+				for(String value : dom1) {
+					if(dom2.contains(value)) { // replace all occurrences of the j-th domain by the i-th
+						if(verbose)
+							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap. Merging...");
+						this.bn.replaceType(domNames.get(j), domNames.get(i));
+						dom1.addAll(dom2);
+						doms.set(j, dom1);
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	public Set<String> getDomain(String domName) {

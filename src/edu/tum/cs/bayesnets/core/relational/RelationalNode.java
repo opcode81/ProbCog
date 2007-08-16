@@ -70,9 +70,19 @@ public class RelationalNode {
 	public static class Signature {
 		public String returnType;
 		public String[] argTypes;
+	
 		public Signature(String returnType, String[] argTypes) {
 			this.returnType = returnType;
 			this.argTypes = argTypes;
+		}
+		
+		public void replaceType(String oldType, String newType) {
+			if(this.returnType.equals(oldType))
+				this.returnType = newType;
+			for(int i = 0; i < argTypes.length; i++) {
+				if(argTypes[i].equals(oldType))
+					argTypes[i] = newType;
+			}
 		}
 	}
 }
