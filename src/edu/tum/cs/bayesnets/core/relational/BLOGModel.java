@@ -77,7 +77,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * reads the guaranteed domain elements listed in the given contents of a BLOG file and stores them in the guaranteedDomElements member
 	 * @param blogContent
 	 */
-	public void getGuaranteedDomainElements(String blogContent) {
+	protected void getGuaranteedDomainElements(String blogContent) {
 		// obtain guaranteed domain elements
 		Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*)\\s*;");
 		Matcher matcher = pat.matcher(blogContent);

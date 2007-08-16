@@ -105,6 +105,17 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		getRelationalNode(nodeName).sig = sig;
 	}
 	
+	/**
+	 * replace a type by a new type in all node signatures
+	 * @param oldType
+	 * @param newType
+	 */
+	public void replaceType(String oldType, String newType) {
+		for(RelationalNode node : this.relNodesByIdx.values()) {
+			node.sig.replaceType(oldType, newType);
+		}
+	}
+	
 	public Signature getSignature(String nodeName) throws Exception {
 		RelationalNode node = getRelationalNode(nodeName);
 		if(node == null)
@@ -142,7 +153,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// write domain declarations
 		HashSet<String> handled = new HashSet<String>();
 		HashMap<String, Vector<String>> domains = new HashMap<String,Vector<String>>();
-		for(RelationalNode node : getRelationalNodes()) {			
+		for(RelationalNode node : getRelationalNodes()) {	
 			Signature sig = getSignature(node.name);
 			if(sig.returnType.equals("Boolean"))
 				continue;
