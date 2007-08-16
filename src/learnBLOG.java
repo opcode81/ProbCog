@@ -36,23 +36,30 @@ public class learnBLOG {
 						             "    -d  learn domains\n");
 				return;
 			}
+			// create a BLOG model
 			BLOGModel bn;			
 			if(blogFile != null)
 				bn = new BLOGModel(blogFile, bifFile);
 			else
 				bn = new BLOGModel(bifFile);
+			// read the training database
 			System.out.println("Reading data...");
 			Database db = new Database(bn);
-			db.readBLOGDB(dbFile);			
+			db.readBLOGDB(dbFile);		
+			// check domains for overlaps and merge if necessary
+			System.out.println("Checking domains...");
+			db.checkDomains(true);
+			// learn domains
 			if(learnDomains) {
 				System.out.println("Learning domains...");
 				DomainLearner domLearner = new DomainLearner(bn);
 				domLearner.learn(db);
 				domLearner.finish();
 			}
+			// learn parameters
 			System.out.println("Learning parameters...");
 			CPTLearner cptLearner = new CPTLearner(bn);
-			cptLearner.learnTyped(db, true);
+			cptLearner.learnTyped(db, true, true);
 			cptLearner.finish();
 			System.out.println("Writing BLOG output...");
 			PrintStream out = new PrintStream(new File(outFile));
