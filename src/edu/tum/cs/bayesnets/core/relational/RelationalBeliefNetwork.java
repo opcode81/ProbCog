@@ -126,10 +126,13 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	/**
 	 * guesses the model's function signatures by assuming the same type whenever the same variable name is used (ignoring any numeric suffixes), setting the domain name to ObjType_x when x is the variable,
 	 * and assuming a different domain of return values for each node, using Dom{NodeName} as the domain name.
+	 * @throws Exception 
 	 *
 	 */
-	public void guessSignatures() {
+	public void guessSignatures() throws Exception {
 		for(RelationalNode node : relNodesByIdx.values()) {
+			if(node.isConstant) // signatures for constants are determined in checkSignatures (called below)
+				continue;
 			String[] argTypes = new String[node.params.length];
 			for(int i = 0; i < node.params.length; i++) {
 				String param = node.params[i].replaceAll("\\d+", "");
@@ -137,6 +140,39 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 			}
 			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.name; 
 			addSignature(node.name, new Signature(retType, argTypes));		
+		}
+		checkSignatures(); // to fill constants
+	}
+	
+	/**
+	 * check signatures for inconsistencies and write return types for constant nodes
+	 * @throws Exception
+	 */
+	protected void checkSignatures() throws Exception {
+		// obtain parameter/argument -> type name mapping for non-constant nodes
+		HashMap<String,String> types = new HashMap<String,String>();
+		Vector<RelationalNode> constants = new Vector<RelationalNode>();
+		for(RelationalNode node : relNodesByIdx.values()) {
+			if(node.isConstant)
+				constants.add(node);
+			else {
+				if(node.sig.argTypes.length != node.params.length)
+					throw new Exception(String.format("Signature of '%s' does not match node definition: It contains %d elements vs. %d elements in the node definition.", node.toString(), node.sig.argTypes.length, node.params.length));
+				for(int i = 0; i < node.params.length; i++) {
+					String key = node.params[i];
+					String value = types.get(key);
+					if(value != null && !value.equals(node.sig.argTypes[i]))
+						throw new Exception(String.format("Type mismatch: '%s' has types '%s' and '%s'", key, value, node.sig.argTypes[i]));
+					types.put(key, node.sig.argTypes[i]);
+				}
+			}
+		}			
+		// update constant return types using the mapping
+		for(RelationalNode constant : constants) {
+			String type = types.get(constant.name);
+			if(type == null)
+				throw new Exception("constant not referenced");
+			constant.sig = new Signature(type, new String[0]);
 		}
 	}
 
@@ -176,6 +212,8 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		
 		// write predicate declarations
 		for(RelationalNode node : getRelationalNodes()) {
+			if(node.isConstant)
+				continue;
 			Signature sig = getSignature(node.name);
 			String[] argTypes;
 			if(sig.returnType.equals("Boolean"))
@@ -192,6 +230,8 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		
 		// mutual exclusiveness and exhaustiveness
 		for(RelationalNode node : getRelationalNodes()) {
+			if(node.isConstant)
+				continue;
 			if(!node.isBoolean()) {
 				out.print(Database.lowerCaseString(node.name));
 				out.print('(');
@@ -208,15 +248,30 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// write formulas
 		int[] order = getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
-			CPF cpf = getRelationalNode(order[i]).node.getCPF();
+			RelationalNode node = getRelationalNode(order[i]);
+			if(node.isConstant)
+				continue;
+			CPF cpf = node.node.getCPF();
 			int[] addr = new int[cpf.getDomainProduct().length];
 			walkCPD_MLNformulas(out, cpf, addr, 0);
 		}
 	}
 	
-	protected String toPredicate(RelationalNode node, int setting) {
+	protected String toPredicate(RelationalNode node, int setting, HashMap<String,String> constantValues) {
+		// predicate name
+		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(node.name)));
+		// add parameters
+		for(int i = 0; i < node.params.length; i++) {
+			if(i > 0)
+				sb.append(",");
+			String value = constantValues.get(node.params[i]);
+			if(value == null)
+				sb.append(node.params[i]);
+			else
+				sb.append(value);
+		}
+		// add node value (negation as prefix or value of non-boolean variable as additional parameter)
 		String value = ((Discrete)node.node.getDomain()).getName(setting);
-		StringBuffer sb = new StringBuffer(String.format("%s(%s", Database.lowerCaseString(node.name), RelationalNode.join(",", node.params)));
 		if(node.isBoolean()) {
 			if(value.equalsIgnoreCase("false"))
 				sb.insert(0, '!');
@@ -231,20 +286,35 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i) {
 		BeliefNode[] nodes = cpf.getDomainProduct();
-		if(i == addr.length) {			
+		if(i == addr.length) { // we have a complete address
+			// collect values of constants in order to replace references to them in the individual predicates 
+			HashMap<String,String> constantValues = new HashMap<String,String>();
+			for(int j = 0; j < addr.length; j++) {
+				RelationalNode rn = getRelationalNode(nodes[j]);
+				if(rn.isConstant) {
+					String value = ((Discrete)rn.node.getDomain()).getName(addr[j]);
+					constantValues.put(rn.name, value);
+				}
+			}
+			// for each element of the address obtain the corresponding literal/predicate
 			StringBuffer sb = new StringBuffer();
 			for(int j = 0; j < addr.length; j++) {
-				if(j > 0)
-					sb.append(" ^ ");
-				sb.append(toPredicate(getRelationalNode(nodes[j]), addr[j]));
+				RelationalNode rn = getRelationalNode(nodes[j]);
+				if(!rn.isConstant) {
+					if(j > 0)
+						sb.append(" ^ ");
+					sb.append(toPredicate(rn, addr[j], constantValues));
+				}
 			}
+			// get the weight
 			int realAddr = cpf.addr2realaddr(addr);
 			double value = ((ValueDouble)cpf.get(realAddr)).getValue();
 			double weight = Math.log(value);
 			if(Double.isInfinite(weight)) weight = -100.0;
+			// print weight and formula
 			out.printf("%f %s\n", weight, sb.toString()); 
 		}
-		else {
+		else { // the address is yet incomplete -> consider all ways of setting the next e
 			Discrete dom = (Discrete)nodes[i].getDomain();
 			for(int j = 0; j < dom.getOrder(); j++) {
 				addr[i] = j;
