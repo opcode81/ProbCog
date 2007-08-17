@@ -39,29 +39,42 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		int domainIndices[] = new int[this.nodes.length];
 		for(int i = 0; i < counter.nodeIndices.length; i++) {
 			RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
-			// determine name of the parent node by replacing parameter bindings
-			StringBuffer curVarName = new StringBuffer(ndCurrent.name + "(");			
-			for(int iCur = 0; iCur < ndCurrent.params.length; iCur++) {
-				// search for the iCur-th parameter in the main node
-				String param = null;
-				for(int iMain = 0; iMain < nd.params.length; iMain++) {
-					if(nd.params[iMain].equals(ndCurrent.params[iCur])) {
-						param = params[iMain];
-						break;
+			// determine the value of the node given the settings implied by the main node
+			String value = null, curVarname = ndCurrent.name;
+			if(!ndCurrent.isConstant) {
+				// determine name of the parent node by replacing parameter bindings			
+				StringBuffer curVarName = new StringBuffer(ndCurrent.name + "(");			
+				for(int iCur = 0; iCur < ndCurrent.params.length; iCur++) {
+					// search for the iCur-th parameter in the main node
+					String param = null;
+					for(int iMain = 0; iMain < nd.params.length; iMain++) {
+						if(nd.params[iMain].equals(ndCurrent.params[iCur])) {
+							param = params[iMain];
+							break;
+						}
 					}
+					if(param == null)
+						throw new Exception(String.format("Could not determine parameter '%s' of node '%s' while traversing dependencies of '%s'", ndCurrent.params[iCur], ndCurrent.name, varName));
+					curVarName.append(param);
+					if(iCur < ndCurrent.params.length-1)
+						curVarName.append(",");
 				}
-				if(param == null)
-					throw new Exception(String.format("Could not determine parameter '%s' of node '%s' while traversing dependencies of '%s'", ndCurrent.params[iCur], ndCurrent.name, varName));
-				curVarName.append(param);
-				if(iCur < ndCurrent.params.length-1)
-					curVarName.append(",");
+				curVarName.append(")");
+				curVarname = curVarName.toString();
+				//System.out.println("  relevant node " + curVarName);
+				// set domain index
+				value = db.getVariableValue(curVarName.toString(), closedWorld);
 			}
-			curVarName.append(")");
-			//System.out.println("  relevant node " + curVarName);
-			// set domain index
-			String value = db.getVariableValue(curVarName.toString(), closedWorld);
+			else {
+				for(int iMain = 0; iMain < nd.params.length; iMain++) {
+					if(nd.params[iMain].equals(ndCurrent.name)) {
+						value = params[iMain];
+						break;
+					}			
+				}
+			}
 			if(value == null)
-				throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarName, varName));
+				throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarname, varName));
 			Discrete dom = (Discrete)(ndCurrent.node.getDomain());
 			int domain_idx = dom.findName(value);
 			if(domain_idx == -1) {	
@@ -97,6 +110,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;		
 		for(RelationalNode node : bn.getRelationalNodes()) {
+			if(node.isConstant) continue;
 			if(verbose) System.out.println("  " + node.name);
 			String[] params = new String[node.params.length];			
 			countVariable(db, node.name, params, bn.getSignature(node.name).argTypes, 0, closedWorld);			

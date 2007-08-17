@@ -23,6 +23,7 @@ public class RelationalNode {
 	 */
 	public BeliefNode node;
 	public Signature sig;
+	public boolean isConstant;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -43,18 +44,26 @@ public class RelationalNode {
 	 * @param varName
 	 * @return
 	 */
-	public static String extractNodeName(String varName) {		
-		return varName.substring(0, varName.indexOf('('));
+	public static String extractNodeName(String varName) {
+		if(varName.contains("("))
+			return varName.substring(0, varName.indexOf('('));
+		return varName;
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
 		Matcher matcher = namePat.matcher(name);
-		if(!matcher.matches()) 
-			throw new Exception(String.format("Node '%s' has an invalid name", name));
-		this.name = matcher.group(1);
-		this.params = matcher.group(2).split("\\s*,\\s*");
+		if(matcher.matches()) {	// a proper relational node, such as "foo(x,y)"
+			this.name = matcher.group(1);
+			this.params = matcher.group(2).split("\\s*,\\s*");
+			this.isConstant = false;
+		}
+		else { // constant: usually a node such as "x"
+			this.name = name;
+			this.params = new String[0];
+			this.isConstant = true;
+		}
 		this.index = bn.getNodeIndex(name);
 		this.node = node;
 	}

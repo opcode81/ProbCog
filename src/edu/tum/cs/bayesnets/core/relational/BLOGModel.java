@@ -61,6 +61,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		}
 		
 		getGuaranteedDomainElements(blog);
+		
+		checkSignatures();
 	}
 	
 	/**
@@ -89,7 +91,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	}
 	
 	/**
-	 * constructs a BLOG model from a Bayesian network template. The function signatures are derived from the nodes' names.
+	 * constructs a BLOG model from a Bayesian network template. The function signatures are derived from node/parameter names.
 	 * @param xmlbifFile
 	 * @throws Exception
 	 */
