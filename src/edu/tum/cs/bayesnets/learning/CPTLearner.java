@@ -290,7 +290,7 @@ public class CPTLearner extends Learner {
 		/**
 		 * increments the value in the CPT that corresponds to the example
 		 * @param domainIndices		a complete example (i.e. an example containing
-		 * 							values for each node) specified as an array of integers, 
+		 * 							values for each (relevant) node) specified as an array of integers, 
 		 * 							where each value is an index into the corresponding node's 
 		 * 							domain, the order being determined by the BeliefNetwork's 
 		 * 							array of nodes as returned by getNodes().
