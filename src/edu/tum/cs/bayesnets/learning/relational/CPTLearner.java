@@ -65,12 +65,13 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				// set domain index
 				value = db.getVariableValue(curVarName.toString(), closedWorld);
 			}
-			else {
+			else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
+				// the value of the current node is given directly as one of the main node's parameters
 				for(int iMain = 0; iMain < nd.params.length; iMain++) {
 					if(nd.params[iMain].equals(ndCurrent.name)) {
 						value = params[iMain];
 						break;
-					}			
+					}
 				}
 			}
 			if(value == null)
@@ -84,6 +85,12 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.name, RelationalNode.join(",", domElems), varName));
 			}
 			domainIndices[ndCurrent.index] = domain_idx;
+			// side affair: learn the CPT of constant nodes here by incrementing the counter
+			if(ndCurrent.isConstant) {
+				int[] constantDomainIndices = new int[this.nodes.length];
+				constantDomainIndices[ndCurrent.index] = domain_idx;
+				this.counters[ndCurrent.index].count(constantDomainIndices);
+			}
 		}
 		// count this example
 		counter.count(domainIndices);
@@ -109,9 +116,10 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 */
 	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;		
-		for(RelationalNode node : bn.getRelationalNodes()) {
-			if(node.isConstant) continue;
+		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
+			if(node.isConstant) continue; // ignore constant nodes as they do not correspond to logical atoms
 			if(verbose) System.out.println("  " + node.name);
+			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
 			countVariable(db, node.name, params, bn.getSignature(node.name).argTypes, 0, closedWorld);			
 		}
