@@ -13,7 +13,7 @@ public class RelationalNode {
 	/**
 	 * name of the node, which is equal to the function/predicate name without any arguments
 	 */
-	public String name;
+	protected String name;
 	/**
 	 * the list of node parameters
 	 */
@@ -22,8 +22,8 @@ public class RelationalNode {
 	 * a reference to the BeliefNode that this node extends
 	 */
 	public BeliefNode node;
-	public Signature sig;
-	public boolean isConstant;
+	protected RelationalBeliefNetwork bn;
+	public boolean isConstant, isAuxiliary;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -51,8 +51,13 @@ public class RelationalNode {
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
+		this.bn = bn;
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
+		if(name.charAt(0) == '#') {
+			isAuxiliary = true;
+			name = name.substring(1);
+		}
 		Matcher matcher = namePat.matcher(name);
 		if(matcher.matches()) {	// a proper relational node, such as "foo(x,y)"
 			this.name = matcher.group(1);
@@ -64,7 +69,7 @@ public class RelationalNode {
 			this.params = new String[0];
 			this.isConstant = true;
 		}
-		this.index = bn.getNodeIndex(name);
+		this.index = bn.getNodeIndex(node);
 		this.node = node;
 	}
 	
@@ -73,7 +78,7 @@ public class RelationalNode {
 	}
 	
 	public boolean isBoolean() {
-		return sig.returnType.equals("Boolean");
+		return bn.getSignature(this).returnType.equals("Boolean");
 	}
 
 	public static class Signature {
@@ -93,6 +98,10 @@ public class RelationalNode {
 					argTypes[i] = newType;
 			}
 		}
+	}
+	
+	public String getName() {
+		return this.name;
 	}
 }
 

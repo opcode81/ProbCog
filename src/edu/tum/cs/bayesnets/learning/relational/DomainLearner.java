@@ -20,7 +20,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode node = bn.getRelationalNode(i);
-			Signature sig = bn.getSignature(node.name);
+			Signature sig = bn.getSignature(node.getName());
 			Set<String> values = db.getDomain(sig.returnType);
 			for(String value : values)
 				((HashSet<String>)directDomainData[i]).add(value);
@@ -35,7 +35,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			if(bn.isBooleanDomain((Discrete)nodes[i].getDomain())) {
-				bn.getSignature(bn.getRelationalNode(i).name).returnType = "Boolean";
+				bn.getSignature(bn.getRelationalNode(i).getName()).returnType = "Boolean";
 				bn.bn.changeBeliefNodeDomain(nodes[i], new Discrete(new String[]{"True", "False"}));
 			}
 		}

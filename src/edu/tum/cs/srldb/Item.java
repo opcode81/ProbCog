@@ -75,6 +75,9 @@ public abstract class Item {
 		}
 	}
 	
+	/**
+	 * prints the item's attributes
+	 */
 	public void print() {
 		Set<String> keys = attribs.keySet();
 		for(Iterator<String> i = keys.iterator(); i.hasNext();) {

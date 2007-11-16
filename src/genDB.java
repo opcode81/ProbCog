@@ -1,10 +1,8 @@
 import java.io.PrintStream;
 import java.util.Properties;
 
-import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 import edu.tum.cs.srldb.Database;
-import edu.tum.cs.srldb.generator.AbstractDBGenerator;
 
 
 public class genDB {
@@ -15,7 +13,8 @@ public class genDB {
 	public static void main(String[] args) {
 		try {			
 			if(args.length != 3) {
-				System.out.println("\n  usage: genDB <-m|-b> <Jython generator script> <output file>\n" +
+				System.out.println("\ngenDB: A database generator for MLNs and BLOG models.");
+				System.out.println("\n  usage: genDB <-m|-b|-bm> <Jython generator script> <output file>\n" +
 						             "           -m   output MLN format\n" +
 						             "           -b   output BLOG format\n\n" +
 						             "           -bm  output basic MLN\n\n" +
@@ -26,7 +25,7 @@ public class genDB {
 			Properties props = new Properties();
 			//props.put("python.path", "C:\\Progra~2\\jython-2.1\\Lib;datagen");
 			//props.put("python.home", "C:\\Progra~2\\jython-2.1");
-			props.put("python.path", "datagen:/usr/local/lehrstuhl/DIR/javaforlinux/jython2.1/Lib");
+			props.put("python.path", "/usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/SRLDB/datagen");
 			PythonInterpreter.initialize(System.getProperties(), props, null);
 			PythonInterpreter jython = new PythonInterpreter();
 			jython.execfile(args[1]);
