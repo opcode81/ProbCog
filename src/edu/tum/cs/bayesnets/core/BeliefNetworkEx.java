@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Writer;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
 import edu.tum.cs.bayesnets.core.io.*;
+import edu.tum.cs.bayesnets.core.relational.RelationalNode;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.
@@ -166,6 +168,14 @@ public class BeliefNetworkEx {
 			if(nodes[i].getName().equals(name))
 				return i;
 		return -1;		
+	}
+	
+	public int getNodeIndex(BeliefNode node) {
+		BeliefNode[] nodes = bn.getNodes();
+		for(int i = 0; i < nodes.length; i++)
+			if(nodes[i] == node)
+				return i;
+		return -1;
 	}
 	
 	/**
@@ -530,7 +540,7 @@ public class BeliefNetworkEx {
 			for(int i = 0; i < order.length; i++) {
 				BeliefNode node = nodes[order[i]];
 				if(node.hasEvidence()) {
-					throw new Exception("TODO evidence case unhandled");
+					throw new Exception("At least one node has evidence. You can only sample from the marginal distribution!");
 				}
 				int idxValue = ForwardSampling.sampleForward(node, bn, generator);			
 				if(idxValue == -1) {
@@ -563,5 +573,63 @@ public class BeliefNetworkEx {
 	
 	public String[] getDiscreteDomainAsArray(String nodeName) {
 		return getDiscreteDomainAsArray(getNode(nodeName));
+	}
+
+	public abstract class CPTWalker {
+		public abstract void tellSize(int childConfigs, int parentConfigs);
+		public abstract void tellNodeOrder(BeliefNode n);		
+		public abstract void tellValue(double v);
+	}
+	
+	public class CPTWalkerHTML extends CPTWalker {
+
+		protected int parentConfigs, childConfigs;
+		
+		@Override
+		public void tellNodeOrder(BeliefNode n) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void tellSize(int childConfigs, int parentConfigs) {
+			
+		}
+
+		@Override
+		public void tellValue(double v) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
+	public void walkCPT(BeliefNode node, CPTWalker walker) {
+		CPF cpf = node.getCPF();
+		BeliefNode[] nodes = cpf.getDomainProduct();
+		int parentConfigs = 1;
+		for(int i = 1; i < nodes.length; i++)
+			parentConfigs *= nodes[i].getDomain().getOrder();
+		walker.tellSize(nodes[0].getDomain().getOrder(), parentConfigs);
+		int[] addr = new int[cpf.getDomainProduct().length];
+		walkCPT(walker, cpf, addr, 0);
+	}
+	
+	protected void walkCPT(CPTWalker walker, CPF cpf, int[] addr, int i) {
+		BeliefNode[] nodes = cpf.getDomainProduct();
+		if(i == addr.length) { // we have a complete address
+			// get the probability value
+			int realAddr = cpf.addr2realaddr(addr);
+			double value = ((ValueDouble)cpf.get(realAddr)).getValue();
+			walker.tellValue(value);
+		}
+		else { // the address is yet incomplete -> consider all ways of setting the next e
+			walker.tellNodeOrder(nodes[i]);
+			Discrete dom = (Discrete)nodes[i].getDomain();
+			for(int j = 0; j < dom.getOrder(); j++) {
+				addr[i] = j;
+				walkCPT(walker, cpf, addr, i+1);
+			}
+		}
 	}
 }

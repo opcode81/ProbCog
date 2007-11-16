@@ -14,11 +14,13 @@ import java.util.regex.Pattern;
 import edu.tum.cs.bayesnets.core.relational.BLOGModel;
 import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.core.relational.RelationalNode;
+import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork.RelationKey;
 import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 
 public class Database {
 
 	protected HashMap<String, Variable> entries;
+	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
 	protected RelationalBeliefNetwork bn;
 	
@@ -26,13 +28,14 @@ public class Database {
 		this.bn = bn;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
+		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
 	}
 	
 	/**
-	 * gets a variable's value as stored in the database - or, if the closed world assumption is being made, the default value of false if applicable
-	 * @param varName
-	 * @param closedWorld
-	 * @return
+	 * gets a variable's value as stored in the database 
+	 * @param varName  the name of the variable whose value is to be retrieved
+	 * @param closedWorld  whether to make the closed-world assumption, i.e. to assume that any Boolean variable for which we do not have a value is "False"
+	 * @return If a value for the given variable is stored in the database, it is returned. Otherwise, null is returned, unless the closed world assumption is being made and the variable is boolean, in which case the default value of "False" is returned.
 	 * @throws Exception 
 	 */
 	public String getVariableValue(String varName, boolean closedWorld) throws Exception {
@@ -52,6 +55,37 @@ public class Database {
 		return entries.containsKey(varName.toLowerCase());
 	}
 	
+	public void addVariable(Variable var) {
+		// add the entry to the main store
+		entries.put(var.getKeyString().toLowerCase(), var);
+		// update lookup table for keys
+		// TODO only add to key hashmap if value is true
+		Collection<RelationKey> keys = this.bn.getRelationKeys(var.nodeName);
+		if(keys != null) {
+			for(RelationKey key : keys) {
+				StringBuffer sb = new StringBuffer();
+				int i = 0; 
+				for(Integer paramIdx : key.keyIndices) {
+					if(i++ > 0)
+						sb.append(',');
+					sb.append(var.params[paramIdx]);
+				}
+				HashMap<String, String[]> hm = functionalDependencies.get(key);
+				if(hm == null) {
+					hm = new HashMap<String, String[]>(); 
+					functionalDependencies.put(key, hm);
+				}
+				hm.put(sb.toString(), var.params);
+			}
+		}
+	}
+	
+	public String[] getParameterSet(RelationKey key, String[] keyValues) {
+		HashMap<String, String[]> m = functionalDependencies.get(key);
+		if(m == null) return null;
+		return m.get(RelationalNode.join(",", keyValues));
+	}
+	
 	public void readBLOGDB(String databaseFilename) throws Exception {
 		// read file content
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
@@ -62,17 +96,20 @@ public class Database {
 		dbContent = matcher.replaceAll("");		
 
 		// read entries
-		Pattern entry = Pattern.compile("(\\w+)\\((.*)\\)\\s*=\\s*([^;]*);?");
+		Pattern entry = Pattern.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		while((line = br.readLine()) != null) {
 			line = line.trim();
 			matcher = entry.matcher(line);
 			if(matcher.matches()) {
-				String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
+				//String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
 				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3));
-				//System.out.println(var.toString());
-				entries.put(key.toLowerCase(), var);
+				//System.out.println(var.toString());				
+				addVariable(var);
+			}
+			else if(line.length() != 0) {
+				System.err.println("Line could not be read: " + line);
 			}
 		}
 		
@@ -82,6 +119,8 @@ public class Database {
 			Signature sig = bn.getSignature(var.nodeName);
 			if(sig == null)
 				throw new Exception(String.format("Error: node %s not declared in BLOG model.", var.nodeName));
+			if(sig.argTypes.length != var.params.length) 
+				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
 			fillDomain(sig.returnType, var.value);
 			for(int i = 0; i < sig.argTypes.length; i++)
 				fillDomain(sig.argTypes[i], var.params[i]);
@@ -148,7 +187,11 @@ public class Database {
 		}
 		
 		public String toString() {
-			return nodeName + "(" + RelationalNode.join(",", params) + ") = " + value;			
+			return getKeyString() + " = " + value;			
+		}
+		
+		public String getKeyString() {
+			return nodeName + "(" + RelationalNode.join(",", params) + ")";
 		}
 	}
 }

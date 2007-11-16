@@ -22,6 +22,7 @@ import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 public class BLOGModel extends RelationalBeliefNetwork {
 	
 	protected HashMap<String, String[]> guaranteedDomElements;
+	protected String blogContents;
 	
 	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
 		File inputFile = new File(filename);
@@ -43,16 +44,12 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		super(xmlbifFile);
 		guaranteedDomElements = new HashMap<String, String[]>();
 		
-		// read the blog file
-		StringBuffer buf = new StringBuffer();
-		for(String blogFile : blogFiles) {
-			buf.append(readTextFile(blogFile));
-			buf.append('\n');
-		}
-		String blog = buf.toString();
+		// read the blog files
+		String blog = readBlogContent(blogFiles);
+		this.blogContents = blog;
 		
 		// obtain signatures from the blog file				
-		Pattern pat = Pattern.compile("random\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)");
+		Pattern pat = Pattern.compile("random\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
 		Matcher matcher = pat.matcher(blog);
 		while(matcher.find()) {
 			String retType = matcher.group(1);
@@ -63,6 +60,23 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		getGuaranteedDomainElements(blog);
 		
 		checkSignatures();
+	}
+	
+	/**
+	 * read the contents of one or more (BLOG) files into a single string
+	 * @param files
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	protected String readBlogContent(String[] files) throws FileNotFoundException, IOException {
+		// read the blog files
+		StringBuffer buf = new StringBuffer();
+		for(String blogFile : files) {
+			buf.append(readTextFile(blogFile));
+			buf.append('\n');
+		}
+		return buf.toString();
 	}
 	
 	/**
@@ -101,7 +115,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	}
 	
 	/**
-	 * generates the ground Bayesian network for the template network that this model represents, instantiating it with the domain guaranteed domain elements 
+	 * generates the ground Bayesian network for the template network that this model represents, instantiating it with the guaranteed domain elements 
 	 * @return
 	 * @throws Exception
 	 */
@@ -124,7 +138,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 				BeliefNode newNode = new BeliefNode(newName, node.node.getDomain());
 				gbn.addNode(newNode);
 				// link from all the parent nodes
-				String[] parentNames = getParentVariableNames(node.name, args);
+				String[] parentNames = getParentVariableNames(node, args);
 				for(String parentName : parentNames) {
 					BeliefNode parent = gbn.getNode(parentName);
 					gbn.bn.connect(parent, newNode);
@@ -224,6 +238,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		
 		// CPTs
 		for(int i = 0; i < nodes.length; i++) {
+			if(getRelationalNode(nodes[i]).isAuxiliary) 
+				continue;
 			CPF cpf = nodes[i].getCPF();
 			BeliefNode[] deps = cpf.getDomainProduct();
 			Discrete[] domains = new Discrete[deps.length];

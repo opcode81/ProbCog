@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -13,7 +14,6 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
 import edu.tum.cs.srldb.Database;
-import edu.tum.cs.srldb.datadict.DataDictionary;
 
 public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	/**
@@ -24,12 +24,47 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * maps a node index to the corresponding node
 	 */
 	protected HashMap<Integer,RelationalNode> relNodesByIdx;
+	/**
+	 * maps a function/predicate name to the signature of the corresponding function
+	 */
+	protected Map<String, Signature> signatures;
+	
+	public class RelationKey {
+		public String relation;
+		/**
+		 * parameter indices that make up a key
+		 */
+		public Vector<Integer> keyIndices;
+		
+		public RelationKey(String relation, String[] arguments) {
+			this.relation = relation;
+			keyIndices = new Vector<Integer>();
+			for(int i = 0; i < arguments.length; i++) {
+				if(!arguments[i].equals("_")) {
+					keyIndices.add(i);
+				}
+			}
+		}
+		
+		public String toString() {
+			return relation + "[" + keyIndices + "]";
+		}
+	}	
+	protected Map<String, Collection<RelationKey>> relationKeys;
+	protected Map<RelationalNode, ParentGrounder> parentGrounders;
+	
+	public Collection<RelationKey> getRelationKeys(String relation) {
+		return relationKeys.get(relation.toLowerCase());
+	}
 	
 	public RelationalBeliefNetwork(String xmlbifFile) throws Exception {
 		super(xmlbifFile);
 		relNodesByName = new HashMap<String, RelationalNode>();
-		relNodesByIdx = new HashMap<Integer, RelationalNode>();
-		// store node data
+		relNodesByIdx = new HashMap<Integer, RelationalNode>();		
+		signatures = new HashMap<String, Signature>();
+		relationKeys = new HashMap<String, Collection<RelationKey>>();
+		parentGrounders = new HashMap<RelationalNode, ParentGrounder>();
+		// store node data		
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode d = new RelationalNode(this, nodes[i]);			
@@ -38,16 +73,16 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 	}
 	
-	public RelationalNode getRelationalNode(String name) {
+	/*public RelationalNode getRelationalNode(String name) {
 		return relNodesByName.get(name.toLowerCase());
-	}
+	}*/
 	
 	public RelationalNode getRelationalNode(int idx) {
 		return relNodesByIdx.get(new Integer(idx));
 	}
 	 
 	public RelationalNode getRelationalNode(BeliefNode node) {
-		return getRelationalNode(RelationalNode.extractNodeName(node.getName()));
+		return getRelationalNode(this.getNodeIndex(node));
 	}
 	
 	public Collection<RelationalNode> getRelationalNodes() {
@@ -74,8 +109,8 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @return an array of variable names
 	 * @throws Exception
 	 */
-	public String[] getParentVariableNames(String nodeName, String[] actualArgs) throws Exception {
-		RelationalNode child = getRelationalNode(nodeName);
+	public String[] getParentVariableNames(RelationalNode node, String[] actualArgs) throws Exception {
+		RelationalNode child = node;
 		BeliefNode[] parents = bn.getParents(child.node);
 		String[] ret = new String[parents.length];
 		for(int i = 0; i < parents.length; i++) {
@@ -90,7 +125,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 					}
 				}
 				if(param == null)
-					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.name, nodeName + actualArgs.toString()));
+					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.name, node.getName() + actualArgs.toString()));
 				varName.append(param);
 				if(iCur < parent.params.length-1)
 					varName.append(",");
@@ -101,8 +136,27 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return ret;
 	}
 	
-	public void addSignature(String nodeName, Signature sig) {
-		getRelationalNode(nodeName).sig = sig;
+	public void addSignature(String predicateName, Signature sig) {
+		//relNodesByIdx.get(nodeIndex).sig = sig;
+		signatures.put(predicateName.toLowerCase(), sig);
+	}
+	
+	public void addSignature(RelationalNode node, Signature sig) {
+		String name = node.getName().toLowerCase();
+		if(node.isConstant)
+			name = "__CONST" + node.index;
+		signatures.put(name, sig);
+	}
+	
+	public Signature getSignature(String predicateName) {
+		return signatures.get(predicateName.toLowerCase());
+	}
+	
+	public Signature getSignature(RelationalNode node) {
+		if(node.isConstant) 
+			return signatures.get("__CONST" + node.index);
+		else
+			return signatures.get(node.getName().toLowerCase());
 	}
 	
 	/**
@@ -112,15 +166,8 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 */
 	public void replaceType(String oldType, String newType) {
 		for(RelationalNode node : this.relNodesByIdx.values()) {
-			node.sig.replaceType(oldType, newType);
+			getSignature(node).replaceType(oldType, newType);
 		}
-	}
-	
-	public Signature getSignature(String nodeName) throws Exception {
-		RelationalNode node = getRelationalNode(nodeName);
-		if(node == null)
-			throw new Exception("Could not determine signature of " + nodeName);
-		return node.sig;
 	}
 	
 	/**
@@ -156,23 +203,28 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 			if(node.isConstant)
 				constants.add(node);
 			else {
-				if(node.sig.argTypes.length != node.params.length)
-					throw new Exception(String.format("Signature of '%s' does not match node definition: It contains %d elements vs. %d elements in the node definition.", node.toString(), node.sig.argTypes.length, node.params.length));
+				Signature sig = getSignature(node);
+				if(sig == null) {
+					throw new Exception("Node " + node + " has no signature!");
+				}
+				// check for the right number of arguments and their types
+				if(sig.argTypes.length != node.params.length)
+					throw new Exception(String.format("Signature of '%s' does not match node definition: It contains %d elements vs. %d elements in the node definition.", node.toString(), sig.argTypes.length, node.params.length));
 				for(int i = 0; i < node.params.length; i++) {
 					String key = node.params[i];
 					String value = types.get(key);
-					if(value != null && !value.equals(node.sig.argTypes[i]))
-						throw new Exception(String.format("Type mismatch: '%s' has types '%s' and '%s'", key, value, node.sig.argTypes[i]));
-					types.put(key, node.sig.argTypes[i]);
+					if(value != null && !value.equals(sig.argTypes[i]))
+						throw new Exception(String.format("Type mismatch: '%s' has types '%s' and '%s'", key, value, sig.argTypes[i]));
+					types.put(key, sig.argTypes[i]);
 				}
 			}
 		}			
 		// update constant return types using the mapping
 		for(RelationalNode constant : constants) {
 			String type = types.get(constant.name);
-			if(type == null)
-				throw new Exception("constant not referenced");
-			constant.sig = new Signature(type, new String[0]);
+			if(type == null) // constants that were referenced by any of their parents must now have a type assigned
+				throw new Exception("Constant " + constant + " not referenced and therefore not typed.");
+			addSignature(constant, new Signature(type, new String[0]));
 		}
 	}
 
@@ -180,7 +232,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		BeliefNode[] p = this.bn.getParents(node.node);
 		RelationalNode[] p2 = new RelationalNode[p.length];
 		for(int i = 0; i < p.length; i++) {
-			p2[i] = getRelationalNode(RelationalNode.extractNodeName(p[i].getName()));
+			p2[i] = getRelationalNode(p[i]);
 		}
 		return p2;
 	}
@@ -322,6 +374,25 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 			}
 		}
 	}
+	
+	public ParentGrounder getParentGrounder(RelationalNode node) throws Exception {
+		ParentGrounder pg = this.parentGrounders.get(node);
+		if(pg == null) {
+			pg = new ParentGrounder(this, node);
+			parentGrounders.put(node, pg);
+		}
+		return pg;
+	}
+	
+	public void addRelationKey(RelationKey k) {
+		Collection<RelationKey> list = relationKeys.get(k.relation);
+		if(list == null) { 
+			list = new Vector<RelationKey>();
+			relationKeys.put(k.relation.toLowerCase(), list);
+		}
+		list.add(k);
+	}
+
 }
 
 
