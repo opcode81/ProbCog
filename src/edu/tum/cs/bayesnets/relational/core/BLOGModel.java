@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.core.relational;
+package edu.tum.cs.bayesnets.relational.core;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,7 +17,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 	
@@ -130,8 +130,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			Signature sig = getSignature(node.name);
 			if(sig == null)
 				throw new Exception("Could not retrieve signature for node " + node.name);
-			Vector<String[]> argGroundings = new Vector<String[]>();
-			groundParams(sig.argTypes, new String[sig.argTypes.length], 0, argGroundings);
+			Vector<String[]> argGroundings = groundParams(sig); 
 			// create a new node for each grounding with the same domain and CPT as the template node
 			for(String[] args : argGroundings) {
 				String newName = RelationalNode.formatName(node.name, args);
@@ -166,7 +165,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	}
 	
 	/**
-	 * gets a list of lists of constants representing all possible combination of elements of the given domains (domNames)
+	 * gets a list of lists of constants representing all possible combinations of elements of the given domains (domNames)
 	 * @param domNames a list of domain names
 	 * @param setting  the current setting (initially empty) - same length as domNames 
 	 * @param idx  the index of the domain from which to choose next 
@@ -182,6 +181,12 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			setting[idx] = elem;
 			groundParams(domNames, setting, idx+1, ret);
 		}
+	}
+	
+	protected Vector<String[]> groundParams(Signature sig) {
+		Vector<String[]> ret = new Vector<String[]>();
+		groundParams(sig.argTypes, new String[sig.argTypes.length], 0, ret);
+		return ret;
 	}
 	
 	public void write(PrintStream out) throws Exception {

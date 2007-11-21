@@ -26,7 +26,7 @@ import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Writer;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
 import edu.tum.cs.bayesnets.core.io.*;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.
@@ -415,7 +415,7 @@ public class BeliefNetworkEx {
 			return null;
 		return node.getDomain();
 	}
-
+	
 	/**
 	 * shows the Bayesian Network in a BNJ editor window (without saving/loading capabilities)
 	 */
@@ -631,5 +631,16 @@ public class BeliefNetworkEx {
 				walkCPT(walker, cpf, addr, i+1);
 			}
 		}
+	}
+	
+	/**
+	 * gets the index of the given value inside the given node's domain
+	 * @param node  a node with a discrete domain
+	 * @param value  the value whose index to search for
+	 * @return  the index of the value in the node's domain
+	 */
+	public int getDomainIndex(BeliefNode node, String value) {
+		Discrete domain = (Discrete)node.getDomain();
+		return domain.findName(value);
 	}
 }

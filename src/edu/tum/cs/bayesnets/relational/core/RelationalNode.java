@@ -1,9 +1,12 @@
-package edu.tum.cs.bayesnets.core.relational;
+package edu.tum.cs.bayesnets.relational.core;
 
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.tum.cs.srldb.Database;
 
 public class RelationalNode {
 	/**
@@ -54,10 +57,18 @@ public class RelationalNode {
 		this.bn = bn;
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
+		// preprocessing: auxiliary node
 		if(name.charAt(0) == '#') {
 			isAuxiliary = true;
 			name = name.substring(1);
 		}
+		// preprocessing noisy-or node
+		int sepPos = name.indexOf('|');
+		if(sepPos != -1) {
+			name = name.substring(0, sepPos);
+			String[] norParams = name.substring(sepPos+1).split("\\s*,\\s*");			
+		}
+		// match function and parameters
 		Matcher matcher = namePat.matcher(name);
 		if(matcher.matches()) {	// a proper relational node, such as "foo(x,y)"
 			this.name = matcher.group(1);
@@ -78,7 +89,11 @@ public class RelationalNode {
 	}
 	
 	public boolean isBoolean() {
-		return bn.getSignature(this).returnType.equals("Boolean");
+		Signature sig = bn.getSignature(this);
+		if(sig != null)
+			return sig.returnType.equals("Boolean");
+		else
+			return bn.isBooleanDomain(node.getDomain());
 	}
 
 	public static class Signature {
@@ -100,8 +115,52 @@ public class RelationalNode {
 		}
 	}
 	
+	/**
+	 * gets the name of the function/predicate that this node corresponds to
+	 * @return
+	 */
 	public String getName() {
 		return this.name;
+	}
+	
+	/**
+	 * generates a textual representation of the logical literal that this node represents for a certain assignment (and, optionally, substitutions of its parameters) 
+	 * @param setting  the value this node is set to given by an index into the node's domain
+	 * @param constantValues  mapping of this node's arguments to constants; any number of arguments may be mapped; may be null
+	 * @return
+	 */
+	protected String toLiteral(int setting, HashMap<String,String> constantValues) {
+		// predicate name
+		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(name)));
+		// add parameters
+		for(int i = 0; i < params.length; i++) {
+			if(i > 0)
+				sb.append(",");
+			String value = constantValues != null ? constantValues.get(params[i]) : null;
+			if(value == null)
+				sb.append(params[i]);
+			else
+				sb.append(value);
+		}
+		// add node value (negation as prefix or value of non-boolean variable as additional parameter)
+		String value = ((Discrete)node.getDomain()).getName(setting);
+		if(isBoolean()) {
+			if(value.equalsIgnoreCase("false"))
+				sb.insert(0, '!');
+		}
+		else {
+			sb.append(',');
+			sb.append(Database.upperCaseString(value));			
+		}
+		sb.append(')');
+		return sb.toString();
+	}
+	
+	/**
+	 * gets the network this node belongs to
+	 */
+	protected RelationalBeliefNetwork getNetwork() {
+		return bn;
 	}
 }
 

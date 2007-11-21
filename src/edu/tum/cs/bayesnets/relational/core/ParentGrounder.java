@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.core.relational;
+package edu.tum.cs.bayesnets.relational.core;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -7,9 +7,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Vector;
 
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork.RelationKey;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
-import edu.tum.cs.bayesnets.learning.relational.Database;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.learning.Database;
 
 public class ParentGrounder {
 	protected class FunctionalLookup {

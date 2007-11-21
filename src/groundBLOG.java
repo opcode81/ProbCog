@@ -1,4 +1,4 @@
-import edu.tum.cs.bayesnets.core.relational.BLOGModel;
+import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 
 
 public class groundBLOG {
