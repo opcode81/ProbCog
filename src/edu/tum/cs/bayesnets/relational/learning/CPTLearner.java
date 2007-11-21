@@ -1,14 +1,14 @@
-package edu.tum.cs.bayesnets.learning.relational;
+package edu.tum.cs.bayesnets.relational.learning;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.bayesnets.core.relational.ParentGrounder;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode;
-import edu.tum.cs.bayesnets.learning.relational.Database.Variable;
+import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.relational.learning.Database.Variable;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	

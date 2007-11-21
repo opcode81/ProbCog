@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.learning.relational;
+package edu.tum.cs.bayesnets.relational.learning;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
@@ -11,11 +11,11 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.bayesnets.core.relational.BLOGModel;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork.RelationKey;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.core.BLOGModel;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 
 public class Database {
 

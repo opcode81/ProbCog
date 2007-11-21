@@ -148,8 +148,8 @@ public class CPTLearner extends Learner {
 	}
 	
 	/**
-	 * learns an example from a HashMap&lt;String,String&gt;. 
-	 * @param data			a HashMap containing the data for one example. The names of all the random 
+	 * learns an example from a Map&lt;String,String&gt;. 
+	 * @param data			a Map containing the data for one example. The names of all the random 
 	 * 						variables (nodes) in the network must be found in the set of keys of the 
 	 * 						hash map. 
 	 * @throws Exception	if required keys are missing from the HashMap

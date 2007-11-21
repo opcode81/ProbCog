@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.core.relational;
+package edu.tum.cs.bayesnets.relational.core;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -10,16 +10,13 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 import edu.tum.cs.srldb.Database;
 
-public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
-	/**
-	 * maps a node name (function/predicate name) to the corresponding node
-	 */
-	protected HashMap<String,RelationalNode> relNodesByName;
+public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	/**
 	 * maps a node index to the corresponding node
 	 */
@@ -59,7 +56,6 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public RelationalBeliefNetwork(String xmlbifFile) throws Exception {
 		super(xmlbifFile);
-		relNodesByName = new HashMap<String, RelationalNode>();
 		relNodesByIdx = new HashMap<Integer, RelationalNode>();		
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
@@ -68,19 +64,26 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode d = new RelationalNode(this, nodes[i]);			
-			relNodesByName.put(d.name.toLowerCase(), d);
 			relNodesByIdx.put(new Integer(d.index), d);
 		}
 	}
 	
-	/*public RelationalNode getRelationalNode(String name) {
-		return relNodesByName.get(name.toLowerCase());
-	}*/
+	/**
+	 * gets the first relational node where the entire node label matches the given name
+	 * @param name
+	 * @return
+	 */
+	public RelationalNode getRelationalNode(String name) {
+		BeliefNode node = this.getNode(name);
+		if(node == null)
+			return null;
+		return getRelationalNode(this.getNodeIndex(node));
+	}
 	
 	public RelationalNode getRelationalNode(int idx) {
 		return relNodesByIdx.get(new Integer(idx));
 	}
-	 
+	
 	public RelationalNode getRelationalNode(BeliefNode node) {
 		return getRelationalNode(this.getNodeIndex(node));
 	}
@@ -89,14 +92,17 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return relNodesByIdx.values();
 	}
 	
-	public boolean isBooleanDomain(Discrete domain) {
-		if(domain.getOrder() > 2)
+	public boolean isBooleanDomain(Domain domain) {
+		if(!(domain instanceof Discrete))
+			return false;
+		int order = domain.getOrder();
+		if(order > 2 || order <= 0)
 			return false;
 		if(domain.getOrder() == 1) {
 			if(domain.getName(0).equalsIgnoreCase("true") || domain.getName(0).equalsIgnoreCase("false"))
 				return true;
 			return false;
-		}			
+		}
 		if(domain.getName(0).equalsIgnoreCase("true") || domain.getName(1).equalsIgnoreCase("true"))
 			return true;
 		return false;
@@ -239,6 +245,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public void toMLN(PrintStream out) throws Exception {		
 		// write domain declarations
+		out.println("// domain declarations");
 		HashSet<String> handled = new HashSet<String>();
 		HashMap<String, Vector<String>> domains = new HashMap<String,Vector<String>>();
 		for(RelationalNode node : getRelationalNodes()) {	
@@ -263,6 +270,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		out.println();
 		
 		// write predicate declarations
+		out.println("// predicate declarations");
 		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isConstant)
 				continue;
@@ -281,6 +289,8 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		out.println();
 		
 		// mutual exclusiveness and exhaustiveness
+		out.println("mutual exclusiveness and exhaustiveness");
+		// - non-boolean nodes
 		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isConstant)
 				continue;
@@ -295,6 +305,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 				out.println(")");
 			}
 		}
+		// TODO - functional dependencies in relations
 		out.println();
 		
 		// write formulas
@@ -303,37 +314,17 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 			RelationalNode node = getRelationalNode(order[i]);
 			if(node.isConstant)
 				continue;
+			out.println("// CPT for " + node.node.getName());
+			out.println("// <group>");
+			CPT2MLNFormulas c = new CPT2MLNFormulas(node);
+			c.convert(out);
+			out.println("// </group>\n");
+			/*
 			CPF cpf = node.node.getCPF();
 			int[] addr = new int[cpf.getDomainProduct().length];
 			walkCPD_MLNformulas(out, cpf, addr, 0);
+			*/
 		}
-	}
-	
-	protected String toPredicate(RelationalNode node, int setting, HashMap<String,String> constantValues) {
-		// predicate name
-		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(node.name)));
-		// add parameters
-		for(int i = 0; i < node.params.length; i++) {
-			if(i > 0)
-				sb.append(",");
-			String value = constantValues.get(node.params[i]);
-			if(value == null)
-				sb.append(node.params[i]);
-			else
-				sb.append(value);
-		}
-		// add node value (negation as prefix or value of non-boolean variable as additional parameter)
-		String value = ((Discrete)node.node.getDomain()).getName(setting);
-		if(node.isBoolean()) {
-			if(value.equalsIgnoreCase("false"))
-				sb.insert(0, '!');
-		}
-		else {
-			sb.append(',');
-			sb.append(Database.upperCaseString(value));			
-		}
-		sb.append(')');
-		return sb.toString();
 	}
 	
 	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i) {
@@ -355,7 +346,7 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 				if(!rn.isConstant) {
 					if(j > 0)
 						sb.append(" ^ ");
-					sb.append(toPredicate(rn, addr[j], constantValues));
+					sb.append(rn.toLiteral(addr[j], constantValues));
 				}
 			}
 			// get the weight
@@ -392,7 +383,6 @@ public abstract class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 		list.add(k);
 	}
-
 }
 
 

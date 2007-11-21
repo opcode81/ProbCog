@@ -1,13 +1,13 @@
-package edu.tum.cs.bayesnets.learning.relational;
+package edu.tum.cs.bayesnets.relational.learning;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode;
-import edu.tum.cs.bayesnets.core.relational.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 
 public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 	public DomainLearner(RelationalBeliefNetwork bn) {

@@ -3,11 +3,11 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.relational.BLOGModel;
-import edu.tum.cs.bayesnets.core.relational.RelationalBeliefNetwork;
-import edu.tum.cs.bayesnets.learning.relational.CPTLearner;
-import edu.tum.cs.bayesnets.learning.relational.Database;
-import edu.tum.cs.bayesnets.learning.relational.DomainLearner;
+import edu.tum.cs.bayesnets.relational.core.BLOGModel;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
+import edu.tum.cs.bayesnets.relational.learning.Database;
+import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
 public class learnBLOG {
 

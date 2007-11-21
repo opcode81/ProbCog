@@ -1,11 +1,11 @@
-package edu.tum.cs.bayesnets.core.relational;
+package edu.tum.cs.bayesnets.relational.core;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.bayesnets.learning.relational.CPTLearner;
-import edu.tum.cs.bayesnets.learning.relational.Database;
-import edu.tum.cs.bayesnets.learning.relational.DomainLearner;
+import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
+import edu.tum.cs.bayesnets.relational.learning.Database;
+import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
 public class ABL extends BLOGModel {
 	
