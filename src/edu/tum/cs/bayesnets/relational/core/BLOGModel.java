@@ -54,7 +54,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		while(matcher.find()) {
 			String retType = matcher.group(1);
 			String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
-			addSignature(matcher.group(2), new Signature(retType, argTypes));
+			addSignature(matcher.group(2), new Signature(matcher.group(2), retType, argTypes));
 		}
 		
 		getGuaranteedDomainElements(blog);

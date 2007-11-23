@@ -26,7 +26,7 @@ public class RelationalNode {
 	 */
 	public BeliefNode node;
 	protected RelationalBeliefNetwork bn;
-	public boolean isConstant, isAuxiliary;
+	public boolean isConstant, isAuxiliary, isPrecondition;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -57,8 +57,13 @@ public class RelationalNode {
 		this.bn = bn;
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
-		// preprocessing: auxiliary node
-		if(name.charAt(0) == '#') {
+		// preprocessing: special parent nodes 
+		if(name.charAt(0) == '#') { // auxiliary: CPT is meaningless
+			isAuxiliary = true;
+			name = name.substring(1);
+		}
+		else if(name.charAt(0) == '+') { // precondition: node is boolean and required to be true
+			isPrecondition = true;
 			isAuxiliary = true;
 			name = name.substring(1);
 		}
@@ -99,10 +104,12 @@ public class RelationalNode {
 	public static class Signature {
 		public String returnType;
 		public String[] argTypes;
+		public String functionName;
 	
-		public Signature(String returnType, String[] argTypes) {
+		public Signature(String functionName, String returnType, String[] argTypes) {
 			this.returnType = returnType;
 			this.argTypes = argTypes;
+			this.functionName = functionName;
 		}
 		
 		public void replaceType(String oldType, String newType) {
@@ -112,6 +119,11 @@ public class RelationalNode {
 				if(argTypes[i].equals(oldType))
 					argTypes[i] = newType;
 			}
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("%s %s(%s)", returnType, functionName, RelationalNode.join(",", argTypes));
 		}
 	}
 	

@@ -79,7 +79,7 @@ public class CPT2MLNFormulas {
 			instances.setClass(attrs.get("prob"));
 			J48 j48 = new J48();
 			j48.setUnpruned(true);
-			j48.setMinNumObj(0); // there is no minimum number of objects for the tree's leaf nodes 
+			j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
 			j48.buildClassifier(instances);		
 			
 			// write weighted formulas for each of the decision tree's leaf nodes/rules
@@ -100,7 +100,16 @@ public class CPT2MLNFormulas {
 						conjunction.append(" ^ ");
 					conjunction.append(literal);
 				}
-				// if we did not come across the main node, create one variant of the conjunction for each possible setting
+				// add preconditions to all conjunctions
+				RelationalNode[] parents = bn.getRelationalParents(mainNode);
+				for(RelationalNode parent : parents) {
+					if(parent.isPrecondition) {
+						if(lits++ > 0)
+							conjunction.append(" ^ ");
+						conjunction.append(parent.toLiteral(bn.getDomainIndex(parent.node, "True"), null));
+					}
+				}
+				// if we did not come across the main node above, create one variant of the conjunction for each possible setting
 				Vector<String> conjunctions = new Vector<String>();
 				if(!haveMainNode) {
 					for(int i = 0; i < mainNode.node.getDomain().getOrder(); i++) {
@@ -126,7 +135,7 @@ public class CPT2MLNFormulas {
 		}		
 	}
 	
-	protected void walkCPT4InstanceCollection(int[] addr, int i, Instances instances) {
+	protected void walkCPT4InstanceCollection(int[] addr, int i, Instances instances) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// get the probability value
@@ -141,7 +150,7 @@ public class CPT2MLNFormulas {
 				Discrete dom = (Discrete)nodes[j].getDomain();
 				inst.setValue(attrs.get(nodes[j].getName()), dom.getName(addr[j]));
 			}
-			// add attribute for class (predicted) attribute - i.e. the probability value 
+			// add value of class (predicted) attribute - i.e. the probability value 
 			inst.setValue(attrs.get("prob"), Double.toString(value));
 			
 			// add the instance to our collection
@@ -149,9 +158,18 @@ public class CPT2MLNFormulas {
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			Discrete dom = (Discrete)nodes[i].getDomain();
-			for(int j = 0; j < dom.getOrder(); j++) {
-				addr[i] = j;
+			RelationalNode n = bn.getRelationalNode(nodes[i]);
+			if(n.isPrecondition) {
+				addr[i] = dom.findName("True");
+				if(addr[i] == -1)
+					throw new Exception("The node " + nodes[i] + " is set as a precondition, but its domain does not contain the value 'True'.");
 				walkCPT4InstanceCollection(addr, i+1, instances);
+			}
+			else {
+				for(int j = 0; j < dom.getOrder(); j++) {
+					addr[i] = j;
+					walkCPT4InstanceCollection(addr, i+1, instances);
+				}
 			}
 		}	
 	}
@@ -166,9 +184,16 @@ public class CPT2MLNFormulas {
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			Discrete dom = (Discrete)nodes[i].getDomain();
-			for(int j = 0; j < dom.getOrder(); j++) {
-				addr[i] = j;
+			RelationalNode n = bn.getRelationalNode(nodes[i]);
+			if(n.isPrecondition) {
+				addr[i] = dom.findName("True");
 				walkCPT4ValueSet(addr, i+1, values);
+			}
+			else {
+				for(int j = 0; j < dom.getOrder(); j++) {
+					addr[i] = j;
+					walkCPT4ValueSet(addr, i+1, values);
+				}
 			}
 		}	
 	}
