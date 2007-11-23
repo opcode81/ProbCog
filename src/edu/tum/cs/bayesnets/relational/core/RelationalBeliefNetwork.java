@@ -165,6 +165,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			return signatures.get(node.getName().toLowerCase());
 	}
 	
+	public Collection<Signature> getSignatures() {
+		return signatures.values();
+	}
+	
 	/**
 	 * replace a type by a new type in all node signatures
 	 * @param oldType
@@ -192,7 +196,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				argTypes[i] = "ObjType_" + param;
 			}
 			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.name; 
-			addSignature(node.name, new Signature(retType, argTypes));		
+			addSignature(node.name, new Signature(node.getName(), retType, argTypes));		
 		}
 		checkSignatures(); // to fill constants
 	}
@@ -230,7 +234,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			String type = types.get(constant.name);
 			if(type == null) // constants that were referenced by any of their parents must now have a type assigned
 				throw new Exception("Constant " + constant + " not referenced and therefore not typed.");
-			addSignature(constant, new Signature(type, new String[0]));
+			addSignature(constant, new Signature(constant.getName(), type, new String[0]));
 		}
 	}
 
@@ -271,10 +275,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		
 		// write predicate declarations
 		out.println("// predicate declarations");
-		for(RelationalNode node : getRelationalNodes()) {
-			if(node.isConstant)
-				continue;
-			Signature sig = getSignature(node.name);
+		for(Signature sig : getSignatures()) {
 			String[] argTypes;
 			if(sig.returnType.equals("Boolean"))
 				argTypes = new String[sig.argTypes.length];
@@ -284,15 +285,15 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			}
 			for(int i = 0; i < sig.argTypes.length; i++)
 				argTypes[i] = Database.lowerCaseString(sig.argTypes[i]);
-			out.printf("%s(%s)\n", Database.lowerCaseString(node.name), RelationalNode.join(", ", argTypes));			
+			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), RelationalNode.join(", ", argTypes));			
 		}
 		out.println();
 		
 		// mutual exclusiveness and exhaustiveness
-		out.println("mutual exclusiveness and exhaustiveness");
+		out.println("// mutual exclusiveness and exhaustiveness");
 		// - non-boolean nodes
 		for(RelationalNode node : getRelationalNodes()) {
-			if(node.isConstant)
+			if(node.isConstant || node.isAuxiliary)
 				continue;
 			if(!node.isBoolean()) {
 				out.print(Database.lowerCaseString(node.name));
@@ -305,14 +306,14 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				out.println(")");
 			}
 		}
-		// TODO - functional dependencies in relations
+		// TODO - add constraints for functional dependencies in relations
 		out.println();
 		
 		// write formulas
 		int[] order = getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
 			RelationalNode node = getRelationalNode(order[i]);
-			if(node.isConstant)
+			if(node.isConstant || node.isAuxiliary)
 				continue;
 			out.println("// CPT for " + node.node.getName());
 			out.println("// <group>");
