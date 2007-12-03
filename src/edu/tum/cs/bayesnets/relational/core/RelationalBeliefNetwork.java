@@ -27,6 +27,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	protected Map<String, Signature> signatures;
 	
 	public class RelationKey {
+		/**
+		 * the name of the relation
+		 */
 		public String relation;
 		/**
 		 * parameter indices that make up a key
@@ -47,7 +50,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			return relation + "[" + keyIndices + "]";
 		}
 	}	
+	/**
+	 * a mapping of function/relation names to RelationKey objects which signify argument groups that are keys of the relation (which may be used for a functional lookup)
+	 */
 	protected Map<String, Collection<RelationKey>> relationKeys;
+	/**
+	 * a mapping of nodes to their corresponding parent grounders (which are created on demand)
+	 */
 	protected Map<RelationalNode, ParentGrounder> parentGrounders;
 	
 	public Collection<RelationKey> getRelationKeys(String relation) {
@@ -64,8 +73,12 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode d = new RelationalNode(this, nodes[i]);			
-			relNodesByIdx.put(new Integer(d.index), d);
+			addRelationalNode(d);
 		}
+	}
+	
+	public void addRelationalNode(RelationalNode node) {
+		relNodesByIdx.put(node.index, node);
 	}
 	
 	/**
@@ -121,7 +134,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		String[] ret = new String[parents.length];
 		for(int i = 0; i < parents.length; i++) {
 			RelationalNode parent = getRelationalNode(getNodeIndex(parents[i].getName()));
-			StringBuffer varName = new StringBuffer(parent.name + "(");
+			StringBuffer varName = new StringBuffer(parent.getFunctionName() + "(");
 			String param = null;
 			for(int iCur = 0; iCur < parent.params.length; iCur++) {
 				for(int iMain = 0; iMain < child.params.length; iMain++) {
@@ -131,7 +144,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					}
 				}
 				if(param == null)
-					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.name, node.getName() + actualArgs.toString()));
+					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.getFunctionName(), node.getFunctionName() + actualArgs.toString()));
 				varName.append(param);
 				if(iCur < parent.params.length-1)
 					varName.append(",");
@@ -148,7 +161,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	}
 	
 	public void addSignature(RelationalNode node, Signature sig) {
-		String name = node.getName().toLowerCase();
+		String name = node.getFunctionName().toLowerCase();
 		if(node.isConstant)
 			name = "__CONST" + node.index;
 		signatures.put(name, sig);
@@ -162,7 +175,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		if(node.isConstant) 
 			return signatures.get("__CONST" + node.index);
 		else
-			return signatures.get(node.getName().toLowerCase());
+			return signatures.get(node.getFunctionName().toLowerCase());
 	}
 	
 	public Collection<Signature> getSignatures() {
@@ -195,8 +208,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				String param = node.params[i].replaceAll("\\d+", "");
 				argTypes[i] = "ObjType_" + param;
 			}
-			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.name; 
-			addSignature(node.name, new Signature(node.getName(), retType, argTypes));		
+			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.getFunctionName(); 
+			addSignature(node.getFunctionName(), new Signature(node.getFunctionName(), retType, argTypes));		
 		}
 		checkSignatures(); // to fill constants
 	}
@@ -231,10 +244,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}			
 		// update constant return types using the mapping
 		for(RelationalNode constant : constants) {
-			String type = types.get(constant.name);
+			String type = types.get(constant.getFunctionName());
 			if(type == null) // constants that were referenced by any of their parents must now have a type assigned
 				throw new Exception("Constant " + constant + " not referenced and therefore not typed.");
-			addSignature(constant, new Signature(constant.getName(), type, new String[0]));
+			addSignature(constant, new Signature(constant.getFunctionName(), type, new String[0]));
 		}
 	}
 
@@ -253,7 +266,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		HashSet<String> handled = new HashSet<String>();
 		HashMap<String, Vector<String>> domains = new HashMap<String,Vector<String>>();
 		for(RelationalNode node : getRelationalNodes()) {	
-			Signature sig = getSignature(node.name);
+			Signature sig = getSignature(node.getFunctionName());
 			if(sig.returnType.equals("Boolean"))
 				continue;
 			if(handled.contains(sig.returnType))
@@ -296,7 +309,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			if(node.isConstant || node.isAuxiliary)
 				continue;
 			if(!node.isBoolean()) {
-				out.print(Database.lowerCaseString(node.name));
+				out.print(Database.lowerCaseString(node.getFunctionName()));
 				out.print('(');
 				for(int i = 0; i <= node.params.length; i++) {
 					if(i > 0) out.print(", ");
@@ -328,6 +341,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 	}
 	
+	@Deprecated
 	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i) {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
@@ -337,7 +351,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				RelationalNode rn = getRelationalNode(nodes[j]);
 				if(rn.isConstant) {
 					String value = ((Discrete)rn.node.getDomain()).getName(addr[j]);
-					constantValues.put(rn.name, value);
+					constantValues.put(rn.functionName, value);
 				}
 			}
 			// for each element of the address obtain the corresponding literal/predicate
@@ -383,6 +397,65 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			relationKeys.put(k.relation.toLowerCase(), list);
 		}
 		list.add(k);
+	}
+	
+	/**
+	 * prepares this network for learning by materializing additional nodes (e.g. for noisy-or)
+	 * @throws Exception 
+	 */
+	public void prepareForLearning() throws Exception {
+		for(RelationalNode node : getRelationalNodes().toArray(new RelationalNode[0])) {
+			if(node.requiresNoisyOr()) {
+				//BeliefNode orNode = this.addNode("or");
+				// create fully grounded variant
+				String[] params = new String[node.params.length + node.norParams.length];
+				int i = 0;
+				for(int j = 0; j < node.params.length; j++)
+					params[i++] = node.params[j];
+				for(int j = 0; j < node.norParams.length; j++)
+					params[i++] = node.norParams[j];
+				String fullName = RelationalNode.formatName(node.getFunctionName() + "_" + RelationalNode.join("", node.norParams), params);
+				BeliefNode fullyGroundedNode = this.addNode(fullName);
+				fullyGroundedNode.setDomain(node.node.getDomain());
+				// create the corresponding relational node and define a signature for it
+				RelationalNode fullyGroundedRelNode = new RelationalNode(this, fullyGroundedNode); 
+				addRelationalNode(fullyGroundedRelNode);
+				// - determine argument types for signature
+				String[] argTypes = new String[node.params.length];
+				Signature origSig = node.getSignature();
+				RelationalNode[] relParents = getRelationalParents(node);
+				for(int j = 0; j < params.length; j++) {
+					if(j < node.params.length)
+						argTypes[j] = origSig.argTypes[j];
+					else { // check relational parents for parameter match		
+						boolean haveType = false;
+						for(int k = 0; k < relParents.length && !haveType; k++) {
+							Signature sig = relParents[k].getSignature();
+							for(int l = 0; l < sig.argTypes.length; l++) {
+								if(relParents[k].params[l] == params[j]) {
+									argTypes[j] = sig.argTypes[k];
+									haveType = true;
+									break;
+								}									
+							}
+						}
+					}
+				}
+				// - add signature
+				addSignature(fullyGroundedRelNode, new Signature(fullyGroundedRelNode.getFunctionName(), origSig.returnType, argTypes));
+				// connect all parents of this node to the fully grounded version
+				BeliefNode[] parents = this.bn.getParents(node.node);
+				for(BeliefNode parent : parents) {
+					this.bn.disconnect(parent, node.node);
+					this.bn.connect(parent, fullyGroundedNode);
+				}
+				// connect the fully grounded version to the original child
+				this.bn.connect(fullyGroundedNode, node.node);
+				// rename the original child
+				node.node.setName(RelationalNode.formatName(node.getFunctionName(), node.params));
+			}
+		}
+		//show();
 	}
 }
 

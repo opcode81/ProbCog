@@ -32,7 +32,7 @@ public class ParentGrounder {
 				for(int k = 0; k < node.params.length; k++) buf[k] = "_";
 				int j = 0;
 				for(Integer k : key.keyIndices) buf[k] = keyValues[j++];
-				System.err.println("Could not perform lookup for " + RelationalNode.formatName(node.getName(), buf));
+				System.err.println("Could not perform lookup for " + RelationalNode.formatName(node.getFunctionName(), buf));
 				return false;
 			}
 			// update the variable bindings
@@ -88,7 +88,7 @@ public class ParentGrounder {
 						// - otherwise look at all the keys for the relation and check if we 
 						//   already have one of them completely
 						else {
-							Collection<RelationKey> keys = bn.getRelationKeys(n.getName());
+							Collection<RelationKey> keys = bn.getRelationKeys(n.getFunctionName());
 							if(keys != null) {
 								for(RelationKey key : keys) {
 									int c = 0;

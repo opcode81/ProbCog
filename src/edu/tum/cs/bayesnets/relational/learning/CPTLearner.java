@@ -28,21 +28,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @throws Exception
 	 */
 	protected void countVariable(Database db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
+		// if the node is not CPT-based, skip it
+		if(!node.hasCPT())
+			return;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		// get the node and its associated counter
-		RelationalNode nd = node;
-		if(nd == null) {
-			String error = String.format("Invalid node name '%s'", node.getName());
-			System.err.println(error);
-			return;
-			//throw new Exception(error);
-		}
-		ExampleCounter counter = this.counters[nd.index];
+		ExampleCounter counter = this.counters[node.index];
 		// get the main variable's name
-		String varName = RelationalNode.formatName(node.getName(), params);
+		String varName = RelationalNode.formatName(node.getFunctionName(), params);
 		//System.out.println("counting " + varName);
 		// set the domain indices of all relevant nodes (node itself and parents)
-		ParentGrounder pg = bn.getParentGrounder(nd);
+		ParentGrounder pg = bn.getParentGrounder(node);
 		//System.out.println();
 		/*HashMap<String, Integer> counts = marginals.get(node.index);
 		if(counts == null) {
@@ -55,17 +51,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			for(int i = 0; i < counter.nodeIndices.length; i++) {
 				RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
 				// determine the value of the node given the parameter settings implied by the main node
-				String value = null, curVarname = ndCurrent.getName();
+				String value = null, curVarname = ndCurrent.getFunctionName();
 				if(!ndCurrent.isConstant) {
-					String curVarName = RelationalNode.formatName(ndCurrent.getName(), paramSets.get(ndCurrent.index));
+					String curVarName = RelationalNode.formatName(ndCurrent.getFunctionName(), paramSets.get(ndCurrent.index));
 					// set value
 					value = db.getVariableValue(curVarName.toString(), closedWorld);
 					//System.out.println("For " + varName + ": " + curVarName + " = " + value);
 				}
 				else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
 					// the value of the current node is given directly as one of the main node's parameters
-					for(int iMain = 0; iMain < nd.params.length; iMain++) {
-						if(nd.params[iMain].equals(ndCurrent.getName())) {
+					for(int iMain = 0; iMain < node.params.length; iMain++) {
+						if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
 							value = params[iMain];
 							break;
 						}
@@ -80,7 +76,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					String[] domElems = new String[dom.getOrder()];
 					for(int j = 0; j < domElems.length; j++)
 						domElems[j] = dom.getName(j);
-					throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getName(), RelationalNode.join(",", domElems), varName));
+					throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
 				}
 				domainIndices[ndCurrent.index] = domain_idx;
 				// side affair: learn the CPT of constant nodes here by incrementing the counter
@@ -100,7 +96,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			counts.put(v, i+1);*/
 		}
 		else {
-			System.err.println("Variable " + RelationalNode.formatName(node.getName(), params)+ " skipped");
+			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped");
 		}
 	}
 	
@@ -132,7 +128,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			if(verbose) System.out.println("  " + node);
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
-			countVariable(db, node, params, bn.getSignature(node.getName()).argTypes, 0, closedWorld);
+			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
 			//System.out.println("    counts: " + marginals.get(node.index));
 		}
 	}
@@ -151,7 +147,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		// if we have the full set of parameters, count the example
 		if(i == params.length) {
 			if(!closedWorld) {
-				String varName = RelationalNode.formatName(node.getName(), params);
+				String varName = RelationalNode.formatName(node.getFunctionName(), params);
 				if(!db.contains(varName))
 					return;
 			}
