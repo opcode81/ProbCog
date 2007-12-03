@@ -127,13 +127,13 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		for(int i = 0; i < order.length; i++) { // for each template node (in topological order)
 			RelationalNode node = getRelationalNode(order[i]);
 			// get all possible argument groundings
-			Signature sig = getSignature(node.name);
+			Signature sig = getSignature(node.functionName);
 			if(sig == null)
-				throw new Exception("Could not retrieve signature for node " + node.name);
+				throw new Exception("Could not retrieve signature for node " + node.functionName);
 			Vector<String[]> argGroundings = groundParams(sig); 
 			// create a new node for each grounding with the same domain and CPT as the template node
 			for(String[] args : argGroundings) {
-				String newName = RelationalNode.formatName(node.name, args);
+				String newName = RelationalNode.formatName(node.functionName, args);
 				BeliefNode newNode = new BeliefNode(newName, node.node.getDomain());
 				gbn.addNode(newNode);
 				// link from all the parent nodes
@@ -195,7 +195,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		// write type decls 
 		Set<String> types = new HashSet<String>();
 		for(RelationalNode node : this.getRelationalNodes()) {
-			Signature sig = this.getSignature(node.name);
+			Signature sig = this.getSignature(node.functionName);
 			Discrete domain = (Discrete)node.node.getDomain();
 			if(!types.contains(sig.returnType) && !sig.returnType.equals("Boolean")) {
 				if(!isBooleanDomain(domain)) {
@@ -218,7 +218,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		Set<String> handledDomains = new HashSet<String>();
 		for(RelationalNode node : this.getRelationalNodes()) {
 			Discrete domain = (Discrete)node.node.getDomain();
-			Signature sig = getSignature(node.name);
+			Signature sig = getSignature(node.functionName);
 			if(!sig.returnType.equals("Boolean")) {
 				String t = sig.returnType;
 				if(!handledDomains.contains(t)) {
@@ -236,8 +236,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		
 		// functions
 		for(RelationalNode node : this.getRelationalNodes()) {			
-			Signature sig = getSignature(node.name);
-			out.printf("random %s %s(%s);\n", sig.returnType, node.name, RelationalNode.join(", ", sig.argTypes));			
+			Signature sig = getSignature(node.functionName);
+			out.printf("random %s %s(%s);\n", sig.returnType, node.functionName, RelationalNode.join(", ", sig.argTypes));			
 		}
 		out.println();
 		

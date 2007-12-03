@@ -14,9 +14,9 @@ public class RelationalNode {
 	 */
 	public int index;
 	/**
-	 * name of the node, which is equal to the function/predicate name without any arguments
+	 * the function/predicate name this node is concerned with (without any arguments)
 	 */
-	protected String name;
+	protected String functionName;
 	/**
 	 * the list of node parameters
 	 */
@@ -25,8 +25,12 @@ public class RelationalNode {
 	 * a reference to the BeliefNode that this node extends
 	 */
 	public BeliefNode node;
+	/**
+	 * noisy-or parameters, i.e. parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
+	 */
+	public String[] norParams;
 	protected RelationalBeliefNetwork bn;
-	public boolean isConstant, isAuxiliary, isPrecondition;
+	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -70,18 +74,18 @@ public class RelationalNode {
 		// preprocessing noisy-or node
 		int sepPos = name.indexOf('|');
 		if(sepPos != -1) {
+			norParams = name.substring(sepPos+1).split("\\s*,\\s*");			
 			name = name.substring(0, sepPos);
-			String[] norParams = name.substring(sepPos+1).split("\\s*,\\s*");			
 		}
 		// match function and parameters
 		Matcher matcher = namePat.matcher(name);
 		if(matcher.matches()) {	// a proper relational node, such as "foo(x,y)"
-			this.name = matcher.group(1);
+			this.functionName = matcher.group(1);
 			this.params = matcher.group(2).split("\\s*,\\s*");
 			this.isConstant = false;
 		}
 		else { // constant: usually a node such as "x"
-			this.name = name;
+			this.functionName = name;
 			this.params = new String[0];
 			this.isConstant = true;
 		}
@@ -90,7 +94,7 @@ public class RelationalNode {
 	}
 	
 	public String toString() {
-		return formatName(this.name, this.params);			
+		return formatName(this.functionName, this.params);			
 	}
 	
 	public boolean isBoolean() {
@@ -131,8 +135,8 @@ public class RelationalNode {
 	 * gets the name of the function/predicate that this node corresponds to
 	 * @return
 	 */
-	public String getName() {
-		return this.name;
+	public String getFunctionName() {
+		return this.functionName;
 	}
 	
 	/**
@@ -143,7 +147,7 @@ public class RelationalNode {
 	 */
 	protected String toLiteral(int setting, HashMap<String,String> constantValues) {
 		// predicate name
-		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(name)));
+		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(functionName)));
 		// add parameters
 		for(int i = 0; i < params.length; i++) {
 			if(i > 0)
@@ -171,8 +175,23 @@ public class RelationalNode {
 	/**
 	 * gets the network this node belongs to
 	 */
-	protected RelationalBeliefNetwork getNetwork() {
+	public RelationalBeliefNetwork getNetwork() {
 		return bn;
+	}
+	
+	public boolean requiresNoisyOr() {
+		return norParams != null && norParams.length > 0;
+	}
+	
+	/**
+	 * @return true iff the node represents a conditional probability distribution via a CPT
+	 */
+	public boolean hasCPT() {
+		return !requiresNoisyOr();
+	}
+	
+	public Signature getSignature() {
+		return bn.getSignature(this);
 	}
 }
 
