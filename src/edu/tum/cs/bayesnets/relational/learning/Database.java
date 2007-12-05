@@ -87,6 +87,10 @@ public class Database {
 	}
 	
 	public void readBLOGDB(String databaseFilename) throws Exception {
+		readBLOGDB(databaseFilename, false);
+	}
+
+	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
 		// read file content
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
@@ -117,8 +121,12 @@ public class Database {
 		domains = new HashMap<String, HashSet<String>>();
 		for(Variable var : entries.values()) {
 			Signature sig = bn.getSignature(var.nodeName);
-			if(sig == null)
-				throw new Exception(String.format("Error: node %s not declared in BLOG model.", var.nodeName));
+			if(sig == null) {
+				if(ignoreUndefinedNodes)
+					continue;
+				else
+					throw new Exception(String.format("Error: node %s appears in the training data but it is not declared in the model.", var.nodeName));
+			}
 			if(sig.argTypes.length != var.params.length) 
 				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
 			fillDomain(sig.returnType, var.value);

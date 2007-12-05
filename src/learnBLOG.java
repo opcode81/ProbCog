@@ -13,13 +13,15 @@ public class learnBLOG {
 
 	public static void main(String[] args) {
 		try {
-			boolean showBN = false, learnDomains = false;
+			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-s"))
 					showBN = true;
 				else if(args[i].equals("-d"))
 					learnDomains = true;
+				else if(args[i].equals("-i"))
+					ignoreUndefPreds = true;
 				else if(args[i].equals("-b"))
 					blogFile = args[++i];
 				else if(args[i].equals("-x"))
@@ -33,7 +35,8 @@ public class learnBLOG {
 				System.out.println("\n usage: learnBLOG [-b <BLOG file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
 							         "    -b  BLOG file from which to read function signatures\n" +
 						             "    -s  show learned Bayesian network\n" +
-						             "    -d  learn domains\n");
+						             "    -d  learn domains\n" + 
+						             "    -i  ignore data on predicates not defined in the model");
 				return;
 			}
 			// create a BLOG model
@@ -45,7 +48,7 @@ public class learnBLOG {
 			// read the training database
 			System.out.println("Reading data...");
 			Database db = new Database(bn);
-			db.readBLOGDB(dbFile);		
+			db.readBLOGDB(dbFile, ignoreUndefPreds);		
 			// check domains for overlaps and merge if necessary
 			System.out.println("Checking domains...");
 			db.checkDomains(true);

@@ -28,9 +28,11 @@ public class RelationalNode {
 	/**
 	 * noisy-or parameters, i.e. parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
 	 */
-	public String[] norParams;
+	public String[] addParams;
 	protected RelationalBeliefNetwork bn;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
+	public boolean usesCombinationFunction;
+	public String parentMode;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -51,7 +53,7 @@ public class RelationalNode {
 	 * @param varName
 	 * @return
 	 */
-	public static String extractNodeName(String varName) {
+	public static String extractFunctionName(String varName) {
 		if(varName.contains("("))
 			return varName.substring(0, varName.indexOf('('));
 		return varName;
@@ -61,7 +63,7 @@ public class RelationalNode {
 		this.bn = bn;
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
-		// preprocessing: special parent nodes 
+		// preprocessing: special parent nodes encoded in prefix 
 		if(name.charAt(0) == '#') { // auxiliary: CPT is meaningless
 			isAuxiliary = true;
 			name = name.substring(1);
@@ -71,10 +73,20 @@ public class RelationalNode {
 			isAuxiliary = true;
 			name = name.substring(1);
 		}
-		// preprocessing noisy-or node
+		// preprocessing: special child node that requires different treatment of parent nodes
 		int sepPos = name.indexOf('|');
 		if(sepPos != -1) {
-			norParams = name.substring(sepPos+1).split("\\s*,\\s*");			
+			String decl = name.substring(sepPos+1);
+			Pattern declPat = Pattern.compile("([A-Z]+):(.*)");			
+			Matcher m = declPat.matcher(decl);
+			if(m.matches()) {
+				parentMode = m.group(1);
+				addParams = m.group(2).split("\\s*,\\s*");
+			}
+			else {
+				addParams = decl.split("\\s*,\\s*");
+				usesCombinationFunction = true;
+			}
 			name = name.substring(0, sepPos);
 		}
 		// match function and parameters
@@ -94,9 +106,20 @@ public class RelationalNode {
 	}
 	
 	public String toString() {
-		return formatName(this.functionName, this.params);			
+		return getName();		
 	}
 	
+	public String getName() {
+		return this.node.getName();
+	}
+	
+	public String getCleanName() {
+		return formatName(this.functionName, this.params);
+	}
+	
+	/**
+	 * @return true if the node node is boolean, i.e. it has a boolean domain
+	 */
 	public boolean isBoolean() {
 		Signature sig = bn.getSignature(this);
 		if(sig != null)
@@ -104,7 +127,7 @@ public class RelationalNode {
 		else
 			return bn.isBooleanDomain(node.getDomain());
 	}
-
+	
 	public static class Signature {
 		public String returnType;
 		public String[] argTypes;
@@ -180,18 +203,42 @@ public class RelationalNode {
 	}
 	
 	public boolean requiresNoisyOr() {
-		return norParams != null && norParams.length > 0;
+		return addParams != null && addParams.length > 0 && parentMode.equals("OR");
 	}
 	
 	/**
-	 * @return true iff the node represents a conditional probability distribution via a CPT
+	 * @return true if the node has a conditional probability distribution given as a CPT
 	 */
 	public boolean hasCPT() {
 		return !requiresNoisyOr();
 	}
 	
+	/**
+	 * retrieves this node's signature
+	 * @return
+	 */
 	public Signature getSignature() {
 		return bn.getSignature(this);
+	}
+	
+	/**
+	 * @return true if the node represents a relation between two or more objects
+	 */
+	public boolean isRelation() {
+		return params != null && params.length > 1;
+	}
+	
+	
+	/**
+	 * gets the name of the variable (grounded node) that results when applying the given actual parameters to this node 
+	 * @param actualParams
+	 * @return
+	 * @throws Exception 
+	 */
+	public String getVariableName(String[] actualParams) throws Exception {
+		if(actualParams.length != params.length)
+			throw new Exception(String.format("Invalid number of actual parameters suppplied for %s: expected %d, got %d", toString(), params.length, actualParams.length));
+		return formatName(getFunctionName(), actualParams);
 	}
 }
 

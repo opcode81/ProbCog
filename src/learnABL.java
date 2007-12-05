@@ -50,6 +50,13 @@ public class learnABL {
 			// check domains for overlaps and merge if necessary
 			System.out.println("Checking domains...");
 			db.checkDomains(true);
+			// prepare for learning
+			bn.prepareForLearning();
+			bn.show(); // !!!!
+			if(true) return;
+			int i = 1;
+			if(i > 0) 
+				;//return;
 			// learn domains
 			if(learnDomains) {
 				System.out.println("Learning domains...");
@@ -67,7 +74,7 @@ public class learnABL {
 			bn.write(out);			
 			out.close();
 			System.out.println("Writing XML-BIF output...");
-			bn.saveXMLBIF(bifFile);
+			bn.saveXMLBIF("output.xml");
 			if(showBN) {
 				System.out.println("Showing Bayesian network...");
 				bn.show();

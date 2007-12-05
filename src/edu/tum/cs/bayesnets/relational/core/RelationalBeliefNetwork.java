@@ -408,13 +408,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			if(node.requiresNoisyOr()) {
 				//BeliefNode orNode = this.addNode("or");
 				// create fully grounded variant
-				String[] params = new String[node.params.length + node.norParams.length];
+				String[] params = new String[node.params.length + node.addParams.length];
 				int i = 0;
 				for(int j = 0; j < node.params.length; j++)
 					params[i++] = node.params[j];
-				for(int j = 0; j < node.norParams.length; j++)
-					params[i++] = node.norParams[j];
-				String fullName = RelationalNode.formatName(node.getFunctionName() + "_" + RelationalNode.join("", node.norParams), params);
+				for(int j = 0; j < node.addParams.length; j++)
+					params[i++] = node.addParams[j];
+				String fullName = RelationalNode.formatName(node.getFunctionName() + "_" + RelationalNode.join("", node.addParams), params);
 				BeliefNode fullyGroundedNode = this.addNode(fullName);
 				fullyGroundedNode.setDomain(node.node.getDomain());
 				// create the corresponding relational node and define a signature for it

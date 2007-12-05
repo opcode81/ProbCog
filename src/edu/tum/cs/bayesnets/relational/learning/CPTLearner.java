@@ -3,6 +3,7 @@ package edu.tum.cs.bayesnets.relational.learning;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
@@ -45,58 +46,70 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			counts = new HashMap<String, Integer>();
 			marginals.put(node.index, counts);
 		}*/
-		Map<Integer, String[]> paramSets = pg.generateParameterSets(params, db);
-		if(paramSets != null) { // if we could ground all the relevant nodes
-			int domainIndices[] = new int[this.nodes.length];
-			for(int i = 0; i < counter.nodeIndices.length; i++) {
-				RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
-				// determine the value of the node given the parameter settings implied by the main node
-				String value = null, curVarname = ndCurrent.getFunctionName();
-				if(!ndCurrent.isConstant) {
-					String curVarName = RelationalNode.formatName(ndCurrent.getFunctionName(), paramSets.get(ndCurrent.index));
-					// set value
-					value = db.getVariableValue(curVarName.toString(), closedWorld);
-					//System.out.println("For " + varName + ": " + curVarName + " = " + value);
-				}
-				else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
-					// the value of the current node is given directly as one of the main node's parameters
-					for(int iMain = 0; iMain < node.params.length; iMain++) {
-						if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
-							value = params[iMain];
+		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+		if(groundings != null) { // if we could obtain at least one grounding of all the relevant nodes
+			for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
+				// consider the concrete parents
+				boolean countExample = true;
+				int domainIndices[] = new int[this.nodes.length];
+				for(int i = 0; i < counter.nodeIndices.length; i++) {
+					// get the corresponding node object
+					RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
+					// determine the value of the node given the parameter settings implied by the main node
+					String value = null, curVarname = ndCurrent.getFunctionName();
+					if(!ndCurrent.isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
+						String curVarName = ndCurrent.getVariableName(paramSets.get(ndCurrent.index));
+						// set value
+						value = db.getVariableValue(curVarName.toString(), closedWorld);
+						//System.out.println("For " + varName + ": " + curVarName + " = " + value);
+						// if the node is a precondition, i.e. it is required to be true, check that it really is
+						if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
+							// it's not, so skip this example
+							countExample = false;
 							break;
 						}
 					}
+					else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
+						// the value of the current node is given directly as one of the main node's parameters
+						for(int iMain = 0; iMain < node.params.length; iMain++) {
+							if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
+								value = params[iMain];
+								break;
+							}
+						}
+					}
+					if(value == null)
+						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarname, varName));
+					// get the current node's domain and the index of its setting
+					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
+					int domain_idx = dom.findName(value);
+					if(domain_idx == -1) {	
+						String[] domElems = new String[dom.getOrder()];
+						for(int j = 0; j < domElems.length; j++)
+							domElems[j] = dom.getName(j);
+						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
+					}
+					domainIndices[ndCurrent.index] = domain_idx;
+					// side affair: learn the CPT of constant nodes here by incrementing the counter
+					if(ndCurrent.isConstant) {
+						int[] constantDomainIndices = new int[this.nodes.length];
+						constantDomainIndices[ndCurrent.index] = domain_idx;
+						this.counters[ndCurrent.index].count(constantDomainIndices);
+					}
 				}
-				if(value == null)
-					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarname, varName));
-				// get the current node's domain and the index of its setting
-				Discrete dom = (Discrete)(ndCurrent.node.getDomain());
-				int domain_idx = dom.findName(value);
-				if(domain_idx == -1) {	
-					String[] domElems = new String[dom.getOrder()];
-					for(int j = 0; j < domElems.length; j++)
-						domElems[j] = dom.getName(j);
-					throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
-				}
-				domainIndices[ndCurrent.index] = domain_idx;
-				// side affair: learn the CPT of constant nodes here by incrementing the counter
-				if(ndCurrent.isConstant) {
-					int[] constantDomainIndices = new int[this.nodes.length];
-					constantDomainIndices[ndCurrent.index] = domain_idx;
-					this.counters[ndCurrent.index].count(constantDomainIndices);
-				}
+				// count this example
+				if(countExample)
+					counter.count(domainIndices);
+				// keep track of counts (just debugging)
+				/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
+				Integer i = counts.get(v);
+				if(i == null)
+					i = 0;
+				counts.put(v, i+1);*/
 			}
-			// count this example
-			counter.count(domainIndices);
-			// keep track of counts (just debugging)
-			/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
-			Integer i = counts.get(v);
-			if(i == null)
-				i = 0;
-			counts.put(v, i+1);*/
 		}
 		else {
-			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped");
+			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
 		}
 	}
 	
@@ -125,7 +138,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
 			if(node.isConstant) // ignore constant nodes as they do not correspond to logical atoms 
 				continue; 
-			if(verbose) System.out.println("  " + node);
+			if(verbose) System.out.println("  " + node.getName());
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
 			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
