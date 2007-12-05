@@ -149,7 +149,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 				int[] old2newindex = new int[oldProd.length];
 				for(int j = 0; j < oldProd.length; j++) {
 					for(int k = 0; k < newProd.length; k++)
-						if(RelationalNode.extractNodeName(newProd[k].getName()).equals(RelationalNode.extractNodeName(oldProd[j].getName())))
+						if(RelationalNode.extractFunctionName(newProd[k].getName()).equals(RelationalNode.extractFunctionName(oldProd[j].getName())))
 							old2newindex[j] = k;
 				}
 				for(int j = 0; j < oldCPF.size(); j++) {
@@ -243,7 +243,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		
 		// CPTs
 		for(int i = 0; i < nodes.length; i++) {
-			if(getRelationalNode(nodes[i]).isAuxiliary) 
+			RelationalNode relNode = getRelationalNode(nodes[i]); 
+			if(relNode.isAuxiliary) 
 				continue;
 			CPF cpf = nodes[i].getCPF();
 			BeliefNode[] deps = cpf.getDomainProduct();
@@ -252,7 +253,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			int[] addr = new int[deps.length];
 			for(int j = 0; j < deps.length; j++) {
 				if(j > 0) {
-					args.append(deps[j].getName());
+					args.append(getRelationalNode(deps[j]).getCleanName());
 					if(j < deps.length-1)
 						args.append(", ");
 				}
@@ -260,7 +261,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			}
 			Vector<String> lists = new Vector<String>();
 			getCPD(lists, cpf, domains, addr, 1);
-			out.printf("%s ~ TabularCPD[%s](%s);\n", nodes[i].getName(), RelationalNode.join(",", lists.toArray(new String[0])), args.toString());
+			out.printf("%s ~ TabularCPD[%s](%s);\n", relNode.getCleanName(), RelationalNode.join(",", lists.toArray(new String[0])), args.toString());
 		}
 	}
 	
