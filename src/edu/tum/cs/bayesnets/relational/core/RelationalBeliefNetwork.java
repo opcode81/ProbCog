@@ -14,6 +14,7 @@ import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
+import edu.tum.cs.mln.MLNWriter;
 import edu.tum.cs.srldb.Database;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx {
@@ -260,7 +261,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return p2;
 	}
 	
-	public void toMLN(PrintStream out) throws Exception {		
+	public void toMLN(PrintStream out) throws Exception {
+		MLNWriter writer = new MLNWriter(out);
+		
 		// write domain declarations
 		out.println("// domain declarations");
 		HashSet<String> handled = new HashSet<String>();
@@ -322,17 +325,42 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// TODO - add constraints for functional dependencies in relations
 		out.println();
 		
-		// write formulas
+		// write formulas (and auxiliary predicate definitions for special nodes) 
 		int[] order = getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
-			RelationalNode node = getRelationalNode(order[i]);
+			RelationalNode node = getRelationalNode(order[i]);			
 			if(node.isConstant || node.isAuxiliary)
 				continue;
-			out.println("// CPT for " + node.node.getName());
-			out.println("// <group>");
-			CPT2MLNFormulas c = new CPT2MLNFormulas(node);
-			c.convert(out);
-			out.println("// </group>\n");
+			CPT2MLNFormulas converter = new CPT2MLNFormulas(node);
+			// write auxiliary definitions and formulas required by certain node types
+			if(node.aggregator != null && node.parentMode != null) {
+				if(node.aggregator.equals("AVG") && node.parentMode.equals("CP")) { // average of conditional probabilities
+					// get the relation that is responsible for grounding the free parameters
+					RelationalNode rel = node.getFreeParamGroundingParent();
+					if(rel == null)
+						throw new Exception("Could not determine relevant relational parent");				
+					// add predicate declaration for influence factor
+					String influenceRelation = String.format("inflfac_%s_%s", node.getFunctionName(), rel.getFunctionName());
+					Signature sig = rel.getSignature();
+					writer.writePredicateDecl(influenceRelation, sig.argTypes);
+					// write mutual exclusiveness and exhaustiveness definition
+					writer.writeMutexDecl(influenceRelation, rel.params, node.addParams);
+					// add a precondition that must be added to each CPT formula
+					converter.addPrecondition(RelationalNode.formatName(influenceRelation, rel.params));
+					// write the formula connecting the influence predicate to the regular relation: if the relation does not hold, there is no influence 
+					out.print("!" + rel.getCleanName() + " => !" + RelationalNode.formatName(influenceRelation, rel.params));
+				}
+				else if(node.aggregator.equals("OR")) { // noisy or
+					
+				}
+			}
+			// write conditional probability distribution
+			if(node.hasCPT()) {
+				out.println("// CPT for " + node.node.getName());
+				out.println("// <group>");			
+				converter.convert(out);
+				out.println("// </group>\n");
+			}
 			/*
 			CPF cpf = node.node.getCPF();
 			int[] addr = new int[cpf.getDomainProduct().length];
@@ -405,7 +433,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 */
 	public void prepareForLearning() throws Exception {
 		for(RelationalNode node : getRelationalNodes().toArray(new RelationalNode[0])) {
-			if(node.requiresNoisyOr()) {
+			if(node.isNoisyOr()) {
 				//BeliefNode orNode = this.addNode("or");
 				// create fully grounded variant
 				String[] params = new String[node.params.length + node.addParams.length];
