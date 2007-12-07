@@ -23,12 +23,25 @@ public class CPT2MLNFormulas {
 	protected CPF cpf;
 	protected RelationalBeliefNetwork bn;
 	protected RelationalNode mainNode;
+	protected String additionalPrecondition;
 	
 	public CPT2MLNFormulas(RelationalNode node) {
 		this.mainNode = node;
 		this.bn = node.getNetwork();
 		this.cpf = node.node.getCPF();
 		attrs = new HashMap<String, Attribute>();
+		additionalPrecondition = null;
+	}
+	
+	/**
+	 * adds a precondition that must be added to each conjunction that is generated 
+	 * @param cond
+	 */
+	public void addPrecondition(String cond) {
+		if(additionalPrecondition == null)
+			additionalPrecondition = cond;
+		else
+			additionalPrecondition += " ^ " + cond;
 	}
 	
 	/**
@@ -123,7 +136,10 @@ public class CPT2MLNFormulas {
 				double weight = prob == 0.0 ? -100 : Math.log(prob);
 				for(String conj : conjunctions) {
 					out.print(weight + " ");
-					out.println(conj);
+					out.print(conj);
+					if(additionalPrecondition != null)
+						out.print(" ^ " + additionalPrecondition);
+					out.println();
 				}
 			}		
 			

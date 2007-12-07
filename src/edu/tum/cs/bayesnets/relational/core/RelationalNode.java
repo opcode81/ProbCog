@@ -31,8 +31,7 @@ public class RelationalNode {
 	public String[] addParams;
 	protected RelationalBeliefNetwork bn;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
-	public boolean usesCombinationFunction;
-	public String parentMode;
+	public String parentMode, aggregator;
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -73,19 +72,26 @@ public class RelationalNode {
 			isAuxiliary = true;
 			name = name.substring(1);
 		}
-		// preprocessing: special child node that requires different treatment of parent nodes
+		// preprocessing: special child node that has a variable number of parents
+		// - aggregator as prefix
+		Pattern aggPat = Pattern.compile("([A-Z]+):.*");
+		Matcher m = aggPat.matcher(name);
+		if(m.matches()) {
+			aggregator = m.group(1);
+			name = name.substring(aggregator.length()+1);
+		}
+		// - free variables and how they are treated as postfix
 		int sepPos = name.indexOf('|');
 		if(sepPos != -1) {
 			String decl = name.substring(sepPos+1);
 			Pattern declPat = Pattern.compile("([A-Z]+):(.*)");			
-			Matcher m = declPat.matcher(decl);
+			m = declPat.matcher(decl);
 			if(m.matches()) {
 				parentMode = m.group(1);
 				addParams = m.group(2).split("\\s*,\\s*");
 			}
-			else {
+			else { // deprecated
 				addParams = decl.split("\\s*,\\s*");
-				usesCombinationFunction = true;
 			}
 			name = name.substring(0, sepPos);
 		}
@@ -202,15 +208,18 @@ public class RelationalNode {
 		return bn;
 	}
 	
-	public boolean requiresNoisyOr() {
-		return addParams != null && addParams.length > 0 && parentMode.equals("OR");
+	/**
+	 * @return true if this node is a noisy or node, i.e. a node where the probability value is computed using a noisy disjunctive combination of the probability values of its parents  
+	 */
+	public boolean isNoisyOr() {
+		return parentMode != null && parentMode.equals("OR");
 	}
 	
 	/**
 	 * @return true if the node has a conditional probability distribution given as a CPT
 	 */
 	public boolean hasCPT() {
-		return !requiresNoisyOr();
+		return !isNoisyOr();
 	}
 	
 	/**
@@ -239,6 +248,44 @@ public class RelationalNode {
 		if(actualParams.length != params.length)
 			throw new Exception(String.format("Invalid number of actual parameters suppplied for %s: expected %d, got %d", toString(), params.length, actualParams.length));
 		return formatName(getFunctionName(), actualParams);
+	}
+	
+	public RelationalNode[] getParents() {
+		return bn.getRelationalParents(this);
+	}
+	
+	/**
+	 * 
+	 * @param params
+	 * @return true if the node has all of the parameters given
+	 */
+	public boolean hasParams(String[] params) {
+		for(int i = 0; i < params.length; i++) {
+			int j = 0;
+			for(; j < this.params.length; j++)
+				if(params[i].equals(this.params[j]))
+					break;
+			if(j == this.params.length)
+				return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * gets the node (which must be a relation) that grounds the free parameters of this node (applicable only to nodes that have free parameters)
+	 * @return 
+	 * @throws Exception
+	 */
+	public RelationalNode getFreeParamGroundingParent() throws Exception {
+		if(addParams == null || addParams.length == 0)
+			throw new Exception("This node has no free parameters for which there could be a parent that grounds them.");
+		// find the parent that grounds the free parameters: It must be a relation which contains all of the free params
+		for(RelationalNode parent : getParents()) {
+			if(parent.isRelation() && parent.hasParams(this.addParams)) {
+				return parent;
+			}
+		}
+		return null;
 	}
 }
 
