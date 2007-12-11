@@ -44,6 +44,10 @@ public class CPT2MLNFormulas {
 			additionalPrecondition += " ^ " + cond;
 	}
 	
+	public String getPrecondition() {
+		return additionalPrecondition;
+	}
+	
 	/**
 	 * executes the conversion of the CPT to MLN formulas and prints the formulas to the given stream
 	 * @param out
