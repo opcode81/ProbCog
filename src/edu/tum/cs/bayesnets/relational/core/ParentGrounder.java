@@ -86,6 +86,8 @@ public class ParentGrounder {
 					for(int j = 0; j < parent.params.length; j++) {					
 						if(parent.params[j].equals(ungroundedParams[i])) {
 							Signature sig = parent.getSignature();
+							if(sig.argTypes.length != parent.params.length)
+								throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
 							ungroundedParamDomains[i] = sig.argTypes[j];
 						}
 					}
@@ -181,8 +183,9 @@ public class ParentGrounder {
 	 * generates all possible groundings of all parent nodes (and the main node itself), where a grounding is a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the man node for which this parameter grounding should be performed
 	 * @return vector of mappings of node indices to lists of corresponding actual parameters
+	 * @throws Exception 
 	 */
-	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, Database db) {
+	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, Database db) throws Exception {
 		// generate all the parameter bindings we can
 		HashMap<String, String> paramBindings = generateParameterBindings(actualParameters, db);
 		if(paramBindings == null)
@@ -200,8 +203,9 @@ public class ParentGrounder {
 	 * @param paramBindings
 	 * @param idx
 	 * @param ret
+	 * @throws Exception 
 	 */
-	protected void getCompleteGroundings(String[] mainNodeParams, Database db, HashMap<String, String> paramBindings, int idx, Vector<Map<Integer, String[]>> ret) {
+	protected void getCompleteGroundings(String[] mainNodeParams, Database db, HashMap<String, String> paramBindings, int idx, Vector<Map<Integer, String[]>> ret) throws Exception {
 		if(ungroundedParams == null || idx == ungroundedParams.length) {
 			// all variables have been grounded, so now generate a mapping: node index -> list of actual parameters
 			HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();
@@ -215,8 +219,11 @@ public class ParentGrounder {
 			ret.add(m);
 		}
 		else { // ground the next variable
-			String param = ungroundedParams[idx];			
-			for(String constant : db.getDomain(ungroundedParamDomains[idx])) {
+			String param = ungroundedParams[idx];
+			Set<String> s = db.getDomain(ungroundedParamDomains[idx]);
+			if(s == null) 
+				throw new Exception("Domain " + ungroundedParamDomains[idx] + " not found!");			
+			for(String constant : s) {
 				paramBindings.put(param, constant);
 				getCompleteGroundings(mainNodeParams, db, paramBindings, idx+1, ret);
 			}
