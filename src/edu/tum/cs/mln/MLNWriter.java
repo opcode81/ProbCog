@@ -49,6 +49,13 @@ public class MLNWriter {
 		return lowerCaseString(typeName);
 	}
 	
+	public static String formatAsAtom(String atom) {
+		int pos = atom.indexOf('(');
+		String predName = atom.substring(0, pos);
+		String params = atom.substring(pos);
+		return formatAsPredName(predName) + params;
+	}
+	
 	/**
 	 * returns a string where the first letter is lower case
 	 * @param s the string to convert
