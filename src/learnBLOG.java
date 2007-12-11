@@ -1,18 +1,22 @@
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintStream;
 
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.relational.core.ABL;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
-import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
 import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
-public class learnBLOG {
-
-	public static void main(String[] args) {
+public class learnBLOG {	
+	
+	public static enum Mode {
+		BLOG, ABL
+	}
+	
+	public static void learn(Mode mode, String[] args) {
 		try {
+			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
+			
 			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
 			for(int i = 0; i < args.length; i++) {
@@ -30,21 +34,31 @@ public class learnBLOG {
 					dbFile = args[++i];
 				else if(args[i].equals("-o"))
 					outFile = args[++i];
-			}
+			}			
 			if(bifFile == null || dbFile == null || outFile == null) {
-				System.out.println("\n usage: learnBLOG [-b <BLOG file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
-							         "    -b  BLOG file from which to read function signatures\n" +
+				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
+							         "    -b  " + acronym + " file from which to read function signatures\n" +
 						             "    -s  show learned Bayesian network\n" +
 						             "    -d  learn domains\n" + 
-						             "    -i  ignore data on predicates not defined in the model");
+						             "    -i  ignore data on predicates not defined in the model\n");
 				return;
 			}
 			// create a BLOG model
-			BLOGModel bn;			
-			if(blogFile != null)
-				bn = new BLOGModel(blogFile, bifFile);
-			else
-				bn = new BLOGModel(bifFile);
+			BLOGModel bn;
+			if(mode == Mode.BLOG) {
+				if(blogFile != null)
+					bn = new BLOGModel(blogFile, bifFile);
+				else
+					bn = new BLOGModel(bifFile);
+			}
+			else {
+				if(blogFile != null)
+					bn = new ABL(blogFile, bifFile);
+				else
+					bn = new BLOGModel(bifFile);
+			}
+			// prepare it for learning
+			bn.prepareForLearning();
 			// read the training database
 			System.out.println("Reading data...");
 			Database db = new Database(bn);
@@ -64,12 +78,17 @@ public class learnBLOG {
 			CPTLearner cptLearner = new CPTLearner(bn);
 			cptLearner.learnTyped(db, true, true);
 			cptLearner.finish();
-			System.out.println("Writing BLOG output...");
+			// write learnt BLOG/ABL model
+			System.out.println("Writing "+ acronym + " output...");
 			PrintStream out = new PrintStream(new File(outFile));
 			bn.write(out);			
 			out.close();
-			System.out.println("Writing XML-BIF output...");
+			// write parameters to Bayesian network template
+			int dotpos = bifFile.lastIndexOf('.');
+			bifFile = bifFile.substring(0, dotpos) + ".learnt.xml";
+			System.out.println("Writing XML-BIF output to " + bifFile + "...");
 			bn.saveXMLBIF(bifFile);
+			// show bayesian network
 			if(showBN) {
 				System.out.println("Showing Bayesian network...");
 				bn.show();
@@ -78,5 +97,9 @@ public class learnBLOG {
 		catch(Exception e) {
 			e.printStackTrace();
 		}		
+	}
+	
+	public static void main(String[] args) {
+		learn(Mode.BLOG, args);
 	}
 }
