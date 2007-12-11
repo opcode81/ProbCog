@@ -163,8 +163,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public void addSignature(RelationalNode node, Signature sig) {
 		String name = node.getFunctionName().toLowerCase();
-		if(node.isConstant)
-			name = "__CONST" + node.index;
+		/*if(node.isConstant)
+			name = "__CONST" + node.index;*/
 		signatures.put(name, sig);
 	}
 	
@@ -173,9 +173,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	}
 	
 	public Signature getSignature(RelationalNode node) {
-		if(node.isConstant) 
+		/*if(node.isConstant) 
 			return signatures.get("__CONST" + node.index);
-		else
+		else*/
 			return signatures.get(node.getFunctionName().toLowerCase());
 	}
 	
@@ -248,7 +248,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			String type = types.get(constant.getFunctionName());
 			if(type == null) // constants that were referenced by any of their parents must now have a type assigned
 				throw new Exception("Constant " + constant + " not referenced and therefore not typed.");
-			addSignature(constant, new Signature(constant.getFunctionName(), type, new String[0]));
+			Signature sig = new Signature(constant.getFunctionName(), type, new String[0]);
+			addSignature(constant, sig);
 		}
 	}
 
@@ -261,7 +262,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return p2;
 	}
 	
-	public void toMLN(PrintStream out) throws Exception {
+	public void toMLN(PrintStream out, boolean compactFormulas) throws Exception {
 		MLNWriter writer = new MLNWriter(out);
 		
 		// write domain declarations
@@ -299,8 +300,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				argTypes = new String[sig.argTypes.length + 1];
 				argTypes[argTypes.length-1] = Database.lowerCaseString(sig.returnType);
 			}
-			for(int i = 0; i < sig.argTypes.length; i++)
+			for(int i = 0; i < sig.argTypes.length; i++) {
+				if(sig.argTypes[i].length() == 0)
+					throw new Exception("Parameter " + i + " of " + sig.functionName + " has empty type: " + sig);
 				argTypes[i] = Database.lowerCaseString(sig.argTypes[i]);
+			}
 			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), RelationalNode.join(", ", argTypes));			
 		}
 		out.println();
@@ -348,7 +352,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					// add a precondition that must be added to each CPT formula
 					converter.addPrecondition(RelationalNode.formatName(influenceRelation, rel.params));
 					// write the formula connecting the influence predicate to the regular relation: if the relation does not hold, there is no influence 
-					out.print("!" + rel.getCleanName() + " => !" + RelationalNode.formatName(influenceRelation, rel.params));
+					out.println("!" + rel.getCleanName() + " => !" + RelationalNode.formatName(influenceRelation, rel.params) + ".");
 				}
 				else if(node.aggregator.equals("OR")) { // noisy or
 					
@@ -358,19 +362,46 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			if(node.hasCPT()) {
 				out.println("// CPT for " + node.node.getName());
 				out.println("// <group>");			
-				converter.convert(out);
+				
+				if(compactFormulas) { 
+					// convert using decision trees for compactness
+					converter.convert(out);
+				}
+				else {
+					// old method: direct conversion
+					CPF cpf = node.node.getCPF();
+					int[] addr = new int[cpf.getDomainProduct().length];
+					walkCPD_MLNformulas(out, cpf, addr, 0, converter.getPrecondition());
+				}				
+
 				out.println("// </group>\n");
 			}
-			/*
-			CPF cpf = node.node.getCPF();
-			int[] addr = new int[cpf.getDomainProduct().length];
-			walkCPD_MLNformulas(out, cpf, addr, 0);
-			*/
+			else {
+				if(node.isNoisyOr()) {
+					out.print(writer.formatAsAtom(node.getCleanName()) + " <=> ");
+					int k = 0;
+					for(RelationalNode parent : node.getParents()) {
+						// get the parameters that are free in this parent
+						Vector<String> freeparams = new Vector<String>();
+						for(String p : node.addParams)
+							if(parent.hasParam(p))
+								freeparams.add(p);
+						if(freeparams.isEmpty())
+							continue;
+						// print the condition
+						if(k++ > 0)
+							out.print(" v ");						
+						out.print("EXIST " + RelationalNode.join(",", freeparams.toArray(new String[0])) + " " + writer.formatAsAtom(parent.toAtom()));
+					}
+					if(k == 0)
+						throw new Exception("None of the parents of OR-node " + node + " handle any of the free parameters.");
+					out.println();
+				}					
+			}
 		}
 	}
 	
-	@Deprecated
-	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i) {
+	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition) {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// collect values of constants in order to replace references to them in the individual predicates 
@@ -392,6 +423,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					sb.append(rn.toLiteral(addr[j], constantValues));
 				}
 			}
+			if(precondition != null) {
+				sb.append(" ^ " + precondition);
+			}
 			// get the weight
 			int realAddr = cpf.addr2realaddr(addr);
 			double value = ((ValueDouble)cpf.get(realAddr)).getValue();
@@ -404,7 +438,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			Discrete dom = (Discrete)nodes[i].getDomain();
 			for(int j = 0; j < dom.getOrder(); j++) {
 				addr[i] = j;
-				walkCPD_MLNformulas(out, cpf, addr, i+1);
+				walkCPD_MLNformulas(out, cpf, addr, i+1, precondition);
 			}
 		}
 	}
@@ -433,8 +467,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 */
 	public void prepareForLearning() throws Exception {
 		for(RelationalNode node : getRelationalNodes().toArray(new RelationalNode[0])) {
-			if(node.isNoisyOr()) {
-				//BeliefNode orNode = this.addNode("or");
+			if(node.parentMode != null && node.parentMode.equals("AUX")) { // create an auxiliary node that contains the ungrounded parameters 
 				// create fully grounded variant
 				String[] params = new String[node.params.length + node.addParams.length];
 				int i = 0;
@@ -449,7 +482,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				RelationalNode fullyGroundedRelNode = new RelationalNode(this, fullyGroundedNode); 
 				addRelationalNode(fullyGroundedRelNode);
 				// - determine argument types for signature
-				String[] argTypes = new String[node.params.length];
+				String[] argTypes = new String[params.length];
 				Signature origSig = node.getSignature();
 				RelationalNode[] relParents = getRelationalParents(node);
 				for(int j = 0; j < params.length; j++) {
@@ -459,14 +492,16 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 						boolean haveType = false;
 						for(int k = 0; k < relParents.length && !haveType; k++) {
 							Signature sig = relParents[k].getSignature();
-							for(int l = 0; l < sig.argTypes.length; l++) {
-								if(relParents[k].params[l] == params[j]) {
-									argTypes[j] = sig.argTypes[k];
+							for(int l = 0; l < relParents[k].params.length; l++) {
+								if(relParents[k].params[l].equals(params[j])) {
+									argTypes[j] = sig.argTypes[l];
 									haveType = true;
 									break;
 								}									
 							}
 						}
+						if(!haveType) 
+							throw new Exception("Could not determine type of free parameter " + params[j]);
 					}
 				}
 				// - add signature
@@ -479,8 +514,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				}
 				// connect the fully grounded version to the original child
 				this.bn.connect(fullyGroundedNode, node.node);
-				// rename the original child
-				node.node.setName(RelationalNode.formatName(node.getFunctionName(), node.params));
+				// modify the original child
+				node.parentMode = "";
+				node.setLabel();
+				//node.node.setName(RelationalNode.formatName(node.getFunctionName(), node.params));				
 			}
 		}
 		//show();

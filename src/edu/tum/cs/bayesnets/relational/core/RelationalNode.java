@@ -212,7 +212,7 @@ public class RelationalNode {
 	 * @return true if this node is a noisy or node, i.e. a node where the probability value is computed using a noisy disjunctive combination of the probability values of its parents  
 	 */
 	public boolean isNoisyOr() {
-		return parentMode != null && parentMode.equals("OR");
+		return aggregator != null && aggregator.equals("OR");
 	}
 	
 	/**
@@ -257,7 +257,7 @@ public class RelationalNode {
 	/**
 	 * 
 	 * @param params
-	 * @return true if the node has all of the parameters given
+	 * @return true if the node has all of the given parameters
 	 */
 	public boolean hasParams(String[] params) {
 		for(int i = 0; i < params.length; i++) {
@@ -269,6 +269,13 @@ public class RelationalNode {
 				return false;
 		}
 		return true;
+	}
+	
+	public boolean hasParam(String param) {
+		for(int i = 0; i < params.length; i++)
+			if(params[i].equals(param))
+				return true;
+		return false;
 	}
 	
 	/**
@@ -286,6 +293,29 @@ public class RelationalNode {
 			}
 		}
 		return null;
+	}
+	
+	public String toAtom() throws Exception {
+		if(!isBoolean())
+			throw new Exception("Cannot convert non-Boolean node to atom without specifying setting");
+		return getCleanName();
+	}
+	
+	/**
+	 * changes the node label to reflect the internal status of this node
+	 */
+	public void setLabel() {
+		StringBuffer buf = new StringBuffer();
+		if(this.aggregator != null && this.aggregator.length() > 0)
+			buf.append(aggregator + ":");
+		buf.append(getCleanName());
+		if(this.addParams != null && this.addParams.length > 0) {
+			buf.append("|");
+			if(this.parentMode != null && this.parentMode.length() > 0)
+				buf.append(parentMode + ":");
+			buf.append(join(",", this.addParams));
+		}
+		this.node.setName(buf.toString());
 	}
 }
 
