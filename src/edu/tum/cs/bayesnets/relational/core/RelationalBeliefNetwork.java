@@ -262,6 +262,12 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return p2;
 	}
 	
+	/**
+	 * converts the network to a Markov logic network
+	 * @param out  the stream to write to
+	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
+	 * @throws Exception
+	 */
 	public void toMLN(PrintStream out, boolean compactFormulas) throws Exception {
 		MLNWriter writer = new MLNWriter(out);
 		
@@ -360,7 +366,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			}
 			// write conditional probability distribution
 			if(node.hasCPT()) {
-				out.println("// CPT for " + node.node.getName());
+				out.println("// CPT for " + node.getName());
 				out.println("// <group>");			
 				
 				if(compactFormulas) { 
@@ -401,7 +407,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 	}
 	
-	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition) {
+	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// collect values of constants in order to replace references to them in the individual predicates 
@@ -435,10 +441,23 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			out.printf("%f %s\n", weight, sb.toString()); 
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
-			Discrete dom = (Discrete)nodes[i].getDomain();
-			for(int j = 0; j < dom.getOrder(); j++) {
-				addr[i] = j;
+			// if the node is a necessary precondition for the child node, there is only one possible setting (True)
+			RelationalNode node = getRelationalNode(nodes[i]);
+			Discrete dom = (Discrete)node.node.getDomain();
+			if(node.isPrecondition) {
+				addr[i] = dom.findName("True");
+				if(addr[i] == -1)
+					addr[i] = dom.findName("true");
+				if(addr[i] == -1)
+					throw new Exception("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
 				walkCPD_MLNformulas(out, cpf, addr, i+1, precondition);
+			}
+			// otherwise consider all domain elements
+			else {
+				for(int j = 0; j < dom.getOrder(); j++) {
+					addr[i] = j;
+					walkCPD_MLNformulas(out, cpf, addr, i+1, precondition);
+				}
 			}
 		}
 	}
