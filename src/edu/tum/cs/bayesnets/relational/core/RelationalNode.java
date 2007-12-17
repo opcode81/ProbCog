@@ -115,10 +115,18 @@ public class RelationalNode {
 		return getName();		
 	}
 	
+	/**
+	 * gets the full name/label of this node
+	 * @return
+	 */
 	public String getName() {
 		return this.node.getName();
 	}
 	
+	/**
+	 * gets the clean name of this node (the label without prefixes or suffixes), i.e. only the predicate and its parameters
+	 * @return
+	 */
 	public String getCleanName() {
 		return formatName(this.functionName, this.params);
 	}

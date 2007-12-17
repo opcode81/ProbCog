@@ -175,6 +175,11 @@ public class Database {
 		}
 	}
 
+	/**
+	 * 
+	 * @param domName
+	 * @return the domain as a set of strings or null if the domain is not found
+	 */
 	public Set<String> getDomain(String domName) {
 		return domains.get(domName);
 	}
