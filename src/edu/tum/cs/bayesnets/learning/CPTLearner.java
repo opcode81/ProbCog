@@ -30,6 +30,11 @@ public class CPTLearner extends Learner {
 	 * for nodes that do not use clustering to determine the index of the domain, the entry is null
 	 */
 	protected Clusterer[] clusterers;
+	/**
+	 * controls how to finalize a column of the CPT for which there were no examples (i.e. all of the 
+	 * column entries are 0); If true, assume a uniform distribution, otherwise keep the zeros. 
+	 */
+	protected boolean uniformDefault;
 	
 	/**
 	 * constructs a CPTLearner object from a BeliefNetworkEx object
@@ -38,6 +43,14 @@ public class CPTLearner extends Learner {
 	public CPTLearner(BeliefNetworkEx bn) {
 		super(bn);
 		init();
+	}
+	
+	/**
+	 * controls how to finalize a column of the CPT when there were no examples (i.e. all of the column's entries are zero); By default, the zeros are kept
+	 * @param value If true, use a uniform distribution for such columns; otherwise leave the column as it was (all zeros) 
+	 */
+	public void setUniformDefault(boolean value) {
+		uniformDefault = value;
 	}
 	
 	/**
@@ -73,6 +86,7 @@ public class CPTLearner extends Learner {
 	 * and the array of example counters (one for each node) 
 	 */
 	private void init() {
+		uniformDefault = false;
 		clusterers = new Clusterer[nodes.length];
         // create example counters for each node
         counters = new ExampleCounter[nodes.length];		
@@ -255,7 +269,7 @@ public class CPTLearner extends Learner {
 	protected void end_learning() {
         // normalize the CPTs
         for(int i = 0; i < nodes.length; i++)
-        	nodes[i].getCPF().normalizeByDomain();
+        	nodes[i].getCPF().normalizeByDomain(uniformDefault);
 	}
 
 	
