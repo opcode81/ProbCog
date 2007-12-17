@@ -1,7 +1,9 @@
 package edu.tum.cs.bayesnets.relational.core;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -87,75 +89,92 @@ public class CPT2MLNFormulas {
 			Attribute probAttr = new Attribute("prob", attrValues);
 			attrs.put("prob", probAttr);
 			fvAttribs.addElement(probAttr);			
+			
+			// if the main node has constant parents, then we must learn a separate decision tree for each 
+			// configuration of the constants
+			// - so first get a list of parents that are constants
+			Vector<RelationalNode> constantParents = new Vector<RelationalNode>();
+			for(RelationalNode parent : bn.getRelationalParents(mainNode)) {
+				if(parent.isConstant)
+					constantParents.add(parent);
+			}
+			// - get a set of possible value assignments to the constant nodes
+			Vector<HashMap<String, String>> constantAssignments = new Vector<HashMap<String, String>>();
+			if(constantParents.isEmpty())
+				constantAssignments.add(new HashMap<String,String>());
+			else
+				collectConstantAssignments(constantParents.toArray(new RelationalNode[0]), 0, new String[constantParents.size()], constantAssignments);
 
-			// collect instances
-			Instances instances = new Instances("foo", fvAttribs, 60000);
-			walkCPT4InstanceCollection(new int[nodes.length], 0, instances);
-			
-			// learn a J48 decision tree from the instances
-			instances.setClass(attrs.get("prob"));
-			J48 j48 = new J48();
-			j48.setUnpruned(true);
-			j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
-			j48.buildClassifier(instances);		
-			
-			// write weighted formulas for each of the decision tree's leaf nodes/rules
-			for(Rule rule : j48.getRules()) {
-				if(!rule.hasAntds()) // if the rule has no antecedent (it must be the only rule) and it means that the distribution must be a uniform distribution, so we do not need any formulas
-					continue;
-				StringBuffer conjunction = new StringBuffer();
-				int lits = 0;
-				// generate literals for each of the nodes along the path from the root to a leaf
-				// Note: it is not guaranteed that each rule contains a check against the leaf node, so keep track if we ran across it
-				boolean haveMainNode = false;
-				for(Condition c : rule.getAntecedent()) {
-					RelationalNode node = relNodes.get(c.getAttribute());
-					if(node == mainNode)
-						haveMainNode = true;
-					String literal = node.toLiteral(bn.getDomainIndex(node.node, c.getValue()), null);
-					if(lits++ > 0)
-						conjunction.append(" ^ ");
-					conjunction.append(literal);
-				}
-				// add preconditions to all conjunctions
-				RelationalNode[] parents = bn.getRelationalParents(mainNode);
-				for(RelationalNode parent : parents) {
-					if(parent.isPrecondition) {
+			for(HashMap<String, String> constantAssignment : constantAssignments) {			
+				// collect instances
+				Instances instances = new Instances("foo", fvAttribs, 60000);
+				walkCPT4InstanceCollection(new int[nodes.length], 0, constantAssignment, instances);
+				
+				// learn a J48 decision tree from the instances
+				instances.setClass(attrs.get("prob"));
+				J48 j48 = new J48();
+				j48.setUnpruned(true);
+				j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
+				j48.buildClassifier(instances);		
+				
+				// write weighted formulas for each of the decision tree's leaf nodes/rules
+				for(Rule rule : j48.getRules()) {
+					if(!rule.hasAntds()) // if the rule has no antecedent (it must be the only rule) and it means that the distribution must be a uniform distribution, so we do not need any formulas
+						continue;
+					StringBuffer conjunction = new StringBuffer();
+					int lits = 0;
+					// generate literals for each of the nodes along the path from the root to a leaf
+					// Note: it is not guaranteed that each rule contains a check against the leaf node, so keep track if we ran across it
+					boolean haveMainNode = false;
+					for(Condition c : rule.getAntecedent()) {
+						RelationalNode node = relNodes.get(c.getAttribute());
+						if(node == mainNode)
+							haveMainNode = true;
+						String literal = node.toLiteral(bn.getDomainIndex(node.node, c.getValue()), constantAssignment);
 						if(lits++ > 0)
 							conjunction.append(" ^ ");
-						conjunction.append(parent.toLiteral(bn.getDomainIndex(parent.node, "True"), null));
+						conjunction.append(literal);
 					}
-				}
-				// if we did not come across the main node above, create one variant of the conjunction for each possible setting
-				Vector<String> conjunctions = new Vector<String>();
-				if(!haveMainNode) {
-					for(int i = 0; i < mainNode.node.getDomain().getOrder(); i++) {
-						conjunctions.add(conjunction.toString() + " ^ " + mainNode.toLiteral(i, null));
+					// add preconditions 
+					RelationalNode[] parents = bn.getRelationalParents(mainNode);
+					for(RelationalNode parent : parents) {
+						if(parent.isPrecondition) {
+							if(lits++ > 0)
+								conjunction.append(" ^ ");
+							conjunction.append(parent.toLiteral(bn.getDomainIndex(parent.node, "True"), constantAssignment));
+						}
 					}
-				}
-				else
-					conjunctions.add(conjunction.toString());
-				// write final formulas with weights			
-				double prob = Double.parseDouble(rule.getConsequent().getValue());
-				double weight = prob == 0.0 ? -100 : Math.log(prob);
-				for(String conj : conjunctions) {
-					out.print(weight + " ");
-					out.print(conj);
-					if(additionalPrecondition != null)
-						out.print(" ^ " + additionalPrecondition);
-					out.println();
-				}
-			}		
-			
-			// output the decision tree
-			//System.out.println(j48);			
+					// if we did not come across the main node above, create one variant of the conjunction for each possible setting
+					Vector<String> conjunctions = new Vector<String>();
+					if(!haveMainNode) {
+						for(int i = 0; i < mainNode.node.getDomain().getOrder(); i++) {
+							conjunctions.add(conjunction.toString() + " ^ " + mainNode.toLiteral(i, null));
+						}
+					}
+					else
+						conjunctions.add(conjunction.toString());
+					// write final formulas with weights			
+					double prob = Double.parseDouble(rule.getConsequent().getValue());
+					double weight = prob == 0.0 ? -100 : Math.log(prob);
+					for(String conj : conjunctions) {
+						out.print(weight + " ");
+						out.print(conj);
+						if(additionalPrecondition != null)
+							out.print(" ^ " + additionalPrecondition);
+						out.println();
+					}
+				}		
+				
+				// output the decision tree
+				//System.out.println(j48);
+			}
 		} 
 		catch (Exception e) {			
 			e.printStackTrace();
 		}		
 	}
 	
-	protected void walkCPT4InstanceCollection(int[] addr, int i, Instances instances) throws Exception {
+	protected void walkCPT4InstanceCollection(int[] addr, int i, HashMap<String,String> constantSettings, Instances instances) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// get the probability value
@@ -183,12 +202,16 @@ public class CPT2MLNFormulas {
 				addr[i] = dom.findName("True");
 				if(addr[i] == -1)
 					throw new Exception("The node " + nodes[i] + " is set as a precondition, but its domain does not contain the value 'True'.");
-				walkCPT4InstanceCollection(addr, i+1, instances);
+				walkCPT4InstanceCollection(addr, i+1, constantSettings, instances);
+			}
+			else if(n.isConstant) { 
+				addr[i] = dom.findName(constantSettings.get(n.getName()));
+				walkCPT4InstanceCollection(addr, i+1, constantSettings, instances);
 			}
 			else {
 				for(int j = 0; j < dom.getOrder(); j++) {
 					addr[i] = j;
-					walkCPT4InstanceCollection(addr, i+1, instances);
+					walkCPT4InstanceCollection(addr, i+1, constantSettings, instances);
 				}
 			}
 		}	
@@ -216,5 +239,21 @@ public class CPT2MLNFormulas {
 				}
 			}
 		}	
+	}
+	
+	protected void collectConstantAssignments(RelationalNode[] constNodes, int i, String[] assignment, Vector<HashMap<String,String>> assignments) {
+		if(i == constNodes.length) {
+			HashMap<String,String> m = new HashMap<String,String>();
+			for(int j = 0; j < assignment.length; j++)
+				m.put(constNodes[j].getName(), assignment[j]);
+			assignments.add(m);
+		}
+		else {
+			Discrete dom = (Discrete)constNodes[i].node.getDomain();
+			for(int j = 0; j < dom.getOrder(); j++) {
+				assignment[i] = dom.getName(j);
+				collectConstantAssignments(constNodes, i+1, assignment, assignments);
+			}
+		}
 	}
 }
