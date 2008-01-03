@@ -310,7 +310,19 @@ public class CPTLearner extends Learner {
 		 * 							array of nodes as returned by getNodes().
 		 */
 		public void count(int[] domainIndices) {
-
+			count(domainIndices, 1.0);
+		}
+		
+		/**
+		 * adds the given weight to the value in the CPT that corresponds to the example
+		 * @param domainIndices		a complete example (i.e. an example containing
+		 * 							values for each (relevant) node) specified as an array of integers, 
+		 * 							where each value is an index into the corresponding node's 
+		 * 							domain, the order being determined by the BeliefNetwork's 
+		 * 							array of nodes as returned by getNodes().
+		 * @param weight the weight of the example
+		 */
+		public void count(int[] domainIndices, double weight) {
 			int[] addr = new int[nodeIndices.length];
 			
 			// get the address of the CPT field
@@ -321,7 +333,7 @@ public class CPTLearner extends Learner {
 			// get the real address of the table entry
 			int realAddr = cpf.addr2realaddr(addr);
 			// add one to the entry
-			cpf.put(realAddr, Field.add(cpf.get(realAddr), new ValueDouble(1)) );
+			cpf.put(realAddr, Field.add(cpf.get(realAddr), new ValueDouble(weight)) );
 		}
 	}
 }
