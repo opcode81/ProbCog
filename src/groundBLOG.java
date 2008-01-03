@@ -14,7 +14,7 @@ public class groundBLOG {
 				return;
 			}			
 			BLOGModel b = new BLOGModel(args[0].split(","), args[1]);
-			if(args[2].equals("-g"))
+			if(args.length >= 3 && args[2].equals("-g"))
 				b.guessSignatures();
 			b.getGroundBN().show();
 		}
