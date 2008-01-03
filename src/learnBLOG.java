@@ -19,6 +19,7 @@ public class learnBLOG {
 			
 			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
+			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-s"))
 					showBN = true;
@@ -34,13 +35,16 @@ public class learnBLOG {
 					dbFile = args[++i];
 				else if(args[i].equals("-o"))
 					outFile = args[++i];
+				else if(args[i].equals("-nn"))
+					noNormalization = true;					
 			}			
 			if(bifFile == null || dbFile == null || outFile == null) {
 				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
 							         "    -b  " + acronym + " file from which to read function signatures\n" +
 						             "    -s  show learned Bayesian network\n" +
 						             "    -d  learn domains\n" + 
-						             "    -i  ignore data on predicates not defined in the model\n");
+						             "    -i  ignore data on predicates not defined in the model\n" +
+						             "    -nn no normalization (i.e. keep counts in CPTs)\n");
 				return;
 			}
 			// create a BLOG model
@@ -74,20 +78,25 @@ public class learnBLOG {
 				domLearner.finish();
 			}
 			// learn parameters
-			System.out.println("Learning parameters...");
-			CPTLearner cptLearner = new CPTLearner(bn);
-			cptLearner.learnTyped(db, true, true);
-			cptLearner.finish();
-			// write learnt BLOG/ABL model
-			System.out.println("Writing "+ acronym + " output...");
-			PrintStream out = new PrintStream(new File(outFile));
-			bn.write(out);			
-			out.close();
-			// write parameters to Bayesian network template
-			int dotpos = bifFile.lastIndexOf('.');
-			bifFile = bifFile.substring(0, dotpos) + ".learnt.xml";
-			System.out.println("Writing XML-BIF output to " + bifFile + "...");
-			bn.saveXMLBIF(bifFile);
+			boolean learnParams = true;
+			if(learnParams) {
+				System.out.println("Learning parameters...");
+				CPTLearner cptLearner = new CPTLearner(bn);
+				//cptLearner.setUniformDefault(true);
+				cptLearner.learnTyped(db, true, true);
+				if(!noNormalization)
+					cptLearner.finish();
+				// write learnt BLOG/ABL model
+				System.out.println("Writing "+ acronym + " output to " + outFile + "...");
+				PrintStream out = new PrintStream(new File(outFile));
+				bn.write(out);			
+				out.close();
+				// write parameters to Bayesian network template
+				int dotpos = bifFile.lastIndexOf('.');
+				bifFile = bifFile.substring(0, dotpos) + ".learnt.xml";
+				System.out.println("Writing XML-BIF output to " + bifFile + "...");
+				bn.saveXMLBIF(bifFile);
+			}
 			// show bayesian network
 			if(showBN) {
 				System.out.println("Showing Bayesian network...");
