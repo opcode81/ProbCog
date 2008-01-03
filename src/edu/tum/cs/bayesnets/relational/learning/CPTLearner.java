@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
@@ -38,78 +39,142 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		// get the main variable's name
 		String varName = RelationalNode.formatName(node.getFunctionName(), params);
 		//System.out.println("counting " + varName);
-		// set the domain indices of all relevant nodes (node itself and parents)
+		
+		// obtain all groundings of the relevant variables
 		ParentGrounder pg = bn.getParentGrounder(node);
+		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+		if(groundings == null) {
+			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
+			return;
+		}
+
 		//System.out.println();
 		/*HashMap<String, Integer> counts = marginals.get(node.index);
 		if(counts == null) {
 			counts = new HashMap<String, Integer>();
 			marginals.put(node.index, counts);
 		}*/
-		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
-		if(groundings != null) { // if we could obtain at least one grounding of all the relevant nodes
+		
+		double exampleWeight = 1.0;
+
+		// do some precomputations
+		// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights
+		if(node.aggregator != null && node.aggregator.equals("AVG") && node.parentMode != null && node.parentMode.equals("CP")) {
+			// create a vector of counts/probabilities
+			// first get the number of configurations that are possible for each parent
+			int dim = 1;
+			RelationalNode[] parents = bn.getRelationalParents(node);
+			Vector<Integer> relevantParentIndices = new Vector<Integer>();
+			Vector<Integer> precondParentIndices = new Vector<Integer>();
+			for(RelationalNode parent : parents) {
+				if(parent.isPrecondition) {
+					precondParentIndices.add(parent.index);
+					continue;
+				}
+				dim *= parent.getDomain().getOrder();
+				relevantParentIndices.add(parent.index);
+			}
+			double[] v = new double[dim];
+			// gather counts
+			int numExamples = 0;
 			for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
-				// consider the concrete parents
-				boolean countExample = true;
-				int domainIndices[] = new int[this.nodes.length];
-				for(int i = 0; i < counter.nodeIndices.length; i++) {
-					// get the corresponding node object
-					RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
-					// determine the value of the node given the parameter settings implied by the main node
-					String value = null, curVarname = ndCurrent.getFunctionName();
-					if(!ndCurrent.isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
-						String curVarName = ndCurrent.getVariableName(paramSets.get(ndCurrent.index));
-						// set value
-						value = db.getVariableValue(curVarName.toString(), closedWorld);
-						//System.out.println("For " + varName + ": " + curVarName + " = " + value);
-						// if the node is a precondition, i.e. it is required to be true, check that it really is
-						if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
-							// it's not, so skip this example
-							countExample = false;
+				boolean skip = false;
+				// check if the preconditions are met
+				for(Integer nodeIdx : precondParentIndices) {
+					RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
+					String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+					if(!value.equalsIgnoreCase("true")) {
+						skip = true;
+						break;
+					}
+				}
+				if(skip) 
+					continue;
+				// count the example
+				int factor = 1;
+				int addr = 0;
+				for(Integer nodeIdx : relevantParentIndices) {
+					RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
+					String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+					Discrete dom = ndCurrent.getDomain();
+					int domIdx = dom.findName(value);
+					addr += factor * domIdx; 
+					factor *= dom.getOrder();
+				}
+				v[addr] += 1;	
+				numExamples++;
+			}
+			// obtain probabilities
+			for(int i = 0; i < v.length; i++)
+				v[i] = v[i] / numExamples;
+			// calculate weight
+			exampleWeight = 0;
+			int exponent = 10;			
+			for(int i = 0; i < v.length; i++) {
+				exampleWeight += Math.pow(v[i], exponent);
+			}
+			System.out.println("weight: " + exampleWeight);
+		}
+			
+		// set the domain indices of all relevant nodes (node itself and parents)			
+		for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
+			// consider the concrete parents
+			boolean countExample = true;
+			int domainIndices[] = new int[this.nodes.length];
+			for(int i = 0; i < counter.nodeIndices.length; i++) {
+				// get the corresponding node object
+				RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
+				// determine the value of the node given the parameter settings implied by the main node
+				String value = null;
+				if(!ndCurrent.isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
+					String curVarName = ndCurrent.getVariableName(paramSets.get(ndCurrent.index));
+					// set value
+					value = db.getVariableValue(curVarName.toString(), closedWorld);
+					//System.out.println("For " + varName + ": " + curVarName + " = " + value);
+					// if the node is a precondition, i.e. it is required to be true, check that it really is
+					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
+						// it's not, so skip this example
+						countExample = false;
+						break;
+					}
+				}
+				else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
+					// the value of the current node is given directly as one of the main node's parameters
+					for(int iMain = 0; iMain < node.params.length; iMain++) {
+						if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
+							value = params[iMain];
 							break;
 						}
 					}
-					else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
-						// the value of the current node is given directly as one of the main node's parameters
-						for(int iMain = 0; iMain < node.params.length; iMain++) {
-							if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
-								value = params[iMain];
-								break;
-							}
-						}
-					}
-					if(value == null)
-						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", curVarname, varName));
-					// get the current node's domain and the index of its setting
-					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
-					int domain_idx = dom.findName(value);
-					if(domain_idx == -1) {	
-						String[] domElems = new String[dom.getOrder()];
-						for(int j = 0; j < domElems.length; j++)
-							domElems[j] = dom.getName(j);
-						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
-					}
-					domainIndices[ndCurrent.index] = domain_idx;
-					// side affair: learn the CPT of constant nodes here by incrementing the counter
-					if(ndCurrent.isConstant) {
-						int[] constantDomainIndices = new int[this.nodes.length];
-						constantDomainIndices[ndCurrent.index] = domain_idx;
-						this.counters[ndCurrent.index].count(constantDomainIndices);
-					}
 				}
-				// count this example
-				if(countExample)
-					counter.count(domainIndices);
-				// keep track of counts (just debugging)
-				/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
-				Integer i = counts.get(v);
-				if(i == null)
-					i = 0;
-				counts.put(v, i+1);*/
+				if(value == null)
+					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
+				// get the current node's domain and the index of its setting
+				Discrete dom = (Discrete)(ndCurrent.node.getDomain());
+				int domain_idx = dom.findName(value);
+				if(domain_idx == -1) {	
+					String[] domElems = new String[dom.getOrder()];
+					for(int j = 0; j < domElems.length; j++)
+						domElems[j] = dom.getName(j);
+					throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
+				}
+				domainIndices[ndCurrent.index] = domain_idx;
+				// side affair: learn the CPT of constant nodes here by incrementing the counter
+				if(ndCurrent.isConstant) {
+					int[] constantDomainIndices = new int[this.nodes.length];
+					constantDomainIndices[ndCurrent.index] = domain_idx;
+					this.counters[ndCurrent.index].count(constantDomainIndices);
+				}
 			}
-		}
-		else {
-			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
+			// count this example
+			if(countExample)
+				counter.count(domainIndices, exampleWeight);
+			// keep track of counts (just debugging)
+			/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
+			Integer i = counts.get(v);
+			if(i == null)
+				i = 0;
+			counts.put(v, i+1);*/
 		}
 	}
 	
