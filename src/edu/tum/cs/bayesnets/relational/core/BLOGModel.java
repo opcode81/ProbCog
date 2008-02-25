@@ -54,7 +54,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		while(matcher.find()) {
 			String retType = matcher.group(1);
 			String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
-			addSignature(matcher.group(2), new Signature(matcher.group(2), retType, argTypes));
+			Signature sig = new Signature(matcher.group(2), retType, argTypes);
+			addSignature(matcher.group(2), sig);
 		}
 		
 		getGuaranteedDomainElements(blog);
@@ -170,20 +171,24 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @param setting  the current setting (initially empty) - same length as domNames 
 	 * @param idx  the index of the domain from which to choose next 
 	 * @param ret  the vector in which all settings shall be stored
+	 * @throws Exception 
 	 */
-	protected void groundParams(String[] domNames, String[] setting, int idx, Vector<String[]> ret) {
+	protected void groundParams(String[] domNames, String[] setting, int idx, Vector<String[]> ret) throws Exception {
 		if(idx == domNames.length) {
 			ret.add(setting.clone());
 			return;
 		}
 		String[] elems = guaranteedDomElements.get(domNames[idx]);
+		if(elems == null) {
+			throw new Exception("No guaranteed domain elements for " + domNames[idx]);
+		}
 		for(String elem : elems) {
 			setting[idx] = elem;
 			groundParams(domNames, setting, idx+1, ret);
 		}
 	}
 	
-	protected Vector<String[]> groundParams(Signature sig) {
+	protected Vector<String[]> groundParams(Signature sig) throws Exception {
 		Vector<String[]> ret = new Vector<String[]>();
 		groundParams(sig.argTypes, new String[sig.argTypes.length], 0, ret);
 		return ret;
@@ -204,7 +209,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 				}
 				else
 					sig.returnType = "Boolean";
-			}			
+			}
 			for(String t : sig.argTypes) {
 				if(!types.contains(t)) {
 					types.add(t);

@@ -209,8 +209,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				String param = node.params[i].replaceAll("\\d+", "");
 				argTypes[i] = "ObjType_" + param;
 			}
-			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.getFunctionName(); 
-			addSignature(node.getFunctionName(), new Signature(node.getFunctionName(), retType, argTypes));		
+			String retType = /*isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" :*/ "Dom" + node.getFunctionName();
+			Signature sig = new Signature(node.getFunctionName(), retType, argTypes);
+			addSignature(node.getFunctionName(), sig);		
 		}
 		checkSignatures(); // to fill constants
 	}
@@ -266,9 +267,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * converts the network to a Markov logic network
 	 * @param out  the stream to write to
 	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
+	 * @param numericWeights whether to print weighs as numbers (if false, print as log(x))
 	 * @throws Exception
 	 */
-	public void toMLN(PrintStream out, boolean compactFormulas) throws Exception {
+	public void toMLN(PrintStream out, boolean compactFormulas, boolean numericWeights) throws Exception {
 		MLNWriter writer = new MLNWriter(out);
 		
 		// write domain declarations
@@ -377,7 +379,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					// old method: direct conversion
 					CPF cpf = node.node.getCPF();
 					int[] addr = new int[cpf.getDomainProduct().length];
-					walkCPD_MLNformulas(out, cpf, addr, 0, converter.getPrecondition());
+					walkCPD_MLNformulas(out, cpf, addr, 0, converter.getPrecondition(), numericWeights);
 				}				
 
 				out.println("// </group>\n");
@@ -407,7 +409,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 	}
 	
-	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition) throws Exception {
+	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// collect values of constants in order to replace references to them in the individual predicates 
@@ -438,7 +440,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			double weight = Math.log(value);
 			if(Double.isInfinite(weight)) weight = -100.0;
 			// print weight and formula
-			out.printf("%f %s\n", weight, sb.toString()); 
+			if(numericWeights)
+				out.printf("%f %s\n", weight, sb.toString());
+			else
+				out.printf("log(%f) %s\n", value, sb.toString());
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			// if the node is a necessary precondition for the child node, there is only one possible setting (True)
@@ -450,13 +455,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					addr[i] = dom.findName("true");
 				if(addr[i] == -1)
 					throw new Exception("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
-				walkCPD_MLNformulas(out, cpf, addr, i+1, precondition);
+				walkCPD_MLNformulas(out, cpf, addr, i+1, precondition, numericWeights);
 			}
 			// otherwise consider all domain elements
 			else {
 				for(int j = 0; j < dom.getOrder(); j++) {
 					addr[i] = j;
-					walkCPD_MLNformulas(out, cpf, addr, i+1, precondition);
+					walkCPD_MLNformulas(out, cpf, addr, i+1, precondition, numericWeights);
 				}
 			}
 		}
