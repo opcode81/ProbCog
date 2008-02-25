@@ -325,5 +325,9 @@ public class RelationalNode {
 		}
 		this.node.setName(buf.toString());
 	}
+	
+	public Discrete getDomain() {
+		return (Discrete)node.getDomain();
+	}
 }
 

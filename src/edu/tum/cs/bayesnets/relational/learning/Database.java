@@ -129,9 +129,14 @@ public class Database {
 			}
 			if(sig.argTypes.length != var.params.length) 
 				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
+			//if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
+			//	System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
 			fillDomain(sig.returnType, var.value);
-			for(int i = 0; i < sig.argTypes.length; i++)
+			for(int i = 0; i < sig.argTypes.length; i++) {
+				//if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
+				//	System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
 				fillDomain(sig.argTypes[i], var.params[i]);
+			}
 		}
 	}	
 
@@ -164,7 +169,7 @@ public class Database {
 				for(String value : dom1) {
 					if(dom2.contains(value)) { // replace all occurrences of the j-th domain by the i-th
 						if(verbose)
-							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap. Merging...");
+							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap (both contain " + value + "). Merging...");
 						this.bn.replaceType(domNames.get(j), domNames.get(i));
 						dom1.addAll(dom2);
 						doms.set(j, dom1);

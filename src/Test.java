@@ -12,9 +12,10 @@ import edu.tum.cs.tools.*;
 public class Test {  
   
     public static void main(String[] args) {
-    	HashSet<String> foo = new HashSet<String>();
-    	foo.add("hello");
-    	foo.add("world");
-    	System.out.println(foo.toString());
+    	String[] test = new String[0];
+    	//System.out.println(test[0]);
+    	for(String s : test) {
+    		System.out.println("test: " + s);
+    	}
     }
 }

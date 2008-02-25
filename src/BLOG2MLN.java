@@ -11,15 +11,18 @@ public class BLOG2MLN {
 			if(args.length < 2) {
 				System.out.println("\n usage: BLOG2MLN <BLOG file(s)> <XML-BIF file> [options]\n\n" + 
 						             "        -g   guess signatures from network structure rather than obtaining them from the BLOG file(s)\n" +
-						             "        -cF  write compact formulas\n");
+						             "        -cF  write compact formulas\n" + 
+						             "        -nW  numeric weights (rather than formulas such as log(x))\n");
 				return;
 			}			
-			boolean guessSigs = false, compact = false;
+			boolean guessSigs = false, compact = false, numericWeights = false;
 			for(int i = 2; i < args.length; i++) {
 				if(args[i].equals("-g"))
 					guessSigs = true;
 				else if(args[i].equals("-cF"))
 					compact = true;
+				else if(args[i].equals("-nW"))
+					numericWeights = true;
 				else {
 					System.err.println("unknown option " + args[i]);
 					return;
@@ -28,7 +31,7 @@ public class BLOG2MLN {
 			BLOGModel b = new BLOGModel(args[0].split(","), args[1]);
 			if(guessSigs)
 				b.guessSignatures();
-			b.toMLN(System.out, compact);
+			b.toMLN(System.out, compact, numericWeights);
 		}
 		catch(Exception e) {
 			e.printStackTrace();

@@ -380,6 +380,7 @@ public class DomainLearner extends Learner {
 					System.out.println("No node with name '" + directDomains[i]
 							+ "' found to learn direct domain for.");
 				}
+				//System.out.println("setting domain " + hs + " to " + node.getName());
 				bn.bn.changeBeliefNodeDomain(node, domain);
 			}
 		if (clusteredDomains != null)
