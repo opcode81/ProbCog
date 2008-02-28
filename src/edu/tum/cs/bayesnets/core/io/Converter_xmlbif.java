@@ -252,6 +252,9 @@ public class Converter_xmlbif
                         String X = val.substring(left + 1, cma).trim();
                         String Y = val.substring(cma + 1, right).trim();
                         _Writer.SetBeliefNodePosition(Integer.parseInt(X), Integer.parseInt(Y));
+                    } else if (var.equals("DOMAINCLASS")) {
+                    	String domainClassName = val.trim();
+                    	_Writer.SetBeliefNodeDomainClass(domainClassName);
                     }
                 }
                 // fall through
@@ -442,6 +445,10 @@ public class Converter_xmlbif
     {
         internalNode += "\t\t<PROPERTY>position = (" + x + "," + y + ")</PROPERTY>\n";
     }
+    
+	public void SetBeliefNodeDomainClass(String domainClassName) {
+		internalNode += "\t\t<PROPERTY>domainclass = " + domainClassName + "</PROPERTY>\n";
+	}
 
     public void BeliefNodeOutcome(String outcome)
     {

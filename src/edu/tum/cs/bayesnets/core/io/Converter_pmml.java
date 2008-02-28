@@ -302,7 +302,7 @@ public class Converter_pmml
 	// -------------------- SAVING --------------------
 	
 	protected class NodeData {
-		public String cpfData, subElements, nodeType, opType, name;
+		public String cpfData, subElements, nodeType, opType, name, domainClassName;
 		int xPos, yPos;
 		public NodeData() {
 			cpfData = new String();
@@ -375,6 +375,10 @@ public class Converter_pmml
         curNode.xPos = x;
 		curNode.yPos = y;
     }
+    
+	public void SetBeliefNodeDomainClass(String domainClassName) {
+		curNode.domainClassName = domainClassName;
+	}
 
     public void BeliefNodeOutcome(String outcome) {
         curNode.subElements += "\t\t\t<Value value=\"" + outcome.replaceAll("<", "&lt;").replaceAll(">", "&gt;") + "\" />\n";
@@ -440,6 +444,8 @@ public class Converter_pmml
 		        fwrite("\t\t<DataField name=\"" + nd.name + "\" optype=\"" + nd.opType + "\">\n");
 				fwrite("\t\t\t<Extension>\n");
 				fwrite("\t\t\t\t<X-NodeType>" + nd.nodeType + "</X-NodeType>\n");
+				if (nd.domainClassName != null)
+					fwrite("\t\t\t\t<X-NodeDomainClass>" + nd.domainClassName + "</X-NodeDomainClass>\n");
 				fwrite("\t\t\t\t<X-Position x=\"" + nd.xPos + "\" y=\"" + nd.yPos + "\" />\n");
 				fwrite(nd.cpfData);
 				fwrite("\t\t\t</Extension>\n");

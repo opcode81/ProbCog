@@ -6,18 +6,18 @@ import java.math.*;
 
 /**
  * an interface for use with DomainLearner that contains a function that, when given
- * a WEKA SimpleKMeans clusterer, returns an array of cluster names
+ * a WEKA clusterer, returns an array of cluster names
  * @author Dominik Jain
  */
-public interface ClusterNamer {
-	public String[] getNames(SimpleKMeans clusterer);
+public interface ClusterNamer<Cl extends Clusterer> {
+	public String[] getNames(Cl clusterer);
 	
 	/**
 	 * a default cluster namer, which simply returns the string "~E +/- S" for each cluster, where
 	 * E is the expected value and S the standard deviation of the cluster. 
 	 * @author Dominik Jain
 	 */
-	public static class Default implements ClusterNamer {
+	public static class Default implements ClusterNamer<SimpleKMeans> {
 		public String[] getNames(SimpleKMeans clusterer) {
 			int numClusters = clusterer.getNumClusters();
 			String[] ret = new String[numClusters];
@@ -35,7 +35,7 @@ public interface ClusterNamer {
 	 * cluster by calculating the intersections of the Gaussian distributions 
 	 * @author Dominik Jain
 	 */
-	public static class Intervals implements ClusterNamer {
+	public static class Intervals implements ClusterNamer<SimpleKMeans> {
 		/**
 		 * calculates the intersection of two Gaussian distributions
 		 * @param e1	the expected value of the first distribution

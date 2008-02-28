@@ -1,32 +1,22 @@
 package edu.tum.cs.bayesnets.core;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Stack;
-import java.util.Vector;
+import java.io.*;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
-import edu.ksu.cis.bnj.ver3.streams.*;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import edu.ksu.cis.bnj.ver3.core.*;
-import edu.ksu.cis.bnj.ver3.core.values.*;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.ForwardSampling;
 import edu.ksu.cis.bnj.ver3.inference.exact.Pearl;
-import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
-import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Writer;
+import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
+import edu.ksu.cis.bnj.ver3.streams.*;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
-import edu.tum.cs.bayesnets.core.io.*;
-import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.core.io.Converter_pmml;
+import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.
@@ -39,6 +29,205 @@ import edu.tum.cs.bayesnets.relational.core.RelationalNode;
  *
  */
 public class BeliefNetworkEx {
+	/**
+	 * The logger for this class.
+	 */
+	static final Logger logger = Logger.getLogger(BeliefNetworkEx.class);
+	static {
+		logger.setLevel(Level.WARN);
+	}
+
+	/**
+	 * The maximum number of unsuccessful trials for sampling. 
+	 * TODO: This should perhaps depend on the number of samples to be gathered?
+	 */
+	public static final int MAX_TRIALS = 5000;
+
+	/**
+	 * An instance of class <code>WeightedSample</code> represents a weighted
+	 * sample. It contains the mapping from node to the corresponding value and
+	 * the value of the sample.
+	 * 
+	 * @see BeliefNetworkEx#getWeightedSample(String[][], Random)
+	 */
+	public class WeightedSample {
+		/**
+		 * The mapping from intern numbering to value as index into the domain
+		 * of the node.
+		 */
+		public int[] nodeDomainIndices;
+		/**
+		 * The mapping from intern numbering to the node index of the outer
+		 * class {@link BeliefNetworkEx}.
+		 */
+		public int[] nodeIndices;
+		/**
+		 * The weight of the sample.
+		 */
+		public double weight;
+
+		/**
+		 * Constructs a weighted sample from given node value mapping and
+		 * weight.
+		 * 
+		 * @param nodeDomainIndices
+		 *            the mapping from intern numbering to value as index into
+		 *            the domain of the node.
+		 * @param weight
+		 *            the weight of the sample.
+		 * @param nodeIndices
+		 *            the mapping from intern numbering to the node index of the
+		 *            outer class.
+		 */
+		public WeightedSample(int[] nodeDomainIndices, double weight,
+				int[] nodeIndices) {
+			if (nodeIndices == null) {
+				int numNodes = nodeDomainIndices.length;
+				nodeIndices = new int[numNodes];
+				for (int i = 0; i < numNodes; i++) {
+					nodeIndices[i] = i;
+				}
+			}
+			this.nodeIndices = nodeIndices;
+			this.nodeDomainIndices = nodeDomainIndices;
+			assert nodeIndices.length == nodeDomainIndices.length;
+			this.weight = weight;
+		}
+
+		/**
+		 * Extract a sub sample of this sample for the given nodes. The weight
+		 * of the sample has to be normalised afterwards and is only meaningful
+		 * with the same node base!
+		 * 
+		 * @param queryNodes
+		 *            the nodes to be extracted.
+		 * @return the sub sample for the given nodes.
+		 */
+		public WeightedSample subSample(int[] queryNodes) {
+			logger.debug(Arrays.toString(nodeDomainIndices));
+			int[] resultIndices = new int[queryNodes.length];
+			for (int i = 0; i < queryNodes.length; i++) {
+				resultIndices[i] = nodeDomainIndices[queryNodes[i]];
+			}
+			return new WeightedSample(resultIndices, weight, queryNodes);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			return Arrays.hashCode(nodeDomainIndices);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (!(obj instanceof WeightedSample))
+				return false;
+			return Arrays.equals(nodeDomainIndices,
+					(((WeightedSample) obj).nodeDomainIndices));
+		}
+
+		/**
+		 * Get the assignment from node names to the values. Sometimes we don't
+		 * want to use the internal numbering outside this class.
+		 * 
+		 * @return the assignments of this sample.
+		 */
+		public Map<String, String> getAssignmentMap() {
+			Map<String, String> result = new HashMap<String, String>();
+
+			BeliefNode[] nodes = BeliefNetworkEx.this.bn.getNodes();
+			for (int i = 0; i < nodeIndices.length; i++) {
+				try {
+					result.put(nodes[nodeIndices[i]].getName(),
+							nodes[nodeIndices[i]].getDomain().getName(
+									nodeDomainIndices[i]));
+				} catch (RuntimeException e) {
+					e.printStackTrace();
+					throw e;
+				}
+			}
+
+			return result;
+		}
+
+		/**
+		 * Get the assignment from node names to values but use an example value
+		 * for {@link Discretized} domains.
+		 * 
+		 * @return the assignments of this sample probably with example values.
+		 */
+		public Map<String, String> getUndiscretizedAssignmentMap() {
+			Map<String, String> result = new HashMap<String, String>();
+
+			BeliefNode[] nodes = BeliefNetworkEx.this.bn.getNodes();
+			for (int i = 0; i < nodeIndices.length; i++) {
+				try {
+					Domain nodeDomain = nodes[nodeIndices[i]].getDomain();
+					String value = nodeDomain.getName(nodeDomainIndices[i]);
+					if (nodeDomain instanceof Discretized) {
+						value = String.valueOf(((Discretized) nodeDomain)
+								.getExampleValue(nodeDomainIndices[i]));
+					}
+					result.put(nodes[nodeIndices[i]].getName(), value);
+				} catch (RuntimeException e) {
+					e.printStackTrace();
+					throw e;
+				}
+			}
+			return result;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return "WeightedSample(" + getAssignmentMap() + ", " + weight + ")";
+		}
+
+		/**
+		 * Get only a shorter String containing only the the domain indices
+		 * instead of the full assignment map.
+		 * 
+		 * @return a short string representation.
+		 */
+		public String toShortString() {
+			return "WeightedSample(" + Arrays.toString(nodeDomainIndices)
+					+ ", " + weight + ")";
+		}
+
+		/**
+		 * Check if all query assignments are this sample's assignments.
+		 * 
+		 * @param queries
+		 *            the assignments to be tested.
+		 * @return  true if all the assignments are correct,
+		 * 	       false otherwise
+		 */
+		public boolean checkAssignment(String[][] queries) {
+			int[] indices = getNodeDomainIndicesFromStrings(queries);
+			for (int nodeIndex : nodeIndices) {
+				if (indices[nodeIndex] >= 0
+						&& indices[nodeIndex] != nodeDomainIndices[nodeIndex])
+					return false;
+			}
+			return true;
+		}
+	}
+	
 	/**
 	 * the BNJ BeliefNetwork object that is wrapped by the instance of class BeliefNetworkEx.
 	 * When using BNJ directly, you may need this; or you may want to use the methods of BeliefNetwork to perform
@@ -60,11 +249,22 @@ public class BeliefNetworkEx {
 	protected String filename;
 	
 	/**
+	 * The mapping from attribute names to the node names of nodes that should get data from the attribute.
+	 */
+	protected Map<String, String> nodeNameToAttributeMapping = new HashMap<String, String>();
+	
+	/**
+	 * The inverse mapping of {@link #nodeNameToAttributeMapping}.
+	 */
+	protected Map<String, Set<String>> attributeToNodeNameMapping = new HashMap<String, Set<String>>();
+	
+	/**
 	 * constructs a BeliefNetworkEx object from a BNJ BeliefNetwork object
 	 * @param bn	the BNJ BeliefNetwork object
 	 */
 	public BeliefNetworkEx(BeliefNetwork bn) {
 		this.bn = bn;
+		initAttributeMapping();
 	}
 	
 	/**
@@ -73,6 +273,7 @@ public class BeliefNetworkEx {
 	 */
 	public BeliefNetworkEx(String xmlbifFile) throws FileNotFoundException {
 		this.bn = load(xmlbifFile, new Converter_xmlbif());
+		initAttributeMapping();
 		this.filename = xmlbifFile;
 	}
 	
@@ -91,7 +292,8 @@ public class BeliefNetworkEx {
 			break;
 		default:
 			throw new Exception("Can't load - unknown format!");
-		}	
+		}
+		initAttributeMapping();
 		this.filename = filename;
 	}
 	
@@ -103,11 +305,55 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * Initialize the attribute mapping with the basenodes' names to itself respectively.
+	 */
+	protected void initAttributeMapping() {
+	    for (BeliefNode node: bn.getNodes()) {
+			addAttributeMapping(node.getName(), node.getName());
+	    }
+	}
+	
+	/**
+	 * Add a link from the node name to the attribute name.
+	 * Insert an entry into {@link #nodeNameToAttributeMapping} and into {@link #attributeToNodeNameMapping}.
+	 * @param nodeName 	the name of the node to link.
+	 * @param attributeName	the name of the attribute to be linked with the node.
+	 */
+	protected void addAttributeMapping(String nodeName, String attributeName) {
+	    nodeNameToAttributeMapping.put(nodeName, attributeName);
+	    Set<String> nodeNames = attributeToNodeNameMapping.get(attributeName);
+	    if (nodeNames == null) {
+	    	nodeNames = new HashSet<String>();
+	    	attributeToNodeNameMapping.put(attributeName, nodeNames);
+	    }
+	    nodeNames.add(nodeName);
+	}
+	
+	/**
+	 * Get the attribute name that is linked to the given node.
+	 * @param nodeName	the name of the node.
+	 * @return		the attribute's name. 
+	 */
+	public String getAttributeNameForNode(String nodeName) {
+	    return nodeNameToAttributeMapping.get(nodeName);
+	}
+	
+	/**
+	 * Get the node names that are linked to the given attribute name.
+	 * @param attributeName	the attribute name the nodes are linked to.
+	 * @return				the node names that are linked to the attribute.
+	 */
+	public Set<String> getNodeNamesForAttribute(String attributeName) {
+		return attributeToNodeNameMapping.get(attributeName);
+	}
+	
+	/**
 	 * adds a node to the network
 	 * @param node	the node that is to be added
 	 */
 	public void addNode(BeliefNode node) {
 		bn.addBeliefNode(node);
+		addAttributeMapping(node.getName(), node.getName());
 	}
 	
 	/**
@@ -120,14 +366,28 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
-	 * adds a node with the given name and domain to the network
+	 * adds a node with the given name and domain to the network.
+	 * Assotiate the attribute with the same name to the node.
 	 * @param name		the name of the node
 	 * @param domain	the node's domain (usually an instance of BNJ's class Discrete)
 	 * @return			a reference to the BeliefNode object that was constructed
 	 */
 	public BeliefNode addNode(String name, Domain domain) {
+		return addNode(name, domain, name);
+	}
+	
+	/**
+	 * adds a node with the given name and domain and attribute name to the network.
+	 * @param name		the name of the node
+	 * @param domain	the node's domain (usually an instance of BNJ's class Discrete)
+	 * @param attributeName	the name of the attribute that is assigned to the node
+	 * @return			a reference to the BeliefNode object that was constructed
+	 */
+	public BeliefNode addNode(String name, Domain domain, String attributeName) {
 		BeliefNode node = new BeliefNode(name, domain);
 		bn.addBeliefNode(node);
+		addAttributeMapping(name, attributeName);
+		logger.debug("Added node "+name+" with attributeName "+attributeName);
 		return node;
 	}
 	
@@ -138,11 +398,27 @@ public class BeliefNetworkEx {
 	 * @throws Exception	if either of the node names are invalid
 	 */
 	public void connect(String node1, String node2) throws Exception {
-		BeliefNode n1 = getNode(node1);
-		BeliefNode n2 = getNode(node2);
-		if(n1 == null || n2 == null)
-			throw new Exception("One of the node names is invalid!");		
-		bn.connect(n1, n2);
+		try {
+			logger.debug("connecting "+node1+" and "+node2);
+			logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+			BeliefNode n1 = getNode(node1);
+			BeliefNode n2 = getNode(node2);
+			if(n1 == null || n2 == null)
+				throw new Exception("One of the node names "+node1+" or "+node2+" is invalid!");
+			logger.debug("Domainsize: "+n1.getDomain().getOrder()+"x"+n2.getDomain().getOrder());
+			logger.debug("Doing the connect...");
+			bn.connect(n1, n2);
+			logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+			logger.debug("Connection done.");
+		} catch(Exception e) {
+			System.out.println("Exception occurred in connect!");
+			e.printStackTrace(System.out);
+			throw e;
+		} catch(Error e2) {
+			System.out.println("Error occurred");
+			e2.printStackTrace(System.out);
+			throw e2;
+		}
 	}
 	
 	/**
@@ -170,6 +446,56 @@ public class BeliefNetworkEx {
 		return -1;		
 	}
 	
+	/**
+	 * Get the indices of the nodes that the CPT of the given node depends on.
+	 * @param node	the node to take the CPT from. 
+	 * @return		the indices of the nodes that the CPT of the given node depends on.
+	 */
+	public int[] getDomainProductNodeIndices(BeliefNode node) {
+		BeliefNode[] nodes = node.getCPF().getDomainProduct();
+		int[] nodeIndices = new int[nodes.length];
+		for(int i = 0; i < nodes.length; i++)
+			nodeIndices[i] = this.getNodeIndex(nodes[i].getName());
+		return nodeIndices;
+	}
+	
+	/**
+	 * Get the indices into the domains of the nodes for the given node value assignments.
+	 * @param nodeAndDomains	the assignments to be converted.
+	 * @return					the assignment converted to doamin indices.
+	 */
+	public int[] getNodeDomainIndicesFromStrings(String[][] nodeAndDomains) {
+		BeliefNode[] nodes = bn.getNodes(); 
+		int[] nodeDomainIndices = new int[nodes.length];
+		Arrays.fill(nodeDomainIndices, -1);
+		for (String[] nodeAndDomain: nodeAndDomains) {
+			if (nodeAndDomain == null || nodeAndDomain.length != 2)
+				throw new IllegalArgumentException("Evidences not in the correct format: "+Arrays.toString(nodeAndDomain)+"!");
+			int nodeIdx = getNodeIndex(nodeAndDomain[0]);
+			if (nodeIdx < 0)
+				throw new IllegalArgumentException("Variable with the name "+nodeAndDomain[0]+" not found!");
+			if (nodeDomainIndices[nodeIdx] > 0)
+				logger.warn("Evidence "+nodeAndDomain[0]+" set twice!");
+			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
+			int domainIdx = domain.findName(nodeAndDomain[1]);
+			if (domainIdx < 0) {
+				if (domain instanceof Discretized) {
+					try {
+						double value = Double.parseDouble(nodeAndDomain[1]);
+						String domainStr = ((Discretized)domain).getNameFromContinuous(value);
+						domainIdx = domain.findName(domainStr);
+					} catch (Exception e) {
+						throw new IllegalArgumentException("Cannot find evidence value "+nodeAndDomain[1]+" in domain "+domain+"!");
+					}
+				} else {
+					throw new IllegalArgumentException("Cannot find evidence value "+nodeAndDomain[1]+" in domain "+domain+"!");
+				}
+			}
+			nodeDomainIndices[nodeIdx]=domainIdx;
+		}
+		return nodeDomainIndices;
+	}
+	
 	public int getNodeIndex(BeliefNode node) {
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++)
@@ -177,7 +503,7 @@ public class BeliefNetworkEx {
 				return i;
 		return -1;
 	}
-	
+
 	/**
 	 * sets evidence for one of the network's node
 	 * @param nodeName		the name of the node for which evidence is to be set
@@ -192,7 +518,7 @@ public class BeliefNetworkEx {
 		int idx = domain.findName(outcome);
 		if(idx == -1)
 			throw new Exception("Outcome " + outcome + " not in domain of " + nodeName);
-		node.setEvidence(new DiscreteEvidence(idx));		
+		node.setEvidence(new DiscreteEvidence(idx));
 	}
 	
 	/**
@@ -251,8 +577,8 @@ public class BeliefNetworkEx {
 				_evidences[idx] = evidences[i];
 			return getProbability(_queries, _evidences) * getProbability(_queries2, evidences);			
 		}
-	}	
-		
+	}
+
 	protected void printProbabilities(int node, Stack<String[]> evidence) throws Exception {
 		BeliefNode[] nodes = bn.getNodes();
 		if(node == nodes.length) {
@@ -508,6 +834,57 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * Get the sample assignment and its sampled probability as the weight sorted by probability.
+	 * @param evidences		the evidences for the distribution.
+	 * @param queryNodes	the nodes that should be sampled.
+	 * @param numSamples	the number of samples to draw from.
+	 * @return				the accumulated samples and their sampled conditional probabilities given the evidences 
+	 * 						or null	if we run out of trials for the first sample. 
+	 */
+	public WeightedSample[] getAssignmentDistribution(String[][] evidences, String[] queryNodeNames, int numSamples) {
+		HashMap<WeightedSample, Double> sampleSums = new HashMap<WeightedSample, Double>();
+
+		int[] queryNodes = new int[queryNodeNames.length];
+		for (int i=0; i<queryNodeNames.length; i++) {
+			queryNodes[i]=getNodeIndex(queryNodeNames[i]);
+			if (queryNodes[i] < 0)
+				throw new IllegalArgumentException("Cannot find node with name "+queryNodeNames[i]);
+		}
+
+		Random generator = new Random();
+		for (int i=0; i<numSamples; i++) {
+			WeightedSample sample = getWeightedSample(evidences, generator);
+			if (sample == null && i == 0)	// If we need too many trials and we have no samples 
+				return null;				// it will be very probable that we have an endless loop because of a bad evidence!
+			WeightedSample subSample = sample.subSample(queryNodes);
+
+			if (sampleSums.containsKey(subSample)) {
+				sampleSums.put(subSample, sampleSums.get(subSample)+subSample.weight);
+			} else {
+				sampleSums.put(subSample, subSample.weight);
+			}
+		}
+		double sum = 0;
+		for (WeightedSample sample: sampleSums.keySet()) {
+			logger.debug(sample);
+			double value = sampleSums.get(sample);
+			sum += value;
+		}
+		WeightedSample[] samples = sampleSums.keySet().toArray(new WeightedSample[0]);
+		for (WeightedSample sample: samples) {
+			sample.weight = sampleSums.get(sample)/sum;
+		}
+		
+		Arrays.sort(samples, new Comparator<WeightedSample>() {
+			public int compare(WeightedSample o1, WeightedSample o2) {
+				return Double.compare(o2.weight, o1.weight);
+			}
+		});
+
+		return samples;
+	}
+	
+	/**
 	 * gets a topological ordering of the network's nodes  
 	 * @return an array of integers containing node indices
 	 */
@@ -517,6 +894,144 @@ public class BeliefNetworkEx {
 		return topsort.alpha;
 	}
 	
+	/**
+	 * Get a specific entry in the cpt of the given node.
+	 * The nodeDomainIndices should contain a value for each node in the BeliefNet but only values
+	 * in the domain product of the node are queried for.
+	 * @param node				the node the CPT should come from.
+	 * @param nodeDomainIndices	the values the nodes should have.
+	 * @return					the probability entry in the CPT.
+	 */
+	public double getCPTProbability(BeliefNode node, int[] nodeDomainIndices ) {
+		CPF cpf = node.getCPF();
+		int[] domainProduct = getDomainProductNodeIndices(node);
+		int[] address = new int[domainProduct.length];
+		for (int i=0; i<address.length; i++) {
+			address[i]=nodeDomainIndices[domainProduct[i]];
+		}
+		int realAddress = cpf.addr2realaddr(address);
+		return ((ValueDouble)cpf.get(realAddress)).getValue();
+	}
+	
+	/**
+	 * Remove all evidences.
+	 */
+	public void removeAllEvidences() {
+		// remove evidences (restoring original state)
+		for(BeliefNode node : bn.getNodes()) {
+			node.setEvidence(null);
+		}
+	}
+	
+	/**
+	 * Calculates a probability Pr[X=x, Y=y, ... | E=e, F=f, ...] by sampling a number of samples.
+	 * @param queries		an array of 2-element string arrays (variable, outcome)
+	 * 						that represents the conjunction "X=x AND Y=y AND ...".
+	 * @param evidences		the conjunction of evidences, specified in the same way.
+	 * @param numSamples	the number of samples to draw.
+	 * @return				the calculated probability.
+	 */
+	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) {
+	    String[] queryNodes = new String[queries.length];
+	    for (int i=0; i<queryNodes.length; i++) {
+		queryNodes[i]=queries[i][0];
+	    }
+	    WeightedSample[] samples = getAssignmentDistribution(evidences, queryNodes, numSamples);
+	    double goodSum = 0;
+	    double allSum = 0;
+	    for (int i=0; i<samples.length; i++) {
+		allSum += samples[i].weight;
+		if (samples[i].checkAssignment(queries))
+		    goodSum += samples[i].weight;
+	    }
+	    return goodSum/allSum;
+	}
+	
+	/**
+	 * Sample from the BeliefNet via likelihood weighted sampling.
+	 * @param evidences				the evidences for the sample.
+	 * @param sampleDomainIndexes	the resulting domain indexes for each node.
+	 * 			The length must be initialized to the number of nodes in the net.
+	 * @return
+	 */
+	public WeightedSample getWeightedSample(String[][] evidences, Random generator) {
+		BeliefNode[] nodes = bn.getNodes();
+		int[] sampleDomainIndices  = new int[nodes.length];
+		
+		if (generator == null) {
+			generator = new Random();
+		}
+		
+		int[] evidenceDomainIndices = new int[nodes.length];
+		Arrays.fill(evidenceDomainIndices, -1);
+		for (String[] evidence: evidences) {
+			if (evidence == null || evidence.length != 2)
+				throw new IllegalArgumentException("Evidences not in the correct format: "+Arrays.toString(evidence)+"!");
+			int nodeIdx = getNodeIndex(evidence[0]);
+			if (nodeIdx < 0)
+				throw new IllegalArgumentException("Variable with the name "+evidence[0]+" not found!");
+			if (evidenceDomainIndices[nodeIdx] > 0)
+				logger.warn("Evidence "+evidence[0]+" set twice!");
+			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
+			int domainIdx = domain.findName(evidence[1]);
+			if (domainIdx < 0) {
+				if (domain instanceof Discretized) {
+					try {
+						double value = Double.parseDouble(evidence[1]);
+						String domainStr = ((Discretized)domain).getNameFromContinuous(value);
+						domainIdx = domain.findName(domainStr);
+					} catch (Exception e) {
+						throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+"!");
+					}
+				} else {
+					throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+"!");
+				}
+			}
+			evidenceDomainIndices[nodeIdx]=domainIdx;
+		}
+				
+		TopologicalSort topsort = new TopologicalSort();
+		topsort.execute(bn.getGraph());
+		int[] order=topsort.alpha;
+		
+		boolean successful = false;
+		double weight = 1.0;
+		int trials=0;
+success:while (!successful) {
+			weight = 1.0;
+			if (trials > MAX_TRIALS)
+				return null;
+			for (int i=0; i<order.length; i++) {
+				int nodeIdx = order[i];
+				int domainIdx = evidenceDomainIndices[nodeIdx];
+				if (domainIdx >= 0) { // This is an evidence node?
+					sampleDomainIndices[nodeIdx] = domainIdx;
+					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+					double prob = getCPTProbability(bn.getNodes()[nodeIdx], sampleDomainIndices);
+					if (prob == 0.0) {
+						removeAllEvidences();
+						trials++;
+						continue success;
+					}
+					weight *= prob;
+				} else {
+					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
+					if (domainIdx < 0) {
+						removeAllEvidences();
+						trials++;
+						continue success;
+					}
+					sampleDomainIndices[nodeIdx] = domainIdx;
+					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+				}
+			}
+			trials++;
+			removeAllEvidences();
+			successful = true;
+		}
+		return new WeightedSample(sampleDomainIndices, weight, null);
+	}
+
 	/**
 	 * performs sampling on the network and returns a sample of the distribution represented by this Bayesian network; evidences that are set during sampling are removed
 	 * afterwards in order to retain the original state of the network.
@@ -573,6 +1088,20 @@ public class BeliefNetworkEx {
 	
 	public String[] getDiscreteDomainAsArray(String nodeName) {
 		return getDiscreteDomainAsArray(getNode(nodeName));
+	}
+	
+	/**
+	 * Dump the context of the net to the logger.
+	 */
+	public void dump() {
+		BeliefNode[] nodes = bn.getNodes();
+		for (int i=0; i<nodes.length; i++) {
+			logger.debug("Node "+i+": "+nodes[i].getName());
+			logger.debug("\tAttribute: "+getAttributeNameForNode(nodes[i].getName()));
+		}
+		for (String attributeName: attributeToNodeNameMapping.keySet()) {
+			logger.debug("Attribute "+attributeName+": "+attributeToNodeNameMapping.get(attributeName));
+		}
 	}
 
 	public abstract class CPTWalker {

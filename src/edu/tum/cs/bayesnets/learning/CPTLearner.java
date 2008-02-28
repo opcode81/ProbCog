@@ -7,7 +7,11 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import java.sql.*; 
 import java.util.*;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.core.Discretized;
 
 import weka.clusterers.*;
 import weka.core.*;
@@ -20,6 +24,13 @@ import weka.core.*;
  * @author Dominik Jain
  */
 public class CPTLearner extends Learner {
+	/**
+	 * The logger for this class.
+	 */
+	static final Logger logger = Logger.getLogger(CPTLearner.class);
+	static {
+		logger.setLevel(Level.WARN);
+	}
 	
 	/**
 	 * an array of example counter objects - one for each node in the network 
@@ -112,16 +123,21 @@ public class CPTLearner extends Learner {
 			BeliefNode[] nodes = bn.bn.getNodes();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numCols = rsmd.getColumnCount();
-			if(numCols != nodes.length)
-				throw new Exception("Result does not contain suitable data (column count = " + numCols + "; node count = " + nodes.length + ")");
+			// Now we can get much more nodes than attributes
+//			if(numCols != nodes.length)
+//				throw new Exception("Result does not contain suitable data (column count = " + numCols + "; node count = " + nodes.length + ")");
 			
 			// map node indices to result set column indices
 			int[] nodeIdx2colIdx = new int[nodes.length];
-			for(int i = 1; i <= numCols; i++) {				
-				int node_idx = bn.getNodeIndex(rsmd.getColumnName(i));
-				if(node_idx == -1)
-					throw new Exception("Unknown node referenced in result set: " + rsmd.getColumnName(i));
-				nodeIdx2colIdx[node_idx] = i;
+			Arrays.fill(nodeIdx2colIdx, -1);
+			for(int i = 1; i <= numCols; i++) {
+				Set<String> nodeNames = bn.getNodeNamesForAttribute(rsmd.getColumnName(i));
+				for (String nodeName: nodeNames) {
+					int node_idx = bn.getNodeIndex(nodeName);
+					if(node_idx == -1)
+						throw new Exception("Unknown node referenced in result set: " + rsmd.getColumnName(i));
+					nodeIdx2colIdx[node_idx] = i;
+				}
 			}			
 			
             // gather data, iterating over the result set
@@ -136,14 +152,22 @@ public class CPTLearner extends Learner {
 					int domain_idx;
 					if(clusterers[node_idx] == null) {
 						Discrete domain = (Discrete) nodes[node_idx].getDomain();
-						String value = rs.getString(nodeIdx2colIdx[node_idx]);
-						domain_idx = domain.findName(value);
+
+						String strValue;
+						if (domain instanceof Discretized) {	// If we have a discretized domain we discretize first...
+							double value = rs.getDouble(nodeIdx2colIdx[node_idx]);
+							strValue = (((Discretized)domain).getNameFromContinuous(value));
+						} else {
+							strValue = rs.getString(nodeIdx2colIdx[node_idx]);
+						}
+						domain_idx = domain.findName(strValue);
 						if(domain_idx == -1)
-							throw new Exception(value + " not found in domain of " + nodes[node_idx].getName());				
+							throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());				
 					}
 					else {
 						Instance inst = new Instance(1);
-						inst.setValue(0, rs.getDouble(nodeIdx2colIdx[node_idx]));
+						double value = rs.getDouble(bn.getAttributeNameForNode(bn.bn.getNodes()[node_idx].getName()));
+						inst.setValue(0, value);
 						domain_idx = clusterers[node_idx].clusterInstance(inst);
 					}
 					domainIndices[node_idx] = domain_idx;
@@ -162,7 +186,113 @@ public class CPTLearner extends Learner {
 	}
 	
 	/**
+	 * learns all the examples in the instances. Each instance in the instances represents one example.
+	 * All the random variables (nodes) in the network
+	 * need to be found in each instance as columns that are named accordingly, i.e. for each
+	 * random variable, there must be an attribute with a matching name in the instance. 
+	 * @param instances			the instances
+	 * @throws Exception 	if the result set is empty
+	 * @throws SQLException particularly if there is no matching column for one of the node names  
+	 */
+	public void learn(Instances instances) throws Exception {
+		// if it's an empty result set, throw exception
+		if(instances.numInstances() == 0)
+			throw new Exception("empty result set!");
+
+		BeliefNode[] nodes = bn.bn.getNodes();
+		int numAttributes = instances.numAttributes();
+		// Now we can get much more nodes than attributes
+//		if(numAttributes != nodes.length)
+//			throw new Exception("Result does not contain suitable data (attribute count = " + numAttributes + "; node count = " + nodes.length + ")");
+		
+		// map node indices to attribute index
+		int[] nodeIdx2colIdx = new int[nodes.length];
+		Arrays.fill(nodeIdx2colIdx, -1);
+		for(int i = 0; i < numAttributes; i++) {
+			Set<String> nodeNames = bn.getNodeNamesForAttribute(instances.attribute(i).name());
+			logger.debug("Nodes for attribute "+instances.attribute(i).name()+": "+nodeNames);
+			if (nodeNames==null)
+				continue;
+			for (String nodeName: nodeNames) {
+				int node_idx = bn.getNodeIndex(nodeName);
+				if(node_idx == -1)
+					throw new Exception("Unknown node referenced in result set: " + instances.attribute(i).name());
+				nodeIdx2colIdx[node_idx] = i;
+			}
+		}
+		
+        // gather data, iterating over the result set
+		int[] domainIndices = new int[nodes.length];
+        Enumeration<Instance> instanceEnum = instances.enumerateInstances();
+        while (instanceEnum.hasMoreElements()) {
+        	Instance instance = instanceEnum.nextElement();
+			// for each row...
+			// - get the indices into the domains of each node
+			//   that correspond to the current row of data
+			//   (sorted in the same order as the nodes are ordered
+			//   in the BeliefNetwork)				
+			for(int node_idx = 0; node_idx < nodes.length; node_idx++) {
+				int domain_idx;
+				if(clusterers[node_idx] == null) {
+					Discrete domain = (Discrete) nodes[node_idx].getDomain();
+					String strValue;
+					if (domain instanceof Discretized) {	// If we have a discretized domain we discretize first...
+						int colIdx = nodeIdx2colIdx[node_idx];
+						if (colIdx < 0) {
+							bn.dump();
+							for (int i = 0; i < numAttributes; i++) {
+								logger.debug("Attribute "+i+": "+instances.attribute(i).name());
+							}
+							StringBuffer sb = new StringBuffer();
+							for (int i = 0; i < nodeIdx2colIdx.length; i++) {
+								sb.append(i+"\t");
+							}
+							sb.append("\n");
+							for (int i = 0; i < nodeIdx2colIdx.length; i++) {
+								sb.append(nodeIdx2colIdx[i]+"\t");
+							}
+							logger.debug(sb);
+							throw new Exception("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
+						}
+						double value = instance.value(colIdx);
+						strValue = (((Discretized)domain).getNameFromContinuous(value));
+						if (domain.findName(strValue) == -1) {
+							logger.debug(domain);
+							logger.debug(strValue);
+						}
+					} else {
+						int colIdx = nodeIdx2colIdx[node_idx];
+						if (colIdx < 0) {
+							throw new Exception("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
+						}
+						strValue = instance.stringValue(nodeIdx2colIdx[node_idx]);
+					}
+					domain_idx = domain.findName(strValue);
+					if(domain_idx == -1) {
+						String[] myDomain = bn.getDiscreteDomainAsArray(bn.bn.getNodes()[node_idx].getName());
+						for (int i=0; i<myDomain.length; i++) {
+							logger.debug(myDomain[i]);
+						}
+						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());
+					}
+				}
+				else {
+					Instance inst = new Instance(1);
+					inst.setValue(0, instance.value(nodeIdx2colIdx[node_idx]));
+					domain_idx = clusterers[node_idx].clusterInstance(inst);
+				}
+				domainIndices[node_idx] = domain_idx;
+			}
+        	// - update each node's CPT
+        	for(int i = 0; i < nodes.length; i++) {
+        		counters[i].count(domainIndices);
+        	}
+        }
+	}
+		
+	/**
 	 * learns an example from a Map&lt;String,String&gt;. 
+	 * This is the only learning method without using {@link BeliefNetworkEx#getAttributeNameForNode(String)}.
 	 * @param data			a Map containing the data for one example. The names of all the random 
 	 * 						variables (nodes) in the network must be found in the set of keys of the 
 	 * 						hash map. 
@@ -209,7 +339,7 @@ public class CPTLearner extends Learner {
 		Vector colnames = res.getColumnNames();
 		int[] nodeIdx2colIdx = new int[nodes.length];
 		for(int i = 0; i < nodes.length; i++) {
-			nodeIdx2colIdx[i] = colnames.indexOf(nodes[i].getName());
+			nodeIdx2colIdx[i] = colnames.indexOf(bn.getAttributeNameForNode(nodes[i].getName()));
 			if(nodeIdx2colIdx[i] == -1)
 				throw new Exception("Incomplete result set; missing: " + nodes[i].getName());			
 		}			
@@ -227,10 +357,16 @@ public class CPTLearner extends Learner {
 				int domain_idx;
 				if(clusterers[node_idx] == null) {
 					Discrete domain = (Discrete) nodes[node_idx].getDomain();
-					String value = (String) row.get(nodeIdx2colIdx[node_idx]);
-					domain_idx = domain.findName(value);
+					String strValue;
+					if (domain instanceof Discretized) {	// If we have a discretized domain we discretize first...
+						double value = Double.parseDouble(row.get(nodeIdx2colIdx[node_idx]).toString());
+						strValue = (((Discretized)domain).getNameFromContinuous(value));
+					} else {
+						strValue = row.get(nodeIdx2colIdx[node_idx]).toString();
+					}
+					domain_idx = domain.findName(strValue);
 					if(domain_idx == -1)
-						throw new Exception(value + " not found in domain of " + nodes[node_idx].getName());				
+						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());				
 				}
 				else {
 					Instance inst = new Instance(1);
