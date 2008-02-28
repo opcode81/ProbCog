@@ -102,7 +102,7 @@ public class FIPMData {
         teams = new Vector<Object>();
 		for(int nGame = 0; iGameData.hasNext(); nGame++) {
 			GameData gameData = iGameData.next();
-			motionReader = new DBMotionReader(gameData);
+			motionReader = DBMotionReader.getInstance(gameData);
 			
 			// connect to game database
 			String gameDB = gameData.getDatabase(); 

@@ -5,6 +5,7 @@ import edu.tum.cs.bayesnets.core.*;
 
 import java.sql.*;
 import java.util.*;
+
 import weka.core.*;
 import weka.clusterers.*;
 import de.tum.in.fipm.base.data.QueryResult;
@@ -49,7 +50,7 @@ public class DomainLearner extends Learner {
 	/**
 	 * an object providing a function for naming clusters
 	 */
-	protected ClusterNamer clusterNamer;
+	protected ClusterNamer<SimpleKMeans> clusterNamer;
 
 	/**
 	 * an array of strings containing the names of nodes for which the domains
@@ -203,7 +204,7 @@ public class DomainLearner extends Learner {
 	}
 
 	private void init(String[] directDomains,
-			ClusteredDomain[] clusteredDomains, ClusterNamer namer,
+			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
 			String[][] duplicateDomains) {
 		this.clusteredDomains = clusteredDomains;
 		attrValue = new Attribute("value");
@@ -272,15 +273,56 @@ public class DomainLearner extends Learner {
 			}
 		} while (rs.next());
 	}
+	
+	/**
+	 * learns all the examples in the result set. Each row in the result set
+	 * represents one example. All the random variables (nodes) that have been
+	 * scheduled for learning in the constructor need to be found in each result
+	 * row as columns that are named accordingly, i.e. for each random variable
+	 * for which the domain is to be learnt, there must be a column with a
+	 * matching name in the result set.
+	 * 
+	 * @param rs
+	 *            the result set
+	 * @throws Exception
+	 *             if the result set is empty
+	 * @throws SQLException
+	 *             particularly if there is no matching column for one of the
+	 *             node names
+	 */
+	public void learn(Instances instances) throws Exception, SQLException {
+		// if it's an empty result set, throw exception
+		if(instances.numInstances() == 0)
+			throw new Exception("empty result set!");
 
+		// gather domain data
+		int numDirectDomains = directDomains != null ? directDomains.length : 0;
+		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length : 0;
+		Enumeration<Instance> instanceEnum = instances.enumerateInstances();
+		while (instanceEnum.hasMoreElements()) {
+			Instance instance = instanceEnum.nextElement();
+			// for direct learning, add outcomes to the set of outcomes
+			for (int i = 0; i < numDirectDomains; i++) {
+				((HashSet<String>) directDomainData[i]).add(instance.stringValue(
+						instances.attribute(directDomains[i])));
+			}
+			// for clustering, gather all instances
+			for (int i = 0; i < numClusteredDomains; i++) {
+				Instance inst = new Instance(1);
+				inst.setValue(attrValue, instance.value(
+						instances.attribute(clusteredDomains[i].nodeName)));
+				clusterData[i].add(inst);
+			}
+		}
+	}
+	
 	/**
 	 * learns an example from a HashMap<String,String>.
 	 * 
 	 * @param data
 	 *            a HashMap containing the data for one example. The names of
 	 *            the random variables (nodes) for which the domains are to be
-	 *            learnt must be must be found in the set of keys of the hash
-	 *            map.
+	 *            learnt must be found in the set of keys of the hash map.
 	 * @throws Exception
 	 *             if required keys are missing from the HashMap
 	 */
@@ -362,7 +404,7 @@ public class DomainLearner extends Learner {
 	}
 
 	/**
-	 * performs the clustering (if some domains are to be learnt by clusterung)
+	 * performs the clustering (if some domains are to be learnt by clustering)
 	 * and applies all the new domains. (This method is called by finish(),
 	 * which should be called when all the examples have been passed.)
 	 */
@@ -397,7 +439,7 @@ public class DomainLearner extends Learner {
 					// update domain
 					bn.bn.changeBeliefNodeDomain(bn
 							.getNode(clusteredDomains[i].nodeName),
-							new Discrete(clusterNamer.getNames(clusterers[i])));
+							new Discretized(clusterers[i], clusterNamer));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
