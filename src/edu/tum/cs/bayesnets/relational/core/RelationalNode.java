@@ -1,12 +1,14 @@
 package edu.tum.cs.bayesnets.relational.core;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.srldb.Database;
+import edu.tum.cs.bayesnets.relational.learning.Database;
+import edu.tum.cs.mln.MLNWriter;
 
 public class RelationalNode {
 	/**
@@ -32,6 +34,9 @@ public class RelationalNode {
 	protected RelationalBeliefNetwork bn;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
 	public String parentMode, aggregator;
+	
+	public static final String BUILTINPRED_EQUALS = "EQ";
+	public static final String BUILTINPRED_NEQUALS = "NEQ";
 	
 	public static String join(String glue, String[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -104,7 +109,7 @@ public class RelationalNode {
 		}
 		else { // constant: usually a node such as "x"
 			this.functionName = name;
-			this.params = new String[0];
+			this.params = new String[]{name};
 			this.isConstant = true;
 		}
 		this.index = bn.getNodeIndex(node);
@@ -128,6 +133,8 @@ public class RelationalNode {
 	 * @return
 	 */
 	public String getCleanName() {
+		if(isConstant)
+			return functionName;
 		return formatName(this.functionName, this.params);
 	}
 	
@@ -182,9 +189,16 @@ public class RelationalNode {
 	 * @param constantValues  mapping of this node's arguments to constants; any number of arguments may be mapped; may be null
 	 * @return
 	 */
-	protected String toLiteral(int setting, HashMap<String,String> constantValues) {
+	protected String toLiteral(int setting, HashMap<String,String> constantValues) {		
+		// ** special built-in predicate with special logical translation
+		if(this.functionName.equals(BUILTINPRED_NEQUALS))
+			return String.format("!(%s=%s)", this.params[0], this.params[1]);
+		if(this.functionName.equals(BUILTINPRED_EQUALS))
+			return String.format("%s=%s", this.params[0], this.params[1]);
+		
+		// ** regular predicate
 		// predicate name
-		StringBuffer sb = new StringBuffer(String.format("%s(", Database.lowerCaseString(functionName)));
+		StringBuffer sb = new StringBuffer(String.format("%s(", MLNWriter.lowerCaseString(functionName)));
 		// add parameters
 		for(int i = 0; i < params.length; i++) {
 			if(i > 0)
@@ -203,7 +217,7 @@ public class RelationalNode {
 		}
 		else {
 			sb.append(',');
-			sb.append(Database.upperCaseString(value));			
+			sb.append(MLNWriter.upperCaseString(value));			
 		}
 		sb.append(')');
 		return sb.toString();
@@ -328,6 +342,36 @@ public class RelationalNode {
 	
 	public Discrete getDomain() {
 		return (Discrete)node.getDomain();
+	}
+	
+	/**
+	 * gets the value of this node for a specific setting of its parameters given a specific database
+	 * @param paramSets
+	 * @param db
+	 * @return
+	 * @throws Exception 
+	 */
+	public String getValueInDB(String[] actualParams, Database db, boolean closedWorld) throws Exception {
+		// ** special built-in predicate
+		if(functionName.equals(BUILTINPRED_NEQUALS))
+			return actualParams[0].equals(actualParams[1]) ? "False" : "True";
+		if(functionName.equals(BUILTINPRED_EQUALS))
+			return actualParams[0].equals(actualParams[1]) ? "True" : "False";
+		// ** regular predicate/constant
+		if(!isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
+			String curVarName = getVariableName(actualParams);
+			// set value
+			return db.getVariableValue(curVarName, closedWorld);
+			//System.out.println("For " + varName + ": " + curVarName + " = " + value);
+		}
+		else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
+			// the value of the current node is given directly as one of the main node's parameters, which has been grounded as this node's actual parameter
+			return actualParams[0];
+		}
+	}
+	
+	public boolean isBuiltInPred() {
+		return functionName.equals(BUILTINPRED_EQUALS) || functionName.equals(BUILTINPRED_NEQUALS);
 	}
 }
 

@@ -225,6 +225,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		HashMap<String,String> types = new HashMap<String,String>();
 		Vector<RelationalNode> constants = new Vector<RelationalNode>();
 		for(RelationalNode node : relNodesByIdx.values()) {
+			if(node.isBuiltInPred())
+				continue;
 			if(node.isConstant)
 				constants.add(node);
 			else {
@@ -277,8 +279,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		out.println("// domain declarations");
 		HashSet<String> handled = new HashSet<String>();
 		HashMap<String, Vector<String>> domains = new HashMap<String,Vector<String>>();
-		for(RelationalNode node : getRelationalNodes()) {	
+		for(RelationalNode node : getRelationalNodes()) {
 			Signature sig = getSignature(node.getFunctionName());
+			if(sig == null)
+				continue;
 			if(sig.returnType.equals("Boolean"))
 				continue;
 			if(handled.contains(sig.returnType))
@@ -443,7 +447,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			if(numericWeights)
 				out.printf("%f %s\n", weight, sb.toString());
 			else
-				out.printf("log(%f) %s\n", value, sb.toString());
+				out.printf("logx(%f) %s\n", value, sb.toString());
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			// if the node is a necessary precondition for the child node, there is only one possible setting (True)
@@ -483,6 +487,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			relationKeys.put(k.relation.toLowerCase(), list);
 		}
 		list.add(k);
+		//System.out.println("Key: " + k);
 	}
 	
 	/**

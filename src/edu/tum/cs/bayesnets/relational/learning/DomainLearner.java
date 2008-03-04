@@ -21,6 +21,13 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			RelationalNode node = bn.getRelationalNode(i);
+			// for built-in predicates, set standard boolean domain
+			if(node.isBuiltInPred()) {
+				((HashSet<String>)directDomainData[i]).add("True");
+				((HashSet<String>)directDomainData[i]).add("False");
+				continue;
+			}
+			// for regular nodes, get all values from the database
 			if(debug) System.out.println("node: " + node);
 			Signature sig = bn.getSignature(node.getFunctionName());
 			if(sig == null) {
@@ -41,8 +48,11 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
+			System.out.println(nodes[i].getName());
 			if(bn.isBooleanDomain((Discrete)nodes[i].getDomain())) {
-				bn.getSignature(bn.getRelationalNode(i).getFunctionName()).returnType = "Boolean";
+				Signature sig = bn.getSignature(bn.getRelationalNode(i));
+				if(sig != null)
+					sig.returnType = "Boolean";
 				bn.bn.changeBeliefNodeDomain(nodes[i], new Discrete(new String[]{"True", "False"}));
 			}
 		}
