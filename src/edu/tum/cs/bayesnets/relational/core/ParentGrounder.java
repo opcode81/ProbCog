@@ -86,9 +86,11 @@ public class ParentGrounder {
 					for(int j = 0; j < parent.params.length; j++) {					
 						if(parent.params[j].equals(ungroundedParams[i])) {
 							Signature sig = parent.getSignature();
-							if(sig.argTypes.length != parent.params.length)
-								throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
-							ungroundedParamDomains[i] = sig.argTypes[j];
+							if(sig != null) { // sig can be null for built-in predicates
+								if(sig.argTypes.length != parent.params.length)
+									throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
+								ungroundedParamDomains[i] = sig.argTypes[j];
+							}
 						}
 					}
 				}
@@ -181,7 +183,7 @@ public class ParentGrounder {
 	
 	/**
 	 * generates all possible groundings of all parent nodes (and the main node itself), where a grounding is a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
-	 * @param actualParameters actual parameters of the man node for which this parameter grounding should be performed
+	 * @param actualParameters actual parameters of the main node for which this parameter grounding should be performed
 	 * @return vector of mappings of node indices to lists of corresponding actual parameters
 	 * @throws Exception 
 	 */

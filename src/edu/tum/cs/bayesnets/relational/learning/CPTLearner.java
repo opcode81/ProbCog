@@ -125,27 +125,12 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				// get the corresponding node object
 				RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
 				// determine the value of the node given the parameter settings implied by the main node
-				String value = null;
-				if(!ndCurrent.isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
-					String curVarName = ndCurrent.getVariableName(paramSets.get(ndCurrent.index));
-					// set value
-					value = db.getVariableValue(curVarName.toString(), closedWorld);
-					//System.out.println("For " + varName + ": " + curVarName + " = " + value);
-					// if the node is a precondition, i.e. it is required to be true, check that it really is
-					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
-						// it's not, so skip this example
-						countExample = false;
-						break;
-					}
-				}
-				else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
-					// the value of the current node is given directly as one of the main node's parameters
-					for(int iMain = 0; iMain < node.params.length; iMain++) {
-						if(node.params[iMain].equals(ndCurrent.getFunctionName())) {
-							value = params[iMain];
-							break;
-						}
-					}
+				String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
+				// if the node is a precondition, i.e. it is required to be true, check that it really is
+				if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
+					// it's not, so skip this example
+					countExample = false;
+					break;
 				}
 				if(value == null)
 					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
@@ -201,7 +186,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;		
 		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
-			if(node.isConstant) // ignore constant nodes as they do not correspond to logical atoms 
+			if(node.isConstant || node.isBuiltInPred()) // ignore constant nodes as they do not correspond to logical atoms 
 				continue; 
 			if(verbose) System.out.println("  " + node.getName());
 			// consider all possible bindings for the node's parameters and count

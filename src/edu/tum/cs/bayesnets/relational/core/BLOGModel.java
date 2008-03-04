@@ -200,6 +200,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		// write type decls 
 		Set<String> types = new HashSet<String>();
 		for(RelationalNode node : this.getRelationalNodes()) {
+			if(node.isBuiltInPred())
+				continue;
 			Signature sig = this.getSignature(node.functionName);
 			Discrete domain = (Discrete)node.node.getDomain();
 			if(!types.contains(sig.returnType) && !sig.returnType.equals("Boolean")) {
@@ -222,6 +224,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		// write domains
 		Set<String> handledDomains = new HashSet<String>();
 		for(RelationalNode node : this.getRelationalNodes()) {
+			if(node.isBuiltInPred()) 
+				continue;
 			Discrete domain = (Discrete)node.node.getDomain();
 			Signature sig = getSignature(node.functionName);
 			if(!sig.returnType.equals("Boolean")) {
@@ -240,7 +244,9 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		out.println();
 		
 		// functions
-		for(RelationalNode node : this.getRelationalNodes()) {			
+		for(RelationalNode node : this.getRelationalNodes()) {
+			if(node.isBuiltInPred())
+				continue;
 			Signature sig = getSignature(node.functionName);
 			out.printf("random %s %s(%s);\n", sig.returnType, node.functionName, RelationalNode.join(", ", sig.argTypes));			
 		}
