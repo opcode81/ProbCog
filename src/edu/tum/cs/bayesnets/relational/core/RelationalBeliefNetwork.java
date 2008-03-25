@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -73,9 +74,19 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// store node data		
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode d = new RelationalNode(this, nodes[i]);			
+			RelationalNode d = createRelationalNode(nodes[i]);			
 			addRelationalNode(d);
 		}
+	}
+
+	/**
+	 * creates a relational node from the given belief node
+	 * @param node
+	 * @return
+	 * @throws Exception
+	 */
+	protected RelationalNode createRelationalNode(BeliefNode node) throws Exception {
+		return new RelationalNode(this, node);
 	}
 	
 	public void addRelationalNode(RelationalNode node) {
@@ -128,6 +139,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @param actualArgs
 	 * @return an array of variable names
 	 * @throws Exception
+	 * TODO this should be rewritten with ParentGrounder
 	 */
 	public String[] getParentVariableNames(RelationalNode node, String[] actualArgs) throws Exception {
 		RelationalNode child = node;
@@ -209,7 +221,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				String param = node.params[i].replaceAll("\\d+", "");
 				argTypes[i] = "ObjType_" + param;
 			}
-			String retType = /*isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" :*/ "Dom" + node.getFunctionName();
+			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.getFunctionName();
 			Signature sig = new Signature(node.getFunctionName(), retType, argTypes);
 			addSignature(node.getFunctionName(), sig);		
 		}
@@ -303,8 +315,17 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		out.println();
 		
 		// write predicate declarations
+		
 		out.println("// predicate declarations");
-		for(Signature sig : getSignatures()) {
+		Set<Signature> handledSigs = new HashSet<Signature>();
+		for(RelationalNode node : getRelationalNodes()) {
+			if(node.isConstant)
+				continue;
+			Signature sig = node.getSignature();
+			if(sig == null) continue;
+			if(handledSigs.contains(sig))
+				continue;
+			handledSigs.add(sig);
 			String[] argTypes;
 			if(sig.returnType.equals("Boolean"))
 				argTypes = new String[sig.argTypes.length];
@@ -317,9 +338,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					throw new Exception("Parameter " + i + " of " + sig.functionName + " has empty type: " + sig);
 				argTypes[i] = Database.lowerCaseString(sig.argTypes[i]);
 			}
-			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), RelationalNode.join(", ", argTypes));			
+			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), RelationalNode.join(", ", argTypes));		
 		}
 		out.println();
+		
 		
 		// mutual exclusiveness and exhaustiveness
 		out.println("// mutual exclusiveness and exhaustiveness");

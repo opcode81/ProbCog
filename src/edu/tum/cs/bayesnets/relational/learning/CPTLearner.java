@@ -95,9 +95,13 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				int addr = 0;
 				for(Integer nodeIdx : relevantParentIndices) {
 					RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
-					String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+					//String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+					String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
 					Discrete dom = ndCurrent.getDomain();
-					int domIdx = dom.findName(value);
+					int domIdx = dom.findName(value);					
+					if(domIdx < 0) {
+						throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString());
+					}
 					addr += factor * domIdx; 
 					factor *= dom.getOrder();
 				}
@@ -113,7 +117,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			for(int i = 0; i < v.length; i++) {
 				exampleWeight += Math.pow(v[i], exponent);
 			}
-			System.out.println("weight: " + exampleWeight);
+			//System.out.println("weight: " + exampleWeight);
 		}
 			
 		// set the domain indices of all relevant nodes (node itself and parents)			

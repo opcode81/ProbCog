@@ -121,7 +121,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @throws Exception
 	 */
 	public BeliefNetworkEx getGroundBN() throws Exception {
-		// create a bew Bayesian network 
+		// create a new Bayesian network 
 		BeliefNetworkEx gbn = new BeliefNetworkEx();
 		// add nodes in topological order
 		int[] order = this.getTopologicalOrder();
@@ -144,6 +144,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 					gbn.bn.connect(parent, newNode);
 				}
 				// transfer the CPT (the entries for the new node may not be in the same order so determine the appropriate mapping)
+				// TODO this assumes that a function name occurs only in one parent
 				CPF newCPF = newNode.getCPF(), oldCPF = node.node.getCPF();
 				BeliefNode[] oldProd = oldCPF.getDomainProduct();
 				BeliefNode[] newProd = newCPF.getDomainProduct();
