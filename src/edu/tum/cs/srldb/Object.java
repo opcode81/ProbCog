@@ -12,6 +12,7 @@ public class Object extends Item implements IRelationArgument {
 	
 	protected HashMap<String, Link> links;
 	protected String objTypeName = null;
+	protected String constantName = null;
 	
 	/**
 	 * creates an object for the given database
@@ -30,6 +31,11 @@ public class Object extends Item implements IRelationArgument {
 	public Object(Database database, String objTypeName) {
 		this(database);
 		this.objTypeName = objTypeName;
+	}
+	
+	public Object(Database database, String objTypeName, String constantName) {
+		this(database, objTypeName);
+		this.constantName = constantName;
 	}
 	
 	/**
@@ -66,7 +72,10 @@ public class Object extends Item implements IRelationArgument {
 	 * @return a string, i.e. a constant name, that (uniquely) identifies this object in an MLN database
 	 */
 	public String getConstantName() {
-		return "O" + objType() + id;
+		if(constantName == null)
+			return "O" + objType() + id;
+		else
+			return constantName;
 	}
 	
 	public String toString() {
