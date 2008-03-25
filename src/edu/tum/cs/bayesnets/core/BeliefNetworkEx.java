@@ -367,7 +367,7 @@ public class BeliefNetworkEx {
 	
 	/**
 	 * adds a node with the given name and domain to the network.
-	 * Assotiate the attribute with the same name to the node.
+	 * Associate the attribute with the same name to the node.
 	 * @param name		the name of the node
 	 * @param domain	the node's domain (usually an instance of BNJ's class Discrete)
 	 * @return			a reference to the BeliefNode object that was constructed
@@ -1108,29 +1108,6 @@ success:while (!successful) {
 		public abstract void tellSize(int childConfigs, int parentConfigs);
 		public abstract void tellNodeOrder(BeliefNode n);		
 		public abstract void tellValue(double v);
-	}
-	
-	public class CPTWalkerHTML extends CPTWalker {
-
-		protected int parentConfigs, childConfigs;
-		
-		@Override
-		public void tellNodeOrder(BeliefNode n) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void tellSize(int childConfigs, int parentConfigs) {
-			
-		}
-
-		@Override
-		public void tellValue(double v) {
-			// TODO Auto-generated method stub
-			
-		}
-		
 	}
 	
 	public void walkCPT(BeliefNode node, CPTWalker walker) {

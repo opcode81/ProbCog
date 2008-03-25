@@ -47,6 +47,9 @@ public class Database {
 			Signature sig = bn.getSignature(nodeName);
 			if(sig.returnType.equals("Boolean"))
 				return "False";
+			else {
+				throw new Exception("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);
+			}
 		}
 		return null;
 	}
@@ -91,6 +94,8 @@ public class Database {
 	}
 
 	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
+		domains = new HashMap<String, HashSet<String>>(); 
+		
 		// read file content
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
@@ -99,26 +104,38 @@ public class Database {
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");		
 
-		// read entries
-		Pattern entry = Pattern.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
+		// read lines
+		Pattern re_entry = Pattern.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
+		Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(.*?)\\}");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		while((line = br.readLine()) != null) {
-			line = line.trim();
-			matcher = entry.matcher(line);
+			line = line.trim();			
+			// parse variable assignment
+			matcher = re_entry.matcher(line);
 			if(matcher.matches()) {
 				//String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
 				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3));
 				//System.out.println(var.toString());				
 				addVariable(var);
+				continue;
+			}			
+			// parse domain decls
+			matcher = re_domDecl.matcher(line);
+			if(matcher.matches()) { // parse domain decls
+				String domName = matcher.group(1);
+				String[] constants = matcher.group(2).split("\\s*,\\s*");
+				for(String c : constants)
+					fillDomain(domName, c);
+				continue;
 			}
-			else if(line.length() != 0) {
+			// something else
+			if(line.length() != 0) {
 				System.err.println("Line could not be read: " + line);
 			}
 		}
 		
-		// fill domains (of both return types and arguments)
-		domains = new HashMap<String, HashSet<String>>();
+		// fill domains (of both return types and arguments)		
 		for(Variable var : entries.values()) {
 			Signature sig = bn.getSignature(var.nodeName);
 			if(sig == null) {
@@ -140,6 +157,11 @@ public class Database {
 		}
 	}	
 
+	/**
+	 * adds to the domain type the given value
+	 * @param type	name of the domain/type
+	 * @param value	the value to add
+	 */
 	protected void fillDomain(String type, String value) {
 		HashSet<String> dom = domains.get(type);
 		if(dom == null) {
@@ -210,6 +232,15 @@ public class Database {
 		
 		public String getKeyString() {
 			return nodeName + "(" + RelationalNode.join(",", params) + ")";
+		}
+		
+		/**
+		 * gets the predicate that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
+		 * @return
+		 */
+		public String getPredicate() {
+			// TODO handle boolean values differently
+			return nodeName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
 		}
 	}
 }

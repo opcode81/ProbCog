@@ -86,7 +86,7 @@ public class ParentGrounder {
 					for(int j = 0; j < parent.params.length; j++) {					
 						if(parent.params[j].equals(ungroundedParams[i])) {
 							Signature sig = parent.getSignature();
-							if(sig != null) { // sig can be null for built-in predicates
+							if(sig != null && !parent.isConstant) { // sig can be null for built-in predicates
 								if(sig.argTypes.length != parent.params.length)
 									throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
 								ungroundedParamDomains[i] = sig.argTypes[j];

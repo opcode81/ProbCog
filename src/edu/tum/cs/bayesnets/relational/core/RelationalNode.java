@@ -361,7 +361,11 @@ public class RelationalNode {
 		if(!isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
 			String curVarName = getVariableName(actualParams);
 			// set value
-			return db.getVariableValue(curVarName, closedWorld);
+			String value = db.getVariableValue(curVarName, closedWorld);
+			if(value == null) {
+				throw new Exception("Could not find value of " + curVarName + " in database. closedWorld = " + closedWorld);
+			}
+			return value;
 			//System.out.println("For " + varName + ": " + curVarName + " = " + value);
 		}
 		else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
