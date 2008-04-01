@@ -117,7 +117,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return relNodesByIdx.values();
 	}
 	
-	public boolean isBooleanDomain(Domain domain) {
+	public static boolean isBooleanDomain(Domain domain) {
 		if(!(domain instanceof Discrete))
 			return false;
 		int order = domain.getOrder();

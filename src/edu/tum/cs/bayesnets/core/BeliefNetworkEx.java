@@ -229,6 +229,49 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * class that allows the incremental construction of a probability distribution from (weighted) samples
+	 * (see {@link WeightedSample})
+	 * @author jain
+	 *
+	 */
+	public static class SampledDistribution {
+		protected double[][] sums;
+		protected double Z;
+		protected BeliefNetworkEx bn;
+		
+		public SampledDistribution(BeliefNetworkEx bn) {
+			this.bn = bn;
+			BeliefNode[] nodes = bn.bn.getNodes();
+			sums = new double[nodes.length][];
+			for(int i = 0; i < nodes.length; i++)
+				sums[i] = new double[nodes[i].getDomain().getOrder()];			
+		}
+		
+		public void addSample(WeightedSample s) {
+			Z += s.weight;
+			for(int i = 0; i < s.nodeIndices.length; i++) {
+				sums[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
+			}			
+		}
+		
+		public void print(PrintStream out) {			
+			for(int i = 0; i < bn.bn.getNodes().length; i++) {
+				printNodeDistribution(out, i);
+			}
+		}
+		
+		public void printNodeDistribution(PrintStream out, int index) {
+			BeliefNode node = bn.bn.getNodes()[index];
+			out.println(node.getName() + ":");
+			Discrete domain = (Discrete)node.getDomain();
+			for(int j = 0; j < domain.getOrder(); j++) {
+				double prob = sums[index][j] / Z;
+				out.println(String.format("  %.4f %s", prob, domain.getName(j)));
+			}
+		}
+	}
+	
+	/**
 	 * the BNJ BeliefNetwork object that is wrapped by the instance of class BeliefNetworkEx.
 	 * When using BNJ directly, you may need this; or you may want to use the methods of BeliefNetwork to perform
 	 * an operation on the network that BeliefNetworkEx does not wrap.  
@@ -934,15 +977,15 @@ public class BeliefNetworkEx {
 	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) {
 	    String[] queryNodes = new String[queries.length];
 	    for (int i=0; i<queryNodes.length; i++) {
-		queryNodes[i]=queries[i][0];
+	    	queryNodes[i]=queries[i][0];
 	    }
 	    WeightedSample[] samples = getAssignmentDistribution(evidences, queryNodes, numSamples);
 	    double goodSum = 0;
 	    double allSum = 0;
 	    for (int i=0; i<samples.length; i++) {
-		allSum += samples[i].weight;
-		if (samples[i].checkAssignment(queries))
-		    goodSum += samples[i].weight;
+			allSum += samples[i].weight;
+			if (samples[i].checkAssignment(queries))
+			    goodSum += samples[i].weight;
 	    }
 	    return goodSum/allSum;
 	}
@@ -1084,14 +1127,6 @@ success:while (!successful) {
 		for(int i = 0; i < ret.length; i++)
 			ret[i] = domain.getName(i);
 		return ret;		
-	}
-	
-	public static boolean isBooleanDomain(Discrete domain) {
-		if(domain.getOrder() != 2)
-			return false;
-		if(domain.getName(0).equalsIgnoreCase("True"))
-			return true;
-		return false;
 	}
 	
 	public String[] getDiscreteDomainAsArray(String nodeName) {

@@ -49,7 +49,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			System.out.println(nodes[i].getName());
-			if(bn.isBooleanDomain((Discrete)nodes[i].getDomain())) {
+			if(RelationalBeliefNetwork.isBooleanDomain((Discrete)nodes[i].getDomain())) {
 				Signature sig = bn.getSignature(bn.getRelationalNode(i));
 				if(sig != null)
 					sig.returnType = "Boolean";
