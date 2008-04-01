@@ -1086,6 +1086,14 @@ success:while (!successful) {
 		return ret;		
 	}
 	
+	public static boolean isBooleanDomain(Discrete domain) {
+		if(domain.getOrder() != 2)
+			return false;
+		if(domain.getName(0).equalsIgnoreCase("True"))
+			return true;
+		return false;
+	}
+	
 	public String[] getDiscreteDomainAsArray(String nodeName) {
 		return getDiscreteDomainAsArray(getNode(nodeName));
 	}
