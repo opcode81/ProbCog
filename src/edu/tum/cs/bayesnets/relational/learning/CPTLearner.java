@@ -7,6 +7,7 @@ import java.util.Vector;
 import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
@@ -100,7 +101,8 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					Discrete dom = ndCurrent.getDomain();
 					int domIdx = dom.findName(value);					
 					if(domIdx < 0) {
-						throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString());
+						String[] domain = BeliefNetworkEx.getDiscreteDomainAsArray(ndCurrent.node);
+						throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + RelationalNode.join(",", domain) + "}");
 					}
 					addr += factor * domIdx; 
 					factor *= dom.getOrder();

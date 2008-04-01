@@ -1,32 +1,43 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 import edu.tum.cs.bayesnets.relational.core.*;
 import edu.tum.cs.bayesnets.relational.core.BayesianLogicNetwork.GroundFormula;
 import edu.tum.cs.bayesnets.relational.core.BayesianLogicNetwork.State;
 import edu.tum.cs.bayesnets.relational.learning.Database;
+import edu.tum.cs.tools.Stopwatch;
 
 public class GroundBLN {
 	protected BeliefNetworkEx groundBN;
 	protected BayesianLogicNetwork bln;
+	protected Vector<String> hardFormulaNodes;
 	
 	public GroundBLN(BayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
+		
+		System.out.println("reading evidence...");
 		Database db = new Database(bln.rbn);
 		db.readBLOGDB(databaseFile);
 		
+		System.out.println("generating network...");
 		groundBN = new BeliefNetworkEx();
 		
 		// ground regular probabilistic nodes (i.e. ground atoms)
+		System.out.println("  regular nodes");
 		RelationalBeliefNetwork rbn = bln.rbn;
 		int[] order = rbn.getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
@@ -58,11 +69,14 @@ public class GroundBLN {
 		}		
 		
 		// ground formulaic nodes
+		System.out.println("  formulaic nodes");
+		hardFormulaNodes = new Vector<String>();
 		bln.generateGroundFormulas(databaseFile);
 		for(GroundFormula gf : bln.iterGroundFormulas()) {
 			Vector<String> vGA = gf.getGroundAtoms();
 			// create a node for the ground formula
 			String nodeName = "GF" + gf.idxGF;
+			hardFormulaNodes.add(nodeName);
 			BeliefNode node = groundBN.addNode(nodeName);			
 			// add edges from ground atoms
 			Vector<String> GAs = gf.getGroundAtoms();
@@ -84,7 +98,7 @@ public class GroundBLN {
 			fillFormulaCPF(gf, node.getCPF(), parents, GAs);
 		}
 		
-		groundBN.show();
+		//groundBN.show();
 	} 
 	
 	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, BeliefNode[] parents, Vector<String> parentGAs) throws Exception {
@@ -100,11 +114,11 @@ public class GroundBLN {
 		if(iParent == parents.length) {
 			// get truth value of formula
 			double value = gf.isTrue(state) ? 1 : 0;
-			
+			/*
 			for(String ga : parentGAs)
 				System.out.print(ga + " = " + state.get(ga) + ", ");
 			System.out.println(" -> " + value);
-
+			*/
 			// write to CPF
 			addr[0] = 0;
 			cpf.put(addr, new ValueDouble(value));
@@ -116,7 +130,7 @@ public class GroundBLN {
 		BeliefNode parent = parents[iParent];
 		String parentGA = parentGAs.get(iParent);
 		Discrete domain = (Discrete)parent.getDomain();
-		boolean isBoolean = BeliefNetworkEx.isBooleanDomain(domain);		
+		boolean isBoolean = RelationalBeliefNetwork.isBooleanDomain(domain);		
 		// - get the domain index that corresponds to setting the atom to true
 		int trueIndex = 0;
 		if(!isBoolean) {	
@@ -152,11 +166,60 @@ public class GroundBLN {
 		}
 	}
 	
+	public SampledDistribution infer(String[][] evidence, String[] queries, int numSamples, int infoInterval) {
+		// create full evidence
+		String[][] fullEvidence = new String[evidence.length+this.hardFormulaNodes.size()][2];
+		for(int i = 0; i < evidence.length; i++) {
+			fullEvidence[i][0] = evidence[i][0];
+			fullEvidence[i][1] = evidence[i][1];
+		}
+		{
+			int i = evidence.length;
+			for(String node : hardFormulaNodes) {
+				fullEvidence[i][0] = node;
+				fullEvidence[i][1] = "True";
+				i++;
+			}
+		}			
+		
+		// sample
+		Stopwatch sw = new Stopwatch();
+		SampledDistribution dist = new SampledDistribution(groundBN);
+		Random generator = new Random();
+		System.out.println("sampling...");
+		sw.start();
+		for(int i = 1; i <= numSamples; i++) {
+			if(i % infoInterval == 0)
+				System.out.println("  step " + i);
+			WeightedSample s = groundBN.getWeightedSample(fullEvidence, generator); // TODO check if this is inefficient
+			dist.addSample(s);
+		}
+		sw.stop();
+		System.out.println(String.format("time taken: %.2fs (%.4fs per sample)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples));
+		
+		// determine query nodes and print their distributions
+		Pattern[] patterns = new Pattern[queries.length];
+		for(int i = 0; i < queries.length; i++) {
+			String p = queries[i];
+			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
+			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
+			patterns[i] = Pattern.compile(p);			
+		}
+		BeliefNode[] nodes = groundBN.bn.getNodes();		
+		for(int i = 0; i < nodes.length; i++)
+			for(int j = 0; j < patterns.length; j++)				
+				if(patterns[j].matcher(nodes[i].getName()).matches()) {
+					dist.printNodeDistribution(System.out, i);
+					break;
+				}
+		return dist;
+	}
+	
 	public static void main(String[] args) {
 		try { 
-			BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel("relxy.blog", "relxy.xml"), "relxy.mln");
+			BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel("relxy.blog", "relxy.xml"), "relxy.bln");
 			GroundBLN gbln = new GroundBLN(bln, "relxy.blogdb");
-			
+			gbln.infer(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, new String[]{"rel(x,y)"}, 1000, 100);
 		}
 		catch(Exception e) {
 			e.printStackTrace();

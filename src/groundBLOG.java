@@ -9,7 +9,7 @@ public class groundBLOG {
 	public static void main(String[] args) {
 		try {
 			if(args.length < 2) {
-				System.out.println("\n usage: groundBLOG <BLOG file(s)> <XML-BIF file> [-g]\n\n" + 
+				System.out.println("\n usage: groundBLOG <BLOG file(s), comma-separated> <XML-BIF file> [-g]\n\n" + 
 						             "        -g   guess signatures from network structure rather than obtaining them from the BLOG file(s)\n");
 				return;
 			}			
