@@ -1,6 +1,5 @@
 package edu.tum.cs.bayesnets.relational.core;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Vector;
@@ -60,8 +59,12 @@ public class BayesianLogicNetwork {
 		}
 
 		public void set(String gndAtom, boolean value) throws ConversionException {
-			int idxGA = jython.eval("mln.gndAtoms['%s'].idx", gndAtom).asInt(0);
+			int idxGA = jython.evalInt("mln.gndAtoms['%s'].idx", gndAtom);
 			jython.exec("%s[%d] = %s", varName, idxGA, value ? "True" : "False");
+		}
+		
+		public boolean get(String gndAtom) throws ConversionException {
+			return jython.evalBoolean("state[mln.gndAtoms['%s'].idx]", gndAtom);
 		}
 	}
 	
@@ -72,7 +75,7 @@ public class BayesianLogicNetwork {
 		public GroundFormula(JythonInterpreter jython, int idxGF) throws ConversionException {
 			this.jython = jython;
 			this.idxGF = idxGF;		
-			this.idxF = jython.eval("mln.gndFormulas[%d].idxFormula", idxGF).asInt(0);
+			this.idxF = jython.evalInt("mln.gndFormulas[%d].idxFormula", idxGF);
 		}
 		
 		public Vector<String> getGroundAtoms() {
@@ -85,7 +88,7 @@ public class BayesianLogicNetwork {
 		}
 		
 		public boolean isTrue(State state) throws ConversionException {
-			return jython.eval("mln.gndFormulas[%d].isTrue(%s)", idxGF, state.varName).asInt(0) != 0;
+			return jython.evalBoolean("mln.gndFormulas[%d].isTrue(%s)", idxGF, state.varName);
 		}
 	}
 	
@@ -97,7 +100,7 @@ public class BayesianLogicNetwork {
 		public GroundFormulaIteration(BayesianLogicNetwork bln) throws ConversionException {
 			this.bln = bln;
 			i = 0;
-			count = bln.jython.eval("len(mln.gndFormulas)").asInt(0);
+			count = bln.jython.evalInt("len(mln.gndFormulas)");
 		}
 		
 		public boolean hasNext() {
@@ -114,7 +117,7 @@ public class BayesianLogicNetwork {
 		}
 
 		public void remove() {
-			throw new RuntimeException("Remove not supported by this iterator.");
+			throw new RuntimeException("Remove is not supported by this iterator.");
 		}
 
 		public Iterator<GroundFormula> iterator() {			
