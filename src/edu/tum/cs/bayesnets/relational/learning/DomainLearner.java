@@ -35,7 +35,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 			}			
 			Set<String> values = db.getDomain(sig.returnType);
 			for(String value : values) {
-				if(debug) System.out.println("adding " + value + " to " + sig.returnType);
+				if(debug) System.out.println("adding " + value + " to " + sig.returnType + " while processing " + sig.functionName + " - returnType = " + sig.returnType);
 				((HashSet<String>)directDomainData[i]).add(value);
 			}
 		}

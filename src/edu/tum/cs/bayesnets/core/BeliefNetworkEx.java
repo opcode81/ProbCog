@@ -997,14 +997,56 @@ public class BeliefNetworkEx {
 	 * 			The length must be initialized to the number of nodes in the net.
 	 * @return
 	 */
-	public WeightedSample getWeightedSample(String[][] evidences, Random generator) {
-		BeliefNode[] nodes = bn.getNodes();
-		int[] sampleDomainIndices  = new int[nodes.length];
-		
+	public WeightedSample getWeightedSample(String[][] evidences, Random generator) {		
 		if (generator == null) {
 			generator = new Random();
+		}		
+		return getWeightedSample(getTopologicalOrder(), evidence2DomainIndices(evidences), generator);
+	}
+	
+	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) {
+		BeliefNode[] nodes = bn.getNodes();
+		int[] sampleDomainIndices  = new int[nodes.length];
+		boolean successful = false;
+		double weight = 1.0;
+		int trials=0;
+success:while (!successful) {
+			weight = 1.0;
+			if (trials > MAX_TRIALS)
+				return null;
+			for (int i=0; i< nodeOrder.length; i++) {
+				int nodeIdx = nodeOrder[i];
+				int domainIdx = evidenceDomainIndices[nodeIdx];
+				if (domainIdx >= 0) { // This is an evidence node?
+					sampleDomainIndices[nodeIdx] = domainIdx;
+					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+					double prob = getCPTProbability(nodes[nodeIdx], sampleDomainIndices);
+					if (prob == 0.0) {		
+						removeAllEvidences();
+						trials++;
+						continue success;
+					}
+					weight *= prob;
+				} else {
+					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
+					if (domainIdx < 0) {
+						removeAllEvidences();
+						trials++;
+						continue success;
+					}
+					sampleDomainIndices[nodeIdx] = domainIdx;
+					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+				}
+			}
+			trials++;
+			removeAllEvidences();
+			successful = true;
 		}
-		
+		return new WeightedSample(sampleDomainIndices, weight, null);		
+	}
+	
+	public int[] evidence2DomainIndices(String[][] evidences) {
+		BeliefNode[] nodes = bn.getNodes();
 		int[] evidenceDomainIndices = new int[nodes.length];
 		Arrays.fill(evidenceDomainIndices, -1);
 		for (String[] evidence: evidences) {
@@ -1032,47 +1074,7 @@ public class BeliefNetworkEx {
 			}
 			evidenceDomainIndices[nodeIdx]=domainIdx;
 		}
-				
-		TopologicalSort topsort = new TopologicalSort();
-		topsort.execute(bn.getGraph());
-		int[] order=topsort.alpha;
-		
-		boolean successful = false;
-		double weight = 1.0;
-		int trials=0;
-success:while (!successful) {
-			weight = 1.0;
-			if (trials > MAX_TRIALS)
-				return null;
-			for (int i=0; i<order.length; i++) {
-				int nodeIdx = order[i];
-				int domainIdx = evidenceDomainIndices[nodeIdx];
-				if (domainIdx >= 0) { // This is an evidence node?
-					sampleDomainIndices[nodeIdx] = domainIdx;
-					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
-					double prob = getCPTProbability(bn.getNodes()[nodeIdx], sampleDomainIndices);
-					if (prob == 0.0) {
-						removeAllEvidences();
-						trials++;
-						continue success;
-					}
-					weight *= prob;
-				} else {
-					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
-					if (domainIdx < 0) {
-						removeAllEvidences();
-						trials++;
-						continue success;
-					}
-					sampleDomainIndices[nodeIdx] = domainIdx;
-					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
-				}
-			}
-			trials++;
-			removeAllEvidences();
-			successful = true;
-		}
-		return new WeightedSample(sampleDomainIndices, weight, null);
+		return evidenceDomainIndices;
 	}
 
 	/**

@@ -18,7 +18,10 @@ import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 
 public class Database {
-
+	
+	/**
+	 * maps variable names to Variable objects containing values
+	 */
 	protected HashMap<String, Variable> entries;
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
@@ -213,6 +216,17 @@ public class Database {
 	
 	public Collection<Variable> getEntries() {
 		return entries.values();
+	}
+	
+	public String[][] getEntriesAsArray() {
+		String[][] ret = new String[entries.size()][2];
+		int i = 0;
+		for(Variable var : entries.values()) {
+			ret[i][0] = var.getKeyString();
+			ret[i][1] = var.value;
+			i++;
+		}
+		return ret;
 	}
 	
 	public class Variable {

@@ -69,17 +69,19 @@ public class BayesianLogicNetwork {
 	}
 	
 	public class GroundFormula {
-		public int idxGF, idxF;
-		public JythonInterpreter jython;
+		protected String varName;
+		protected JythonInterpreter jython;
+		public int idxGF;
 		
 		public GroundFormula(JythonInterpreter jython, int idxGF) throws ConversionException {
 			this.jython = jython;
-			this.idxGF = idxGF;		
-			this.idxF = jython.evalInt("mln.gndFormulas[%d].idxFormula", idxGF);
+			varName = String.format("mln.gndFormulas[%d]", idxGF);
+			this.idxGF = idxGF;
+			//this.idxF = jython.evalInt("%s.idxFormula", varName);
 		}
-		
+	
 		public Vector<String> getGroundAtoms() {
-			PyObject list = jython.eval("map(lambda x: mln.gndAtomsByIdx[x], mln.gndFormulas[%d].idxGroundAtoms())",  idxGF);
+			PyObject list = jython.eval("%s.getGroundAtoms()", varName);
 			Vector<String> v = new Vector<String>();
 			for(int i = 0; i < list.__len__(); i++) {
 				v.add(list.__getitem__(i).__str__().toString());
@@ -88,7 +90,7 @@ public class BayesianLogicNetwork {
 		}
 		
 		public boolean isTrue(State state) throws ConversionException {
-			return jython.evalBoolean("mln.gndFormulas[%d].isTrue(%s)", idxGF, state.varName);
+			return jython.evalBoolean("%s.isTrue(%s)", varName, state.varName);
 		}
 	}
 	
