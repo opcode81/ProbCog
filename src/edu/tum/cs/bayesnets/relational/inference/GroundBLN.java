@@ -1,24 +1,24 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
+import edu.ksu.cis.bnj.ver3.core.Domain;
+import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 import edu.tum.cs.bayesnets.relational.core.*;
-import edu.tum.cs.bayesnets.relational.core.BayesianLogicNetwork.GroundFormula;
-import edu.tum.cs.bayesnets.relational.core.BayesianLogicNetwork.State;
+import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
+import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
+import edu.tum.cs.bayesnets.relational.core.bln.State;
 import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.tools.Stopwatch;
 
@@ -53,58 +53,42 @@ public class GroundBLN {
 				
 				// add the node itself to the network
 				String mainNodeName = relNode.getVariableName(params);
-				BeliefNode groundNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
+				BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
 
 				// add edges from the parents
 				ParentGrounder pg = rbn.getParentGrounder(relNode);
 				Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
 				// - normal case: just one set of parents
 				if(groundings.size() == 1) { 
-					Map<Integer, String[]> grounding = groundings.firstElement();
-					for(Entry<Integer, String[]> entry : grounding.entrySet()) {
-						if(entry.getKey() != nodeNo) {
-							RelationalNode parent = rbn.getRelationalNode(entry.getKey());
-							if(parent == relNode || parent.isConstant)
-								continue; // TODO this makes it impossible to transfer the CPF -> need a function to filter the cpf values by some set of conditions on the parents; i.e. here, add to a list of filters
-							groundBN.connect(parent.getVariableName(entry.getValue()), mainNodeName);
-						}
-					}
-					// transfer the CPF
-					transferCPF(relNode, groundNode);
+					instantiateCPF(groundings.firstElement(), relNode, mainNode);
 				}				
 				// - several sets of parents -> use combination function
 				else { 
+					// create auxiliary nodes, one for each set of parents
 					Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
 					int k = 0; 
 					for(Map<Integer, String[]> grounding : groundings) {
 						// create auxiliary node
-						String auxNodeName = String.format("AUX%d_%s", k++, groundNode.getName());
-						BeliefNode auxNode = groundBN.addNode(auxNodeName, groundNode.getDomain());
+						String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
+						BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
 						auxNodes.add(auxNode);
-						// create links from parents to auxiliary node
-						for(Entry<Integer, String[]> entry : grounding.entrySet()) {
-							RelationalNode parent = rbn.getRelationalNode(entry.getKey());
-							if(parent == relNode || parent.isConstant) 
-								continue; 
-							groundBN.connect(parent.getVariableName(entry.getValue()), auxNodeName);
-						}
-						// transfer CPF to auxiliary node
-						//transferCPF(relNode, auxNode);
+						// create links from parents to auxiliary node and transfer CPF
+						instantiateCPF(grounding, relNode, auxNode);
 					}
 					// connect auxiliary nodes to main node
 					for(BeliefNode parent : auxNodes) {
-						System.out.printf("connecting %s and %s\n", parent.getName(), groundNode.getName());
-						groundBN.bn.connect(parent, groundNode);
+						//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
+						groundBN.bn.connect(parent, mainNode);
 					}
 					// apply combination function
 					String combFunc = relNode.aggregator;
 					CPFFiller filler;
 					if(combFunc == null || combFunc.equals("OR")) {
 						// check if the domain is really boolean
-						if(!RelationalBeliefNetwork.isBooleanDomain(groundNode.getDomain()))
+						if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 							throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
 						// set filler
-						filler = new CPFFiller_OR(groundNode);
+						filler = new CPFFiller_OR(mainNode);
 					}
 					else
 						throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
@@ -141,6 +125,100 @@ public class GroundBLN {
 			// fill CPT according to formula semantics
 			// TODO try to reuse CPFs generated for previous formulas with same formula index
 			fillFormulaCPF(gf, node.getCPF(), parents, GAs);
+		}
+	}
+	
+	/**
+	 * connects the parents given by the grounding to the target node and transfers the (correct part of the) CPF to the target node
+	 * @param parentGrounding  a grounding
+	 * @param srcRelNode  relational node that the CPF is to be copied from 
+	 * @param targetNode  the target node to connect parents to and whose CPF is to be written
+	 * @throws Exception
+	 */
+	public void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws Exception {
+		// connect parents and determine domain products
+		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
+		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
+		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
+			RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
+			if(relParent == srcRelNode)
+				continue;
+			if(relParent.isConstant) {
+				//System.out.println("Constant node: " + parent.getName() + " = " + entry.getValue()[0]);
+				constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
+				continue;
+			}
+			BeliefNode parent = groundBN.getNode(relParent.getVariableName(entry.getValue()));
+			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
+			groundBN.bn.connect(parent, targetNode);
+			src2targetParent.put(relParent.node, parent);
+		}
+		
+		// establish the correct domain product order (which must reflect the order in the source node)	
+		BeliefNode[] srcDomainProd = srcRelNode.node.getCPF().getDomainProduct();
+		CPF targetCPF = targetNode.getCPF();
+		BeliefNode[] targetDomainProd = targetCPF.getDomainProduct();
+		int j = 1;
+		for(int i = 1; i < srcDomainProd.length; i++) {			
+			BeliefNode targetParent = src2targetParent.get(srcDomainProd[i]);
+			//System.out.println("Parent corresponding to " + srcDomainProd[i].getName() + " is " + targetParent);
+			if(targetParent != null) {
+				targetDomainProd[j++] = targetParent;
+			}
+		}
+		if(j != targetDomainProd.length)
+			throw new Exception("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);
+		
+		// transfer the CPF values
+		if(srcDomainProd.length == targetDomainProd.length)
+			targetCPF.setValues(srcRelNode.node.getCPF().getValues());
+		else
+			targetCPF.setValues(getSubCPFValues(srcRelNode.node.getCPF(), constantSettings));
+		
+		/*
+		// print domain products (just to check)
+		BeliefNode n = srcRelNode.node;
+		System.out.println("\nsrc:");
+		BeliefNode[] domProd = n.getCPF().getDomainProduct();
+		for(int i = 0; i < domProd.length; i++) {
+			System.out.println("  " + domProd[i].getName());
+		}
+		System.out.println("target:");
+		n = targetNode;
+		domProd = n.getCPF().getDomainProduct();
+		for(int i = 0; i < domProd.length; i++) {
+			System.out.println("  " + domProd[i].getName());
+		}
+		System.out.println();
+		*/
+	}
+	
+	protected Value[] getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings) {
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		int[] addr = new int[domProd.length];
+		Vector<Value> v = new Vector<Value>();
+		getSubCPFValues(cpf, constantSettings, 0, addr, v);
+		return v.toArray(new Value[0]);
+	}
+	
+	protected void getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings, int i, int[] addr, Vector<Value> ret) {
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		if(i == domProd.length) {
+			ret.add(cpf.get(addr));			
+			return;
+		}
+		BeliefNode n = domProd[i];
+		Integer setting = constantSettings.get(n);
+		if(setting != null) {
+			addr[i] = setting;
+			getSubCPFValues(cpf, constantSettings, i+1, addr, ret);
+		}
+		else {
+			Domain d = domProd[i].getDomain();		
+			for(int j = 0; j < d.getOrder(); j++) {
+				addr[i] = j;
+				getSubCPFValues(cpf, constantSettings, i+1, addr, ret);
+			}
 		}
 	}
 	
@@ -194,10 +272,10 @@ public class GroundBLN {
 	}
 	
 	
-	protected void transferCPF(RelationalNode source, BeliefNode target) {
+	/*protected void transferCPF(RelationalNode source, BeliefNode target) {
 		// TODO this might fail because of incorrect ordering of parents
-		target.getCPF().setValues(source.node.getCPF().getValues());
-	}
+		target.getCPF().setValues(source.node.getCPF().getValues());	
+	}*/
 	
 	public void show() {
 		groundBN.show();
@@ -300,48 +378,6 @@ public class GroundBLN {
 		return groundBN.evidence2DomainIndices(fullEvidence);
 	}
 	
-	public SampledDistribution infer(String[] queries, int numSamples, int infoInterval) {
-		// create full evidence
-		String[][] evidence = this.db.getEntriesAsArray();
-		int[] evidenceDomainIndices = getFullEvidence(evidence);
-		
-		// get node ordering
-		int[] nodeOrder = groundBN.getTopologicalOrder();
-		
-		// sample
-		Stopwatch sw = new Stopwatch();
-		SampledDistribution dist = new SampledDistribution(groundBN);
-		Random generator = new Random();
-		System.out.println("sampling...");
-		sw.start();
-		for(int i = 1; i <= numSamples; i++) {
-			if(i % infoInterval == 0)
-				System.out.println("  step " + i);
-			WeightedSample s = groundBN.getWeightedSample(nodeOrder, evidenceDomainIndices, generator); 
-			dist.addSample(s);
-		}
-		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples));
-		
-		// determine query nodes and print their distributions
-		Pattern[] patterns = new Pattern[queries.length];
-		for(int i = 0; i < queries.length; i++) {
-			String p = queries[i];
-			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
-			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
-			patterns[i] = Pattern.compile(p);
-			//System.out.println("pattern: " + p);
-		}
-		BeliefNode[] nodes = groundBN.bn.getNodes();		
-		for(int i = 0; i < nodes.length; i++)
-			for(int j = 0; j < patterns.length; j++)				
-				if(patterns[j].matcher(nodes[i].getName()).matches()) {
-					dist.printNodeDistribution(System.out, i);
-					break;
-				}
-		return dist;
-	}
-	
 	public void inferAIS(int numSamples) {
 		boolean useEvidence = true;
 		if(useEvidence) {
@@ -359,9 +395,13 @@ public class GroundBLN {
 		ais.run(groundBN.bn);		
 	}
 	
+	public BeliefNetworkEx getGroundNetwork() {
+		return this.groundBN;
+	}
+	
 	public static void main(String[] args) {
 		try { 
-			int test = 0;
+			int test = 1;
 			
 			if(test == 0) {
 				String dir = "/usr/wiss/jain/work/code/SRLDB/bln/test/";
@@ -369,7 +409,7 @@ public class GroundBLN {
 				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
 				Stopwatch sw = new Stopwatch();
 				sw.start();
-				gbln.infer(new String[]{"rel(X,Y)"}, 1000, 100);
+				new LikelihoodWeighting(gbln).infer(new String[]{"rel(X,Y)"}, 1000, 100);
 				//gbln.inferAIS(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, 1000);
 				sw.stop();
 				System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");

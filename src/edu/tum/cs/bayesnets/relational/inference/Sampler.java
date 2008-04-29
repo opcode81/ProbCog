@@ -1,0 +1,43 @@
+package edu.tum.cs.bayesnets.relational.inference;
+
+import java.util.regex.Pattern;
+
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
+
+public abstract class Sampler {
+	public BeliefNetworkEx bn;
+	public SampledDistribution dist;
+	
+	public Sampler() {	
+	}
+	
+	protected void createDistribution(BeliefNetworkEx bn) {
+		this.bn = bn;
+		this.dist = new BeliefNetworkEx.SampledDistribution(bn);
+	}
+	
+	protected void addSample(WeightedSample s) {
+		this.dist.addSample(s);
+	}
+	
+	public void printResults(String[] queries) {
+		Pattern[] patterns = new Pattern[queries.length];
+		for(int i = 0; i < queries.length; i++) {
+			String p = queries[i];
+			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
+			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
+			patterns[i] = Pattern.compile(p);
+			//System.out.println("pattern: " + p);
+		}
+		BeliefNode[] nodes = bn.bn.getNodes();		
+		for(int i = 0; i < nodes.length; i++)
+			for(int j = 0; j < patterns.length; j++)				
+				if(patterns[j].matcher(nodes[i].getName()).matches()) {
+					dist.printNodeDistribution(System.out, i);
+					break;
+				}
+	}
+}
