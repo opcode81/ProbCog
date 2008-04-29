@@ -65,6 +65,7 @@ public class BeliefNetworkEx {
 		 * The weight of the sample.
 		 */
 		public double weight;
+		public int trials;
 
 		/**
 		 * Constructs a weighted sample from given node value mapping and
@@ -80,7 +81,7 @@ public class BeliefNetworkEx {
 		 *            outer class.
 		 */
 		public WeightedSample(int[] nodeDomainIndices, double weight,
-				int[] nodeIndices) {
+				int[] nodeIndices, int trials) {
 			if (nodeIndices == null) {
 				int numNodes = nodeDomainIndices.length;
 				nodeIndices = new int[numNodes];
@@ -92,6 +93,7 @@ public class BeliefNetworkEx {
 			this.nodeDomainIndices = nodeDomainIndices;
 			assert nodeIndices.length == nodeDomainIndices.length;
 			this.weight = weight;
+			this.trials = trials;
 		}
 
 		/**
@@ -109,7 +111,7 @@ public class BeliefNetworkEx {
 			for (int i = 0; i < queryNodes.length; i++) {
 				resultIndices[i] = nodeDomainIndices[queryNodes[i]];
 			}
-			return new WeightedSample(resultIndices, weight, queryNodes);
+			return new WeightedSample(resultIndices, weight, queryNodes, 1);
 		}
 
 		/*
@@ -238,6 +240,7 @@ public class BeliefNetworkEx {
 		protected double[][] sums;
 		protected double Z;
 		protected BeliefNetworkEx bn;
+		protected int trials, steps;
 		
 		public SampledDistribution(BeliefNetworkEx bn) {
 			this.bn = bn;
@@ -251,7 +254,9 @@ public class BeliefNetworkEx {
 			Z += s.weight;
 			for(int i = 0; i < s.nodeIndices.length; i++) {
 				sums[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
-			}			
+			}
+			trials += s.trials;
+			steps++;
 		}
 		
 		public void print(PrintStream out) {			
@@ -268,6 +273,10 @@ public class BeliefNetworkEx {
 				double prob = sums[index][j] / Z;
 				out.println(String.format("  %.4f %s", prob, domain.getName(j)));
 			}
+		}
+		
+		public double getTrialsPerStep() {
+			return (double)trials/steps;
 		}
 	}
 	
@@ -883,8 +892,9 @@ public class BeliefNetworkEx {
 	 * @param numSamples	the number of samples to draw from.
 	 * @return				the accumulated samples and their sampled conditional probabilities given the evidences 
 	 * 						or null	if we run out of trials for the first sample. 
+	 * @throws Exception 
 	 */
-	public WeightedSample[] getAssignmentDistribution(String[][] evidences, String[] queryNodeNames, int numSamples) {
+	public WeightedSample[] getAssignmentDistribution(String[][] evidences, String[] queryNodeNames, int numSamples) throws Exception {
 		HashMap<WeightedSample, Double> sampleSums = new HashMap<WeightedSample, Double>();
 
 		int[] queryNodes = new int[queryNodeNames.length];
@@ -973,8 +983,9 @@ public class BeliefNetworkEx {
 	 * @param evidences		the conjunction of evidences, specified in the same way.
 	 * @param numSamples	the number of samples to draw.
 	 * @return				the calculated probability.
+	 * @throws Exception 
 	 */
-	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) {
+	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) throws Exception {
 	    String[] queryNodes = new String[queries.length];
 	    for (int i=0; i<queryNodes.length; i++) {
 	    	queryNodes[i]=queries[i][0];
@@ -996,21 +1007,23 @@ public class BeliefNetworkEx {
 	 * @param sampleDomainIndexes	the resulting domain indexes for each node.
 	 * 			The length must be initialized to the number of nodes in the net.
 	 * @return
+	 * @throws Exception 
 	 */
-	public WeightedSample getWeightedSample(String[][] evidences, Random generator) {		
+	public WeightedSample getWeightedSample(String[][] evidences, Random generator) throws Exception {		
 		if (generator == null) {
 			generator = new Random();
 		}		
 		return getWeightedSample(getTopologicalOrder(), evidence2DomainIndices(evidences), generator);
 	}
 	
-	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) {
+	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) throws Exception {
 		BeliefNode[] nodes = bn.getNodes();
 		int[] sampleDomainIndices  = new int[nodes.length];
 		boolean successful = false;
 		double weight = 1.0;
 		int trials=0;
 success:while (!successful) {
+			//System.out.println(trials);
 			weight = 1.0;
 			if (trials > MAX_TRIALS)
 				return null;
@@ -1021,7 +1034,8 @@ success:while (!successful) {
 					sampleDomainIndices[nodeIdx] = domainIdx;
 					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
 					double prob = getCPTProbability(nodes[nodeIdx], sampleDomainIndices);
-					if (prob == 0.0) {		
+					if (prob == 0.0) {
+						//System.out.println("sampling failed at evidence node " + nodes[nodeIdx].getName());
 						removeAllEvidences();
 						trials++;
 						continue success;
@@ -1030,6 +1044,7 @@ success:while (!successful) {
 				} else {
 					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
 					if (domainIdx < 0) {
+						System.out.println("could not sample forward because of column with 0s in CPT of " + nodes[nodeIdx].getName());
 						removeAllEvidences();
 						trials++;
 						continue success;
@@ -1042,7 +1057,7 @@ success:while (!successful) {
 			removeAllEvidences();
 			successful = true;
 		}
-		return new WeightedSample(sampleDomainIndices, weight, null);		
+		return new WeightedSample(sampleDomainIndices, weight, null, trials);		
 	}
 	
 	public int[] evidence2DomainIndices(String[][] evidences) {
