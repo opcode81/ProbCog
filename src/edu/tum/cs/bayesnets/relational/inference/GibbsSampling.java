@@ -2,10 +2,10 @@ package edu.tum.cs.bayesnets.relational.inference;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
 
-public class LikelihoodWeighting extends Sampler {
+public class GibbsSampling extends Sampler {
 	GroundBLN gbln;
 	
-	public LikelihoodWeighting(GroundBLN gbln) {
+	public GibbsSampling(GroundBLN gbln) {
 		super(gbln.groundBN);
 		this.gbln = gbln;
 	}
@@ -16,8 +16,8 @@ public class LikelihoodWeighting extends Sampler {
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// sample
-		edu.tum.cs.bayesnets.inference.LikelihoodWeighting lw = new edu.tum.cs.bayesnets.inference.LikelihoodWeighting(gbln.groundBN);
-		this.dist = lw.infer(evidenceDomainIndices, numSamples, infoInterval);
+		edu.tum.cs.bayesnets.inference.GibbsSampling gs = new edu.tum.cs.bayesnets.inference.GibbsSampling(gbln.groundBN);
+		this.dist = gs.infer(evidenceDomainIndices, numSamples, infoInterval);
 		
 		// determine query nodes and print their distributions
 		printResults(queries);

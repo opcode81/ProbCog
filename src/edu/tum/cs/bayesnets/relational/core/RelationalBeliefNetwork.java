@@ -284,7 +284,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @param numericWeights whether to print weighs as numbers (if false, print as log(x))
 	 * @throws Exception
 	 */
-	public void toMLN(PrintStream out, boolean compactFormulas, boolean numericWeights) throws Exception {
+	public void toMLN(PrintStream out, boolean declarationsOnly, boolean compactFormulas, boolean numericWeights) throws Exception {
 		MLNWriter writer = new MLNWriter(out);
 		
 		// write domain declarations

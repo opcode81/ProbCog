@@ -214,6 +214,10 @@ public class Database {
 		return domains.get(domName);
 	}
 	
+	/**
+	 * retrieves all entries in the database
+	 * @return
+	 */
 	public Collection<Variable> getEntries() {
 		return entries.values();
 	}

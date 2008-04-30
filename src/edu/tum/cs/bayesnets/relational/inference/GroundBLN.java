@@ -135,7 +135,7 @@ public class GroundBLN {
 	 * @param targetNode  the target node to connect parents to and whose CPF is to be written
 	 * @throws Exception
 	 */
-	public void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws Exception {
+	protected void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws Exception {
 		// connect parents and determine domain products
 		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
@@ -168,6 +168,7 @@ public class GroundBLN {
 		}
 		if(j != targetDomainProd.length)
 			throw new Exception("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);
+		targetCPF.buildZero(targetDomainProd, false);
 		
 		// transfer the CPF values
 		if(srcDomainProd.length == targetDomainProd.length)
@@ -419,7 +420,7 @@ public class GroundBLN {
 				BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
 				gbln.show();
-				//gbln.infer(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, new String[]{"rel(x,y)"}, 1000, 100);
+				new LikelihoodWeighting(gbln).infer(new String[]{"prop1(X)","prop2(Y)"}, 1000, 100);
 			}
 		}
 		catch(Exception e) {
