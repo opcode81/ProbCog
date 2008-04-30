@@ -4,6 +4,7 @@ import java.util.regex.Pattern;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
 import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
+import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
 import edu.tum.cs.bayesnets.relational.inference.GroundBLN;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
 import edu.tum.cs.tools.Stopwatch;
@@ -11,7 +12,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling};
 	
 	/**
 	 * @param args
@@ -46,6 +47,8 @@ public class BLNinfer {
 					algo = Algorithm.LikelihoodWeighting;
 				else if(args[i].equals("-csp"))
 					algo = Algorithm.CSP;
+				else if(args[i].equals("-gs"))
+					algo = Algorithm.GibbsSampling;
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -87,6 +90,9 @@ public class BLNinfer {
 				break;
 			case CSP:
 				new CSPSampler(gbln).infer(queries.toArray(new String[0]), maxSteps, 100);
+				break;
+			case GibbsSampling:
+				new GibbsSampling(gbln).infer(queries.toArray(new String[0]), maxSteps, 100);
 				break;
 			}				
 			sw.stop();
