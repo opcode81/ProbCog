@@ -18,7 +18,7 @@ public class learnBLOG {
 		try {
 			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
 			
-			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false;
+			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
 			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
@@ -36,16 +36,19 @@ public class learnBLOG {
 					dbFile = args[++i];
 				else if(args[i].equals("-o"))
 					outFile = args[++i];
+				else if(args[i].equals("-bln"))
+					basicBLN = true;
 				else if(args[i].equals("-nn"))
 					noNormalization = true;					
 			}			
 			if(bifFile == null || dbFile == null || outFile == null) {
 				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
-							         "    -b  " + acronym + " file from which to read function signatures\n" +
-						             "    -s  show learned Bayesian network\n" +
-						             "    -d  learn domains\n" + 
-						             "    -i  ignore data on predicates not defined in the model\n" +
-						             "    -nn no normalization (i.e. keep counts in CPTs)\n");
+							         "    -b    " + acronym + " file from which to read function signatures\n" +
+						             "    -s    show learned Bayesian network\n" +
+						             "    -d    learn domains\n" + 
+						             "    -i    ignore data on predicates not defined in the model\n" +
+						             "    -nn   no normalization (i.e. keep counts in CPTs)\n" +
+						             "    -bln  output basic .bln file\n");
 				return;
 			}
 			// create a BLOG model
@@ -101,6 +104,11 @@ public class learnBLOG {
 				bifFile = bifFile.substring(0, dotpos) + ".learnt.xml";
 				System.out.println("Writing XML-BIF output to " + bifFile + "...");
 				bn.saveXMLBIF(bifFile);
+			}
+			// write basic BLN 
+			if(basicBLN) {
+				PrintStream out = new PrintStream(new File(outFile + ".bln"));
+				bn.toMLN(out, true, false, false);
 			}
 			// show bayesian network
 			if(showBN) {
