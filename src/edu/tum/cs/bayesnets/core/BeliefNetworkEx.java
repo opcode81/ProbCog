@@ -79,6 +79,9 @@ public class BeliefNetworkEx {
 		 * @param nodeIndices
 		 *            the mapping from intern numbering to the node index of the
 		 *            outer class.
+		 *            (may be null, in which case the identity mapping is assumed)
+		 * @param trials
+		 *            the number of steps that was required to obtain this sample
 		 */
 		public WeightedSample(int[] nodeDomainIndices, double weight,
 				int[] nodeIndices, int trials) {
@@ -951,8 +954,9 @@ public class BeliefNetworkEx {
 	 * Get a specific entry in the cpt of the given node.
 	 * The nodeDomainIndices should contain a value for each node in the BeliefNet but only values
 	 * in the domain product of the node are queried for.
+	 * WARNING: This is very slow (mainly because getDomainProductNodeIndices performs a linear search for each node)
 	 * @param node				the node the CPT should come from.
-	 * @param nodeDomainIndices	the values the nodes should have.
+	 * @param nodeDomainIndices	the values the nodes should have (domain indices for all the nodes in the network)
 	 * @return					the probability entry in the CPT.
 	 */
 	public double getCPTProbability(BeliefNode node, int[] nodeDomainIndices ) {
@@ -1093,7 +1097,7 @@ success:while (!successful) {
 	}
 
 	/**
-	 * performs sampling on the network and returns a sample of the distribution represented by this Bayesian network; evidences that are set during sampling are removed
+	 * performs sampling on the network and returns a sample of the marginal distribution represented by this Bayesian network; evidences that are set during sampling are removed
 	 * afterwards in order to retain the original state of the network.
 	 * @return a hashmap of (node name, string value) pairs representing the sample
 	 * @param generator random number generator to use to generate sample (null to create one) 

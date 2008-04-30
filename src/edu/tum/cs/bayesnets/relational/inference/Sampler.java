@@ -4,23 +4,10 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 
-public abstract class Sampler {
-	public BeliefNetworkEx bn;
-	public SampledDistribution dist;
-	
-	public Sampler() {	
-	}
-	
-	protected void createDistribution(BeliefNetworkEx bn) {
+public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
+	public Sampler(BeliefNetworkEx bn) {
 		this.bn = bn;
-		this.dist = new BeliefNetworkEx.SampledDistribution(bn);
-	}
-	
-	protected void addSample(WeightedSample s) {
-		this.dist.addSample(s);
 	}
 	
 	public void printResults(String[] queries) {

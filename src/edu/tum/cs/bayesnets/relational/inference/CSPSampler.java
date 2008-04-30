@@ -16,6 +16,7 @@ public class CSPSampler extends Sampler {
 	GroundBLN gbln;
 	
 	public CSPSampler(GroundBLN gbln) {
+		super(gbln.groundBN);
 		this.gbln = gbln;
 	}
 	
