@@ -31,7 +31,7 @@ public class BLOG2MLN {
 			BLOGModel b = new BLOGModel(args[0].split(","), args[1]);
 			if(guessSigs)
 				b.guessSignatures();
-			b.toMLN(System.out, compact, numericWeights);
+			b.toMLN(System.out, false, compact, numericWeights);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
