@@ -57,9 +57,11 @@ public class BLNinfer {
 			}			
 			if(bifFile == null || dbFile == null || blogFile == null || blnFile == null || query == null) {
 				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db>> <-q <comma-sep. queries>> [options]\n\n"+
-							         "    -maxSteps #    the maximum number of steps to take\n" + 
-							         "    -lw            algorithm: likelihood weighting\n" +
-							         "    -csp           algorithm: CSP-based sampling");
+							         "    -maxSteps #      the maximum number of steps to take\n" + 
+							         "    -lw              algorithm: likelihood weighting (default)\n" +
+							         "    -gs              algorithm: Gibbs sampling\n" +
+							         "    -csp             algorithm: CSP-based sampling\n" + 
+							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
 
