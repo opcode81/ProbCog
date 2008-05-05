@@ -50,7 +50,8 @@ public class BeliefNetworkEx {
 	 * 
 	 * @see BeliefNetworkEx#getWeightedSample(String[][], Random)
 	 */
-	public class WeightedSample {
+	public static class WeightedSample {
+		BeliefNetworkEx bn;
 		/**
 		 * The mapping from intern numbering to value as index into the domain
 		 * of the node.
@@ -83,8 +84,9 @@ public class BeliefNetworkEx {
 		 * @param trials
 		 *            the number of steps that was required to obtain this sample
 		 */
-		public WeightedSample(int[] nodeDomainIndices, double weight,
+		public WeightedSample(BeliefNetworkEx bn, int[] nodeDomainIndices, double weight,
 				int[] nodeIndices, int trials) {
+			this.bn = bn;
 			if (nodeIndices == null) {
 				int numNodes = nodeDomainIndices.length;
 				nodeIndices = new int[numNodes];
@@ -114,7 +116,7 @@ public class BeliefNetworkEx {
 			for (int i = 0; i < queryNodes.length; i++) {
 				resultIndices[i] = nodeDomainIndices[queryNodes[i]];
 			}
-			return new WeightedSample(resultIndices, weight, queryNodes, 1);
+			return new WeightedSample(bn, resultIndices, weight, queryNodes, 1);
 		}
 
 		/*
@@ -151,7 +153,7 @@ public class BeliefNetworkEx {
 		public Map<String, String> getAssignmentMap() {
 			Map<String, String> result = new HashMap<String, String>();
 
-			BeliefNode[] nodes = BeliefNetworkEx.this.bn.getNodes();
+			BeliefNode[] nodes = bn.bn.getNodes();
 			for (int i = 0; i < nodeIndices.length; i++) {
 				try {
 					result.put(nodes[nodeIndices[i]].getName(),
@@ -175,7 +177,7 @@ public class BeliefNetworkEx {
 		public Map<String, String> getUndiscretizedAssignmentMap() {
 			Map<String, String> result = new HashMap<String, String>();
 
-			BeliefNode[] nodes = BeliefNetworkEx.this.bn.getNodes();
+			BeliefNode[] nodes = bn.bn.getNodes();
 			for (int i = 0; i < nodeIndices.length; i++) {
 				try {
 					Domain nodeDomain = nodes[nodeIndices[i]].getDomain();
@@ -223,7 +225,7 @@ public class BeliefNetworkEx {
 		 * 	       false otherwise
 		 */
 		public boolean checkAssignment(String[][] queries) {
-			int[] indices = getNodeDomainIndicesFromStrings(queries);
+			int[] indices = bn.getNodeDomainIndicesFromStrings(queries);
 			for (int nodeIndex : nodeIndices) {
 				if (indices[nodeIndex] >= 0
 						&& indices[nodeIndex] != nodeDomainIndices[nodeIndex])
@@ -1037,6 +1039,7 @@ success:while (!successful) {
 				if (domainIdx >= 0) { // This is an evidence node?
 					sampleDomainIndices[nodeIdx] = domainIdx;
 					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+					// TODO rewrite in Likelihoodweighting without this call
 					double prob = getCPTProbability(nodes[nodeIdx], sampleDomainIndices);
 					if (prob == 0.0) {
 						//System.out.println("sampling failed at evidence node " + nodes[nodeIdx].getName());
@@ -1061,7 +1064,7 @@ success:while (!successful) {
 			removeAllEvidences();
 			successful = true;
 		}
-		return new WeightedSample(sampleDomainIndices, weight, null, trials);		
+		return new WeightedSample(this, sampleDomainIndices, weight, null, trials);		
 	}
 	
 	public int[] evidence2DomainIndices(String[][] evidences) {
