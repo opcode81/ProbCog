@@ -180,6 +180,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		signatures.put(name, sig);
 	}
 	
+	/**
+	 * retrieves the signature of a predicate
+	 * @param predicateName the name of the predicate
+	 * @return a Signature object
+	 */
 	public Signature getSignature(String predicateName) {
 		return signatures.get(predicateName.toLowerCase());
 	}

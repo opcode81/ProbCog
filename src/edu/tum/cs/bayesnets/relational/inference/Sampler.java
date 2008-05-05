@@ -1,13 +1,16 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
 	public Sampler(BeliefNetworkEx bn) {
-		this.bn = bn;
+		super(bn);
 	}
 	
 	public void printResults(String[] queries) {

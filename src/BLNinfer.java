@@ -26,6 +26,7 @@ public class BLNinfer {
 			String query = null;
 			int maxSteps = 1000;
 			Algorithm algo = Algorithm.LikelihoodWeighting;
+			String[] cwPreds = null;
 			boolean showBN = false;
 			
 			for(int i = 0; i < args.length; i++) {
@@ -41,6 +42,8 @@ public class BLNinfer {
 					dbFile = args[++i];				
 				else if(args[i].equals("-s"))
 					showBN = true;				
+				else if(args[i].equals("-cw"))
+					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
@@ -76,12 +79,19 @@ public class BLNinfer {
 			}
 			if(!q.equals(""))
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
-				
-			// run inference
+
+			// instantiate ground model
 			BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel(blogFile, bifFile), blnFile);
 			GroundBLN gbln = new GroundBLN(bln, dbFile);
+			if(cwPreds != null) {
+				System.out.println("extending evidence...");
+				for(String predName : cwPreds)
+					gbln.getDatabase().setClosedWorldPred(predName);
+			}
 			if(showBN)
 				gbln.getGroundNetwork().show("/usr/wiss/jain/work/code/BNJ/plugins");
+			
+			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
 			switch(algo) {

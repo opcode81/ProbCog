@@ -128,6 +128,10 @@ public class GroundBLN {
 		}
 	}
 	
+	public Database getDatabase() {
+		return db;
+	}
+	
 	/**
 	 * connects the parents given by the grounding to the target node and transfers the (correct part of the) CPF to the target node
 	 * @param parentGrounding  a grounding
