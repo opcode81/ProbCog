@@ -38,7 +38,7 @@ public class CSPSampler extends Sampler {
 		
 		// sample
 		Stopwatch sw = new Stopwatch();
-		createDistribution(groundBN);
+		createDistribution();
 		
 		Random generator = new Random();
 		System.out.println("sampling...");

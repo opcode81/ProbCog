@@ -56,7 +56,10 @@ public class Database {
 		}
 		return null;
 	}
-	
+
+	/**
+	 * checks whether the database contains an entry for the given variable name 
+	 */
 	public boolean contains(String varName) {
 		return entries.containsKey(varName.toLowerCase());
 	}
@@ -222,6 +225,9 @@ public class Database {
 		return entries.values();
 	}
 	
+	/**
+	 * @return the values of this database as an array of String[2] arrays, where the first element of each is the name of the variable, and the second is the value 
+	 */
 	public String[][] getEntriesAsArray() {
 		String[][] ret = new String[entries.size()][2];
 		int i = 0;
@@ -233,8 +239,41 @@ public class Database {
 		return ret;
 	}
 	
+	/**
+	 * adds all missing values of ground atoms of the given predicate, setting them to "False".
+	 * Invoke <b>after</b> the database has been read!
+	 * @param predName
+	 */
+	public void setClosedWorldPred(String predName) {
+		Signature sig = this.bn.getSignature(predName);
+		String[] params = new String[sig.argTypes.length];
+		setClosedWorldPred(sig, 0, params);
+	}
+	
+	protected void setClosedWorldPred(Signature sig, int i, String[] params) {
+		if(i == params.length) {
+			String varName = RelationalNode.formatName(sig.functionName, params);
+			if(!this.contains(varName)) {				
+				Variable var = new Variable(sig.functionName, params.clone(), "False");
+				System.out.println("CW: " + var);
+				this.addVariable(var);
+			}
+			return;
+		}
+		for(String value : this.getDomain(sig.argTypes[i])) {
+			params[i] = value;
+			setClosedWorldPred(sig, i+1, params);
+		}
+	}	
+	
 	public class Variable {
+		/**
+		 * the node name or function/predicate name
+		 */
 		public String nodeName;
+		/**
+		 * the actual parameters of the function/predicate
+		 */
 		public String[] params;
 		public String value;
 		
