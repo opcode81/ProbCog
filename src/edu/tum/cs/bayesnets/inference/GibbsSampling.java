@@ -13,17 +13,14 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 import edu.tum.cs.tools.Stopwatch;
 
 public class GibbsSampling extends Sampler {
-	int[] nodeOrder;
-	HashMap<BeliefNode, Integer> nodeIndices;
+	int[] nodeOrder;	
 	HashMap<BeliefNode, BeliefNode[]> children;
 	
 	public GibbsSampling(BeliefNetworkEx bn) {
-		this.bn = bn;
-		nodeIndices = new HashMap<BeliefNode, Integer>();
+		super(bn);
 		children = new HashMap<BeliefNode, BeliefNode[]>();
 		BeliefNode[] nodes = bn.bn.getNodes();		
 		for(int i = 0; i < nodes.length; i++) {
-			nodeIndices.put(nodes[i], i);
 			children.put(nodes[i], bn.bn.getChildren(nodes[i]));
 		}
 		nodeOrder = bn.getTopologicalOrder();
@@ -31,7 +28,7 @@ public class GibbsSampling extends Sampler {
 	
 	public SampledDistribution infer(int[] evidenceDomainIndices, int numSamples, int infoInterval) throws Exception {
 		Stopwatch sw = new Stopwatch();
-		createDistribution(bn);		
+		createDistribution();		
 		Random generator = new Random();
 
 		// get initial setting with non-zero probability
@@ -65,7 +62,7 @@ public class GibbsSampling extends Sampler {
 					double value = getCPTProbability(n, s.nodeDomainIndices);
 					// consider the probability of the children's settings given the respective parents					
 					for(BeliefNode child : children.get(n)) {
-						value *= bn.getCPTProbability(child, s.nodeDomainIndices);
+						value *= getCPTProbability(child, s.nodeDomainIndices);
 					}			
 					distribution[d] = value;
 				}
@@ -76,14 +73,5 @@ public class GibbsSampling extends Sampler {
 		sw.stop();
 		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
 		return dist;
-	}
-	
-	protected double getCPTProbability(BeliefNode node, int[] nodeDomainIndices) {
-		CPF cpf = node.getCPF();
-		BeliefNode[] domProd = cpf.getDomainProduct();
-		int[] addr = new int[domProd.length];
-		for(int i = 0; i < addr.length; i++)
-			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];
-		return ((ValueDouble)cpf.get(addr)).getValue();
 	}
 }

@@ -1,7 +1,11 @@
 package edu.tum.cs.bayesnets.inference;
 
+import java.util.HashMap;
 import java.util.Random;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
@@ -9,12 +13,18 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 public abstract class Sampler {
 	public BeliefNetworkEx bn;
 	public SampledDistribution dist;
+	HashMap<BeliefNode, Integer> nodeIndices;
 	
-	public Sampler() {	
+	public Sampler(BeliefNetworkEx bn) {	
+		this.bn = bn;
+		nodeIndices = new HashMap<BeliefNode, Integer>();
+		BeliefNode[] nodes = bn.bn.getNodes();
+		for(int i = 0; i < nodes.length; i++) {
+			nodeIndices.put(nodes[i], i);
+		}
 	}
 	
-	protected void createDistribution(BeliefNetworkEx bn) {
-		this.bn = bn;
+	protected void createDistribution() {
 		this.dist = new BeliefNetworkEx.SampledDistribution(bn);
 	}
 	
@@ -38,5 +48,14 @@ public abstract class Sampler {
 			sum += distribution[ret = i++];
 		}
 		return sum >= random ? ret : -1;		
+	}	
+	
+	protected double getCPTProbability(BeliefNode node, int[] nodeDomainIndices) {
+		CPF cpf = node.getCPF();
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		int[] addr = new int[domProd.length];
+		for(int i = 0; i < addr.length; i++)
+			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];
+		return ((ValueDouble)cpf.get(addr)).getValue();
 	}
 }
