@@ -7,13 +7,12 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 
 public abstract class Sampler {
 	public BeliefNetworkEx bn;
 	public SampledDistribution dist;
 	HashMap<BeliefNode, Integer> nodeIndices;
+	Random generator;
 	
 	public Sampler(BeliefNetworkEx bn) {	
 		this.bn = bn;
@@ -22,10 +21,11 @@ public abstract class Sampler {
 		for(int i = 0; i < nodes.length; i++) {
 			nodeIndices.put(nodes[i], i);
 		}
+		generator = new Random();
 	}
 	
 	protected void createDistribution() {
-		this.dist = new BeliefNetworkEx.SampledDistribution(bn);
+		this.dist = new SampledDistribution(bn);
 	}
 	
 	protected void addSample(WeightedSample s) {

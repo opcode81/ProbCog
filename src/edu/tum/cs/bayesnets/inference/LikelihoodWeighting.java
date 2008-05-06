@@ -1,16 +1,12 @@
 package edu.tum.cs.bayesnets.inference;
 
-import java.util.Random;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.ForwardSampling;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
 import edu.tum.cs.tools.Stopwatch;
 
-public class LikelihoodWeighting extends Sampler {
+public class LikelihoodWeighting extends Sampler implements IInferenceAlgorithm {
 	int[] nodeOrder;
 	static final int MAX_TRIALS = 5000;
 	
@@ -23,13 +19,12 @@ public class LikelihoodWeighting extends Sampler {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();
-		Random generator = new Random();
 		System.out.println("sampling...");
 		sw.start();
 		for(int i = 1; i <= numSamples; i++) {
 			if(i % infoInterval == 0)
 				System.out.println("  step " + i);
-			WeightedSample s = bn.getWeightedSample(nodeOrder, evidenceDomainIndices, generator); 
+			WeightedSample s = getWeightedSample(nodeOrder, evidenceDomainIndices); 
 			addSample(s);
 		}
 		sw.stop();
@@ -37,7 +32,7 @@ public class LikelihoodWeighting extends Sampler {
 		return dist;
 	}
 	
-	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) throws Exception {
+	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		int[] sampleDomainIndices  = new int[nodes.length];
 		boolean successful = false;

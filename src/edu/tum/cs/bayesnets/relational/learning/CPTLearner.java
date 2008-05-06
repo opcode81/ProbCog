@@ -8,10 +8,11 @@ import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
-import edu.tum.cs.bayesnets.relational.learning.Database.Variable;
+import edu.tum.cs.bayesnets.relational.core.Database.Variable;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	

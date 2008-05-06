@@ -1,12 +1,10 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
-import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.CPF;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
 	public Sampler(BeliefNetworkEx bn) {
@@ -30,4 +28,6 @@ public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
 					break;
 				}
 	}
+	
+	public abstract SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws Exception;
 }

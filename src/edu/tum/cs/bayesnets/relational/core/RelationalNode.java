@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.mln.MLNWriter;
 
 public class RelationalNode {
@@ -147,32 +146,6 @@ public class RelationalNode {
 			return sig.returnType.equals("Boolean");
 		else
 			return bn.isBooleanDomain(node.getDomain());
-	}
-	
-	public static class Signature {
-		public String returnType;
-		public String[] argTypes;
-		public String functionName;
-	
-		public Signature(String functionName, String returnType, String[] argTypes) {
-			this.returnType = returnType;
-			this.argTypes = argTypes;
-			this.functionName = functionName;
-		}
-		
-		public void replaceType(String oldType, String newType) {
-			if(this.returnType.equals(oldType))
-				this.returnType = newType;
-			for(int i = 0; i < argTypes.length; i++) {
-				if(argTypes[i].equals(oldType))
-					argTypes[i] = newType;
-			}
-		}
-		
-		@Override
-		public String toString() {
-			return String.format("%s %s(%s)", returnType, functionName, RelationalNode.join(",", argTypes));
-		}
 	}
 	
 	/**
