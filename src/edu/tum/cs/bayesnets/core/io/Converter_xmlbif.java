@@ -4,7 +4,9 @@ package edu.tum.cs.bayesnets.core.io;
 // Decompiler options: packimports(3) 
 // Source File Name:   Converter_xmlbif.java
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.streams.*;
+
 import java.io.*;
 import java.util.*;
 import javax.xml.parsers.DocumentBuilder;
@@ -365,9 +367,10 @@ public class Converter_xmlbif
         return buf.toString().trim();
     }
 
-    public void save(OutputStream os)
+    public void save(BeliefNetwork bn, OutputStream os)
     {
         w = new OutputStreamWriter(os);
+        OmniFormatV1_Writer.Write(bn, this);
     }
 
     public void fwrite(String x)

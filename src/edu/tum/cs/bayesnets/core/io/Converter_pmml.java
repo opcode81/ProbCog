@@ -2,6 +2,7 @@
 
 package edu.tum.cs.bayesnets.core.io;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.streams.*;
 import java.io.*;
 import java.util.*;
@@ -310,9 +311,9 @@ public class Converter_pmml
 		}
 	}
 
-	public void save(OutputStream os)
-    {
+	public void save(BeliefNetwork bn, OutputStream os) {
         w = new OutputStreamWriter(os);
+        OmniFormatV1_Writer.Write(bn, this);
     }
 
     public void fwrite(String x)
