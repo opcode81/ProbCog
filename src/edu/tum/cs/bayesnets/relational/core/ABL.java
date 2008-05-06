@@ -4,7 +4,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
-import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
 public class ABL extends BLOGModel {

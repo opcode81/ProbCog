@@ -14,7 +14,6 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
 import edu.tum.cs.mln.MLNWriter;
 import edu.tum.cs.srldb.Database;
 

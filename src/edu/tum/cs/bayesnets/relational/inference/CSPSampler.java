@@ -5,8 +5,8 @@ import java.util.Random;
 import org.python.core.PyObject.ConversionException;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.SampledDistribution;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx.WeightedSample;
+import edu.tum.cs.bayesnets.inference.SampledDistribution;
+import edu.tum.cs.bayesnets.inference.WeightedSample;
 import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
 import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;

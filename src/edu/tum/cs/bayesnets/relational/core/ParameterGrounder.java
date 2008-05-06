@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.bayesnets.relational.learning.Database;
 
 public class ParameterGrounder {
 	

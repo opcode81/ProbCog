@@ -19,7 +19,6 @@ import edu.tum.cs.bayesnets.relational.core.*;
 import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
 import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
 import edu.tum.cs.bayesnets.relational.core.bln.State;
-import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.tools.Stopwatch;
 
 public class GroundBLN {

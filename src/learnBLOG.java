@@ -3,9 +3,9 @@ import java.io.PrintStream;
 
 import edu.tum.cs.bayesnets.relational.core.ABL;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
-import edu.tum.cs.bayesnets.relational.core.RelationalNode.Signature;
+import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
-import edu.tum.cs.bayesnets.relational.learning.Database;
 import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
 public class learnBLOG {	
