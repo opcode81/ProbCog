@@ -15,6 +15,7 @@ import edu.ksu.cis.bnj.ver3.inference.exact.Pearl;
 import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
 import edu.ksu.cis.bnj.ver3.streams.*;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
+import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
 import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
@@ -52,14 +53,6 @@ public class BeliefNetworkEx {
 	public BeliefNetwork bn;
 	
 	/**
-	 * the format constant for the XML-BIF format
-	 */
-	public static final int FORMAT_XMLBIF = 0;
-	/**
-	 * the format constant for the PMML-based format (PMML version 3.0 with custom extensions) 
-	 */
-	public static final int FORMAT_PMML = 1;
-	/**
 	 * the name of the currently loaded belief network file
 	 */
 	protected String filename;
@@ -84,31 +77,12 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
-	 * constructs a BeliefNetworkEx object from a saved XML-BIF file
+	 * constructs a BeliefNetworkEx object from a saved network file
 	 * @param xmlbifFile	the name of the XML-BIF file to load the network from
+	 * @throws Exception 
 	 */
-	public BeliefNetworkEx(String xmlbifFile) throws FileNotFoundException {
-		this.bn = load(xmlbifFile, new Converter_xmlbif());
-		initAttributeMapping();
-		this.filename = xmlbifFile;
-	}
-	
-	/**
-	 * constructs a BeliefNetworkEx object by loading the network from a file
-	 * @param filename		the name of the file that contains the network data
-	 * @param format		the format specifier; use one of the format constants (i.e. FORMAT_XMLBIF, FORMAT_PMML)
-	 */
-	public BeliefNetworkEx(String filename, int format) throws Exception, FileNotFoundException {
-		switch(format) {
-		case FORMAT_XMLBIF:
-			this.bn = load(filename, new Converter_xmlbif());
-			break;
-		case FORMAT_PMML:
-			this.bn = load(filename, new Converter_pmml());
-			break;
-		default:
-			throw new Exception("Can't load - unknown format!");
-		}
+	public BeliefNetworkEx(String filename) throws Exception {
+		this.bn = load(filename);
 		initAttributeMapping();
 		this.filename = filename;
 	}
@@ -458,6 +432,21 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * loads a Bayesian network from the given file (determining a suitable importer from the extension) 
+	 * @param filename
+	 * @return
+	 * @throws Exception 
+	 */
+	public static BeliefNetwork load(String filename) throws Exception {
+		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
+		String ext = iopl.GetExt(filename);
+		Importer imp = iopl.GetImporterByExt(ext);
+		if(imp == null) 
+			throw new Exception("Unable to find an importer that can handle " + ext + " files.");
+		return load(filename, imp);
+	}
+	
+	/**
 	 * static function for writing a Bayesian network to a file using a given exporter
 	 * @param net						the network to be written
 	 * @param filename					the file to write to
@@ -465,8 +454,8 @@ public class BeliefNetworkEx {
 	 * @throws FileNotFoundException
 	 */
 	public static void save(BeliefNetwork net, String filename, Exporter exporter) throws FileNotFoundException {
-		exporter.save(new FileOutputStream(filename));
-		OmniFormatV1_Writer.Write(net, (OmniFormatV1)exporter);
+		exporter.save(net, new FileOutputStream(filename));
+		//OmniFormatV1_Writer.Write(net, (OmniFormatV1)exporter);
 	}
 	
 	/**
@@ -559,22 +548,36 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
-	 * shows the Bayesian Network in a BNJ editor window (without saving/loading capabilities)
+	 * shows the Bayesian Network in a BNJ editor window
 	 */
 	public void show() {
+		registerDefaultPlugins();		
 		edu.ksu.cis.bnj.gui.GUIWindow window = new edu.ksu.cis.bnj.gui.GUIWindow();
 		window.register();		
 		window.open(bn, filename);
 	}
 	
+	public static void registerDefaultPlugins() {
+		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
+		// XML-BIF
+		Converter_xmlbif xmlbif = new Converter_xmlbif();
+		iopl.addPlugin(xmlbif, xmlbif);
+		// PMML
+		Converter_pmml pmml = new Converter_pmml();
+		iopl.addPlugin(pmml, pmml);
+		// Hugin
+		Converter_hugin hugin = new Converter_hugin();
+		iopl.addPlugin(null, hugin);
+	}
+	
 	/**
 	 * shows the Bayesian Network in a BNJ editor window,
-	 * loading the BNJ plugins in the given directory so that
-	 * saving and loading from within BNJ are possible. 
-	 * @param pluginDir		a directory containing BNJ plugins 
+	 * loading the BNJ plugins in the given directory  
+	 * @param pluginDir		a directory containing BNJ plugins (jar files)
 	 */
 	public void show(String pluginDir) {
-		edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader.init(pluginDir);
+		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
+		iopl.loadPlugins(pluginDir);
 		show();
 	}
 	

@@ -91,7 +91,7 @@ public class BLNinfer {
 					gbln.getDatabase().setClosedWorldPred(predName);
 			}
 			if(showBN)
-				gbln.getGroundNetwork().show("/usr/wiss/jain/work/code/BNJ/plugins");
+				gbln.getGroundNetwork().show();
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
