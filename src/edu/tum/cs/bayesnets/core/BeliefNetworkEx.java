@@ -438,6 +438,7 @@ public class BeliefNetworkEx {
 	 * @throws Exception 
 	 */
 	public static BeliefNetwork load(String filename) throws Exception {
+		registerDefaultPlugins();
 		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
 		String ext = iopl.GetExt(filename);
 		Importer imp = iopl.GetImporterByExt(ext);
