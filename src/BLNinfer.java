@@ -1,18 +1,21 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.bayesnets.inference.EPIS;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
+import edu.tum.cs.bayesnets.relational.inference.BNSampler;
 import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
 import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
 import edu.tum.cs.bayesnets.relational.inference.GroundBLN;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
+import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
 
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS};
 	
 	/**
 	 * @param args
@@ -48,6 +51,8 @@ public class BLNinfer {
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
 					algo = Algorithm.LikelihoodWeighting;
+				else if(args[i].equals("-epis"))
+					algo = Algorithm.EPIS;
 				else if(args[i].equals("-csp"))
 					algo = Algorithm.CSP;
 				else if(args[i].equals("-gs"))
@@ -96,17 +101,18 @@ public class BLNinfer {
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
+			Sampler sampler = null;
 			switch(algo) {
-			case LikelihoodWeighting:
-				new LikelihoodWeighting(gbln).infer(queries.toArray(new String[0]), maxSteps, 100);
-				break;
-			case CSP:
-				new CSPSampler(gbln).infer(queries.toArray(new String[0]), maxSteps, 100);
-				break;
-			case GibbsSampling:
-				new GibbsSampling(gbln).infer(queries.toArray(new String[0]), maxSteps, 100);
-				break;
+			case LikelihoodWeighting: 
+				sampler = new LikelihoodWeighting(gbln); break;
+			case CSP: 
+				sampler = new CSPSampler(gbln); break;
+			case GibbsSampling:	
+				sampler = new GibbsSampling(gbln); break;
+			case EPIS:
+				sampler = new BNSampler(gbln, EPIS.class); break;
 			}				
+			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
 			System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
 		}

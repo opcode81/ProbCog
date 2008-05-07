@@ -6,7 +6,7 @@ import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.ForwardSampling;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.tools.Stopwatch;
 
-public class LikelihoodWeighting extends Sampler implements IInferenceAlgorithm {
+public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
 	static final int MAX_TRIALS = 5000;
 	
@@ -15,7 +15,7 @@ public class LikelihoodWeighting extends Sampler implements IInferenceAlgorithm 
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices, int numSamples, int infoInterval) throws Exception {
+	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();
