@@ -35,11 +35,10 @@ public class CSPSampler extends Sampler {
 		for(GroundFormula gf : gbln.bln.iterGroundFormulas()) {
 			gf.toCNF();
 		}
-		
+			
 		// sample
 		Stopwatch sw = new Stopwatch();
-		createDistribution();
-		
+		SampledDistribution dist = null;		
 		Random generator = new Random();
 		System.out.println("sampling...");
 		sw.start();
@@ -57,9 +56,9 @@ public class CSPSampler extends Sampler {
 		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
 		
 		// determine query nodes and print their distributions
-		printResults(queries);
+		printResults(dist, queries);
 		
-		return dist;
+		return null;
 	}
 
 }

@@ -6,12 +6,12 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
-public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
+public abstract class Sampler {
 	public Sampler(BeliefNetworkEx bn) {
-		super(bn);
+		//super(bn);
 	}
 	
-	public void printResults(String[] queries) {
+	public static void printResults(SampledDistribution dist, String[] queries) {
 		Pattern[] patterns = new Pattern[queries.length];
 		for(int i = 0; i < queries.length; i++) {
 			String p = queries[i];
@@ -20,7 +20,7 @@ public abstract class Sampler extends edu.tum.cs.bayesnets.inference.Sampler {
 			patterns[i] = Pattern.compile(p);
 			//System.out.println("pattern: " + p);
 		}
-		BeliefNode[] nodes = bn.bn.getNodes();		
+		BeliefNode[] nodes = dist.bn.bn.getNodes();		
 		for(int i = 0; i < nodes.length; i++)
 			for(int j = 0; j < patterns.length; j++)				
 				if(patterns[j].matcher(nodes[i].getName()).matches()) {

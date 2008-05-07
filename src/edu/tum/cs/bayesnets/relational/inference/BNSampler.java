@@ -1,7 +1,6 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.inference.IInferenceAlgorithm;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 /**
@@ -11,9 +10,9 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
  */
 public class BNSampler extends Sampler {
 	GroundBLN gbln;
-	Class<? extends IInferenceAlgorithm> samplerClass;
+	Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
 	
-	public BNSampler(GroundBLN gbln, Class<? extends IInferenceAlgorithm> samplerClass) {
+	public BNSampler(GroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
 		super(gbln.groundBN);
 		this.gbln = gbln;
 		this.samplerClass = samplerClass;
@@ -25,11 +24,13 @@ public class BNSampler extends Sampler {
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// sample
-		IInferenceAlgorithm sampler = samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.groundBN);
-		this.dist = sampler.infer(evidenceDomainIndices, numSamples, infoInterval);
+		edu.tum.cs.bayesnets.inference.Sampler sampler = samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.groundBN);
+		sampler.setNumSamples(numSamples);
+		sampler.setInfoInterval(infoInterval);
+		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
 		
 		// determine query nodes and print their distributions
-		printResults(queries);
+		printResults(dist, queries);
 		return dist;
 	}
 }

@@ -13,6 +13,14 @@ public abstract class Sampler {
 	public SampledDistribution dist;
 	HashMap<BeliefNode, Integer> nodeIndices;
 	Random generator;
+	/**
+	 * general sampler setting: how many samples to pull from the distribution
+	 */
+	public int numSamples;
+	/**
+	 * general sampler setting: after how many samples to display a message that reports the current status 
+	 */
+	public int infoInterval;
 	
 	public Sampler(BeliefNetworkEx bn) {	
 		this.bn = bn;
@@ -58,4 +66,14 @@ public abstract class Sampler {
 			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];
 		return ((ValueDouble)cpf.get(addr)).getValue();
 	}
+	
+	public void setNumSamples(int numSamples) {
+		this.numSamples = numSamples;
+	}
+	
+	public void setInfoInterval(int infoInterval) {
+		this.infoInterval = infoInterval;
+	}
+	
+	public abstract SampledDistribution infer(int[] evidenceDomainIndices) throws Exception;
 }

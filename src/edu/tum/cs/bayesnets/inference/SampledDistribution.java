@@ -13,10 +13,10 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  *
  */
 public class SampledDistribution {
-	protected double[][] sums;
-	protected double Z;
-	protected BeliefNetworkEx bn;
-	protected int trials, steps;
+	public double[][] sums;
+	public double Z;
+	public BeliefNetworkEx bn;
+	public int trials, steps;
 	
 	public SampledDistribution(BeliefNetworkEx bn) {
 		this.bn = bn;

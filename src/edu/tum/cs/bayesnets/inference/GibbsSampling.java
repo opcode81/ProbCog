@@ -7,7 +7,7 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.tools.Stopwatch;
 
-public class GibbsSampling extends Sampler implements IInferenceAlgorithm {
+public class GibbsSampling extends Sampler {
 	int[] nodeOrder;	
 	HashMap<BeliefNode, BeliefNode[]> children;
 	
@@ -21,7 +21,7 @@ public class GibbsSampling extends Sampler implements IInferenceAlgorithm {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices, int numSamples, int infoInterval) throws Exception {
+	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
 		Stopwatch sw = new Stopwatch();
 		createDistribution();		
 
