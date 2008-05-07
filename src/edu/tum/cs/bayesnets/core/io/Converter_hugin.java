@@ -53,7 +53,7 @@ public class Converter_hugin implements Exporter {
 			ps.printf(")\n{\n  data = ");
 			int[] addr = new int[domprod.length];
 			writeCPF(cpf, 1, addr, ps);
-			ps.println("\n}\n");
+			ps.println(";\n}\n");
 		}
 	}
 	
