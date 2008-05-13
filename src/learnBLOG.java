@@ -18,7 +18,7 @@ public class learnBLOG {
 		try {
 			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
 			
-			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false;
+			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false, toMLN = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
 			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
@@ -38,6 +38,8 @@ public class learnBLOG {
 					outFile = args[++i];
 				else if(args[i].equals("-bln"))
 					basicBLN = true;
+				else if(args[i].equals("-mln"))
+					toMLN = true;
 				else if(args[i].equals("-nn"))
 					noNormalization = true;					
 			}			
@@ -48,7 +50,8 @@ public class learnBLOG {
 						             "    -d    learn domains\n" + 
 						             "    -i    ignore data on predicates not defined in the model\n" +
 						             "    -nn   no normalization (i.e. keep counts in CPTs)\n" +
-						             "    -bln  output basic .bln file\n");
+						             "    -bln  output basic .bln file\n" + 
+						             "    -mln  convert learnt model to a Markov logic network\n");
 				return;
 			}
 			// create a BLOG model
@@ -107,8 +110,17 @@ public class learnBLOG {
 			}
 			// write basic BLN 
 			if(basicBLN) {
+				String filename = outFile + ".bln";
+				System.out.println("Writing BLN " + filename);
 				PrintStream out = new PrintStream(new File(outFile + ".bln"));
 				bn.toMLN(out, true, false, false);
+			}
+			// write MLN
+			if(toMLN) {
+				String filename = outFile + ".mln";
+				System.out.println("Writing MLN " + filename);
+				PrintStream out = new PrintStream(new File(outFile + ".mln"));
+				bn.toMLN(out, false, false, false);
 			}
 			// show bayesian network
 			if(showBN) {
