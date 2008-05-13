@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-public class GroundLiteral extends Formula {
+public class GroundLiteral extends GroundFormula {
 	protected boolean isPositive;
 	protected GroundAtom gndAtom;
 	

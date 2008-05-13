@@ -4,14 +4,14 @@ import java.util.Collection;
 
 import edu.tum.cs.tools.StringTool;
 
-public class Disjunction extends ComplexFormula {
+public class Conjunction extends ComplexFormula {
 
-	public Disjunction(Collection<Formula> children) {
+	public Conjunction(Collection<Formula> children) {
 		super(children);
 	}
 	
 	public String toString() {
-		return "(" + StringTool.join(" v ", children) + ")";
+		return "(" + StringTool.join(" ^ ", children) + ")";
 	}
 	
 	/*
