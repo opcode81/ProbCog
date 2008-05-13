@@ -29,6 +29,7 @@ public class SmileInference extends Sampler {
 
 	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
 		net.setBayesianAlgorithm(algorithmID);
+		net.setSampleCount(numSamples);
 		
 		// set evidence
 		System.out.println("setting evidence...");
