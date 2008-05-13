@@ -1,0 +1,236 @@
+/**
+ * JavaCC file
+ */
+ 
+options {
+  JDK_VERSION = "1.5";
+}
+
+PARSER_BEGIN(FormulaParser)
+package edu.tum.cs.logic.parser;
+
+import java.util.*;
+import edu.tum.cs.logic.*;
+import java.io.*;
+
+public class FormulaParser {
+	public static void main(String args[]) throws ParseException {
+		String test;
+		test = "foo(x,y) => !bar(x,zt) v baz(y)";
+  		Formula f = parse(test);
+  		System.out.println("formula: " + f);
+  	}
+  	
+  	public static Formula parse(String s) throws ParseException {
+  		return new FormulaParser(new StringReader(s)).formula();
+  	}
+}
+PARSER_END(FormulaParser)
+
+SKIP : {" " | "\r" | "\t" | "\n" }
+TOKEN : { 
+  < NOT: "!" >
+| < OR: "v" >
+| < AND: "^" >
+| < IMPLIES: "=>" >
+| < IFF: "<=>" >
+| < EXIST: "EXIST" | "EXISTS" >
+| < OPENRB: "(" >
+| < CLOSERB: ")" >
+| < LISTSEP: "," >
+| < #LCCHAR: ["a"-"z"] >
+| < #UCCHAR: ["A"-"Z"] >
+| < #DIGIT: ["0"-"9"] >
+| < #IDENTCHAR: <LCCHAR> | <UCCHAR> | <DIGIT> | "_" >
+| < NUMBER: (<DIGIT>)+ >
+| < UCIDENT: <UCCHAR>(<IDENTCHAR>)* >
+| < LCIDENT: (<LCCHAR> | "_")(<IDENTCHAR>)* >
+}
+
+String variable() : { Token t; } { t = <LCIDENT> {return t.image;} }
+String constant() : { Token t; } { (t = <UCIDENT> | t = <NUMBER>) {return t.image;} }
+
+Collection<String> paramlist() : 
+{
+	Collection<String> ret;
+	String arg;
+}
+{
+	{ ret = new Vector<String>(); }
+	( arg = variable() | arg = constant() )
+	{ ret.add(arg); }
+	( 
+		<LISTSEP>
+		( arg = variable() | arg = constant() )
+		{ ret.add(arg); }
+	)*
+	{ return ret; }
+}
+
+Collection<String> varlist() : 
+{
+	Collection<String> ret;
+	String arg;
+}
+{
+	{ ret = new Vector<String>(); }
+	( arg = variable() )
+	{ ret.add(arg); }
+	( 
+		<LISTSEP>
+		( arg = variable() )
+		{ ret.add(arg); }
+	)*
+	{ return ret; }
+}
+
+String predName() : 
+{
+	Token t;
+}
+{
+	(t = <LCIDENT> | t = <UCIDENT>)
+	{ return t.image; }
+}
+
+Atom atom() :
+{
+	Token t;
+	String predName;
+	Collection<String> params;
+}
+{
+	predName = predName()
+	<OPENRB>
+	params = paramlist()
+	<CLOSERB>
+	{ return new Atom(predName, params); }
+}
+
+Literal literal() : 
+{
+	Atom atom;
+	boolean isTrue;
+}
+{
+	(
+		atom = atom() 
+		{ isTrue = true; }
+	| 
+		<NOT> atom = atom()
+		{ isTrue = false; }
+	)
+	{ return new Literal(isTrue, atom); }
+}
+
+Negation negation() :
+{
+	Formula f;
+}
+{
+	<NOT> <OPENRB> f = formulaElement() <CLOSERB>
+	{ return new Negation(f); }
+}
+
+Exist exist() :
+{
+	Formula f;
+	Collection<String> vars;
+}
+{
+	<EXIST> 
+	vars = varlist()
+	<OPENRB>
+	f = formulaElement()
+	<CLOSERB>
+	{ return new Exist(vars, f); } 
+}
+
+Formula formulaElement() :
+{
+	Formula f;
+}
+{
+	(
+		LOOKAHEAD(<NOT><OPENRB>)
+		f = negation()
+	|
+		f = literal()
+	|
+		<OPENRB> f = formula() <CLOSERB>
+	| 
+		f = exist()
+	)	
+	{ return f; }
+}
+
+Formula disjunction() :
+{
+	Formula f;
+	Vector<Formula> children;
+}
+{
+	{ children = new Vector<Formula>(); }
+	f = formulaElement()
+	{ children.add(f); }
+	(
+		<OR>
+		f = formulaElement()
+		{ children.add(f); }
+	)*
+	{ return children.size() > 1 ? new Disjunction(children) : f; }
+}
+
+Formula conjunction() :
+{
+	Formula f;
+	Vector<Formula> children;
+}
+{
+	{ children = new Vector<Formula>(); }
+	f = disjunction()
+	{ children.add(f); }
+	(
+		<AND>
+		f = disjunction()
+		{ children.add(f); }
+	)*
+	{ return children.size() > 1 ? new Conjunction(children) : f; }
+}
+
+Formula implication() :
+{
+	Formula f1, f2;
+}
+{
+	{ f2 = null; }
+	f1 = conjunction()
+	(
+		<IMPLIES>
+		f2 = conjunction()
+	)?
+	{ return f2 == null ? f1 : new Implication(f1, f2); }
+}
+
+Formula biimplication() :
+{
+	Formula f1, f2;
+}
+{
+	{ f2 = null; }
+	f1 = implication()
+	(
+		<IFF>
+		f2 = implication()
+	)?
+	{ return f2 == null ? f1 : new Biimplication(f1, f2); }
+}
+
+Formula formula() :
+{
+	Formula f;
+}
+{
+	f = biimplication()
+	{ return f; }
+}

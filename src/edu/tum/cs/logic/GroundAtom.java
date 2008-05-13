@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-public class GroundAtom extends Formula {
+public class GroundAtom extends GroundFormula {
 	protected String predicate;
 	protected String[] args;
 	
