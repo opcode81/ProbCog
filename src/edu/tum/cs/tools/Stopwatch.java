@@ -4,16 +4,18 @@ public class Stopwatch {
     
     private long startTime = 0;
     private long stopTime = 0;
+    private long elapsed = 0;
     private boolean running = false;
     
-    public void start() {
-        this.startTime = System.currentTimeMillis();
+    public void start() {        
         this.running = true;
+        this.startTime = System.currentTimeMillis();
     }
     
     public void stop() {
         this.stopTime = System.currentTimeMillis();
         this.running = false;
+        elapsed += stopTime - startTime;
     }
     
     /**
@@ -22,9 +24,9 @@ public class Stopwatch {
      */
     public long getElapsedTime() {
         if(running)
-        	return System.currentTimeMillis() - startTime;
+        	return elapsed + System.currentTimeMillis() - startTime;
         else
-            return stopTime - startTime;
+            return elapsed;
     }    
     
     /**
