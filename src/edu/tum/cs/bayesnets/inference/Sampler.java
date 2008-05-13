@@ -5,7 +5,6 @@ import java.util.Random;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public abstract class Sampler {
@@ -13,14 +12,16 @@ public abstract class Sampler {
 	public SampledDistribution dist;
 	HashMap<BeliefNode, Integer> nodeIndices;
 	Random generator;
+	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
 	 */
-	public int numSamples;
+	public int numSamples = 1000;
+	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
 	 */
-	public int infoInterval;
+	public int infoInterval = 100;
 	
 	public Sampler(BeliefNetworkEx bn) {	
 		this.bn = bn;
@@ -64,7 +65,7 @@ public abstract class Sampler {
 		int[] addr = new int[domProd.length];
 		for(int i = 0; i < addr.length; i++)
 			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];
-		return ((ValueDouble)cpf.get(addr)).getValue();
+		return cpf.getDouble(addr);
 	}
 	
 	public void setNumSamples(int numSamples) {
