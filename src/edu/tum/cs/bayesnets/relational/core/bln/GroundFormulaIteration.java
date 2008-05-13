@@ -35,4 +35,12 @@ public class GroundFormulaIteration implements Iterator<GroundFormula>, Iterable
 	public Iterator<GroundFormula> iterator() {			
 		return this;
 	}		
+	
+	/**
+	 * gets the number of objects in this iteration
+	 * @return
+	 */
+	public int getCount() {
+		return count;
+	}
 }
