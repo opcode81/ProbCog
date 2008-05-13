@@ -732,7 +732,7 @@ public class BeliefNetworkEx {
 			address[i]=nodeDomainIndices[domainProduct[i]];
 		}
 		int realAddress = cpf.addr2realaddr(address);
-		return ((ValueDouble)cpf.get(realAddress)).getValue();
+		return cpf.getDouble(realAddress);
 	}
 	
 	/**

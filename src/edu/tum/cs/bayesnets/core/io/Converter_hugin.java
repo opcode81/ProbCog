@@ -7,10 +7,14 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.streams.Exporter;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
+/**
+ * somewhat limited export filter for the Hugin file format (supports discrete belief nodes only)
+ * @author jain
+ *
+ */
 public class Converter_hugin implements Exporter {
 
 	public String getDesc() {
@@ -65,9 +69,8 @@ public class Converter_hugin implements Exporter {
 			Discrete dom = (Discrete)n.getDomain();
 			for(int j = 0; j < dom.getOrder(); j++) {
 				addr[0] = j;
-				ValueDouble v = (ValueDouble)cpf.get(addr);
 				if(j > 0) ps.print(" ");
-				ps.print(v.getValue());
+				ps.print(cpf.getDouble(addr));
 			}
 			ps.print(")");
 			return;
