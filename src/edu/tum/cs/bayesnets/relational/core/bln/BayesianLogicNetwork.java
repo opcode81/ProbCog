@@ -45,7 +45,7 @@ public class BayesianLogicNetwork {
 		return state;
 	}
 	
-	public Iterable<GroundFormula> iterGroundFormulas() throws ConversionException {
+	public GroundFormulaIteration iterGroundFormulas() throws ConversionException {
 		return new GroundFormulaIteration(this);
 	}
 }

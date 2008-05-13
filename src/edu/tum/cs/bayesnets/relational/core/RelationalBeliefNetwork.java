@@ -367,6 +367,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// TODO - add constraints for functional dependencies in relations
 		out.println();
 		
+		if(declarationsOnly)
+			return;
+		
 		// write formulas (and auxiliary predicate definitions for special nodes) 
 		int[] order = getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {

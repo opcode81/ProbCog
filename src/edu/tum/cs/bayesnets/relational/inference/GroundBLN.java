@@ -18,6 +18,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.*;
 import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
 import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
+import edu.tum.cs.bayesnets.relational.core.bln.GroundFormulaIteration;
 import edu.tum.cs.bayesnets.relational.core.bln.State;
 import edu.tum.cs.tools.Stopwatch;
 
@@ -44,9 +45,9 @@ public class GroundBLN {
 		for(int i = 0; i < order.length; i++) {
 			int nodeNo = order[i];
 			RelationalNode relNode = rbn.getRelationalNode(nodeNo);
-			System.out.println("    " + relNode);
 			if(relNode.isConstant)
 				continue;
+			System.out.println("    " + relNode);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
 			for(String[] params : parameterSets) {
 				
@@ -99,15 +100,22 @@ public class GroundBLN {
 		// ground formulaic nodes
 		System.out.println("  formulaic nodes");
 		hardFormulaNodes = new Vector<String>();
+		System.out.println("    grounding formulas...");
 		bln.generateGroundFormulas(databaseFile);
-		for(GroundFormula gf : bln.iterGroundFormulas()) {
-			Vector<String> vGA = gf.getGroundAtoms();
+		GroundFormulaIteration gfIter = bln.iterGroundFormulas();
+		System.out.printf("      %d formulas instantiated\n", gfIter.getCount());
+		System.out.println("    instantiating nodes and CPFs...");
+		Stopwatch sw_structure = new Stopwatch();
+		Stopwatch sw_cpt = new Stopwatch();
+		for(GroundFormula gf : gfIter) {
 			// create a node for the ground formula
+			sw_structure.start();
 			String nodeName = "GF" + gf.idxGF;
 			hardFormulaNodes.add(nodeName);
 			BeliefNode node = groundBN.addNode(nodeName);			
 			// add edges from ground atoms
 			Vector<String> GAs = gf.getGroundAtoms();
+			System.out.println(nodeName + ": " + gf);
 			BeliefNode[] parents = new BeliefNode[GAs.size()];
 			int i = 0;
 			for(String strGA : GAs) {
@@ -121,10 +129,15 @@ public class GroundBLN {
 				groundBN.bn.connect(parent, node);
 				parents[i++] = parent;
 			}
+			sw_structure.stop();
 			// fill CPT according to formula semantics
 			// TODO try to reuse CPFs generated for previous formulas with same formula index
+			sw_cpt.start();
 			fillFormulaCPF(gf, node.getCPF(), parents, GAs);
+			sw_cpt.stop();
 		}
+		System.out.println("    structure time: " + sw_structure.getElapsedTimeSecs() + "s");
+		System.out.println("    cpf time: " + sw_cpt.getElapsedTimeSecs() + "s");
 	}
 	
 	public Database getDatabase() {

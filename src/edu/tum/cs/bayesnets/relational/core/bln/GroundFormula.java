@@ -47,4 +47,14 @@ public class GroundFormula {
 	protected void makeClause(String cVar) throws ConversionException {
 		System.out.println("clause: " + jython.evalString("str(%s)", cVar));
 	}
+	
+	public String toString() {
+		try {
+			return jython.evalString("str(%s)", varName);
+		}
+		catch (ConversionException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 }
