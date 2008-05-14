@@ -17,6 +17,7 @@ public class FormulaParser {
 	public static void main(String args[]) throws ParseException {
 		String test;
 		test = "foo(x,y) => !bar(x,zt) v baz(y)";
+		test = "numberEats(o,2) <=> EXIST p, p2 (eats(o,p) ^ eats(o,p2) ^ !(o=p) ^ !(o=p2) ^ !(p=p2) ^ !(EXIST q (eats(o,q) ^ !(p=q) ^ !(p2=q))))";
   		Formula f = parse(test);
   		System.out.println("formula: " + f);
   	}
@@ -33,6 +34,7 @@ TOKEN : {
 | < OR: "v" >
 | < AND: "^" >
 | < IMPLIES: "=>" >
+| < EQUALS: "=" >
 | < IFF: "<=>" >
 | < EXIST: "EXIST" | "EXISTS" >
 | < OPENRB: "(" >
@@ -141,9 +143,20 @@ Exist exist() :
 	<EXIST> 
 	vars = varlist()
 	<OPENRB>
-	f = formulaElement()
+	f = formula()
 	<CLOSERB>
 	{ return new Exist(vars, f); } 
+}
+
+Equality equality() :
+{
+	String left, right;
+}
+{
+	(left = variable() | left = constant())
+	<EQUALS>
+	(right = variable() | right = constant())
+	{ return new Equality(left, right); }
 }
 
 Formula formulaElement() :
@@ -154,6 +167,9 @@ Formula formulaElement() :
 	(
 		LOOKAHEAD(<NOT><OPENRB>)
 		f = negation()
+	|
+		LOOKAHEAD(equality()) 
+		f = equality()
 	|
 		f = literal()
 	|

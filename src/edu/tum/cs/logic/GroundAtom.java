@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-public class GroundAtom extends GroundFormula {
+public class GroundAtom implements GroundFormula {
 	protected String predicate;
 	protected String[] args;
 	
@@ -9,7 +9,6 @@ public class GroundAtom extends GroundFormula {
 		this.args = args;
 	}
 
-	@Override
 	public boolean isTrue(PossibleWorld w) {
 		return w.isTrue(this);
 	}
