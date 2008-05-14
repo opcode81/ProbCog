@@ -6,6 +6,6 @@ public class Biimplication extends ComplexFormula {
 	}
 	
 	public String toString() {
-		return children[0] + " <=> " + children[1]; 
+		return "(" + children[0] + " <=> " + children[1] + ")"; 
 	}
 }
