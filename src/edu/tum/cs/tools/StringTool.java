@@ -1,7 +1,5 @@
 package edu.tum.cs.tools;
 
-import java.util.Collection;
-
 public class StringTool {
 	public static String join(String glue, Object[] elems) {
 		StringBuffer res = new StringBuffer();
@@ -13,7 +11,7 @@ public class StringTool {
 		return res.toString();
 	}
 	
-	public static String join(String glue, Collection<?> elems) {
+	public static String join(String glue, Iterable<?> elems) {
 		StringBuffer res = new StringBuffer();
 		int i = 0; 
 		for(Object elem : elems) {
