@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.relational.inference;
+package edu.tum.cs.bayesnets.relational.core.bln;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,21 +15,22 @@ import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.relational.core.*;
-import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
-import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
-import edu.tum.cs.bayesnets.relational.core.bln.GroundFormulaIteration;
-import edu.tum.cs.bayesnets.relational.core.bln.State;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.bayesnets.relational.core.ParameterGrounder;
+import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
+import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 
-public class GroundBLN {
+public abstract class AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;
-	protected BayesianLogicNetwork bln;
+	protected AbstractBayesianLogicNetwork bln;
 	protected Vector<String> hardFormulaNodes;
-	protected Database db;
+	protected String databaseFile;
+	protected Database db;	
 	
-	public GroundBLN(BayesianLogicNetwork bln, String databaseFile) throws Exception {
+	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
+		this.databaseFile = databaseFile;
 		
 		System.out.println("reading evidence...");
 		db = new Database(bln.rbn);
@@ -98,47 +99,10 @@ public class GroundBLN {
 		}
 		
 		// ground formulaic nodes
-		System.out.println("  formulaic nodes");
-		hardFormulaNodes = new Vector<String>();
-		System.out.println("    grounding formulas...");
-		bln.generateGroundFormulas(databaseFile);
-		GroundFormulaIteration gfIter = bln.iterGroundFormulas();
-		System.out.printf("      %d formulas instantiated\n", gfIter.getCount());
-		System.out.println("    instantiating nodes and CPFs...");
-		Stopwatch sw_structure = new Stopwatch();
-		Stopwatch sw_cpt = new Stopwatch();
-		for(GroundFormula gf : gfIter) {
-			// create a node for the ground formula
-			sw_structure.start();
-			String nodeName = "GF" + gf.idxGF;
-			hardFormulaNodes.add(nodeName);
-			BeliefNode node = groundBN.addNode(nodeName);			
-			// add edges from ground atoms
-			Vector<String> GAs = gf.getGroundAtoms();
-			System.out.println(nodeName + ": " + gf);
-			BeliefNode[] parents = new BeliefNode[GAs.size()];
-			int i = 0;
-			for(String strGA : GAs) {
-				BeliefNode parent = groundBN.getNode(strGA);
-				if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
-					String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
-					parent = groundBN.getNode(parentName);
-					if(parent == null)
-						throw new Exception("Could not find node for ground atom " + strGA);
-				}
-				groundBN.bn.connect(parent, node);
-				parents[i++] = parent;
-			}
-			sw_structure.stop();
-			// fill CPT according to formula semantics
-			// TODO try to reuse CPFs generated for previous formulas with same formula index
-			sw_cpt.start();
-			fillFormulaCPF(gf, node.getCPF(), parents, GAs);
-			sw_cpt.stop();
-		}
-		System.out.println("    structure time: " + sw_structure.getElapsedTimeSecs() + "s");
-		System.out.println("    cpf time: " + sw_cpt.getElapsedTimeSecs() + "s");
+		groundFormulaicNodes();
 	}
+	
+	public abstract void groundFormulaicNodes() throws Exception;
 	
 	public Database getDatabase() {
 		return db;
@@ -299,86 +263,11 @@ public class GroundBLN {
 	}
 	
 	/**
-	 * fills the CPF of a formulaic node
-	 * @param gf	the ground formula to evaluate for all possible settings
-	 * @param cpf	the CPF of the formulaic node to fill
-	 * @param parents	the parents of the formulaic node
-	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
-	 * @throws Exception
-	 */
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, BeliefNode[] parents, Vector<String> parentGAs) throws Exception {
-		BeliefNode[] nodes = cpf.getDomainProduct();
-		int[] addr = new int[nodes.length];
-		fillFormulaCPF(gf, cpf, parents, parentGAs, 0, addr);
-	}
-	
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, BeliefNode[] parents, Vector<String> parentGAs, int iParent, int[] addr) throws Exception {
-		// if all parents have been set, determine the truth value of the formula and 
-		// fill the corresponding column of the CPT 
-		State state = bln.getState();
-		if(iParent == parents.length) {
-			// get truth value of formula
-			double value = gf.isTrue(state) ? 1 : 0;
-			/*
-			for(String ga : parentGAs)
-				System.out.print(ga + " = " + state.get(ga) + ", ");
-			System.out.println(" -> " + value);
-			*/
-			// write to CPF
-			// - true
-			addr[0] = 0;
-			cpf.put(addr, new ValueDouble(value));
-			// - false
-			addr[0] = 1;
-			cpf.put(addr, new ValueDouble(1.0-value));
-			return;
-		}
-		// otherwise get the next ground atom and consider all of its groundings
-		BeliefNode parent = parents[iParent];
-		String parentGA = parentGAs.get(iParent);
-		Discrete domain = (Discrete)parent.getDomain();
-		boolean isBoolean = RelationalBeliefNetwork.isBooleanDomain(domain);		
-		// - get the domain index that corresponds to setting the atom to true
-		int trueIndex = 0;
-		if(!isBoolean) {
-			int iStart = parentGA.lastIndexOf(',')+1;
-			int iEnd = parentGA.lastIndexOf(')');
-			String outcome = parentGA.substring(iStart, iEnd);
-			trueIndex = domain.findName(outcome);
-			if(trueIndex == -1) 
-				throw new Exception("'" + outcome + "' not found in domain of " + parentGA);			
-		}
-		// - recursively consider all settings
-		for(int i = 0; i < domain.getOrder(); i++) {
-			// TODO make this faster -- contrary to my expectations, the order of the connect calls does not cause there to be a corresponding ordering in the CPF (seems arbitrary, possibly node index or something)
-			// find the correct address index
-			BeliefNode[] domProd = cpf.getDomainProduct();
-			int iDomProd = -1;
-			for(int j = 1; j < domProd.length; j++)
-				if(domProd[j] == parent) {
-					iDomProd = j;
-					break;
-				}
-			if(iDomProd == -1)
-				throw new Exception("Parent could not be found in domain product.");
-			// set address 
-			addr[iDomProd] = i;
-			// set state for logical reasoner
-			if(i == trueIndex)
-				state.set(parentGA, true);
-			else
-				state.set(parentGA, false);
-			// recurse
-			fillFormulaCPF(gf, cpf, parents, parentGAs, iParent+1, addr);
-		}
-	}
-	
-	/**
 	 * adds to the given evidence the evidence that is implied by the hard formulaic constraints
 	 * @param evidence 
 	 * @return a list of domain indices for each node in the network (-1 for no evidence)
 	 */
-	protected int[] getFullEvidence(String[][] evidence) {
+	public int[] getFullEvidence(String[][] evidence) {
 		String[][] fullEvidence = new String[evidence.length+this.hardFormulaNodes.size()][2];
 		for(int i = 0; i < evidence.length; i++) {
 			fullEvidence[i][0] = evidence[i][0];
@@ -414,33 +303,5 @@ public class GroundBLN {
 	
 	public BeliefNetworkEx getGroundNetwork() {
 		return this.groundBN;
-	}
-	
-	public static void main(String[] args) {
-		try { 
-			int test = 1;
-			
-			if(test == 0) {
-				String dir = "/usr/wiss/jain/work/code/SRLDB/bln/test/";
-				BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
-				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
-				Stopwatch sw = new Stopwatch();
-				sw.start();
-				new LikelihoodWeighting(gbln).infer(new String[]{"rel(X,Y)"}, 1000, 100);
-				//gbln.inferAIS(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, 1000);
-				sw.stop();
-				System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
-			}
-			if(test == 1) {
-				String dir = "/usr/wiss/jain/work/code/SRLDB/blog/kitchen/meal_goods2/";
-				BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
-				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
-				gbln.show();
-				new LikelihoodWeighting(gbln).infer(new String[]{"prop1(X)","prop2(Y)"}, 1000, 100);
-			}
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
 	}
 }

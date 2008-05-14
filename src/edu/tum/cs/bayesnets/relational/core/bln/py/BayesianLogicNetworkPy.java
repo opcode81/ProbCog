@@ -1,25 +1,27 @@
-package edu.tum.cs.bayesnets.relational.core.bln;
+package edu.tum.cs.bayesnets.relational.core.bln.py;
 
-import java.util.Iterator;
 import java.util.Properties;
-import java.util.Vector;
 
-import org.python.core.PyObject;
 import org.python.core.PyObject.ConversionException;
 import org.python.util.PythonInterpreter;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.bln.AbstractBayesianLogicNetwork;
 import edu.tum.cs.tools.JythonInterpreter;
 
-public class BayesianLogicNetwork {
+/**
+ * Bayesian Logic Network with Python-based logic implementation
+ * @author jain
+ *
+ */
+public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	public RelationalBeliefNetwork rbn;
 	public String logicFile;
-	protected JythonInterpreter jython;
+	public JythonInterpreter jython;
 	protected State state;
 	
-	public BayesianLogicNetwork(RelationalBeliefNetwork rbn, String logicFile) {
-		this.rbn = rbn;
-		this.logicFile = logicFile;
+	public BayesianLogicNetworkPy(RelationalBeliefNetwork rbn, String logicFile) {
+		super(rbn, logicFile);
 		state = null;
 		
 		// initialize jython interpreter

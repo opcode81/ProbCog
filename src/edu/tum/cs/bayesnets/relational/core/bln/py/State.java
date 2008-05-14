@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.relational.core.bln;
+package edu.tum.cs.bayesnets.relational.core.bln.py;
 
 import org.python.core.PyObject.ConversionException;
 
