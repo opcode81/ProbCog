@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.relational.core.bln;
+package edu.tum.cs.bayesnets.relational.core.bln.py;
 
 import java.util.Vector;
 

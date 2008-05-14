@@ -7,22 +7,23 @@ import org.python.core.PyObject.ConversionException;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
-import edu.tum.cs.bayesnets.relational.core.bln.GroundFormula;
+import edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN;
+import edu.tum.cs.bayesnets.relational.core.bln.py.GroundFormula;
 import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.tools.Stopwatch;
 
 public class CSPSampler extends Sampler {
-	GroundBLN gbln;
+	AbstractGroundBLN gbln;
 	
-	public CSPSampler(GroundBLN gbln) {
-		super(gbln.groundBN);
+	public CSPSampler(AbstractGroundBLN gbln) {
+		super(gbln.getGroundNetwork());
 		this.gbln = gbln;
 	}
 	
 	public SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws ConversionException {
 		// create full evidence
-		String[][] evidence = this.gbln.db.getEntriesAsArray();
+		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 		BeliefNetworkEx groundBN = gbln.getGroundNetwork();
 		
@@ -31,10 +32,10 @@ public class CSPSampler extends Sampler {
 		TopologicalOrdering nodeOrder = new TopologicalSort(groundBN.bn).run();
 		
 		// get constraints from hard formulas
-		System.out.println("normalizing formulas...");
+		/*System.out.println("normalizing formulas...");
 		for(GroundFormula gf : gbln.bln.iterGroundFormulas()) {
 			gf.toCNF();
-		}
+		}*/
 			
 		// sample
 		Stopwatch sw = new Stopwatch();
