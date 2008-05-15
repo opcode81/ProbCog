@@ -4,11 +4,11 @@ import java.util.regex.Pattern;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.EPIS;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
-import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
+import edu.tum.cs.bayesnets.relational.core.bln.*;
+import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.bayesnets.relational.inference.BNSampler;
 import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
 import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
-import edu.tum.cs.bayesnets.relational.inference.GroundBLN;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
 import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
@@ -32,6 +32,7 @@ public class BLNinfer {
 			Algorithm algo = Algorithm.LikelihoodWeighting;
 			String[] cwPreds = null;
 			boolean showBN = false;
+			boolean usePython = false;
 			
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-b"))
@@ -46,6 +47,8 @@ public class BLNinfer {
 					dbFile = args[++i];				
 				else if(args[i].equals("-s"))
 					showBN = true;				
+				else if(args[i].equals("-py"))
+					usePython = true;				
 				else if(args[i].equals("-cw"))
 					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
@@ -70,6 +73,7 @@ public class BLNinfer {
 							         "    -gs              algorithm: Gibbs sampling\n" +
 							         "    -csp             algorithm: CSP-based sampling\n" +
 							         "    -bs              algorithm: backward sampling\n" +
+							         "    -py              use Python-based logic engine\n" +
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
@@ -92,8 +96,16 @@ public class BLNinfer {
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
 
 			// instantiate ground model
-			BayesianLogicNetwork bln = new BayesianLogicNetwork(new BLOGModel(blogFile, bifFile), blnFile);
-			GroundBLN gbln = new GroundBLN(bln, dbFile);
+			BLOGModel blog = new BLOGModel(blogFile, bifFile);
+			AbstractGroundBLN gbln;
+			if(!usePython) {
+				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, blnFile);
+				gbln = new GroundBLN(bln, dbFile);
+			}
+			else {
+				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, blnFile);
+				gbln = new edu.tum.cs.bayesnets.relational.core.bln.py.GroundBLN(bln, dbFile);
+			}
 			if(cwPreds != null) {
 				System.out.println("extending evidence...");
 				for(String predName : cwPreds)
