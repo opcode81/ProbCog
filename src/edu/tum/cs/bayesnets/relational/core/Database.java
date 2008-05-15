@@ -297,4 +297,8 @@ public class Database {
 			return nodeName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
 		}
 	}
+	
+	public Signature getSignature(String predicateName) {
+		return bn.getSignature(predicateName);
+	}
 }

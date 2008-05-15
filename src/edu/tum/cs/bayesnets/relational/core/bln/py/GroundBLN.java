@@ -10,10 +10,13 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
+import edu.tum.cs.tools.Pair;
 import edu.tum.cs.tools.Stopwatch;
 
-public class GroundBLN extends edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN {
+public class GroundBLN extends AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;
 	protected Vector<String> hardFormulaNodes;
 	protected Database db;
@@ -26,8 +29,6 @@ public class GroundBLN extends edu.tum.cs.bayesnets.relational.core.bln.Abstract
 	public void groundFormulaicNodes() throws Exception {
 		BayesianLogicNetworkPy bln = (BayesianLogicNetworkPy)this.bln;
 		// ground formulaic nodes
-		System.out.println("  formulaic nodes");
-		hardFormulaNodes = new Vector<String>();
 		System.out.println("    grounding formulas...");
 		bln.generateGroundFormulas(this.databaseFile);
 		GroundFormulaIteration gfIter = bln.iterGroundFormulas();
@@ -39,29 +40,16 @@ public class GroundBLN extends edu.tum.cs.bayesnets.relational.core.bln.Abstract
 			// create a node for the ground formula
 			sw_structure.start();
 			String nodeName = "GF" + gf.idxGF;
-			hardFormulaNodes.add(nodeName);
-			BeliefNode node = groundBN.addNode(nodeName);			
-			// add edges from ground atoms
-			Vector<String> GAs = gf.getGroundAtoms();
 			System.out.println(nodeName + ": " + gf);
-			BeliefNode[] parents = new BeliefNode[GAs.size()];
-			int i = 0;
-			for(String strGA : GAs) {
-				BeliefNode parent = groundBN.getNode(strGA);
-				if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
-					String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
-					parent = groundBN.getNode(parentName);
-					if(parent == null)
-						throw new Exception("Could not find node for ground atom " + strGA);
-				}
-				groundBN.bn.connect(parent, node);
-				parents[i++] = parent;
-			}
+			Vector<String> GAs = gf.getGroundAtoms();
+			Pair<BeliefNode, BeliefNode[]> nodeData = addHardFormulaNode(nodeName, GAs);
+			BeliefNode node = nodeData.first;
+			// add edges from ground atoms						
 			sw_structure.stop();
 			// fill CPT according to formula semantics
 			// TODO try to reuse CPFs generated for previous formulas with same formula index
 			sw_cpt.start();
-			fillFormulaCPF(gf, node.getCPF(), parents, GAs);
+			fillFormulaCPF(gf, node.getCPF(), nodeData.second, GAs);
 			sw_cpt.stop();
 		}
 		System.out.println("    structure time: " + sw_structure.getElapsedTimeSecs() + "s");
@@ -177,6 +165,11 @@ public class GroundBLN extends edu.tum.cs.bayesnets.relational.core.bln.Abstract
 		catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void onAddGroundAtomNode(RelationalNode relNode, String[] params) {
+		
 	}
 
 }
