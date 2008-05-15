@@ -18,14 +18,14 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
                 return new FormulaParser(new StringReader(s)).formula();
         }
 
-  static final public String variable() throws ParseException {
+  final public String variable() throws ParseException {
                       Token t;
     t = jj_consume_token(LCIDENT);
                                                   {if (true) return t.image;}
     throw new Error("Missing return statement in function");
   }
 
-  static final public String constant() throws ParseException {
+  final public String constant() throws ParseException {
                       Token t;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case UCIDENT:
@@ -43,7 +43,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Collection<String> paramlist() throws ParseException {
+  final public Collection<String> paramlist() throws ParseException {
         Collection<String> ret;
         String arg;
           ret = new Vector<String>();
@@ -91,7 +91,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Collection<String> varlist() throws ParseException {
+  final public Collection<String> varlist() throws ParseException {
         Collection<String> ret;
         String arg;
           ret = new Vector<String>();
@@ -115,7 +115,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public String predName() throws ParseException {
+  final public String predName() throws ParseException {
         Token t;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case LCIDENT:
@@ -133,7 +133,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Atom atom() throws ParseException {
+  final public Atom atom() throws ParseException {
         Token t;
         String predName;
         Collection<String> params;
@@ -145,7 +145,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Literal literal() throws ParseException {
+  final public Literal literal() throws ParseException {
         Atom atom;
         boolean isTrue;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -168,7 +168,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Negation negation() throws ParseException {
+  final public Negation negation() throws ParseException {
         Formula f;
     jj_consume_token(NOT);
     jj_consume_token(OPENRB);
@@ -178,7 +178,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Exist exist() throws ParseException {
+  final public Exist exist() throws ParseException {
         Formula f;
         Collection<String> vars;
     jj_consume_token(EXIST);
@@ -190,7 +190,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Equality equality() throws ParseException {
+  final public Equality equality() throws ParseException {
         String left, right;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case LCIDENT:
@@ -223,7 +223,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula formulaElement() throws ParseException {
+  final public Formula formulaElement() throws ParseException {
         Formula f;
     if (jj_2_1(2147483647)) {
       f = negation();
@@ -254,7 +254,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula disjunction() throws ParseException {
+  final public Formula disjunction() throws ParseException {
         Formula f;
         Vector<Formula> children;
           children = new Vector<Formula>();
@@ -278,7 +278,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula conjunction() throws ParseException {
+  final public Formula conjunction() throws ParseException {
         Formula f;
         Vector<Formula> children;
           children = new Vector<Formula>();
@@ -302,7 +302,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula implication() throws ParseException {
+  final public Formula implication() throws ParseException {
         Formula f1, f2;
           f2 = null;
     f1 = conjunction();
@@ -319,7 +319,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula biimplication() throws ParseException {
+  final public Formula biimplication() throws ParseException {
         Formula f1, f2;
           f2 = null;
     f1 = implication();
@@ -336,28 +336,28 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
-  static final public Formula formula() throws ParseException {
+  final public Formula formula() throws ParseException {
         Formula f;
     f = biimplication();
           {if (true) return f;}
     throw new Error("Missing return statement in function");
   }
 
-  static final private boolean jj_2_1(int xla) {
+  final private boolean jj_2_1(int xla) {
     jj_la = xla; jj_lastpos = jj_scanpos = token;
     try { return !jj_3_1(); }
     catch(LookaheadSuccess ls) { return true; }
     finally { jj_save(0, xla); }
   }
 
-  static final private boolean jj_2_2(int xla) {
+  final private boolean jj_2_2(int xla) {
     jj_la = xla; jj_lastpos = jj_scanpos = token;
     try { return !jj_3_2(); }
     catch(LookaheadSuccess ls) { return true; }
     finally { jj_save(1, xla); }
   }
 
-  static final private boolean jj_3R_11() {
+  final private boolean jj_3R_11() {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_scan_token(20)) {
@@ -367,38 +367,38 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return false;
   }
 
-  static final private boolean jj_3R_10() {
+  final private boolean jj_3R_10() {
     if (jj_scan_token(LCIDENT)) return true;
     return false;
   }
 
-  static final private boolean jj_3_2() {
+  final private boolean jj_3_2() {
     if (jj_3R_5()) return true;
     return false;
   }
 
-  static final private boolean jj_3_1() {
+  final private boolean jj_3_1() {
     if (jj_scan_token(NOT)) return true;
     if (jj_scan_token(OPENRB)) return true;
     return false;
   }
 
-  static final private boolean jj_3R_8() {
+  final private boolean jj_3R_8() {
     if (jj_3R_10()) return true;
     return false;
   }
 
-  static final private boolean jj_3R_6() {
+  final private boolean jj_3R_6() {
     if (jj_3R_10()) return true;
     return false;
   }
 
-  static final private boolean jj_3R_9() {
+  final private boolean jj_3R_9() {
     if (jj_3R_11()) return true;
     return false;
   }
 
-  static final private boolean jj_3R_5() {
+  final private boolean jj_3R_5() {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3R_6()) {
@@ -414,22 +414,21 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return false;
   }
 
-  static final private boolean jj_3R_7() {
+  final private boolean jj_3R_7() {
     if (jj_3R_11()) return true;
     return false;
   }
 
-  static private boolean jj_initialized_once = false;
-  static public FormulaParserTokenManager token_source;
-  static SimpleCharStream jj_input_stream;
-  static public Token token, jj_nt;
-  static private int jj_ntk;
-  static private Token jj_scanpos, jj_lastpos;
-  static private int jj_la;
-  static public boolean lookingAhead = false;
-  static private boolean jj_semLA;
-  static private int jj_gen;
-  static final private int[] jj_la1 = new int[14];
+  public FormulaParserTokenManager token_source;
+  SimpleCharStream jj_input_stream;
+  public Token token, jj_nt;
+  private int jj_ntk;
+  private Token jj_scanpos, jj_lastpos;
+  private int jj_la;
+  public boolean lookingAhead = false;
+  private boolean jj_semLA;
+  private int jj_gen;
+  final private int[] jj_la1 = new int[14];
   static private int[] jj_la1_0;
   static {
       jj_la1_0();
@@ -437,21 +436,14 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
    private static void jj_la1_0() {
       jj_la1_0 = new int[] {0x180000,0x380000,0x4000,0x380000,0x4000,0x300000,0x300020,0x380000,0x380000,0x301820,0x40,0x80,0x100,0x400,};
    }
-  static final private JJCalls[] jj_2_rtns = new JJCalls[2];
-  static private boolean jj_rescan = false;
-  static private int jj_gc = 0;
+  final private JJCalls[] jj_2_rtns = new JJCalls[2];
+  private boolean jj_rescan = false;
+  private int jj_gc = 0;
 
   public FormulaParser(java.io.InputStream stream) {
      this(stream, null);
   }
   public FormulaParser(java.io.InputStream stream, String encoding) {
-    if (jj_initialized_once) {
-      System.out.println("ERROR: Second call to constructor of static parser.  ");
-      System.out.println("       You must either use ReInit() or set the JavaCC option STATIC to false");
-      System.out.println("       during parser generation.");
-      throw new Error();
-    }
-    jj_initialized_once = true;
     try { jj_input_stream = new SimpleCharStream(stream, encoding, 1, 1); } catch(java.io.UnsupportedEncodingException e) { throw new RuntimeException(e); }
     token_source = new FormulaParserTokenManager(jj_input_stream);
     token = new Token();
@@ -461,10 +453,10 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
-  static public void ReInit(java.io.InputStream stream) {
+  public void ReInit(java.io.InputStream stream) {
      ReInit(stream, null);
   }
-  static public void ReInit(java.io.InputStream stream, String encoding) {
+  public void ReInit(java.io.InputStream stream, String encoding) {
     try { jj_input_stream.ReInit(stream, encoding, 1, 1); } catch(java.io.UnsupportedEncodingException e) { throw new RuntimeException(e); }
     token_source.ReInit(jj_input_stream);
     token = new Token();
@@ -475,13 +467,6 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   }
 
   public FormulaParser(java.io.Reader stream) {
-    if (jj_initialized_once) {
-      System.out.println("ERROR: Second call to constructor of static parser. ");
-      System.out.println("       You must either use ReInit() or set the JavaCC option STATIC to false");
-      System.out.println("       during parser generation.");
-      throw new Error();
-    }
-    jj_initialized_once = true;
     jj_input_stream = new SimpleCharStream(stream, 1, 1);
     token_source = new FormulaParserTokenManager(jj_input_stream);
     token = new Token();
@@ -491,7 +476,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
-  static public void ReInit(java.io.Reader stream) {
+  public void ReInit(java.io.Reader stream) {
     jj_input_stream.ReInit(stream, 1, 1);
     token_source.ReInit(jj_input_stream);
     token = new Token();
@@ -502,13 +487,6 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   }
 
   public FormulaParser(FormulaParserTokenManager tm) {
-    if (jj_initialized_once) {
-      System.out.println("ERROR: Second call to constructor of static parser. ");
-      System.out.println("       You must either use ReInit() or set the JavaCC option STATIC to false");
-      System.out.println("       during parser generation.");
-      throw new Error();
-    }
-    jj_initialized_once = true;
     token_source = tm;
     token = new Token();
     jj_ntk = -1;
@@ -526,7 +504,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
-  static final private Token jj_consume_token(int kind) throws ParseException {
+  final private Token jj_consume_token(int kind) throws ParseException {
     Token oldToken;
     if ((oldToken = token).next != null) token = token.next;
     else token = token.next = token_source.getNextToken();
@@ -551,8 +529,8 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   }
 
   static private final class LookaheadSuccess extends java.lang.Error { }
-  static final private LookaheadSuccess jj_ls = new LookaheadSuccess();
-  static final private boolean jj_scan_token(int kind) {
+  final private LookaheadSuccess jj_ls = new LookaheadSuccess();
+  final private boolean jj_scan_token(int kind) {
     if (jj_scanpos == jj_lastpos) {
       jj_la--;
       if (jj_scanpos.next == null) {
@@ -573,7 +551,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return false;
   }
 
-  static final public Token getNextToken() {
+  final public Token getNextToken() {
     if (token.next != null) token = token.next;
     else token = token.next = token_source.getNextToken();
     jj_ntk = -1;
@@ -581,7 +559,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return token;
   }
 
-  static final public Token getToken(int index) {
+  final public Token getToken(int index) {
     Token t = lookingAhead ? jj_scanpos : token;
     for (int i = 0; i < index; i++) {
       if (t.next != null) t = t.next;
@@ -590,20 +568,20 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return t;
   }
 
-  static final private int jj_ntk() {
+  final private int jj_ntk() {
     if ((jj_nt=token.next) == null)
       return (jj_ntk = (token.next=token_source.getNextToken()).kind);
     else
       return (jj_ntk = jj_nt.kind);
   }
 
-  static private java.util.Vector<int[]> jj_expentries = new java.util.Vector<int[]>();
-  static private int[] jj_expentry;
-  static private int jj_kind = -1;
-  static private int[] jj_lasttokens = new int[100];
-  static private int jj_endpos;
+  private java.util.Vector<int[]> jj_expentries = new java.util.Vector<int[]>();
+  private int[] jj_expentry;
+  private int jj_kind = -1;
+  private int[] jj_lasttokens = new int[100];
+  private int jj_endpos;
 
-  static private void jj_add_error_token(int kind, int pos) {
+  private void jj_add_error_token(int kind, int pos) {
     if (pos >= 100) return;
     if (pos == jj_endpos + 1) {
       jj_lasttokens[jj_endpos++] = kind;
@@ -631,7 +609,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     }
   }
 
-  static public ParseException generateParseException() {
+  public ParseException generateParseException() {
     jj_expentries.removeAllElements();
     boolean[] la1tokens = new boolean[22];
     if (jj_kind >= 0) {
@@ -664,13 +642,13 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return new ParseException(token, exptokseq, tokenImage);
   }
 
-  static final public void enable_tracing() {
+  final public void enable_tracing() {
   }
 
-  static final public void disable_tracing() {
+  final public void disable_tracing() {
   }
 
-  static final private void jj_rescan_token() {
+  final private void jj_rescan_token() {
     jj_rescan = true;
     for (int i = 0; i < 2; i++) {
     try {
@@ -690,7 +668,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     jj_rescan = false;
   }
 
-  static final private void jj_save(int index, int xla) {
+  final private void jj_save(int index, int xla) {
     JJCalls p = jj_2_rtns[index];
     while (p.gen > jj_gen) {
       if (p.next == null) { p = p.next = new JJCalls(); break; }

@@ -13,13 +13,13 @@ public class Conjunction extends ComplexFormula {
 	public String toString() {
 		return "(" + StringTool.join(" ^ ", children) + ")";
 	}
-	
-	/*
+
+	@Override
 	public boolean isTrue(PossibleWorld w) {
 		for(Formula child : children)
-			if(child.isTrue(w))
-				return true;
-		return false;
-	}*/
+			if(!child.isTrue(w))
+				return false;
+		return true;
+	}
 	
 }

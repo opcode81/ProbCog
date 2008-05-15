@@ -20,6 +20,7 @@ import edu.tum.cs.bayesnets.relational.core.ParameterGrounder;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.tools.Pair;
 
 public abstract class AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;
@@ -31,6 +32,7 @@ public abstract class AbstractGroundBLN {
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
 		this.databaseFile = databaseFile;
+		init();
 		
 		System.out.println("reading evidence...");
 		db = new Database(bln.rbn);
@@ -55,6 +57,7 @@ public abstract class AbstractGroundBLN {
 				// add the node itself to the network
 				String mainNodeName = relNode.getVariableName(params);
 				BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
+				onAddGroundAtomNode(relNode, params);
 
 				// add edges from the parents
 				ParentGrounder pg = rbn.getParentGrounder(relNode);
@@ -99,10 +102,42 @@ public abstract class AbstractGroundBLN {
 		}
 		
 		// ground formulaic nodes
+		System.out.println("  formulaic nodes");
+		hardFormulaNodes = new Vector<String>();
 		groundFormulaicNodes();
 	}
 	
-	public abstract void groundFormulaicNodes() throws Exception;
+	protected void init() {}
+	
+	protected abstract void groundFormulaicNodes() throws Exception;
+	
+	protected abstract void onAddGroundAtomNode(RelationalNode relNode, String[] params);
+	
+	/**
+	 * adds a node corresponding to a hard constraint to the network - along with the necessary edges
+	 * @param nodeName  	name of the node to add for the constraint
+	 * @param parentGAs		collection of names of parent nodes/ground atoms 
+	 * @return a pair containing the node added and the array of parent nodes
+	 * @throws Exception
+	 */
+	public Pair<BeliefNode, BeliefNode[]> addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws Exception {
+		hardFormulaNodes.add(nodeName);
+		BeliefNode node = groundBN.addNode(nodeName);		
+		BeliefNode[] parents = new BeliefNode[parentGAs.size()];
+		int i = 0;
+		for(String strGA : parentGAs) {
+			BeliefNode parent = groundBN.getNode(strGA);
+			if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
+				String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
+				parent = groundBN.getNode(parentName);
+				if(parent == null)
+					throw new Exception("Could not find node for ground atom " + strGA);
+			}
+			groundBN.bn.connect(parent, node);
+			parents[i++] = parent;
+		}
+		return new Pair<BeliefNode, BeliefNode[]>(node, parents);
+	}
 	
 	public Database getDatabase() {
 		return db;

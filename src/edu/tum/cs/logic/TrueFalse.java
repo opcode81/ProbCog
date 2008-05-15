@@ -5,27 +5,28 @@ import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 
-public class Literal extends Formula {
-	public boolean isPositive;
-	public Atom atom;
+public class TrueFalse extends Formula {
 	
-	public Literal(boolean isPositive, Atom atom) {
-		this.atom = atom;
-		this.isPositive = isPositive;
-	}
-	
-	public String toString() {
-		return isPositive ? atom.toString() : "!" + atom;
-	}
+	public static TrueFalse FALSE = new TrueFalse(false);
+	public static TrueFalse TRUE = new TrueFalse(true); 
 
+	public static TrueFalse getInstance(boolean isTrue) {
+		return isTrue ? TRUE : FALSE;
+	}
+	
+	protected boolean isTrue;
+	
+	private TrueFalse(boolean isTrue) {
+		this.isTrue = isTrue;
+	}	
+	
 	@Override
 	public void getVariables(Database db, HashMap<String, String> ret) {
-		atom.getVariables(db, ret);	
 	}
 
 	@Override
 	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
-		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
+		return this;
 	}
 
 	@Override
@@ -34,6 +35,11 @@ public class Literal extends Formula {
 
 	@Override
 	public boolean isTrue(PossibleWorld w) {
-		throw new RuntimeException("not supported");
+		return isTrue;
+	}
+	
+	@Override
+	public String toString() {
+		return isTrue ? "True" : "False";
 	}
 }
