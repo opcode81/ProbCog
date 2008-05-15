@@ -1,8 +1,8 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.bayesnets.inference.BackwardSampling;
-import edu.tum.cs.bayesnets.inference.EPIS;
+import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
+import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.bln.*;
 import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
@@ -126,9 +126,9 @@ public class BLNinfer {
 			case GibbsSampling:	
 				sampler = new GibbsSampling(gbln); break;
 			case EPIS:
-				sampler = new BNSampler(gbln, EPIS.class); break;
+				sampler = new BNSampler(gbln, SmileEPIS.class); break;
 			case BackwardSampling:
-				sampler = new BNSampler(gbln, BackwardSampling.class); break;
+				sampler = new BNSampler(gbln, SmileBackwardSampling.class); break;
 			}				
 			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
