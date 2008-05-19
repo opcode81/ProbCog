@@ -39,7 +39,7 @@ public class SmileInference extends Sampler {
 		}
 		
 		// inference
-		System.out.println("EPIS sampling...");
+		System.out.println("sampling...");
 		net.updateBeliefs();
 		
 		// store results in distribution

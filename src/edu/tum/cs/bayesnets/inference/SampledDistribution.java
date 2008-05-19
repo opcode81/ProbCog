@@ -29,7 +29,14 @@ public class SampledDistribution {
 	public void addSample(WeightedSample s) {
 		Z += s.weight;
 		for(int i = 0; i < s.nodeIndices.length; i++) {
-			sums[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
+			try {
+				sums[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
+			}
+			catch(ArrayIndexOutOfBoundsException e) {
+				BeliefNode[] nodes = bn.bn.getNodes();
+				System.err.println("Error: Node " + nodes[s.nodeIndices[i]].getName() + " was not sampled correctly.");
+				throw e;
+			}
 		}
 		trials += s.trials;
 		steps++;
