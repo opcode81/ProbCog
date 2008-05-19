@@ -1,6 +1,7 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
@@ -16,7 +17,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling};
 	
 	/**
 	 * @param args
@@ -63,6 +64,8 @@ public class BLNinfer {
 					algo = Algorithm.GibbsSampling;
 				else if(args[i].equals("-bs"))
 					algo = Algorithm.BackwardSampling;
+				else if(args[i].equals("-sbs"))
+					algo = Algorithm.SmileBackwardSampling;
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -70,9 +73,10 @@ public class BLNinfer {
 				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db>> <-q <comma-sep. queries>> [options]\n\n"+
 							         "    -maxSteps #      the maximum number of steps to take\n" + 
 							         "    -lw              algorithm: likelihood weighting (default)\n" +
-							         "    -gs              algorithm: Gibbs sampling\n" +
+							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -csp             algorithm: CSP-based sampling\n" +
 							         "    -bs              algorithm: backward sampling\n" +
+							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -py              use Python-based logic engine\n" +
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
@@ -127,8 +131,10 @@ public class BLNinfer {
 				sampler = new GibbsSampling(gbln); break;
 			case EPIS:
 				sampler = new BNSampler(gbln, SmileEPIS.class); break;
-			case BackwardSampling:
+			case SmileBackwardSampling:
 				sampler = new BNSampler(gbln, SmileBackwardSampling.class); break;
+			case BackwardSampling:
+				sampler = new BNSampler(gbln, BackwardSampling.class); break;
 			}				
 			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
