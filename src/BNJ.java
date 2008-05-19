@@ -15,7 +15,7 @@ public class BNJ {
 			Vector<String> files = new Vector<String>();
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-?") || args[i].contains("--help")) {
-					System.out.println("usage: bnj [-p <plugin directory>] [xml-bif file(s)]");
+					System.out.println("usage: bnj [-p <plugin directory>] [network file(s)]");
 					return;
 				}
 				if(args[i].equals("-p")) {
