@@ -3,8 +3,10 @@ package edu.tum.cs.logic;
 import java.util.Collection;
 
 public class Implication extends ComplexFormula {
-	public Implication(Collection<Formula> c) {
+	public Implication(Collection<Formula> c) throws Exception {
 		super(c);
+		if(c.size() != 2)
+			throw new Exception("An implication must have exactly two children (antecedent and consequent).");
 	}
 	
 	public Implication(Formula antecedent, Formula consequent) {

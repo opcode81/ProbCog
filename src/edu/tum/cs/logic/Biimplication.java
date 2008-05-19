@@ -4,8 +4,10 @@ import java.util.Collection;
 
 public class Biimplication extends ComplexFormula {
 	
-	public Biimplication(Collection<Formula> parts) {
-		super(parts.toArray(new Formula[2]));
+	public Biimplication(Collection<Formula> parts) throws Exception {
+		super(parts);
+		if(parts.size() != 2)
+			throw new Exception("A biimplication must have exactly two children.");
 	}
 	
 	public Biimplication(Formula f1, Formula f2) {

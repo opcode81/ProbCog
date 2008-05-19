@@ -1,11 +1,10 @@
 package edu.tum.cs.logic;
 
 import java.util.HashMap;
-import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 
-public class Equality extends Formula {
+public class Equality extends UngroundedFormula {
 	public String left, right;
 	
 	public Equality(String left, String right) {
@@ -28,14 +27,5 @@ public class Equality extends Formula {
 		String b = binding.get(right);
 		if(b == null) b = right;
 		return TrueFalse.getInstance(a == b);
-	}
-
-	@Override
-	public void getGroundAtoms(Set<GroundAtom> ret) {
-	}
-
-	@Override
-	public boolean isTrue(PossibleWorld w) {
-		throw new RuntimeException("not supported");
 	}
 }

@@ -1,11 +1,10 @@
 package edu.tum.cs.logic;
 
 import java.util.HashMap;
-import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 
-public class Literal extends Formula {
+public class Literal extends UngroundedFormula {
 	public boolean isPositive;
 	public Atom atom;
 	
@@ -26,14 +25,5 @@ public class Literal extends Formula {
 	@Override
 	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
-	}
-
-	@Override
-	public void getGroundAtoms(Set<GroundAtom> ret) {
-	}
-
-	@Override
-	public boolean isTrue(PossibleWorld w) {
-		throw new RuntimeException("not supported");
 	}
 }
