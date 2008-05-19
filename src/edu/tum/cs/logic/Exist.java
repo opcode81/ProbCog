@@ -2,13 +2,12 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.tools.StringTool;
 
-public class Exist extends Formula {
+public class Exist extends UngroundedFormula {
 	Formula f;
 	Collection<String> vars;
 	/**
@@ -39,14 +38,5 @@ public class Exist extends Formula {
 		Vector<Formula> disjuncts = new Vector<Formula>();
 		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars);
 		return new Disjunction(disjuncts);
-	}
-
-	@Override
-	public void getGroundAtoms(Set<GroundAtom> ret) {
-	}
-
-	@Override
-	public boolean isTrue(PossibleWorld w) {
-		throw new RuntimeException("not supported");
 	}
 }
