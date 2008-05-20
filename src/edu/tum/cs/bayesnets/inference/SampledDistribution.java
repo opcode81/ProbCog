@@ -27,6 +27,9 @@ public class SampledDistribution {
 	}
 	
 	public void addSample(WeightedSample s) {
+		if(s.weight == 0.0) {
+			throw new RuntimeException("Zero-weight sample was added to distribution.");
+		}
 		Z += s.weight;
 		for(int i = 0; i < s.nodeIndices.length; i++) {
 			try {

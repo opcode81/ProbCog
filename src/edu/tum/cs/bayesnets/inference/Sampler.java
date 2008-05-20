@@ -1,21 +1,18 @@
 package edu.tum.cs.bayesnets.inference;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
-import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public abstract class Sampler {
-	public BeliefNetworkEx bn;
-	public SampledDistribution dist;
-	HashMap<BeliefNode, Integer> nodeIndices;
-	Random generator;
+	protected BeliefNetworkEx bn;
+	protected SampledDistribution dist;
+	protected HashMap<BeliefNode, Integer> nodeIndices;
+	protected Random generator;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -102,34 +99,38 @@ public abstract class Sampler {
 	
 	public abstract SampledDistribution infer(int[] evidenceDomainIndices) throws Exception;
 	
-	public int sampleForward(BeliefNode node, int[] nodeDomainIndices) {
-		CPF this_cpf = node.getCPF();
-		int diff = 0;
-		BeliefNode[] domProd = node.getCPF().getDomainProduct();
-		// the fist element in the domain product array is the node we are sampling
-		int[] logical_query = new int[domProd.length];
-		// construct the logical query to start at the right place, i.e. get the addresses of the first two relevant fields
-		//System.out.println("Sampling node:" + node.getName());
-		for(int i = 1; i < logical_query.length; i++){
-			logical_query[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];
-		}
-		logical_query[0] = 0;
-		int real_addy0 = this_cpf.addr2realaddr(logical_query);
-		logical_query[0] = 1;
-		int real_addy1 = this_cpf.addr2realaddr(logical_query);
-		diff = real_addy1 - real_addy0; // diff is the address difference between two consecutive relevant entries
+	/**
+	 * samples forward, i.e. samples a value for 'node' given its parents
+	 * @param node  the node for which to sample a value
+	 * @param nodeDomainIndices  array of domain indices for all nodes in the network; the values for the parents of 'node' must be set already
+	 * @return  the index of the domain element of 'node' that is sampled, or -1 if sampling is impossible because all entries in the relevant column are 0 
+	 */
+	protected int sampleForward(BeliefNode node, int[] nodeDomainIndices) {
+		CPF cpf = node.getCPF();
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		int[] addr = new int[domProd.length];
+		// get the addresses of the first two relevant fields and the difference between them
+		for(int i = 1; i < addr.length; i++)
+			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];		
+		addr[0] = 0; // (the fist element in the index into the domain of the node we are sampling)
+		int realAddr = cpf.addr2realaddr(addr);
+		addr[0] = 1;
+		int diff = cpf.addr2realaddr(addr) - realAddr; // diff is the address difference between two consecutive entries in the relevant column
 		// get probabilities for outcomes
 		double[] cpt_entries = new double[domProd[0].getDomain().getOrder()];
-		int addr = real_addy0;
-		double cpt_sum = 0;
+		double sum = 0;
 		for(int i = 0; i < cpt_entries.length; i++){
-			cpt_entries[i] = ((ValueDouble)this_cpf.get(addr)).getValue();
-			cpt_sum += cpt_entries[i];
-			addr += diff;
+			cpt_entries[i] = cpf.getDouble(realAddr);
+			sum += cpt_entries[i];
+			realAddr += diff;
 		}
-		// if the column contains only zeros, impossible case -> cannot sample
-		if(cpt_sum == 0)
+		// if the column contains only zeros, it is an impossible case -> cannot sample
+		if(sum == 0)
 			return -1;
-		return sample(cpt_entries, cpt_sum, generator);
+		return sample(cpt_entries, sum, generator);
+	}
+	
+	public int getNodeIndex(BeliefNode node) {
+		return nodeIndices.get(node);
 	}
 }
