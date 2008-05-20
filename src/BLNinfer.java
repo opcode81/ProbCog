@@ -2,6 +2,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
+import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
@@ -17,7 +18,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors};
 	
 	/**
 	 * @param args
@@ -66,6 +67,8 @@ public class BLNinfer {
 					algo = Algorithm.BackwardSampling;
 				else if(args[i].equals("-sbs"))
 					algo = Algorithm.SmileBackwardSampling;
+				else if(args[i].equals("-bsp"))
+					algo = Algorithm.BackwardSamplingPriors;
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -135,6 +138,8 @@ public class BLNinfer {
 				sampler = new BNSampler(gbln, SmileBackwardSampling.class); break;
 			case BackwardSampling:
 				sampler = new BNSampler(gbln, BackwardSampling.class); break;
+			case BackwardSamplingPriors:
+				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
 			}				
 			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
