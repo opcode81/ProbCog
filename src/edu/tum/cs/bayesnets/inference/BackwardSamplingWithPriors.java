@@ -85,14 +85,20 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 		for(int i : topOrder) {
 			BeliefNode node = nodes[i];
 			double[] dist = new double[node.getDomain().getOrder()];
-			CPF cpf = node.getCPF();
-			computePrior(cpf, 0, new int[cpf.getDomainProduct().length], dist);
+			int evidence = evidenceDomainIndices[i];
+			if(evidence >= 0) {
+				for(int j = 0; j < dist.length; j++)
+					dist[j] = evidence == j ? 1.0 : 0.0;
+			}
+			else {
+				CPF cpf = node.getCPF();
+				computePrior(cpf, 0, new int[cpf.getDomainProduct().length], dist);
+			}
 			priors.put(node, dist);
 		}
 	}
 	
 	protected void computePrior(CPF cpf, int i, int[] addr, double[] dist) {
-		// TODO use evidence domain indices???
 		BeliefNode[] domProd = cpf.getDomainProduct(); 
 		if(i == addr.length) {
 			double p = cpf.getDouble(addr); // p = P(node setting | parent configuration)
@@ -104,10 +110,17 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 			return;
 		}
 		BeliefNode node = domProd[i];
-		Domain dom = node.getDomain();
-		for(int j = 0; j < dom.getOrder(); j++) {
-			addr[i] = j;
+		int nodeIdx = getNodeIndex(node);
+		if(evidenceDomainIndices[nodeIdx] >= 0) {
+			addr[i] = evidenceDomainIndices[nodeIdx];
 			computePrior(cpf, i+1, addr, dist);
+		}
+		else {
+			Domain dom = node.getDomain();
+			for(int j = 0; j < dom.getOrder(); j++) {
+				addr[i] = j;
+				computePrior(cpf, i+1, addr, dist);
+			}
 		}
 	}
 }
