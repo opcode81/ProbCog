@@ -70,7 +70,7 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 	}
 	
 	@Override
-	protected edu.tum.cs.bayesnets.inference.BackwardSampling.BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
+	protected BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
 		BackSamplingDistribution d = new BackSamplingDistribution(this);
 		d.construct(node, s.nodeDomainIndices);
 		return d;
