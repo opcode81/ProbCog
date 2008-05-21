@@ -178,7 +178,7 @@ public class BackwardSampling extends Sampler {
 	protected void prepareInference(int[] evidenceDomainIndices) {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		getOrdering(evidenceDomainIndices);
-		if(false) {
+		if(true) {
 			System.out.println("sampling backward: " + this.backwardSampledNodes);
 			System.out.println("sampling forward: " + this.forwardSampledNodes);
 			System.out.println("not in order: " + this.outsideSamplingOrder);
@@ -196,7 +196,7 @@ public class BackwardSampling extends Sampler {
 		System.out.println("sampling...");
 		WeightedSample s = new WeightedSample(this.bn, evidenceDomainIndices.clone(), 1.0, null, 0);
 		for(int i = 1; i <= this.numSamples; i++) {	
-			if(true || i % infoInterval == 0)
+			if(i % infoInterval == 0)
 				System.out.println("  step " + i);
 			getSample(s);
 			this.addSample(s);
