@@ -3,14 +3,12 @@ package edu.tum.cs.bayesnets.inference;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.tools.MutableDouble;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
@@ -26,6 +24,67 @@ public class BackwardSampling extends Sampler {
 	Vector<BeliefNode> forwardSampledNodes;
 	HashSet<BeliefNode> outsideSamplingOrder;
 	int[] evidenceDomainIndices;
+	
+	protected static class BackSamplingDistribution {
+		public Vector<Double> distribution;
+		public Vector<int[]> states;
+		double Z;
+		protected Sampler sampler;
+		
+		public BackSamplingDistribution(Sampler sampler) {
+			Z = 0.0;
+			distribution = new Vector<Double>();
+			states = new Vector<int[]>();
+			this.sampler = sampler;
+		}
+		
+		public void addValue(double p, int[] state) {
+			distribution.add(p);
+			states.add(state);
+			Z += p;
+		}
+		
+		public void applyWeight(WeightedSample s, int sampledValue) {
+			s.weight *= Z;
+		}
+		
+		public void construct(BeliefNode node, int[] nodeDomainIndices) {
+			CPF cpf = node.getCPF();
+			BeliefNode[] domProd = cpf.getDomainProduct();
+			int[] addr = new int[domProd.length];
+			addr[0] = nodeDomainIndices[sampler.nodeIndices.get(node)];
+			construct(1, addr, cpf, nodeDomainIndices);
+		}
+		
+		/**
+		 * recursively constructs the distribution to backward sample from  
+		 * @param i			the node to instantiate next (as an index into the CPF's domain product)
+		 * @param addr		the current setting of node indices of the CPF's domain product
+		 * @param cpf		the conditional probability function of the node we are backward sampling
+		 * @param d			the distribution to fill
+		 */
+		protected void construct(int i, int[] addr, CPF cpf, int[] nodeDomainIndices) {
+			if(i == addr.length) {
+				double p = cpf.getDouble(addr);
+				if(p != 0)
+					addValue(p, addr.clone());
+				return;
+			}
+			BeliefNode[] domProd = cpf.getDomainProduct();
+			int nodeIdx = sampler.nodeIndices.get(domProd[i]);
+			if(nodeDomainIndices[nodeIdx] >= 0) {
+				addr[i] = nodeDomainIndices[nodeIdx];
+				construct(i+1, addr, cpf, nodeDomainIndices);
+			}
+			else {
+				Discrete dom = (Discrete)domProd[i].getDomain();		
+				for(int j = 0; j < dom.getOrder(); j++) {
+					addr[i] = j;
+					construct(i+1, addr, cpf, nodeDomainIndices);
+				}
+			}
+		}
+	}
 	
 	public BackwardSampling(BeliefNetworkEx bn) {
 		super(bn);
@@ -87,28 +146,22 @@ public class BackwardSampling extends Sampler {
 	 * @param s		the sample to store the instantiation information in; the weight is also updated with the normalizing constant that is obtained
 	 * @return true if sampling succeeded, false otherwise
 	 */
-	protected boolean sampleBackward(BeliefNode node, WeightedSample s) {
+	protected boolean sampleBackward(BeliefNode node, WeightedSample s) {		
 		//System.out.println("backward sampling from " + node);
-		CPF cpf = node.getCPF();
-		BeliefNode[] domProd = cpf.getDomainProduct();
-		// get the distribution from which to sample 
-		int[] addr = new int[domProd.length];
-		addr[0] = s.nodeDomainIndices[this.nodeIndices.get(node)];
-		Vector<Double> probs = new Vector<Double>();
-		Vector<int[]> states = new Vector<int[]>();
-		MutableDouble Z = new MutableDouble(0.0);
-		getBackSamplingDistribution(1, addr, cpf, probs, states, Z, s.nodeDomainIndices);
+		// get the distribution from which to sample 		
+		BackSamplingDistribution d = getBackSamplingDistribution(node, s);
 		// sample
-		int idx = sample(probs, generator);	
+		int idx = sample(d.distribution, generator);	
 		if(idx == -1)
 			return false;
-		int[] state = states.get(idx);
+		int[] state = d.states.get(idx);
 		// apply weight
-		applyBackSamplingWeight(node, s, Z.value, state);
+		d.applyWeight(s, idx);
 		if(s.weight == 0.0)
 			return false;
-		// apply sampled parent setting		
-		for(int i = 1; i < addr.length; i++) {
+		// apply sampled parent setting
+		BeliefNode[] domProd = node.getCPF().getDomainProduct();
+		for(int i = 1; i < state.length; i++) {
 			int nodeIdx = this.nodeIndices.get(domProd[i]);
 			s.nodeDomainIndices[nodeIdx] = state[i];
 			//System.out.println("  sampled node " + domProd[i]);
@@ -116,44 +169,12 @@ public class BackwardSampling extends Sampler {
 		return true;
 	}
 	
-	protected void applyBackSamplingWeight(BeliefNode node, WeightedSample s, double Z, int[] state) {
-		s.weight *= Z;
+	protected BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
+		BackSamplingDistribution d = new BackSamplingDistribution(this);
+		d.construct(node, s.nodeDomainIndices);
+		return d;
 	}
 	
-	/**
-	 * recursively gets a distribution to backward sample from (represented in probs; the corresponding node states stored in states) 
-	 * @param i			the node to instantiate next (as an index into the CPF's domain product)
-	 * @param addr		the current setting of node indices of the CPF's domain product
-	 * @param cpf		the conditional probability function of the node we are backward sampling
-	 * @param probs		(out) to be filled with probability values of (a subset of) the row of interested
-	 * @param states	(out) the states (array of domain indices) corresponding to each of the probability values in probs
-	 * @param Z			(out) the normalizing constant (sum of values in probs)
-	 */
-	protected void getBackSamplingDistribution(int i, int[] addr, CPF cpf, Vector<Double> probs, Vector<int[]> states, MutableDouble Z, int[] nodeDomainIndices) {
-		if(i == addr.length) {
-			double p = cpf.getDouble(addr);
-			if(p != 0) {
-				probs.add(p);
-				states.add(addr.clone());
-				Z.value += p;
-			}
-			return;
-		}
-		BeliefNode[] domProd = cpf.getDomainProduct();
-		int nodeIdx = this.nodeIndices.get(domProd[i]);
-		if(nodeDomainIndices[nodeIdx] >= 0) {
-			addr[i] = nodeDomainIndices[nodeIdx];
-			getBackSamplingDistribution(i+1, addr, cpf, probs, states, Z, nodeDomainIndices);
-		}
-		else {
-			Discrete dom = (Discrete)domProd[i].getDomain();		
-			for(int j = 0; j < dom.getOrder(); j++) {
-				addr[i] = j;
-				getBackSamplingDistribution(i+1, addr, cpf, probs, states, Z, nodeDomainIndices);
-			}
-		}
-	}
-
 	protected void prepareInference(int[] evidenceDomainIndices) {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		getOrdering(evidenceDomainIndices);
@@ -217,6 +238,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			for(BeliefNode node : outsideSamplingOrder) {
 				s.weight *= this.getCPTProbability(node, s.nodeDomainIndices);
 				if(s.weight == 0.0) {
+					// error diagnosis					
 					if(debug) System.out.println("!!! weight became zero at unordered node " + node);
 					if(this instanceof BackwardSamplingWithPriors) {
 						double[] dist = ((BackwardSamplingWithPriors)this).priors.get(node);
