@@ -2,6 +2,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
+import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
@@ -139,8 +140,9 @@ public class BLNinfer {
 			case BackwardSampling:
 				sampler = new BNSampler(gbln, BackwardSampling.class); break;
 			case BackwardSamplingPriors:
-				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
-			}				
+				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
+			}
+			System.out.println("algorithm: " + sampler.getAlgorithmName());
 			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
 			System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");

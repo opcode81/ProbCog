@@ -62,4 +62,9 @@ public class CSPSampler extends Sampler {
 		return null;
 	}
 
+	@Override
+	public String getAlgorithmName() {
+		return "CSP-Sampler";
+	}
+
 }
