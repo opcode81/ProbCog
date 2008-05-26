@@ -30,4 +30,6 @@ public abstract class Sampler {
 	}
 	
 	public abstract SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws Exception;
+	
+	public abstract String getAlgorithmName();
 }

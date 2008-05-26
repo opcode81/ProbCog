@@ -34,4 +34,9 @@ public class BNSampler extends Sampler {
 		printResults(dist, queries);
 		return dist;
 	}
+
+	@Override
+	public String getAlgorithmName() {
+		return "BNInference:" + samplerClass.getSimpleName();
+	}
 }
