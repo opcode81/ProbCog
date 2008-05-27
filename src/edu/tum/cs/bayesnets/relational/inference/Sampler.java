@@ -7,6 +7,8 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 public abstract class Sampler {
+	protected boolean debug = false;
+	
 	public Sampler(BeliefNetworkEx bn) {
 		//super(bn);
 	}
@@ -32,4 +34,8 @@ public abstract class Sampler {
 	public abstract SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws Exception;
 	
 	public abstract String getAlgorithmName();
+	
+	public void setDebugMode(boolean active) {
+		debug = active;
+	}
 }

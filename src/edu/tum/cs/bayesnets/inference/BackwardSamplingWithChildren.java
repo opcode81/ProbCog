@@ -12,9 +12,9 @@ import edu.tum.cs.tools.MutableDouble;
 
 public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 
-	public static class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
-
-		protected static HashMap<CPF, HashMap<Integer, Double>> probCache = new HashMap<CPF, HashMap<Integer, Double>>(); 
+	protected HashMap<CPF, HashMap<Integer, Double>> probCache = new HashMap<CPF, HashMap<Integer, Double>>();
+	
+	public class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
 		
 		public BackSamplingDistribution(BackwardSamplingWithPriors sampler) {
 			super(sampler);			
@@ -176,5 +176,11 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	
 	public BackwardSamplingWithChildren(BeliefNetworkEx bn) {
 		super(bn);
+	}
+	
+	@Override
+	public void prepareInference(int[] evidenceDomainIndices) {
+		probCache = new HashMap<CPF, HashMap<Integer, Double>>();
+		super.prepareInference(evidenceDomainIndices);
 	}
 }

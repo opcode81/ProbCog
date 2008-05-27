@@ -235,7 +235,6 @@ public class BackwardSampling extends Sampler {
 	 */
 	public void getSample(WeightedSample s) {
 		int MAX_TRIALS = 5000;	
-		boolean debug = true;
 loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// init sample
 			s.nodeDomainIndices = evidenceDomainIndices.clone();

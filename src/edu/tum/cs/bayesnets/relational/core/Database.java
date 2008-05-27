@@ -33,7 +33,6 @@ public class Database {
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
 		// fill domains with guaranteed domain elements
 		for(Entry<String, String[]> e : bn.getGuaranteedDomainElements().entrySet()) {
-			System.out.println("adding guaranteed elements to " + e.getKey() + ": " + StringTool.join(",", e.getValue()));
 			for(String element : e.getValue()) 
 				fillDomain(e.getKey(), element);
 		}
