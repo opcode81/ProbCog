@@ -1,14 +1,17 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.util.TopologicalOrdering;
+import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
@@ -24,6 +27,7 @@ public class BackwardSampling extends Sampler {
 	Vector<BeliefNode> forwardSampledNodes;
 	HashSet<BeliefNode> outsideSamplingOrder;
 	int[] evidenceDomainIndices;
+	protected int currentStep;
 	
 	protected static class BackSamplingDistribution {
 		public Vector<Double> distribution;
@@ -91,6 +95,24 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	/**
+	 * for ordering belief nodes in descending order of the tier they are in (as indicated by the topological ordering)
+	 * @author jain
+	 *
+	 */
+	public static class TierComparator implements Comparator<BeliefNode> {
+
+		TopologicalOrdering topOrder;
+		
+		public TierComparator(TopologicalOrdering topOrder) {
+			this.topOrder = topOrder;
+		}
+		
+		public int compare(BeliefNode o1, BeliefNode o2) {
+			return -(topOrder.getTier(o1) - topOrder.getTier(o2));			
+		}		
+	}
+	
+	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
 	 */
@@ -100,7 +122,8 @@ public class BackwardSampling extends Sampler {
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();
 		outsideSamplingOrder = new HashSet<BeliefNode>();
-		LinkedList<BeliefNode> backSamplingCandidates = new LinkedList<BeliefNode>();
+		TopologicalOrdering topOrder = new TopologicalSort(bn.bn).run(true);
+		PriorityQueue<BeliefNode> backSamplingCandidates = new PriorityQueue<BeliefNode>(1, new TierComparator(topOrder));
 
 		// check which nodes have evidence; ones that are are candidates for backward sampling and are instantiated
 		for(int i = 0; i < evidenceDomainIndices.length; i++) {
@@ -112,7 +135,7 @@ public class BackwardSampling extends Sampler {
 		
 		// check all backward sampling candidates
 		while(!backSamplingCandidates.isEmpty()) {
-			BeliefNode node = backSamplingCandidates.removeFirst();
+			BeliefNode node = backSamplingCandidates.remove();
 			// check if there are any uninstantiated parents
 			BeliefNode[] domProd = node.getCPF().getDomainProduct();
 			boolean doBackSampling = false;
@@ -133,7 +156,6 @@ public class BackwardSampling extends Sampler {
 		}
 		
 		// schedule all uninstantiated node for forward sampling in the topological order
-		int[] topOrder = bn.getTopologicalOrder();
 		for(int i : topOrder) {
 			if(uninstantiatedNodes.contains(nodes[i]))
 				forwardSampledNodes.add(nodes[i]);
@@ -195,9 +217,9 @@ public class BackwardSampling extends Sampler {
 		this.createDistribution();
 		System.out.println("sampling...");
 		WeightedSample s = new WeightedSample(this.bn, evidenceDomainIndices.clone(), 1.0, null, 0);
-		for(int i = 1; i <= this.numSamples; i++) {	
-			if(i % infoInterval == 0)
-				System.out.println("  step " + i);
+		for(currentStep = 1; currentStep <= this.numSamples; currentStep++) {	
+			if(currentStep % infoInterval == 0)
+				System.out.println("  step " + currentStep);
 			getSample(s);
 			this.addSample(s);
 		}
@@ -221,7 +243,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// backward sampling
 			for(BeliefNode node : backwardSampledNodes) {
 				if(!sampleBackward(node, s)) {
-					if(debug) System.out.println("!!! backward sampling failed at " + node);
+					if(debug) System.out.println("!!! backward sampling failed at " + node + " in step " + currentStep);
 					continue loop1;
 				}				
 			}
@@ -229,7 +251,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// forward sampling
 			for(BeliefNode node : forwardSampledNodes) {
 				if(!sampleForward(node, s)) {
-					if(debug) System.out.println("!!! forward sampling failed at " + node);
+					if(debug) System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep);
 					continue loop1;
 				}
 			}
@@ -239,7 +261,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 				s.weight *= this.getCPTProbability(node, s.nodeDomainIndices);
 				if(s.weight == 0.0) {
 					// error diagnosis					
-					if(debug) System.out.println("!!! weight became zero at unordered node " + node);
+					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep);
 					if(this instanceof BackwardSamplingWithPriors) {
 						double[] dist = ((BackwardSamplingWithPriors)this).priors.get(node);
 						System.out.println("prior: " + StringTool.join(", ", dist) + " value=" + s.nodeDomainIndices[getNodeIndex(node)]);
