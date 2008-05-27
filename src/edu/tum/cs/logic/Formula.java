@@ -13,6 +13,13 @@ public abstract class Formula {
 	public abstract void getGroundAtoms(Set<GroundAtom> ret);
 	public abstract boolean isTrue(PossibleWorld w);
 	
+	/**
+	 * gets a list of all groundings of the formula for a particular set of objects
+	 * @param db  the database containing all relevant constant symbols (objects) to use for grounding
+	 * @param worldVars  the collection of variables (ground atoms) that defines the set of possible worlds
+	 * @return 
+	 * @throws Exception
+	 */
 	public Vector<Formula> getAllGroundings(Database db, WorldVariables worldVars) throws Exception {
 		Vector<Formula> ret = new Vector<Formula>();
 		addAllGroundingsTo(ret, db, worldVars);
@@ -33,6 +40,17 @@ public abstract class Formula {
 		generateGroundings(collection, db, new HashMap<String, String>(), varNames, 0, vars, worldVars);		
 	}
 	
+	/**
+	 * recursively generates groundings of the formula
+	 * @param ret  the collection in which to store the generated groundings
+	 * @param db  the database in which all usable constant symbols are found
+	 * @param binding  a mapping of variable names to constant names
+	 * @param varNames  the variables that are to be grounded
+	 * @param i  the current index of the variable in varNames to ground next
+	 * @param var2domName  a mapping of variable names to domain names (that contains as keys at least the variables in varNames)
+	 * @param worldVars  the collection of variables (ground atoms) that defines the set of possible worlds 
+	 * @throws Exception
+	 */
 	protected void generateGroundings(Collection<Formula> ret, Database db, HashMap<String, String> binding, String[] varNames, int i, HashMap<String, String> var2domName, WorldVariables worldVars) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == varNames.length) {
