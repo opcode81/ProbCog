@@ -16,7 +16,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		}
 		
 		/**
-		 * recursively gets a distribution to backward sample from (represented in probs; the corresponding node states stored in states) 
+		 * recursively gets a distribution to backward sample from 
 		 * @param i			the node to instantiate next (as an index into the CPF's domain product)
 		 * @param addr		the current setting of node indices of the CPF's domain product
 		 * @param cpf		the conditional probability function of the node we are backward sampling
@@ -27,9 +27,12 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			if(i == addr.length) {
 				double child_prob = cpf.getDouble(addr);
 				// temporarily set evidence
-				for(int k = 1; k < addr.length; k++) {
+				boolean[] tempEvidence = new boolean[addr.length];
+				for(int k = 1; k < addr.length; k++) {					
 					int nodeIdx = sampler.nodeIndices.get(domProd[k]);
-					nodeDomainIndices[nodeIdx] = addr[k];
+					tempEvidence[k] = nodeDomainIndices[nodeIdx] == -1;
+					if(tempEvidence[k])						
+						nodeDomainIndices[nodeIdx] = addr[k];
 				}
 				// consider parent configuration
 				double parent_prob = 1.0;
@@ -50,8 +53,8 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 				}
 				// unset temporary evidence
 				for(int k = 1; k < addr.length; k++) {
-					int nodeIdx = sampler.nodeIndices.get(domProd[k]);
-					nodeDomainIndices[nodeIdx] = -1;
+					if(tempEvidence[k])
+						nodeDomainIndices[sampler.nodeIndices.get(domProd[k])] = -1;
 				}
 				// add to distribution
 				double p = child_prob * parent_prob;
@@ -75,8 +78,18 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			}
 		}
 		
+		/**
+		 * gets the probability indicated by the given CPF for the given domain indices, summing over all parents whose values are not set (i.e. set to -1) in nodeDomainIndices;
+		 * i.e. computes the probability of the node whose CPF is provided given the evidence set in nodeDomainIndices
+		 * @param cpf					the conditional probability function
+		 * @param i						index of the next node to instantiate
+		 * @param addr					the address (list of node domain indices relevant to the CPF)
+		 * @param nodeDomainIndices		evidences (mapping of all nodes in the network to domain indices, -1 for no evidence)
+		 * @param ret					variable in which to store the result (initialize to 0.0, because we are summing probability values)
+		 */
 		protected void getProb(CPF cpf, int i, int[] addr, int[] nodeDomainIndices, MutableDouble ret) {
-			BeliefNode[] domProd = cpf.getDomainProduct(); 
+			BeliefNode[] domProd = cpf.getDomainProduct();
+			// if all nodes have been instantiated...
 			if(i == addr.length) {
 				double p = cpf.getDouble(addr); 
 				for(int j = 1; j < addr.length; j++) {
@@ -88,12 +101,15 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 				ret.value += p;
 				return;
 			}
+			// otherwise instantiate the next node
 			BeliefNode node = domProd[i];
 			int nodeIdx = sampler.getNodeIndex(node);
+			// - if we have evidence, use it
 			if(nodeDomainIndices[nodeIdx] >= 0) {
 				addr[i] = nodeDomainIndices[nodeIdx];
 				getProb(cpf, i+1, addr, nodeDomainIndices, ret);
 			}
+			// - otherweise sum over all settings
 			else {
 				Domain dom = node.getDomain();
 				for(int j = 0; j < dom.getOrder(); j++) {
