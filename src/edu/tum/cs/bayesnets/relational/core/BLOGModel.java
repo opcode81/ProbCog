@@ -20,7 +20,6 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 	
-	protected HashMap<String, String[]> guaranteedDomElements;
 	protected String blogContents;
 	
 	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
@@ -40,8 +39,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @throws Exception
 	 */
 	public BLOGModel(String[] blogFiles, String xmlbifFile) throws Exception {
-		super(xmlbifFile);
-		guaranteedDomElements = new HashMap<String, String[]>();
+		super(xmlbifFile);		
 		
 		// read the blog files
 		String blog = readBlogContent(blogFiles);
@@ -57,7 +55,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			addSignature(matcher.group(2), sig);
 		}
 		
-		getGuaranteedDomainElements(blog);
+		readGuaranteedDomainElements(blog);
 		
 		checkSignatures();
 	}
@@ -93,7 +91,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * reads the guaranteed domain elements listed in the given contents of a BLOG file and stores them in the guaranteedDomElements member
 	 * @param blogContent
 	 */
-	protected void getGuaranteedDomainElements(String blogContent) {
+	protected void readGuaranteedDomainElements(String blogContent) {
 		// obtain guaranteed domain elements
 		Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*)\\s*;");
 		Matcher matcher = pat.matcher(blogContent);
