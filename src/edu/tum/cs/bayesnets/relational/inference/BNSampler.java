@@ -26,6 +26,7 @@ public class BNSampler extends Sampler {
 	
 		// sample
 		edu.tum.cs.bayesnets.inference.Sampler sampler = samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());
+		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
 		SampledDistribution dist = sampler.infer(evidenceDomainIndices);

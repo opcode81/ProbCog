@@ -24,6 +24,8 @@ public abstract class Sampler {
 	 */
 	public int infoInterval = 100;
 	
+	public boolean debug = false;
+	
 	public Sampler(BeliefNetworkEx bn) {	
 		this.bn = bn;
 		nodeIndices = new HashMap<BeliefNode, Integer>();
@@ -132,5 +134,9 @@ public abstract class Sampler {
 	
 	public int getNodeIndex(BeliefNode node) {
 		return nodeIndices.get(node);
+	}
+	
+	public void setDebugMode(boolean active) {
+		debug = active;
 	}
 }

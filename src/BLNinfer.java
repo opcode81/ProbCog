@@ -19,7 +19,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental};
 	
 	/**
 	 * @param args
@@ -36,6 +36,7 @@ public class BLNinfer {
 			String[] cwPreds = null;
 			boolean showBN = false;
 			boolean usePython = false;
+			boolean debug = false;
 			
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-b"))
@@ -70,6 +71,10 @@ public class BLNinfer {
 					algo = Algorithm.SmileBackwardSampling;
 				else if(args[i].equals("-bsp"))
 					algo = Algorithm.BackwardSamplingPriors;
+				else if(args[i].equals("-exp"))
+					algo = Algorithm.Experimental;
+				else if(args[i].equals("-debug"))
+					debug = true;
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -82,6 +87,7 @@ public class BLNinfer {
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -py              use Python-based logic engine\n" +
+							         "    -debug           debug mode with additional outputs\n" + 
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
@@ -122,6 +128,12 @@ public class BLNinfer {
 			if(showBN)
 				gbln.getGroundNetwork().show();
 			
+			if(false) {
+				System.out.println("\ndomain:");
+				gbln.getDatabase().printDomain(System.out);
+				System.out.println();
+			}			
+			
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
@@ -140,12 +152,15 @@ public class BLNinfer {
 			case BackwardSampling:
 				sampler = new BNSampler(gbln, BackwardSampling.class); break;
 			case BackwardSamplingPriors:
+				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
+			case Experimental:
 				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
 			}
+			sampler.setDebugMode(debug);
 			System.out.println("algorithm: " + sampler.getAlgorithmName());
 			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
 			sw.stop();
-			System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
+			System.out.println("total inference time: " + sw.getElapsedTimeSecs() + " seconds");
 		}
 		catch(Exception e) {
 			e.printStackTrace();
