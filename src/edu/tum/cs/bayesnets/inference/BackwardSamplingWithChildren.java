@@ -1,5 +1,7 @@
 package edu.tum.cs.bayesnets.inference;
 
+import java.util.HashSet;
+
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -36,6 +38,8 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 				}
 				// consider parent configuration
 				double parent_prob = 1.0;
+				HashSet<BeliefNode> handledChildren = new HashSet<BeliefNode>();
+				handledChildren.add(domProd[0]);
 				for(int j = 1; j < addr.length; j++) {
 					double[] parentPrior = ((BackwardSamplingWithPriors)sampler).priors.get(domProd[j]);
 					parent_prob *= parentPrior[addr[j]]; 
@@ -43,11 +47,12 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 					// get child probability
 					BeliefNode[] children = sampler.bn.bn.getChildren(domProd[j]);
 					for(BeliefNode child : children) {
-						if(child != domProd[0] && nodeDomainIndices[sampler.getNodeIndex(child)] >= 0) {
+						if(nodeDomainIndices[sampler.getNodeIndex(child)] >= 0 && !handledChildren.contains(child)) {
 							CPF childCPF = child.getCPF();
 							MutableDouble p = new MutableDouble(0.0);
 							getProb(childCPF, 0, new int[childCPF.getDomainProduct().length], nodeDomainIndices, p);
 							parent_prob *= p.value;
+							handledChildren.add(child);
 						}
 					}
 				}
