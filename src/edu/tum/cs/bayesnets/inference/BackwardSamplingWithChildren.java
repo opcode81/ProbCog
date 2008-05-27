@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.inference;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -13,6 +14,8 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 
 	public static class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
 
+		protected static HashMap<CPF, HashMap<Integer, Double>> probCache = new HashMap<CPF, HashMap<Integer, Double>>(); 
+		
 		public BackSamplingDistribution(BackwardSamplingWithPriors sampler) {
 			super(sampler);			
 		}
@@ -49,9 +52,9 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 					for(BeliefNode child : children) {
 						if(nodeDomainIndices[sampler.getNodeIndex(child)] >= 0 && !handledChildren.contains(child)) {
 							CPF childCPF = child.getCPF();
-							MutableDouble p = new MutableDouble(0.0);
-							getProb(childCPF, 0, new int[childCPF.getDomainProduct().length], nodeDomainIndices, p);
-							parent_prob *= p.value;
+							//getProb(childCPF, 0, new int[childCPF.getDomainProduct().length], nodeDomainIndices, p);
+							double p = getProb(childCPF, nodeDomainIndices);
+							parent_prob *= p;
 							handledChildren.add(child);
 						}
 					}
@@ -83,6 +86,45 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			}
 		}
 		
+		protected double getProb(CPF cpf, int[] nodeDomainIndices) {
+			// get the key in the CPF-specific cache
+			Double cacheValue = null;
+			BeliefNode[] domProd = cpf.getDomainProduct();
+			int[] addr = new int[domProd.length];	
+			boolean allSet = true;
+			int key = 0;
+			for(int i = 0; i < addr.length; i++) {
+				int idx = nodeDomainIndices[sampler.getNodeIndex(domProd[i])];
+				allSet = allSet && idx >= 0; 
+				addr[i] = idx;
+				key *= cpf._SizeBuffer[i]+1;
+				key += idx == -1 ? cpf._SizeBuffer[i] : idx;
+			}
+			if(allSet)
+				return cpf.getDouble(addr);
+			// check if we already have the value in the cache
+			HashMap<Integer, Double> cpfCache = probCache.get(cpf);
+			if(cpfCache != null) {
+				Double value = cacheValue = cpfCache.get(key);
+				if(value != null) 
+					return value;
+			}
+			else {
+				cpfCache = new HashMap<Integer,Double>();
+				probCache.put(cpf, cpfCache);
+			}
+			// not in the cache, so calculate the value
+			MutableDouble p = new MutableDouble(0.0);
+			getProb(cpf, 0, addr, nodeDomainIndices, p);
+			// store in cache
+			cpfCache.put(key, p.value);
+			// return value
+			if(cacheValue != null && p.value != cacheValue) {
+				throw new RuntimeException("cache mismatch");
+			}
+			return p.value;
+		}
+		
 		/**
 		 * gets the probability indicated by the given CPF for the given domain indices, summing over all parents whose values are not set (i.e. set to -1) in nodeDomainIndices;
 		 * i.e. computes the probability of the node whose CPF is provided given the evidence set in nodeDomainIndices
@@ -110,11 +152,11 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			BeliefNode node = domProd[i];
 			int nodeIdx = sampler.getNodeIndex(node);
 			// - if we have evidence, use it
-			if(nodeDomainIndices[nodeIdx] >= 0) {
+			if(nodeDomainIndices[nodeIdx] >= 0) {				
 				addr[i] = nodeDomainIndices[nodeIdx];
 				getProb(cpf, i+1, addr, nodeDomainIndices, ret);
 			}
-			// - otherweise sum over all settings
+			// - otherwise sum over all settings
 			else {
 				Domain dom = node.getDomain();
 				for(int j = 0; j < dom.getOrder(); j++) {
