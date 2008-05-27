@@ -40,13 +40,10 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 					// get child probability
 					BeliefNode[] children = sampler.bn.bn.getChildren(domProd[j]);
 					for(BeliefNode child : children) {
-						if(nodeDomainIndices[sampler.getNodeIndex(child)] >= 0) {
+						if(child != domProd[0] && nodeDomainIndices[sampler.getNodeIndex(child)] >= 0) {
 							CPF childCPF = child.getCPF();
 							MutableDouble p = new MutableDouble(0.0);
 							getProb(childCPF, 0, new int[childCPF.getDomainProduct().length], nodeDomainIndices, p);
-							if(p.value != 0.0) {
-								System.out.println("hello");
-							}
 							parent_prob *= p.value;
 						}
 					}
