@@ -1,6 +1,7 @@
 package edu.tum.cs.bayesnets.relational.core;
 
 import java.io.BufferedReader;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.tools.StringTool;
 
 
 public class Database {
@@ -29,6 +31,12 @@ public class Database {
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
+		// fill domains with guaranteed domain elements
+		for(Entry<String, String[]> e : bn.getGuaranteedDomainElements().entrySet()) {
+			System.out.println("adding guaranteed elements to " + e.getKey() + ": " + StringTool.join(",", e.getValue()));
+			for(String element : e.getValue()) 
+				fillDomain(e.getKey(), element);
+		}
 	}
 	
 	/**
@@ -97,13 +105,11 @@ public class Database {
 	}
 
 	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
-		domains = new HashMap<String, HashSet<String>>(); 
-		
 		// read file content
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
 		// remove comments
-		Pattern comments = Pattern.compile("//.*$|/\\*.*\\*/", Pattern.MULTILINE);
+		Pattern comments = Pattern.compile("//.*$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");		
 
@@ -300,5 +306,11 @@ public class Database {
 	
 	public Signature getSignature(String predicateName) {
 		return bn.getSignature(predicateName);
+	}
+	
+	public void printDomain(PrintStream out) {
+		for(Entry<String, HashSet<String>> e : domains.entrySet()) {
+			out.println(e.getKey() + ": " + StringTool.join(", ", e.getValue()));
+		}
 	}
 }

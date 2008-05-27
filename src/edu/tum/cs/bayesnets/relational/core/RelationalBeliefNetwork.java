@@ -26,6 +26,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * maps a function/predicate name to the signature of the corresponding function
 	 */
 	protected Map<String, Signature> signatures;
+	protected HashMap<String, String[]> guaranteedDomElements;
 	
 	public class RelationKey {
 		/**
@@ -70,6 +71,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
 		parentGrounders = new HashMap<RelationalNode, ParentGrounder>();
+		guaranteedDomElements = new HashMap<String, String[]>();
 		// store node data		
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
@@ -579,6 +581,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			}
 		}
 		//show();
+	}
+	
+	public HashMap<String, String[]> getGuaranteedDomainElements() {
+		return guaranteedDomElements;
 	}
 }
 
