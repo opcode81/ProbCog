@@ -9,10 +9,13 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.tools.MutableDouble;
+import edu.tum.cs.tools.Stopwatch;
 
 public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 
-	protected HashMap<CPF, HashMap<Integer, Double>> probCache = new HashMap<CPF, HashMap<Integer, Double>>();
+	protected HashMap<CPF, HashMap<Integer, Double>> probCache;
+	protected HashMap<BeliefNode, HashMap<Long, BackSamplingDistribution>> distCache;
+	protected Stopwatch probSW, distSW;
 	
 	public class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
 		
@@ -87,6 +90,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		}
 		
 		protected double getProb(CPF cpf, int[] nodeDomainIndices) {
+			probSW.start();
 			// get the key in the CPF-specific cache
 			Double cacheValue = null;
 			BeliefNode[] domProd = cpf.getDomainProduct();
@@ -100,14 +104,18 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 				key *= cpf._SizeBuffer[i]+1;
 				key += idx == -1 ? cpf._SizeBuffer[i] : idx;
 			}
-			if(allSet)
+			if(allSet) {
+				probSW.stop();
 				return cpf.getDouble(addr);
+			}
 			// check if we already have the value in the cache
 			HashMap<Integer, Double> cpfCache = probCache.get(cpf);
 			if(cpfCache != null) {
 				Double value = cacheValue = cpfCache.get(key);
-				if(value != null) 
-					return value;
+				if(false && value != null) {
+					probSW.stop();
+					return value;					
+				}
 			}
 			else {
 				cpfCache = new HashMap<Integer,Double>();
@@ -122,6 +130,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			if(cacheValue != null && p.value != cacheValue) {
 				throw new RuntimeException("cache mismatch");
 			}
+			probSW.stop();
 			return p.value;
 		}
 		
@@ -169,8 +178,68 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	
 	@Override
 	protected BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
-		BackSamplingDistribution d = new BackSamplingDistribution(this);
+		BackSamplingDistribution d;
+		HashMap<Long,BackSamplingDistribution> nodeCache = null;
+		long key = 0;
+		final boolean useCache = true;
+		distSW.start();
+		
+		if(useCache) {
+			// calculate key		
+			BeliefNode[] domProd = node.getCPF().getDomainProduct();
+			// - consider node itself and all parents			
+			for(int i = 0; i < domProd.length; i++) {
+				BeliefNode n = domProd[i];
+				int idx = s.nodeDomainIndices[getNodeIndex(n)];
+				int order = n.getDomain().getOrder();
+				key *= order + 1;
+				key += idx == -1 ? order : idx;
+				// - children of parents
+				if(i != 0) {
+					BeliefNode[] children = bn.bn.getChildren(n);
+					for(int j = 0; j < children.length; j++) {
+						if(children[j] != node) {
+							n = children[j];
+							idx = s.nodeDomainIndices[getNodeIndex(n)];
+							order = n.getDomain().getOrder();
+							key *= order + 1;
+							key += idx == -1 ? order : idx;
+							// - parents of children						
+							BeliefNode[] parentsofchildren = children[j].getCPF().getDomainProduct();
+							for(int k = 1; k < parentsofchildren.length; k++) {
+								n = parentsofchildren[k];
+								idx = s.nodeDomainIndices[getNodeIndex(n)];
+								order = n.getDomain().getOrder();
+								key *= order + 1;
+								key += idx == -1 ? order : idx;
+							}
+						}
+					}
+				}
+			}
+		
+			// check if we have a cache value
+			nodeCache = distCache.get(node);
+			if(nodeCache != null) {
+				d = nodeCache.get(key);
+				if(d != null)
+					return d;
+			}
+			else {
+				nodeCache = new HashMap<Long, BackSamplingDistribution>();
+				distCache.put(node, nodeCache);
+			}
+		}
+		
+		// obtain new distribution
+		d = new BackSamplingDistribution(this);
 		d.construct(node, s.nodeDomainIndices);
+		
+		// store in cache
+		if(useCache)
+			nodeCache.put(key, d); 
+		
+		distSW.stop();
 		return d;
 	}
 	
@@ -181,6 +250,17 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	@Override
 	public void prepareInference(int[] evidenceDomainIndices) {
 		probCache = new HashMap<CPF, HashMap<Integer, Double>>();
+		distCache = new HashMap<BeliefNode, HashMap<Long, BackSamplingDistribution>>();
 		super.prepareInference(evidenceDomainIndices);
+	}
+	
+	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+		probSW = new Stopwatch();
+		distSW = new Stopwatch();
+		SampledDistribution d = super.infer(evidenceDomainIndices);
+		System.out.println("prob time: " + probSW.getElapsedTimeSecs());
+		System.out.println("dist time: " + distSW.getElapsedTimeSecs());
+		System.out.println();
+		return d;
 	}
 }
