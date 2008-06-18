@@ -108,7 +108,7 @@ public class Database {
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
 		// remove comments
-		Pattern comments = Pattern.compile("//.*$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");		
 

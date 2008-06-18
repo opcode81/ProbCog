@@ -1,7 +1,6 @@
 package edu.tum.cs.logic;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Iterator;
@@ -37,7 +36,7 @@ public class KnowledgeBase implements Iterable<Formula> {
 		// read KB file
 		String fileContent = FileUtil.readTextFile(filename);
 		// remove comments
-		Pattern comments = Pattern.compile("//.*$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(fileContent);
 		fileContent = matcher.replaceAll("");		
 		// read lines
