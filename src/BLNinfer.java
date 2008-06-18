@@ -6,6 +6,7 @@ import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
+import edu.tum.cs.bayesnets.relational.core.ABL;
 import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.bln.*;
 import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
@@ -37,6 +38,7 @@ public class BLNinfer {
 			boolean showBN = false;
 			boolean usePython = false;
 			boolean debug = false;
+			boolean saveInstance = false;
 			
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-b"))
@@ -51,6 +53,8 @@ public class BLNinfer {
 					dbFile = args[++i];				
 				else if(args[i].equals("-s"))
 					showBN = true;				
+				else if(args[i].equals("-si"))
+					saveInstance = true;				
 				else if(args[i].equals("-py"))
 					usePython = true;				
 				else if(args[i].equals("-cw"))
@@ -83,11 +87,14 @@ public class BLNinfer {
 							         "    -maxSteps #      the maximum number of steps to take\n" + 
 							         "    -lw              algorithm: likelihood weighting (default)\n" +
 							         "    -gs              algorithm: Gibbs sampling\n" +						
-							         "    -csp             algorithm: CSP-based sampling\n" +
+							         //"    -csp             algorithm: CSP-based sampling\n" +
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
+							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
 							         "    -py              use Python-based logic engine\n" +
 							         "    -debug           debug mode with additional outputs\n" + 
+							         "    -s           	   show ground network in editor\n" +
+							         "    -si              save ground network instance in BIF format (.instance.xml)\n" +
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
@@ -110,7 +117,7 @@ public class BLNinfer {
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
 
 			// instantiate ground model
-			BLOGModel blog = new BLOGModel(blogFile, bifFile);
+			ABL blog = new ABL(blogFile, bifFile);
 			AbstractGroundBLN gbln;
 			if(!usePython) {
 				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, blnFile);
@@ -125,8 +132,13 @@ public class BLNinfer {
 				for(String predName : cwPreds)
 					gbln.getDatabase().setClosedWorldPred(predName);
 			}
-			if(showBN)
+			if(showBN) {
 				gbln.getGroundNetwork().show();
+			}
+			if(saveInstance) {
+				String baseName = bifFile.substring(0, bifFile.lastIndexOf('.'));
+				gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
+			}
 			
 			if(false) {
 				System.out.println("\ndomain:");
