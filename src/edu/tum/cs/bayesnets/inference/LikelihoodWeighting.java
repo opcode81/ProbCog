@@ -42,7 +42,8 @@ success:while(!successful) {
 			//System.out.println(trials);
 			weight = 1.0;
 			if (trials > MAX_TRIALS)
-				return null;
+				//return null;
+				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + MAX_TRIALS + ")");
 			for (int i=0; i< nodeOrder.length; i++) {
 				int nodeIdx = nodeOrder[i];
 				int domainIdx = evidenceDomainIndices[nodeIdx];
@@ -54,6 +55,8 @@ success:while(!successful) {
 						//System.out.println("sampling failed at evidence node " + nodes[nodeIdx].getName());
 						bn.removeAllEvidences();
 						trials++;
+						if(this.debug)
+							System.out.println("Evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
 						continue success;
 					}
 					weight *= prob;
@@ -61,7 +64,7 @@ success:while(!successful) {
 				else {
 					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn.bn, generator);
 					if (domainIdx < 0) {
-						System.out.println("could not sample forward because of column with 0s in CPT of " + nodes[nodeIdx].getName());
+						System.out.println("Warning: Could not sample forward because of column with 0s in CPT of " + nodes[nodeIdx].getName());
 						bn.removeAllEvidences();
 						trials++;
 						continue success;
