@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.relational.core.bln;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -31,7 +32,20 @@ public class GroundBLN extends AbstractGroundBLN {
 
 	@Override
 	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params) {
-		worldVars.add(new GroundAtom(relNode.getFunctionName(), params));		
+		if(relNode.isBoolean())
+			worldVars.add(new GroundAtom(relNode.getFunctionName(), params));
+		else {
+			// node is non-Boolean, so add one ground atom for each possible value
+			Discrete dom = relNode.getDomain();
+			String[] atomParams = new String[params.length+1];
+			for(int i = 0; i < params.length; i++)
+				atomParams[i] = params[i];
+			for(int i = 0; i < dom.getOrder(); i++) {
+				atomParams[atomParams.length-1] = dom.getName(i);
+				GroundAtom ga = new GroundAtom(relNode.getFunctionName(), atomParams.clone());
+				worldVars.add(ga);
+			}
+		}
 	}
 	
 	@Override	
