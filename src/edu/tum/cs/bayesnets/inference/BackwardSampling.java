@@ -200,7 +200,7 @@ public class BackwardSampling extends Sampler {
 	protected void prepareInference(int[] evidenceDomainIndices) {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		getOrdering(evidenceDomainIndices);
-		if(true) {
+		if(debug) {
 			System.out.println("sampling backward: " + this.backwardSampledNodes);
 			System.out.println("sampling forward: " + this.forwardSampledNodes);
 			System.out.println("not in order: " + this.outsideSamplingOrder);
@@ -261,12 +261,9 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 				if(s.weight == 0.0) {
 					// error diagnosis					
 					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep);
-					if(this instanceof BackwardSamplingWithPriors) {
+					if(debug && this instanceof BackwardSamplingWithPriors) {
 						double[] dist = ((BackwardSamplingWithPriors)this).priors.get(node);
 						System.out.println("prior: " + StringTool.join(", ", dist) + " value=" + s.nodeDomainIndices[getNodeIndex(node)]);
-						
-						double foo = this.getCPTProbability(node, s.nodeDomainIndices);
-						
 						CPF cpf = node.getCPF();
 						BeliefNode[] domProd = cpf.getDomainProduct();						
 						int[] addr = new int[domProd.length];
