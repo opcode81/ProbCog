@@ -20,20 +20,22 @@ public class Link extends Item {
 	/*public void addAttribute(String attribute, String value, DataTypeEnum type) {
 		addAttribute(attribute, value, type, "L");
 	}*/
-	
+
+	/**
+	 * gets the parameters (i.e. the constants) that this link connects in a comma-separated string, e.g. "Foo, Bar" 
+	 */
 	protected String getLinkParams() {
-		String linkParams = "(";
+		StringBuffer linkParams = new StringBuffer();
 		for(int i = 0; i < arguments.length; i++) {
 			if(i > 0)
-				linkParams += ", ";
-			linkParams += Database.upperCaseString(arguments[i].getConstantName());
-		}
-		linkParams += ")";		
-		return linkParams;
+				linkParams.append(", ");
+			linkParams.append(Database.upperCaseString(arguments[i].getConstantName()));
+		}	
+		return linkParams.toString();
 	}
 	
 	public String getLogicalAtom() {
-		return linkName + getLinkParams();
+		return linkName + "(" + getLinkParams() + ")";
 	}
 	
 	public void MLNprintFacts(java.io.PrintStream out) throws DDException {
@@ -47,9 +49,11 @@ public class Link extends Item {
 			if(/*data != null) {
 				if(data.type == DataTypeEnum.STR &&*/ ddAttr.isBoolean()) {
 					out.print(((BooleanDomain)ddAttr.getDomain()).isTrue(attribs.get(attribName)) ? "" : "!");
-					out.println(attribName + getLinkParams());
+					out.println(attribName + "(" + getLinkParams() + ")");
 				//}
 			}
+			else
+				throw new DDException("Non-boolean attributes of links not handled for MLNs");
 		}
 	}
 	
