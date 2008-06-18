@@ -15,17 +15,10 @@ public class DDObject extends DDItem implements IDDRelationArgument {
 	}
 	
 	public void MLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
-		out.println("// " + this.getName());			
+		out.println("// " + this.getName());
+		String objectDomain = idNamer.getLongIdentifier("domain", Database.stdDomainName(this.getName()));
 		for(DDAttribute attr : attributes.values()) {
-			if(attr.isDiscarded())
-				continue;
-			out.print(Database.stdPredicateName(attr.getName()) + "(" + idNamer.getLongIdentifier("domain", Database.stdDomainName(this.getName())));
-			if(attr.isBoolean()) {
-				out.println(")");
-				continue;
-			}
-			out.print(", ");
-			out.println(idNamer.getLongIdentifier("domain", Database.stdDomainName(attr.getDomain().getName())) + ")");
+			MLNprintAttributePredicateDeclaration(attr, objectDomain, idNamer, out);
 		}
 		out.println();
 	}

@@ -94,6 +94,11 @@ public class Database implements Cloneable {
 		}
 		for(Link link : links) {
 			out.printf("%s = True;\n", link.getLogicalAtom());
+			// attributes
+			String linkObjects = link.getLinkParams();
+			for(Entry<String, String> entry : link.getAttributes().entrySet()) {
+				out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, this.upperCaseString(entry.getValue())); 
+			}
 		}
 	}
 	

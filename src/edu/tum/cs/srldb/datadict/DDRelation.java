@@ -43,18 +43,17 @@ public class DDRelation extends DDItem {
 	
 	public void MLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
 		// get the relation's argument domains in a comma-separated list of domain names eclosed in brackets 
-		StringBuffer params = new StringBuffer("(");
+		StringBuffer params = new StringBuffer();
 		for(int i = 0; i < arguments.length; i++) {
 			if(i > 0) 
 				params.append(", ");				
 			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(arguments[i].getDomainName())));
 		}
-		params.append(")");
 		// output the main predicate declaration
-		out.println(Database.stdPredicateName(getName()) + params);
-		// output additional declarations for each boolean attribute of the relation
+		out.println(Database.stdPredicateName(getName()) + "(" + params + ")");
+		// output additional declarations for each attribute of the relation
 		for(DDAttribute attr : attributes.values()) {
-			out.println(Database.stdPredicateName(attr.getName()) + params); 
+			MLNprintAttributePredicateDeclaration(attr, params.toString(), idNamer, out);
 		}
 	}
 
@@ -87,13 +86,15 @@ public class DDRelation extends DDItem {
 	
 	@Override
 	public void addAttribute(DDAttribute attrib) throws DDException {
-		if(!(attrib instanceof DDRelationAttribute))
-			throw new DDException("this type of attribute cannot be used for relations; use DDRelationAttribute");
-		DDRelationAttribute attr = (DDRelationAttribute) attrib;
-		if(attr.singleVal == null)
-			attr.singleVal = this.singleVal;
-		else if(attr.singleVal.length != this.singleVal.length)
-			throw new DDException("attribute's singleVal array has incorrect length; must match that of relation object");
+		if(attrib instanceof DDRelationAttribute) {			
+			DDRelationAttribute attr = (DDRelationAttribute) attrib;
+			if(attr.singleVal == null)
+				attr.singleVal = this.singleVal;
+			else if(attr.singleVal.length != this.singleVal.length)
+				throw new DDException("attribute's singleVal array has incorrect length; must match that of relation object");
+		}
+		else
+			;//throw new DDException("this type of attribute cannot be used for relations; use DDRelationAttribute");
 		super.addAttribute(attrib);
 	}
 }
