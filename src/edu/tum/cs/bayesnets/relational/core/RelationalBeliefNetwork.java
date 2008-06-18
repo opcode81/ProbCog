@@ -225,9 +225,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			String[] argTypes = new String[node.params.length];
 			for(int i = 0; i < node.params.length; i++) {
 				String param = node.params[i].replaceAll("\\d+", "");
-				argTypes[i] = "ObjType_" + param;
+				argTypes[i] = "objType_" + param;
 			}
-			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "Dom" + node.getFunctionName();
+			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "dom" + node.getFunctionName();
 			Signature sig = new Signature(node.getFunctionName(), retType, argTypes);
 			addSignature(node.getFunctionName(), sig);		
 		}
