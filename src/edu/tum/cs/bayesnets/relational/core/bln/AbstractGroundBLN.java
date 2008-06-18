@@ -2,6 +2,7 @@ package edu.tum.cs.bayesnets.relational.core.bln;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -21,6 +22,7 @@ import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 import edu.tum.cs.tools.Pair;
+import edu.tum.cs.tools.StringTool;
 
 public abstract class AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;
@@ -33,6 +35,7 @@ public abstract class AbstractGroundBLN {
 		this.bln = bln;
 		this.databaseFile = databaseFile;
 		init();
+		boolean debug = false;
 		
 		System.out.println("reading evidence...");
 		db = new Database(bln.rbn);
@@ -48,7 +51,7 @@ public abstract class AbstractGroundBLN {
 		for(int i = 0; i < order.length; i++) {
 			int nodeNo = order[i];
 			RelationalNode relNode = rbn.getRelationalNode(nodeNo);
-			if(relNode.isConstant)
+			if(relNode.isConstant || relNode.isAuxiliary)
 				continue;
 			System.out.println("    " + relNode);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
@@ -56,6 +59,7 @@ public abstract class AbstractGroundBLN {
 				
 				// add the node itself to the network
 				String mainNodeName = relNode.getVariableName(params);
+				if(debug) System.out.println("      " + mainNodeName);
 				BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
 				onAddGroundAtomNode(relNode, params);
 
@@ -174,11 +178,17 @@ public abstract class AbstractGroundBLN {
 		CPF targetCPF = targetNode.getCPF();
 		BeliefNode[] targetDomainProd = targetCPF.getDomainProduct();
 		int j = 1;
+		HashSet<BeliefNode> handledParents = new HashSet<BeliefNode>();
 		for(int i = 1; i < srcDomainProd.length; i++) {			
 			BeliefNode targetParent = src2targetParent.get(srcDomainProd[i]);
-			//System.out.println("Parent corresponding to " + srcDomainProd[i].getName() + " is " + targetParent);
+			//System.out.println("Parent corresponding to " + srcDomainProd[i].getName() + " is " + targetParent);			
 			if(targetParent != null) {
+				if(handledParents.contains(targetParent))
+					continue;
+				if(j >= targetDomainProd.length)
+					throw new Exception("Domain product of " + targetNode + " too small; size = " + targetDomainProd.length + "; tried to add " + targetParent + "; already added " + StringTool.join(",", targetDomainProd));
 				targetDomainProd[j++] = targetParent;
+				handledParents.add(targetParent);
 			}
 		}
 		if(j != targetDomainProd.length)
