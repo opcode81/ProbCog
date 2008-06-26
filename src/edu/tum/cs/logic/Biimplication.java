@@ -19,7 +19,7 @@ public class Biimplication extends ComplexFormula {
 	}
 
 	@Override
-	public boolean isTrue(PossibleWorld w) {		
+	public boolean isTrue(IPossibleWorld w) {		
 		return children[0].isTrue(w) == children[1].isTrue(w);
 	}
 }

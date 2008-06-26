@@ -1,6 +1,7 @@
 package edu.tum.cs.logic;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
@@ -21,11 +22,11 @@ public class TrueFalse extends Formula {
 	}	
 	
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		return this;
 	}
 
@@ -34,7 +35,7 @@ public class TrueFalse extends Formula {
 	}
 
 	@Override
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		return isTrue;
 	}
 	

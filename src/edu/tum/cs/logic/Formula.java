@@ -2,16 +2,25 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 
 public abstract class Formula {	
-	public abstract void getVariables(Database db, HashMap<String,String> ret);
-	public abstract Formula ground(HashMap<String, String> binding, WorldVariables worldVars, Database db) throws Exception;
+	public abstract void getVariables(Database db, Map<String,String> ret);
+	/**
+	 * grounds this formula for a particular binding of its variables
+	 * @param binding		the variable binding
+	 * @param worldVars		the set of ground atoms (which is needed to return the ground versions of atoms)
+	 * @param db			a database containing a set of constants for each type that can be used to ground existentially quantified formulas
+	 * @return
+	 * @throws Exception
+	 */
+	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception;
 	public abstract void getGroundAtoms(Set<GroundAtom> ret);
-	public abstract boolean isTrue(PossibleWorld w);
+	public abstract boolean isTrue(IPossibleWorld w);
 	
 	/**
 	 * gets a list of all groundings of the formula for a particular set of objects
@@ -51,7 +60,7 @@ public abstract class Formula {
 	 * @param worldVars  the collection of variables (ground atoms) that defines the set of possible worlds 
 	 * @throws Exception
 	 */
-	protected void generateGroundings(Collection<Formula> ret, Database db, HashMap<String, String> binding, String[] varNames, int i, HashMap<String, String> var2domName, WorldVariables worldVars) throws Exception {
+	protected void generateGroundings(Collection<Formula> ret, Database db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == varNames.length) {
 			ret.add(this.ground(binding, worldVars, db));
@@ -62,7 +71,7 @@ public abstract class Formula {
 		String domName = var2domName.get(varName);
 		Set<String> domain = db.getDomain(domName);		
 		if(domain == null)
-			throw new Exception("Domain " + domName + " not found in the database!");
+			throw new Exception("Domain named '" + domName + "' (of variable " + varName + " in formula " + this.toString() + ") not found in the database!");
 		for(String element : domain) {
 			binding.put(varName, element);
 			generateGroundings(ret, db, binding, varNames, i+1, var2domName, worldVars);	

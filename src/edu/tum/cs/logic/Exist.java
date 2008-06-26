@@ -2,6 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
@@ -13,7 +14,7 @@ public class Exist extends UngroundedFormula {
 	/**
 	 * maps the quantified variables to their domain names
 	 */
-	HashMap<String, String> var2domName;
+	Map<String, String> var2domName;
 	
 	public Exist(Collection<String> vars, Formula f) {
 		this.vars = vars;
@@ -26,7 +27,7 @@ public class Exist extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 		f.getVariables(db, ret);
 		for(String var : vars) {
 			var2domName.put(var, ret.remove(var));
@@ -34,7 +35,7 @@ public class Exist extends UngroundedFormula {
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables worldVars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception {
 		Vector<Formula> disjuncts = new Vector<Formula>();
 		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars);
 		return new Disjunction(disjuncts);

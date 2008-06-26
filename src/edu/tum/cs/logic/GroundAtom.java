@@ -1,7 +1,9 @@
 package edu.tum.cs.logic;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.tools.StringTool;
@@ -14,9 +16,18 @@ public class GroundAtom extends Formula {
 	public GroundAtom(String predicate, String[] args) {
 		this.predicate = predicate;
 		this.args = args;
+		index = -1;
+	}
+	
+	public GroundAtom(String gndAtom) {
+		Pattern p = Pattern.compile("(\\w+)\\(([^\\)]+)\\)");
+		Matcher m = p.matcher(gndAtom);
+		predicate = m.group(1);
+		args = m.group(2).split("\\s*,\\s*");
+		index = -1;
 	}
 
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		return w.isTrue(this);
 	}
 	
@@ -25,11 +36,11 @@ public class GroundAtom extends Formula {
 	}
 
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) {
 		return this;
 	}
 

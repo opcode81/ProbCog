@@ -18,7 +18,7 @@ public class Negation extends ComplexFormula {
 	}
 
 	@Override
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		return !children[0].isTrue(w);
 	}
 }

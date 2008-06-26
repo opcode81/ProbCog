@@ -15,7 +15,7 @@ public class Disjunction extends ComplexFormula {
 	}
 	
 	@Override
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		for(Formula child : children)
 			if(child.isTrue(w))
 				return true;
