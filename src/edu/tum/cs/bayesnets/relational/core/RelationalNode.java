@@ -2,6 +2,7 @@ package edu.tum.cs.bayesnets.relational.core;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -9,11 +10,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.mln.MLNWriter;
 
-public class RelationalNode {
-	/**
-	 * index into the network's array of BeliefNodes
-	 */
-	public int index;
+public class RelationalNode extends ExtendedNode {
 	/**
 	 * the function/predicate name this node is concerned with (without any arguments)
 	 */
@@ -23,14 +20,9 @@ public class RelationalNode {
 	 */
 	public String[] params;
 	/**
-	 * a reference to the BeliefNode that this node extends
-	 */
-	public BeliefNode node;
-	/**
 	 * noisy-or parameters, i.e. parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
 	 */
 	public String[] addParams;
-	protected RelationalBeliefNetwork bn;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
 	public String parentMode, aggregator;
 	
@@ -63,7 +55,7 @@ public class RelationalNode {
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
-		this.bn = bn;
+		super(bn, node);
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
 		// preprocessing: special parent nodes encoded in prefix 
@@ -111,8 +103,6 @@ public class RelationalNode {
 			this.params = new String[]{name};
 			this.isConstant = true;
 		}
-		this.index = bn.getNodeIndex(node);
-		this.node = node;
 	}
 	
 	public String toString() {
@@ -143,7 +133,7 @@ public class RelationalNode {
 	public boolean isBoolean() {
 		Signature sig = bn.getSignature(this);
 		if(sig != null)
-			return sig.returnType.equals("Boolean");
+			return sig.isBoolean();
 		else
 			return bn.isBooleanDomain(node.getDomain());
 	}
@@ -159,7 +149,7 @@ public class RelationalNode {
 	/**
 	 * generates a textual representation of the logical literal that this node represents for a certain assignment (and, optionally, substitutions of its parameters) 
 	 * @param setting  the value this node is set to given by an index into the node's domain
-	 * @param constantValues  mapping of this node's arguments to constants; any number of arguments may be mapped; may be null
+	 * @param constantValues  mapping of this node's arguments to constants; any subset/superset of arguments may be mapped; may be null
 	 * @return
 	 */
 	protected String toLiteral(int setting, HashMap<String,String> constantValues) {		
@@ -245,7 +235,7 @@ public class RelationalNode {
 		return formatName(getFunctionName(), actualParams);
 	}
 	
-	public RelationalNode[] getParents() {
+	public Vector<RelationalNode> getParents() {
 		return bn.getRelationalParents(this);
 	}
 	

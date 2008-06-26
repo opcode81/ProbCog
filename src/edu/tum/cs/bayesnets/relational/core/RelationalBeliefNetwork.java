@@ -14,14 +14,17 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.mln.MLNWriter;
 import edu.tum.cs.srldb.Database;
+import edu.tum.cs.tools.CollectionFilter;
+import edu.tum.cs.tools.StringTool;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	/**
-	 * maps a node index to the corresponding node
+	 * maps a node index to the corresponding extended node
 	 */
-	protected HashMap<Integer,RelationalNode> relNodesByIdx;
+	protected HashMap<Integer,ExtendedNode> extNodesByIdx;
 	/**
 	 * maps a function/predicate name to the signature of the corresponding function
 	 */
@@ -34,7 +37,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		 */
 		public String relation;
 		/**
-		 * parameter indices that make up a key
+		 * list of indices of the parameters that make up a key
 		 */
 		public Vector<Integer> keyIndices;
 		
@@ -51,11 +54,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		public String toString() {
 			return relation + "[" + keyIndices + "]";
 		}
-	}	
+	}
+	
 	/**
 	 * a mapping of function/relation names to RelationKey objects which signify argument groups that are keys of the relation (which may be used for a functional lookup)
 	 */
 	protected Map<String, Collection<RelationKey>> relationKeys;
+	
 	/**
 	 * a mapping of nodes to their corresponding parent grounders (which are created on demand)
 	 */
@@ -67,7 +72,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public RelationalBeliefNetwork(String xmlbifFile) throws Exception {
 		super(xmlbifFile);
-		relNodesByIdx = new HashMap<Integer, RelationalNode>();		
+		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
 		parentGrounders = new HashMap<RelationalNode, ParentGrounder>();
@@ -75,8 +80,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// store node data		
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode d = createRelationalNode(nodes[i]);			
-			addRelationalNode(d);
+			ExtendedNode n = createNode(nodes[i]);			
+			addExtendedNode(n);
 		}
 	}
 
@@ -86,12 +91,19 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @return
 	 * @throws Exception
 	 */
-	protected RelationalNode createRelationalNode(BeliefNode node) throws Exception {
-		return new RelationalNode(this, node);
+	protected ExtendedNode createNode(BeliefNode node) throws Exception {
+		switch(node.getType()) {
+		case BeliefNode.NODE_CHANCE:
+			return new RelationalNode(this, node);
+		case BeliefNode.NODE_DECISION:
+			return new DecisionNode(this, node);
+		default:
+			throw new Exception("Don't know how to treat node " + node.getName() + " of type " + node.getType());
+		}	
 	}
 	
-	public void addRelationalNode(RelationalNode node) {
-		relNodesByIdx.put(node.index, node);
+	public void addExtendedNode(ExtendedNode node) {
+		extNodesByIdx.put(node.index, node);
 	}
 	
 	/**
@@ -107,15 +119,27 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	}
 	
 	public RelationalNode getRelationalNode(int idx) {
-		return relNodesByIdx.get(new Integer(idx));
+		return (RelationalNode)getExtendedNode(idx);
 	}
 	
 	public RelationalNode getRelationalNode(BeliefNode node) {
-		return getRelationalNode(this.getNodeIndex(node));
+		return (RelationalNode)getExtendedNode(node);
 	}
 	
-	public Collection<RelationalNode> getRelationalNodes() {
-		return relNodesByIdx.values();
+	public ExtendedNode getExtendedNode(int idx) {
+		return extNodesByIdx.get(new Integer(idx));
+	}
+	
+	public ExtendedNode getExtendedNode(BeliefNode node) {
+		return getExtendedNode(this.getNodeIndex(node));
+	}
+	
+	public Collection<ExtendedNode> getExtendedNodes() {
+		return extNodesByIdx.values();
+	}
+	
+	public Iterable<RelationalNode> getRelationalNodes() {
+		return new CollectionFilter<RelationalNode, ExtendedNode>(getExtendedNodes(), RelationalNode.class);
 	}
 	
 	public static boolean isBooleanDomain(Domain domain) {
@@ -207,7 +231,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @param newType
 	 */
 	public void replaceType(String oldType, String newType) {
-		for(RelationalNode node : this.relNodesByIdx.values()) {
+		for(RelationalNode node : getRelationalNodes()) {
 			getSignature(node).replaceType(oldType, newType);
 		}
 	}
@@ -219,7 +243,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 *
 	 */
 	public void guessSignatures() throws Exception {
-		for(RelationalNode node : relNodesByIdx.values()) {
+		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isConstant) // signatures for constants are determined in checkSignatures (called below)
 				continue;
 			String[] argTypes = new String[node.params.length];
@@ -242,7 +266,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		// obtain parameter/argument -> type name mapping for non-constant nodes
 		HashMap<String,String> types = new HashMap<String,String>();
 		Vector<RelationalNode> constants = new Vector<RelationalNode>();
-		for(RelationalNode node : relNodesByIdx.values()) {
+		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isBuiltInPred())
 				continue;
 			if(node.isConstant)
@@ -274,13 +298,20 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 	}
 
-	public RelationalNode[] getRelationalParents(RelationalNode node) {
+	/**
+	 * gets all the parents of the given node that are instances of RelationalNode
+	 * @param node
+	 * @return
+	 */
+	public Vector<RelationalNode> getRelationalParents(RelationalNode node) {
 		BeliefNode[] p = this.bn.getParents(node.node);
-		RelationalNode[] p2 = new RelationalNode[p.length];
+		Vector<RelationalNode> ret = new Vector<RelationalNode>();
 		for(int i = 0; i < p.length; i++) {
-			p2[i] = getRelationalNode(p[i]);
+			ExtendedNode n = getExtendedNode(p[i]);
+			if(n instanceof RelationalNode)
+				ret.add((RelationalNode)n);
 		}
-		return p2;
+		return ret;
 	}
 	
 	/**
@@ -526,7 +557,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @throws Exception 
 	 */
 	public void prepareForLearning() throws Exception {
-		for(RelationalNode node : getRelationalNodes().toArray(new RelationalNode[0])) {
+		for(RelationalNode node : getRelationalNodes()) {
 			if(node.parentMode != null && node.parentMode.equals("AUX")) { // create an auxiliary node that contains the ungrounded parameters 
 				// create fully grounded variant
 				String[] params = new String[node.params.length + node.addParams.length];
@@ -540,20 +571,21 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 				fullyGroundedNode.setDomain(node.node.getDomain());
 				// create the corresponding relational node and define a signature for it
 				RelationalNode fullyGroundedRelNode = new RelationalNode(this, fullyGroundedNode); 
-				addRelationalNode(fullyGroundedRelNode);
+				addExtendedNode(fullyGroundedRelNode);
 				// - determine argument types for signature
 				String[] argTypes = new String[params.length];
 				Signature origSig = node.getSignature();
-				RelationalNode[] relParents = getRelationalParents(node);
+				Vector<RelationalNode> relParents = getRelationalParents(node);
 				for(int j = 0; j < params.length; j++) {
 					if(j < node.params.length)
 						argTypes[j] = origSig.argTypes[j];
 					else { // check relational parents for parameter match		
 						boolean haveType = false;
-						for(int k = 0; k < relParents.length && !haveType; k++) {
-							Signature sig = relParents[k].getSignature();
-							for(int l = 0; l < relParents[k].params.length; l++) {
-								if(relParents[k].params[l].equals(params[j])) {
+						for(int k = 0; k < relParents.size() && !haveType; k++) {
+							RelationalNode parent = relParents.get(k);
+							Signature sig = parent.getSignature();
+							for(int l = 0; l < parent.params.length; l++) {
+								if(parent.params[l].equals(params[j])) {
 									argTypes[j] = sig.argTypes[l];
 									haveType = true;
 									break;
@@ -585,6 +617,25 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public HashMap<String, String[]> getGuaranteedDomainElements() {
 		return guaranteedDomElements;
+	}
+	
+	/**
+	 * retrieves the name of the random variable that corresponds to a logical ground atom
+	 * @return
+	 */
+	public String gndAtom2VarName(GroundAtom ga) {
+		if(getSignature(ga.predicate).isBoolean())
+			return ga.toString();
+		else {
+			StringBuffer s = new StringBuffer(ga.predicate + "(");
+			for(int i = 0; i < ga.args.length-1; i++) {
+				if(i > 0)
+					s.append(',');
+				s.append(ga.args);
+			}
+			s.append(')');
+			return s.toString();
+		}
 	}
 }
 

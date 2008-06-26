@@ -10,6 +10,10 @@ import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
 
+/**
+ * generates groundings of all nodes relevant to a given node N for particular bindings of N's parameters; the relevant nodes being N and its parents  
+ * @author jain
+ */
 public class ParentGrounder {
 	
 	protected class FunctionalLookup {
@@ -53,7 +57,7 @@ public class ParentGrounder {
 	
 	protected Vector<FunctionalLookup> functionalLookups;
 	protected RelationalNode mainNode;
-	protected RelationalNode[] parents;
+	protected Collection<RelationalNode> parents;
 	/**
 	 * parameters that cannot be uniquely determined, i.e. parameters for which we consider all possible bindings
 	 */
