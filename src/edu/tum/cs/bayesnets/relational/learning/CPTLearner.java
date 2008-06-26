@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.relational.learning;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -9,10 +10,15 @@ import java.util.Map.Entry;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.bayesnets.relational.core.DecisionNode;
+import edu.tum.cs.bayesnets.relational.core.ExtendedNode;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 import edu.tum.cs.bayesnets.relational.core.Database.Variable;
+import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.PossibleWorldFromDatabase;
+import edu.tum.cs.logic.WorldVariables;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	
@@ -59,68 +65,70 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		
 		double exampleWeight = 1.0;
 
-		// do some precomputations
-		// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights
-		if(node.aggregator != null && node.aggregator.equals("AVG") && node.parentMode != null && node.parentMode.equals("CP")) {
-			// create a vector of counts/probabilities
-			// first get the number of configurations that are possible for each parent
-			int dim = 1;
-			RelationalNode[] parents = bn.getRelationalParents(node);
-			Vector<Integer> relevantParentIndices = new Vector<Integer>();
-			Vector<Integer> precondParentIndices = new Vector<Integer>();
-			for(RelationalNode parent : parents) {
-				if(parent.isPrecondition) {
-					precondParentIndices.add(parent.index);
-					continue;
-				}
-				dim *= parent.getDomain().getOrder();
-				relevantParentIndices.add(parent.index);
-			}
-			double[] v = new double[dim];
-			// gather counts
-			int numExamples = 0;
-			for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
-				boolean skip = false;
-				// check if the preconditions are met
-				for(Integer nodeIdx : precondParentIndices) {
-					RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
-					String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
-					if(!value.equalsIgnoreCase("true")) {
-						skip = true;
-						break;
+		// do some precomputations to determine example weight
+		if(false) {
+			// TODO the code below does not yet consider the possibility of decision nodes as parents
+			// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights		
+			if(node.aggregator != null && node.aggregator.equals("AVG") && node.parentMode != null && node.parentMode.equals("CP")) {
+				// create a vector of counts/probabilities
+				// first get the number of configurations that are possible for each parent
+				int dim = 1;
+				Vector<Integer> relevantParentIndices = new Vector<Integer>();
+				Vector<Integer> precondParentIndices = new Vector<Integer>();
+				for(RelationalNode parent : bn.getRelationalParents(node)) {
+					if(parent.isPrecondition) {
+						precondParentIndices.add(parent.index);
+						continue;
 					}
+					dim *= parent.getDomain().getOrder();
+					relevantParentIndices.add(parent.index);
 				}
-				if(skip) 
-					continue;
-				// count the example
-				int factor = 1;
-				int addr = 0;
-				for(Integer nodeIdx : relevantParentIndices) {
-					RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
-					//String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
-					String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
-					Discrete dom = ndCurrent.getDomain();
-					int domIdx = dom.findName(value);					
-					if(domIdx < 0) {
-						String[] domain = BeliefNetworkEx.getDiscreteDomainAsArray(ndCurrent.node);
-						throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + RelationalNode.join(",", domain) + "}");
+				double[] v = new double[dim];
+				// gather counts
+				int numExamples = 0;
+				for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
+					boolean skip = false;
+					// check if the preconditions are met
+					for(Integer nodeIdx : precondParentIndices) {
+						RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
+						String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+						if(!value.equalsIgnoreCase("true")) {
+							skip = true;
+							break;
+						}
 					}
-					addr += factor * domIdx; 
-					factor *= dom.getOrder();
+					if(skip) 
+						continue;
+					// count the example
+					int factor = 1;
+					int addr = 0;
+					for(Integer nodeIdx : relevantParentIndices) {
+						RelationalNode ndCurrent = bn.getRelationalNode(nodeIdx);
+						//String value = db.getVariableValue(ndCurrent.getVariableName(paramSets.get(ndCurrent.index)), closedWorld);
+						String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
+						Discrete dom = ndCurrent.getDomain();
+						int domIdx = dom.findName(value);					
+						if(domIdx < 0) {
+							String[] domain = BeliefNetworkEx.getDiscreteDomainAsArray(ndCurrent.node);
+							throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + RelationalNode.join(",", domain) + "}");
+						}
+						addr += factor * domIdx; 
+						factor *= dom.getOrder();
+					}
+					v[addr] += 1;	
+					numExamples++;
 				}
-				v[addr] += 1;	
-				numExamples++;
+				// obtain probabilities
+				for(int i = 0; i < v.length; i++)
+					v[i] = v[i] / numExamples;
+				// calculate weight
+				exampleWeight = 0;
+				int exponent = 10;			
+				for(int i = 0; i < v.length; i++) {
+					exampleWeight += Math.pow(v[i], exponent);
+				}
+				//System.out.println("weight: " + exampleWeight);
 			}
-			// obtain probabilities
-			for(int i = 0; i < v.length; i++)
-				v[i] = v[i] / numExamples;
-			// calculate weight
-			exampleWeight = 0;
-			int exponent = 10;			
-			for(int i = 0; i < v.length; i++) {
-				exampleWeight += Math.pow(v[i], exponent);
-			}
-			//System.out.println("weight: " + exampleWeight);
 		}
 			
 		// set the domain indices of all relevant nodes (node itself and parents)			
@@ -129,38 +137,48 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			boolean countExample = true;
 			int domainIndices[] = new int[this.nodes.length];
 			for(int i = 0; i < counter.nodeIndices.length; i++) {
-				// get the corresponding node object
-				RelationalNode ndCurrent = bn.getRelationalNode(counter.nodeIndices[i]);
-				// determine the value of the node given the parameter settings implied by the main node
-				String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
-				// if the node is a precondition, i.e. it is required to be true, check that it really is
-				if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
-					// it's not, so skip this example
-					countExample = false;
-					break;
+				int domain_idx = -1;
+				ExtendedNode extCurrent = bn.getExtendedNode(counter.nodeIndices[i]);
+				// decision node parents are always true, because we use them to define hard constraints on the use of the CPT we are learning;
+				// whether the constraint that they represent is actually satisfied was checked beforehand
+				if(extCurrent instanceof DecisionNode) {
+					domain_idx = 0; // 0 = True 
 				}
-				if(value == null)
-					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
-				// get the current node's domain and the index of its setting
-				Discrete dom = (Discrete)(ndCurrent.node.getDomain());
-				int domain_idx = dom.findName(value);
-				if(domain_idx == -1) {	
-					String[] domElems = new String[dom.getOrder()];
-					for(int j = 0; j < domElems.length; j++)
-						domElems[j] = dom.getName(j);
-					throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
+				// it's a regular parent
+				else {
+					// get the corresponding RelationalNode object
+					RelationalNode ndCurrent = (RelationalNode)extCurrent;
+					// determine the value of the node given the parameter settings implied by the main node
+					String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
+					// if the node is a precondition, i.e. it is required to be true, check that it really is
+					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
+						// it's not, so skip this example
+						countExample = false;
+						break;
+					}
+					if(value == null)
+						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
+					// get the current node's domain and the index of its setting
+					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
+					domain_idx = dom.findName(value);
+					if(domain_idx == -1) {	
+						String[] domElems = new String[dom.getOrder()];
+						for(int j = 0; j < domElems.length; j++)
+							domElems[j] = dom.getName(j);
+						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
+					}					
+					// side affair: learn the CPT of constant nodes here by incrementing the counter
+					if(ndCurrent.isConstant) {
+						int[] constantDomainIndices = new int[this.nodes.length];
+						constantDomainIndices[ndCurrent.index] = domain_idx;
+						this.counters[ndCurrent.index].count(constantDomainIndices);
+					}
 				}
-				domainIndices[ndCurrent.index] = domain_idx;
-				// side affair: learn the CPT of constant nodes here by incrementing the counter
-				if(ndCurrent.isConstant) {
-					int[] constantDomainIndices = new int[this.nodes.length];
-					constantDomainIndices[ndCurrent.index] = domain_idx;
-					this.counters[ndCurrent.index].count(constantDomainIndices);
-				}
-			}
+				domainIndices[extCurrent.index] = domain_idx;
+			}			
 			// count this example
 			if(countExample)
-				counter.count(domainIndices, exampleWeight);
+				counter.count(domainIndices, exampleWeight);			
 			// keep track of counts (just debugging)
 			/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
 			Integer i = counts.get(v);
@@ -216,14 +234,28 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	protected void countVariable(Database db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
 		// if we have the full set of parameters, count the example
 		if(i == params.length) {
+			
 			if(!closedWorld) {
 				String varName = RelationalNode.formatName(node.getFunctionName(), params);
 				if(!db.contains(varName))
 					return;
 			}
+			
+			// to determine if we really have to count the example, we must
+			// check if there are any decision parents and count only if all
+			// decision parents are true
+			Collection<DecisionNode> decisions = node.getDecisionParents();
+			if(decisions.size() > 0) {
+				for(DecisionNode decision : decisions) {
+					if(!decision.isTrue(node.params, params, db, closedWorld))
+						return;
+				}
+			}
+			
 			countVariable(db, node, params, closedWorld);
 			return;
 		}
+		
 		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable
 		Set<String> domain = db.getDomain(domainNames[i]);
 		for(String element : domain) {
