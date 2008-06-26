@@ -17,6 +17,7 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.bayesnets.relational.core.DecisionNode;
 import edu.tum.cs.bayesnets.relational.core.ParameterGrounder;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
@@ -56,6 +57,12 @@ public abstract class AbstractGroundBLN {
 			System.out.println("    " + relNode);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
 			for(String[] params : parameterSets) {
+				
+				// if the node is subject to preconditions (decision node parents), check if they are node
+				for(DecisionNode decision : relNode.getDecisionParents()) {					
+					if(!decision.isTrue(relNode.params, params, db, false))
+						continue;
+				}
 				
 				// add the node itself to the network
 				String mainNodeName = relNode.getVariableName(params);
