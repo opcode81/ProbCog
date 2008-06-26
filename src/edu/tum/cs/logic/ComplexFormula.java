@@ -2,6 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -19,13 +20,13 @@ public abstract class ComplexFormula extends Formula {
 	}
 	
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 		for(Formula f : children)
 			f.getVariables(db, ret);
 	}
 	
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		Vector<Formula> groundChildren = new Vector<Formula>();
 		for(Formula child : children) {
 			groundChildren.add(child.ground(binding, vars, db));

@@ -10,7 +10,7 @@ public abstract class UngroundedFormula extends Formula {
 	}
 
 	@Override
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		throw new RuntimeException("Cannot determine the truth value of an ungrounded formula.");
 	}
 }

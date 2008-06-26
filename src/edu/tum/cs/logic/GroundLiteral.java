@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
@@ -14,17 +14,17 @@ public class GroundLiteral extends Formula {
 		this.isPositive = isPositive;
 	}
 	
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		boolean v = w.isTrue(gndAtom);
 		return isPositive ? v : !v;
 	}
 
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		return this;
 	}
 

@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
 
@@ -18,12 +18,12 @@ public class Literal extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 		atom.getVariables(db, ret);	
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
 	}
 }

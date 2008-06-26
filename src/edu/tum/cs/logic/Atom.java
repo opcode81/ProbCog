@@ -2,6 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
@@ -25,7 +26,7 @@ public class Atom extends Formula {
 	}
 
 	@Override
-	public void getVariables(Database db, HashMap<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) {
 		Signature sig = db.getSignature(predName);
 		int i = 0;
 		for(String param : params) {			
@@ -46,7 +47,7 @@ public class Atom extends Formula {
 	}
 
 	@Override
-	public Formula ground(HashMap<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		StringBuffer sb = new StringBuffer(predName + "(");
 		int i = 0;
 		for(String param : params) {
@@ -71,7 +72,7 @@ public class Atom extends Formula {
 	}
 
 	@Override
-	public boolean isTrue(PossibleWorld w) {
+	public boolean isTrue(IPossibleWorld w) {
 		throw new RuntimeException("not supported");
 	}
 }

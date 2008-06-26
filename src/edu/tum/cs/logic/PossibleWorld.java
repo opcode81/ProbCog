@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-public class PossibleWorld {
+public class PossibleWorld implements IPossibleWorld {
 	
 	WorldVariables worldVars;
 	boolean[] state;
