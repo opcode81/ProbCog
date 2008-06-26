@@ -52,7 +52,7 @@ public class Database {
 		if(closedWorld) {
 			String nodeName = varName.substring(0, varName.indexOf('('));
 			Signature sig = bn.getSignature(nodeName);
-			if(sig.returnType.equals("Boolean"))
+			if(sig.isBoolean())
 				return "False";
 			else {
 				throw new Exception("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);

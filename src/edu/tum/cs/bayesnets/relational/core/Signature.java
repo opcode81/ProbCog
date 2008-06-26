@@ -23,6 +23,10 @@ public class Signature {
 		}
 	}
 	
+	public boolean isBoolean() {
+		return returnType.equalsIgnoreCase("boolean");
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("%s %s(%s)", returnType, functionName, RelationalNode.join(",", argTypes));

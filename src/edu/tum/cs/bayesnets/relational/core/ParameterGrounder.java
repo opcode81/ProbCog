@@ -4,9 +4,19 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.Vector;
 
-
+/**
+ * generates groundings of a single relational node
+ * @author jain
+ *
+ */
 public class ParameterGrounder {
-	
+	/**
+	 * generates all groundings of the given node using the domain elements specified in the given database
+	 * @param node
+	 * @param db
+	 * @return a collection of possible parameter bindings
+	 * @throws Exception
+	 */
 	public static Collection<String[]> generateGroundings(RelationalNode node, Database db) throws Exception {
 		return generateGroundings(db, node.getSignature().argTypes);
 	}

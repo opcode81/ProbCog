@@ -136,8 +136,7 @@ public class CPT2MLNFormulas {
 						conjunction.append(literal);
 					}
 					// add preconditions 
-					RelationalNode[] parents = bn.getRelationalParents(mainNode);
-					for(RelationalNode parent : parents) {
+					for(RelationalNode parent : bn.getRelationalParents(mainNode)) {
 						if(parent.isPrecondition) {
 							if(lits++ > 0)
 								conjunction.append(" ^ ");
