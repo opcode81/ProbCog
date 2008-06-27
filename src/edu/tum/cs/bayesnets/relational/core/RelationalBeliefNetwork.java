@@ -40,9 +40,14 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		 * list of indices of the parameters that make up a key
 		 */
 		public Vector<Integer> keyIndices;
+		/**
+		 * the original arguments with which the relation key was declared (i.e. list of parameters with "_" as entries for functionally determined arguments)
+		 */
+		protected String[] arguments;
 		
 		public RelationKey(String relation, String[] arguments) {
 			this.relation = relation;
+			this.arguments = arguments;
 			keyIndices = new Vector<Integer>();
 			for(int i = 0; i < arguments.length; i++) {
 				if(!arguments[i].equals("_")) {
@@ -52,7 +57,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		}
 		
 		public String toString() {
-			return relation + "[" + keyIndices + "]";
+			return relation + "(" + StringTool.join(",", arguments) + ")";
 		}
 	}
 	
