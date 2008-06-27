@@ -448,6 +448,22 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
+	 * saves a Bayesian network to the given filename (determining a suitable exporter from the extension) 
+	 * @param filename
+	 * @return
+	 * @throws Exception 
+	 */
+	public static void save(BeliefNetwork net, String filename) throws Exception {
+		registerDefaultPlugins();
+		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
+		String ext = iopl.GetExt(filename);
+		Exporter exporter = iopl.GetExportersByExt(ext);
+		if(exporter == null) 
+			throw new Exception("Unable to find an exporter that can handle " + ext + " files.");
+		save(net, filename, exporter);
+	}
+	
+	/**
 	 * static function for writing a Bayesian network to a file using a given exporter
 	 * @param net						the network to be written
 	 * @param filename					the file to write to
@@ -457,6 +473,16 @@ public class BeliefNetworkEx {
 	public static void save(BeliefNetwork net, String filename, Exporter exporter) throws FileNotFoundException {
 		exporter.save(net, new FileOutputStream(filename));
 		//OmniFormatV1_Writer.Write(net, (OmniFormatV1)exporter);
+	}
+	
+	/**
+	 * saves a Bayesian network to the given filename (determining a suitable exporter from the extension) 
+	 * @param filename
+	 * @return
+	 * @throws Exception 
+	 */
+	public void save(String filename) throws Exception {
+		save(this.bn, filename);
 	}
 	
 	/**
