@@ -36,6 +36,11 @@ public class Exist extends UngroundedFormula {
 
 	@Override
 	public Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception {
+		// check if the domains of the quantified variables have been determined, and obtain them if necessary
+		if(var2domName.size() < vars.size()) {			
+			this.getVariables(db, new HashMap<String, String>());
+		}
+		// ground
 		Vector<Formula> disjuncts = new Vector<Formula>();
 		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars);
 		return new Disjunction(disjuncts);
