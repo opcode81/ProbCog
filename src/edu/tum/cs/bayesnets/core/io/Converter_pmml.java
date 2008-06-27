@@ -6,6 +6,8 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.streams.*;
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.*;
@@ -21,20 +23,27 @@ import org.w3c.dom.*;
 public class Converter_pmml
     implements OmniFormatV1, Exporter, Importer
 {
-
     protected OmniFormatV1 _Writer;
     protected int bn_cnt;
     private int bnode_cnt;
-    protected HashMap<String, Integer> nodeIndices;
-	protected HashMap<String, NodeData> nodeData;
+    
+    // saving    
+	protected HashMap<Integer, NodeData> nodeData;
 	protected Writer w;
     public int netDepth;
 	protected int curNodeIdx;
+	//protected HashMap adjList;
+	
+	// loading
 	protected HashMap<Integer, String> nodeNames;
-	protected HashMap adjList;
-	protected String cpf, cpfNodeName;
+	//protected HashMap<String, Integer> nodeIndices;	
+	protected HashMap<Integer, Integer> nodeIndices; // maps node IDs to node indices
     protected NodeData curNode;
-	HashMap<String, Node> cptParents;
+	HashMap<Integer, Node> cptTags;
+	
+	// omiformat
+	protected StringBuffer cpf;
+	protected int cpfNodeID;
 	
 	
     public Converter_pmml()
@@ -48,7 +57,9 @@ public class Converter_pmml
         return this;
     }
 
-	// ------------- LOADING ---------------
+    // ************************************************
+	// ***************** LOADING **********************
+    // ************************************************
 	
     public void load(InputStream stream, OmniFormatV1 writer)
     {
@@ -56,7 +67,7 @@ public class Converter_pmml
         _Writer.Start();
         bn_cnt = 0;
         bnode_cnt = 0;
-        nodeIndices = new HashMap<String, Integer>();
+        nodeIndices = new HashMap<Integer, Integer>();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         //factory.setValidating(true);
         factory.setNamespaceAware(true);
@@ -107,16 +118,15 @@ public class Converter_pmml
                     }
 					
 					// read child nodes
-					cptParents = new HashMap<String, Node>();					
+					cptTags = new HashMap<Integer, Node>();					
                     visitDocument(node);
 					
 					// process cpt definitions for nodes that were gathered along the way
-					Set<String> nodeNames = cptParents.keySet();
-					for(Iterator<String> iter = nodeNames.iterator(); iter.hasNext();) {
-						String nodeName = iter.next();
-						visitDefinition(cptParents.get(nodeName), nodeName);
+                    //System.out.println("processing CPTs");
+					for(Entry<Integer,Node> e : cptTags.entrySet()) {
+						visitDefinition(e.getValue(), e.getKey());
 					}
-					cptParents = null;			
+					cptTags = null;			
                 } 
 				else if(name.equals("DataDictionary")) {
                     _Writer.CreateBeliefNetwork(bn_cnt);
@@ -143,45 +153,53 @@ public class Converter_pmml
             switch(node.getNodeType()) {
             case 1: // '\001'
                 String name = node.getNodeName();
-                if(name.equals("DataField")) {
-                    _Writer.BeginBeliefNode(bnode_cnt);
-                    visitDataField(node);
-                    _Writer.EndBeliefNode();
+                if(name.equals("DataField")) {                    
+                    visitDataField(node);                    
                     bnode_cnt++;
                 }
 			}
         }
     }
 
+    /**
+     * a <DataField> contains all the data on one node in the BN
+     * @param parent
+     */
     protected void visitDataField(Node parent)
     {        
-		// process attributes
-		
+		// read attributes
         NamedNodeMap attrs = parent.getAttributes();
-		String nodeName = "";
-        int max;
+		String nodeName = null;
+		Integer nodeID = null; 
+        int max;        
         if(attrs != null) {
             max = attrs.getLength();
             for(int i = 0; i < max; i++) {
                 Node attr = attrs.item(i);
-                String name = attr.getNodeName();
+                String attrName = attr.getNodeName();
                 String value = attr.getNodeValue();
-                if(name.equals("name")) {
+                if(attrName.equals("name")) {
 					nodeName = value;
-                    nodeIndices.put(nodeName, new Integer(bnode_cnt));
-                    _Writer.SetBeliefNodeName(nodeName);					
-                } 
+                    //nodeIndices.put(nodeName, new Integer(bnode_cnt));                    					
+                }
+                if(attrName.equals("id")) {
+					nodeID = Integer.parseInt(value);                   					
+                }
 				/*else {
                     System.out.println("Unhandled variable property attribute " + name);
                 }*/
             }
         }
 		
-		if(nodeName.equals(""))
-			throw new RuntimeException("Missing DataField attribute 'name'!");
-			
+		if(nodeName == null || nodeID == null)
+			throw new RuntimeException("Missing DataField attribute 'name' or 'id'!");
 		
-		// process child nodes
+		nodeIndices.put(nodeID, new Integer(bnode_cnt));
+		
+		_Writer.BeginBeliefNode(bnode_cnt);
+		_Writer.SetBeliefNodeName(nodeName);	
+		
+		// process child tags
         
 		NodeList l = parent.getChildNodes();
         max = l.getLength();		
@@ -198,7 +216,7 @@ public class Converter_pmml
 							_Writer.BeliefNodeOutcome(attr.getNodeValue());							
 					}						
 				}
-				else if(name.equals("Extension")) {					
+				else if(name.equals("Extension")) {	
 					NodeList l_ext = node.getChildNodes();
 					for(int j = 0; j < l_ext.getLength(); j++) {
 						Node n = l_ext.item(j);						
@@ -218,21 +236,23 @@ public class Converter_pmml
 							_Writer.SetBeliefNodePosition(xPos, yPos);
 						}
 						else if(n.getNodeName().equals("X-Definition"))
-							cptParents.put(nodeName, n);						
+							cptTags.put(nodeID, n); // remember the X-Definition node for later				
 					}
 				}
                 break;
             }
         }
+        
+        _Writer.EndBeliefNode();
     }
 
-    protected void visitDefinition(Node parent, String nodeName)
+    protected void visitDefinition(Node definition, int nodeID)
     {
-        NodeList l = parent.getChildNodes();
+        NodeList l = definition.getChildNodes();
         if(l == null)
             return;
-        LinkedList parents = new LinkedList();
-        int curNode = nodeIndices.get(nodeName).intValue();
+        LinkedList<Integer> parents = new LinkedList<Integer>();
+        int curNode = nodeIndices.get(nodeID); //nodeIndices.get(nodeName).intValue();
         String CPTString = "";
         int max = l.getLength();
         for(int i = 0; i < max; i++)
@@ -242,19 +262,19 @@ public class Converter_pmml
             {
             case 1: // '\001'
                 String name = node.getNodeName();
-                if(name.equals("X-Given"))
-                    parents.add(nodeIndices.get(getElementValue(node)));
+                if(name.equals("X-Given")) {                	
+                    parents.add(nodeIndices.get(Integer.parseInt(getElementValue(node))));
+                }
                 else
-                if(name.equals("X-Table"))
-                    CPTString = getElementValue(node);
+                	if(name.equals("X-Table"))
+                		CPTString = getElementValue(node);
             }
         }
 
         if(curNode >= 0)
         {
-            int p;
-            for(Iterator i = parents.iterator(); i.hasNext(); _Writer.Connect(p, curNode))
-                p = ((Integer)i.next()).intValue();
+            for(Integer p : parents)
+            	_Writer.Connect(p, curNode);
 
             _Writer.BeginCPF(curNode);
             StringTokenizer tok = new StringTokenizer(CPTString);
@@ -298,16 +318,19 @@ public class Converter_pmml
         return buf.toString().trim();
     }
 
-	
-	
-	// -------------------- SAVING --------------------
+    // ************************************************
+	// ***************** SAVING ***********************
+    // ************************************************
 	
 	protected class NodeData {
 		public String cpfData, subElements, nodeType, opType, name, domainClassName;
+		int index;
 		int xPos, yPos;
+		Vector<Integer> parents;
 		public NodeData() {
 			cpfData = new String();
 			subElements = new String();
+			parents = new Vector<Integer>();
 		}
 	}
 
@@ -333,7 +356,7 @@ public class Converter_pmml
     {
         netDepth = 0;
         nodeNames = new HashMap<Integer, String>();
-        adjList = new HashMap();
+        //adjList = new HashMap();
         fwrite("<?xml version=\"1.0\" encoding=\"US-ASCII\"?>\n");
         fwrite("<!-- Bayesian network in a PMML-based format -->\n");
         fwrite("<PMML version=\"3.0\" xmlns=\"http://www.dmg.org/PMML-3_0\">\n");
@@ -347,7 +370,7 @@ public class Converter_pmml
             netDepth = 0;
 			fwrite("\t</DataDictionary>\n");
         }
-		nodeData = new HashMap<String,NodeData>();
+		nodeData = new HashMap<Integer,NodeData>();
 		fwrite("\t<DataDictionary>\n");
         netDepth = 1;
     }
@@ -359,8 +382,9 @@ public class Converter_pmml
 
     public void BeginBeliefNode(int idx) {
 		curNode = new NodeData();
+		curNode.index = idx;
         curNodeIdx = idx;
-        adjList.put(new Integer(curNodeIdx), new ArrayList());
+        //adjList.put(new Integer(curNodeIdx), new ArrayList());
     }
 
     public void SetType(String type)
@@ -386,6 +410,7 @@ public class Converter_pmml
     }
 
     public void SetBeliefNodeName(String name) {
+    	System.out.println(name);
 		curNode.name = name;
         nodeNames.put(new Integer(curNodeIdx), name);
     }
@@ -394,39 +419,39 @@ public class Converter_pmml
     }
 
     public void EndBeliefNode() {
-		nodeData.put(curNode.name, curNode);
+		nodeData.put(curNode.index, curNode);
     }
 
     public void Connect(int par_idx, int chi_idx) {
-        ArrayList adj = (ArrayList)adjList.get(new Integer(chi_idx));
-        adj.add(new Integer(par_idx));
+    	nodeData.get(chi_idx).parents.add(par_idx);
     }
 
     public void BeginCPF(int idx) {
-        ArrayList adj = (ArrayList)adjList.get(new Integer(idx));
-        cpfNodeName = (String)nodeNames.get(new Integer(idx));
-        cpf = "\t\t\t\t<X-Definition>\n";
-        //cpf += "\t\t\t<FOR>" + curNodeName + "</FOR>\n";
+    	//System.out.println("CPF: " + nodeData.get(idx).name);
+        cpfNodeID = idx;
+        cpf = new StringBuffer("\t\t\t\t<X-Definition>\n");
         String gname;
-        for(Iterator it = adj.iterator(); it.hasNext(); cpf += "\t\t\t\t\t<X-Given>" + gname + "</X-Given>\n")
+        for(Integer given : nodeData.get(idx).parents)
         {
-            Integer given = (Integer)it.next();
+            //Integer given = (Integer)it.next();
             gname = (String)nodeNames.get(given);
+            cpf.append("\t\t\t\t\t<X-Given>" + given + "</X-Given> <!-- " + gname + " -->\n");
         }
-        cpf += "\t\t\t\t\t<X-Table>";
+        cpf.append("\t\t\t\t\t<X-Table>");
     }
 
     public void ForwardFlat_CPFWriteValue(String x)
     {
-        cpf += x + " ";
+        cpf.append(x + " ");
     }
 
     public void EndCPF()
     {
-        cpf += "</X-Table>\n";
-		cpf += "\t\t\t\t</X-Definition>\n";		
-		NodeData d = (NodeData)nodeData.get(cpfNodeName);
-		d.cpfData = cpf;
+        cpf.append("</X-Table>\n");
+		cpf.append("\t\t\t\t</X-Definition>\n");		
+		NodeData d = (NodeData)nodeData.get(cpfNodeID);
+		d.cpfData = cpf.toString();
+		//System.out.println("done.");
     }
 
     public int GetCPFSize()
@@ -442,7 +467,7 @@ public class Converter_pmml
 			Iterator<NodeData> i = nodeData.values().iterator();
 			while(i.hasNext()) {
 				NodeData nd = i.next();
-		        fwrite("\t\t<DataField name=\"" + nd.name + "\" optype=\"" + nd.opType + "\">\n");
+		        fwrite("\t\t<DataField name=\"" + nd.name + "\" optype=\"" + nd.opType + "\" id=\"" + nd.index + "\">\n");
 				fwrite("\t\t\t<Extension>\n");
 				fwrite("\t\t\t\t<X-NodeType>" + nd.nodeType + "</X-NodeType>\n");
 				if (nd.domainClassName != null)
