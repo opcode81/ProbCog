@@ -18,6 +18,7 @@ import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.bayesnets.relational.core.DecisionNode;
+import edu.tum.cs.bayesnets.relational.core.ExtendedNode;
 import edu.tum.cs.bayesnets.relational.core.ParameterGrounder;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
@@ -30,35 +31,46 @@ public abstract class AbstractGroundBLN {
 	protected AbstractBayesianLogicNetwork bln;
 	protected Vector<String> hardFormulaNodes;
 	protected String databaseFile;
-	protected Database db;	
+	protected Database db;
+	protected static final boolean debug = false;
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
 		this.databaseFile = databaseFile;
-		init();
-		boolean debug = false;
+		init();		
 		
 		System.out.println("reading evidence...");
 		db = new Database(bln.rbn);
-		db.readBLOGDB(databaseFile);
-		
+		db.readBLOGDB(databaseFile);		
+	}
+
+	public void instantiateGroundNetwork() throws Exception {
 		System.out.println("generating network...");
 		groundBN = new BeliefNetworkEx();
 		
 		// ground regular probabilistic nodes (i.e. ground atoms)
 		System.out.println("  regular nodes");
 		RelationalBeliefNetwork rbn = bln.rbn;
+		
+		// TODO with comment nodes (#), the topological ordering may not work, because the actual instantiation of the comment node may not have occurred yet 
 		int[] order = rbn.getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
-			int nodeNo = order[i];
-			RelationalNode relNode = rbn.getRelationalNode(nodeNo);
+			int nodeNo = order[i];		
+		//TopologicalOrdering o = new TopologicalSort(rbn.bn).run();
+		//for(Integer nodeNo : o) {
+			ExtendedNode extNode = rbn.getExtendedNode(nodeNo);
+			//System.out.println(rbn.bn.getNodes()[nodeNo].getName());
+			if(!(extNode instanceof RelationalNode)) {
+				continue;
+			}
+			RelationalNode relNode = (RelationalNode)extNode;
 			if(relNode.isConstant || relNode.isAuxiliary)
 				continue;
 			System.out.println("    " + relNode);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
 			for(String[] params : parameterSets) {
 				
-				// if the node is subject to preconditions (decision node parents), check if they are node
+				// if the node is subject to preconditions (decision node parents), check if they are met
 				for(DecisionNode decision : relNode.getDecisionParents()) {					
 					if(!decision.isTrue(relNode.params, params, db, false))
 						continue;
@@ -115,7 +127,7 @@ public abstract class AbstractGroundBLN {
 		// ground formulaic nodes
 		System.out.println("  formulaic nodes");
 		hardFormulaNodes = new Vector<String>();
-		groundFormulaicNodes();
+		groundFormulaicNodes();		
 	}
 	
 	protected void init() {}
@@ -174,7 +186,10 @@ public abstract class AbstractGroundBLN {
 				constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
 				continue;
 			}
-			BeliefNode parent = groundBN.getNode(relParent.getVariableName(entry.getValue()));
+			String parentVarName = relParent.getVariableName(entry.getValue());
+			BeliefNode parent = groundBN.getNode(parentVarName);
+			if(parent == null)
+				throw new Exception("Could not find the parent node that corresponds to the variable " + parentVarName + " while processing " + targetNode.getName());
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
 			groundBN.bn.connect(parent, targetNode);
 			src2targetParent.put(relParent.node, parent);
