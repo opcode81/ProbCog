@@ -1,5 +1,7 @@
 package edu.tum.cs.bayesnets.relational.core;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +25,19 @@ public class ABL extends BLOGModel {
 	
 	public ABL(String blogFile, String xmlbifFile) throws Exception {
 		this(new String[]{blogFile}, xmlbifFile);
+	}
+	
+	@Override
+	protected void writeDeclarations(PrintStream out) {
+		super.writeDeclarations(out);
+		
+		// write relation keys
+		for(Collection<RelationKey> ckey : this.relationKeys.values()) {
+			for(RelationKey key : ckey) {
+				out.println("RelationKey " + key.toString());
+			}
+		}
+		out.println();
 	}
 	
 	public static void main(String[] args) {

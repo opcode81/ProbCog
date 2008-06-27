@@ -195,6 +195,36 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	public void write(PrintStream out) throws Exception {
 		BeliefNode[] nodes = bn.getNodes();
 		
+		// write declarations for types, guaranteed domain elements and functions
+		writeDeclarations(out);
+		
+		// CPTs
+		// TODO handle decision parents properly by using if-then-else
+		for(RelationalNode relNode : getRelationalNodes()) {
+			if(relNode.isAuxiliary) 
+				continue;
+			CPF cpf = nodes[relNode.index].getCPF();
+			BeliefNode[] deps = cpf.getDomainProduct();
+			Discrete[] domains = new Discrete[deps.length];
+			StringBuffer args = new StringBuffer();
+			int[] addr = new int[deps.length];
+			for(int j = 0; j < deps.length; j++) {
+				if(deps[j].getType() == BeliefNode.NODE_DECISION) // ignore decision nodes (they are not dependencies because they are assumed to be true)
+					continue;
+				if(j > 0) {
+					if(j > 1)
+						args.append(", ");
+					args.append(getRelationalNode(deps[j]).getCleanName());
+				}
+				domains[j] = (Discrete)deps[j].getDomain();
+			}
+			Vector<String> lists = new Vector<String>();
+			getCPD(lists, cpf, domains, addr, 1);
+			out.printf("%s ~ TabularCPD[%s](%s);\n", relNode.getCleanName(), RelationalNode.join(",", lists.toArray(new String[0])), args.toString());
+		}
+	}
+	
+	protected void writeDeclarations(PrintStream out) {
 		// write type decls 
 		Set<String> types = new HashSet<String>();
 		for(RelationalNode node : this.getRelationalNodes()) {
@@ -249,29 +279,6 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			out.printf("random %s %s(%s);\n", sig.returnType, node.functionName, RelationalNode.join(", ", sig.argTypes));			
 		}
 		out.println();
-		
-		// CPTs
-		for(int i = 0; i < nodes.length; i++) {
-			RelationalNode relNode = getRelationalNode(nodes[i]); 
-			if(relNode.isAuxiliary) 
-				continue;
-			CPF cpf = nodes[i].getCPF();
-			BeliefNode[] deps = cpf.getDomainProduct();
-			Discrete[] domains = new Discrete[deps.length];
-			StringBuffer args = new StringBuffer();
-			int[] addr = new int[deps.length];
-			for(int j = 0; j < deps.length; j++) {
-				if(j > 0) {
-					args.append(getRelationalNode(deps[j]).getCleanName());
-					if(j < deps.length-1)
-						args.append(", ");
-				}
-				domains[j] = (Discrete)deps[j].getDomain();
-			}
-			Vector<String> lists = new Vector<String>();
-			getCPD(lists, cpf, domains, addr, 1);
-			out.printf("%s ~ TabularCPD[%s](%s);\n", relNode.getCleanName(), RelationalNode.join(",", lists.toArray(new String[0])), args.toString());
-		}
 	}
 	
 	protected void getCPD(Vector<String> lists, CPF cpf, Discrete[] domains, int[] addr, int i) {
@@ -290,9 +297,15 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			lists.add(sb.toString());
 		}
 		else {
-			for(int j = 0; j < domains[i].getOrder(); j++) {
-				addr[i] = j;
-				getCPD(lists, cpf, domains, addr, i+1);
+			// go through all possible parent-child configurations
+			BeliefNode[] domProd = cpf.getDomainProduct();
+			if(domProd[i].getType() == BeliefNode.NODE_DECISION) // for decision nodes, always assume true
+				addr[i] = 0;
+			else {
+				for(int j = 0; j < domains[i].getOrder(); j++) {
+					addr[i] = j;
+					getCPD(lists, cpf, domains, addr, i+1);
+				}
 			}
 		}
 	}
