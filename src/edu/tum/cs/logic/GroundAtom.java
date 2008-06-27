@@ -22,6 +22,9 @@ public class GroundAtom extends Formula {
 	public GroundAtom(String gndAtom) {
 		Pattern p = Pattern.compile("(\\w+)\\(([^\\)]+)\\)");
 		Matcher m = p.matcher(gndAtom);
+		if(!m.matches()) {
+			throw new RuntimeException("Could not parse ground atom '" + gndAtom + "'");
+		}
 		predicate = m.group(1);
 		args = m.group(2).split("\\s*,\\s*");
 		index = -1;
