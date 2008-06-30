@@ -53,12 +53,6 @@ class BLNQuery:
 
         row = 0
 
-        # bif selection
-        #Label(self.frame, text="BIF: ").grid(row=row, column=0, sticky=NE)
-        #self.selected_bif = FilePick(self.frame, "*.xml", self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
-        #self.selected_bif.grid(row=row, column=1, sticky="NWES")
-        #self.frame.rowconfigure(row, weight=1)
-        
         # - BIF selection
         Label(self.frame, text="BIF: ").grid(row=row, column=0, sticky=NE)
         # frame
@@ -66,7 +60,7 @@ class BLNQuery:
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # file picker
-        self.selected_bif = FilePick(frame, "*.xml", self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
+        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
         self.selected_bif.grid(row=0, column=0, sticky="NWES")
         frame.rowconfigure(0, weight=1)
         # show button
