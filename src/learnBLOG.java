@@ -19,7 +19,7 @@ public class learnBLOG {
 			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
 			
 			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false, toMLN = false;
-			String blogFile = null, bifFile = null, dbFile = null, outFile = null;
+			String blogFile = null, bifFile = null, dbFile = null, outFileBLOG = null, outFileNetwork = null;
 			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-s"))
@@ -34,8 +34,10 @@ public class learnBLOG {
 					bifFile = args[++i];
 				else if(args[i].equals("-t"))
 					dbFile = args[++i];
-				else if(args[i].equals("-o"))
-					outFile = args[++i];
+				else if(args[i].equals("-ob"))
+					outFileBLOG = args[++i];
+				else if(args[i].equals("-ox"))
+					outFileNetwork = args[++i];
 				else if(args[i].equals("-bln"))
 					basicBLN = true;
 				else if(args[i].equals("-mln"))
@@ -43,8 +45,8 @@ public class learnBLOG {
 				else if(args[i].equals("-nn"))
 					noNormalization = true;					
 			}			
-			if(bifFile == null || dbFile == null || outFile == null) {
-				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <xml-BIF file>> <-t <training db>> <-o <output file>> [-s] [-d]\n\n"+
+			if(bifFile == null || dbFile == null || outFileBLOG == null || outFileNetwork == null) {
+				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
 							         "    -b    " + acronym + " file from which to read function signatures\n" +
 						             "    -s    show learned Bayesian network\n" +
 						             "    -d    learn domains\n" + 
@@ -98,28 +100,26 @@ public class learnBLOG {
 				if(!noNormalization)
 					cptLearner.finish();
 				// write learnt BLOG/ABL model
-				System.out.println("Writing "+ acronym + " output to " + outFile + "...");
-				PrintStream out = new PrintStream(new File(outFile));
+				System.out.println("Writing "+ acronym + " output to " + outFileBLOG + "...");
+				PrintStream out = new PrintStream(new File(outFileBLOG));
 				bn.write(out);			
 				out.close();
 				// write parameters to Bayesian network template
-				int dotpos = bifFile.lastIndexOf('.');
-				bifFile = bifFile.substring(0, dotpos) + ".learnt.xml";
-				System.out.println("Writing XML-BIF output to " + bifFile + "...");
-				bn.saveXMLBIF(bifFile);
+				System.out.println("Writing network output to " + outFileNetwork + "...");
+				bn.save(outFileNetwork);
 			}
 			// write basic BLN 
 			if(basicBLN) {
-				String filename = outFile + ".bln";
+				String filename = outFileBLOG + ".bln";
 				System.out.println("Writing BLN " + filename);
-				PrintStream out = new PrintStream(new File(outFile + ".bln"));
+				PrintStream out = new PrintStream(new File(outFileBLOG + ".bln"));
 				bn.toMLN(out, true, false, false);
 			}
 			// write MLN
 			if(toMLN) {
-				String filename = outFile + ".mln";
+				String filename = outFileBLOG + ".mln";
 				System.out.println("Writing MLN " + filename);
-				PrintStream out = new PrintStream(new File(outFile + ".mln"));
+				PrintStream out = new PrintStream(new File(outFileBLOG + ".mln"));
 				bn.toMLN(out, false, false, false);
 			}
 			// show bayesian network
