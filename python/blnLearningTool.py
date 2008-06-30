@@ -1,4 +1,4 @@
-# BLN Query Tool
+# BLN Learning Tool
 #
 # (C) 2008 by Dominik Jain
 # 
@@ -52,20 +52,14 @@ class BLNLearn:
 
         row = 0
 
-        # bif selection
-        #Label(self.frame, text="BIF: ").grid(row=row, column=0, sticky=NE)
-        #self.selected_bif = FilePick(self.frame, "*.xml", self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
-        #self.selected_bif.grid(row=row, column=1, sticky="NWES")
-        #self.frame.rowconfigure(row, weight=1)
-        
-        # - BIF selection
-        Label(self.frame, text="BIF: ").grid(row=row, column=0, sticky=NE)
+        # BIF selection
+        Label(self.frame, text="Network: ").grid(row=row, column=0, sticky=NE)
         # frame
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # file picker
-        self.selected_bif = FilePick(frame, "*.xml", self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
+        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
         self.selected_bif.grid(row=0, column=0, sticky="NWES")
         frame.rowconfigure(0, weight=1)
         # show button
@@ -112,7 +106,7 @@ class BLNLearn:
         #frame.columnconfigure(0, weight=1)
         # - domain learning
         self.learn_domains = IntVar()
-        self.cb_learn_domains = Checkbutton(frame, text="learn Domains", variable=self.learn_domains)
+        self.cb_learn_domains = Checkbutton(frame, text="learn domains", variable=self.learn_domains)
         self.cb_learn_domains.grid(row=0, column=1, sticky=W)
         self.learn_domains.set(self.settings.get("learnDomains", 1))
         # - domain learning
@@ -131,7 +125,7 @@ class BLNLearn:
         
         # output filename
         row += 1
-        Label(self.frame, text="Output: ").grid(row=row, column=0, sticky="NE")
+        Label(self.frame, text="BLOG/ABL output: ").grid(row=row, column=0, sticky="NE")
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
@@ -145,6 +139,18 @@ class BLNLearn:
         #self.cb_save_results = Checkbutton(frame, text="save", variable=self.save_results)
         #self.cb_save_results.grid(row=0, column=1, sticky=W)
         #self.save_results.set(self.settings.get("saveResults", 0))
+
+        # output filename
+        row += 1
+        Label(self.frame, text="Network output: ").grid(row=row, column=0, sticky="NE")
+        frame = Frame(self.frame)
+        frame.grid(row=row, column=1, sticky="NEW")
+        frame.columnconfigure(0, weight=1)
+        # - filename
+        self.net_output_filename = StringVar(master)
+        self.net_output_filename.set(self.settings.get("netOutputFilename", ""))
+        self.entry_net_output_filename = Entry(frame, textvariable = self.net_output_filename)
+        self.entry_net_output_filename.grid(row=0, column=0, sticky="NEW")
 
         # start button
         row += 1
@@ -165,10 +171,11 @@ class BLNLearn:
         self.setOutputFilename()
     
     def changedBIF(self, name):
-        pass
+        self.bif_filename = name
+        self.setOutputFilename()
     
     def changedBLOG(self, name):
-        self.blog_filename = self.selected_blog.get_filename()
+        self.blog_filename = name
         self.setOutputFilename()
             
     def changedDB(self, name):
@@ -176,13 +183,17 @@ class BLNLearn:
         self.setOutputFilename()
         
     def setOutputFilename(self):
-        if not self.initialized or not hasattr(self, "blog_filename"):
+        if not self.initialized or not hasattr(self, "blog_filename") or not hasattr(self, "bif_filename"):
             return
         #fn = config.query_output_filename(self.mln_filename, self.db_filename)
         dotpos = self.blog_filename.rfind(".")
         ext = self.blog_filename[dotpos+1:]
         basename = self.blog_filename[:dotpos]
         self.output_filename.set("%s.learnt.%s" % (basename, ext))
+        # network output
+        dotpos = self.bif_filename.rfind(".")
+        ext = self.bif_filename[dotpos+1:]
+        self.net_output_filename.set("%s.learnt.%s" % (basename, ext))
         
     def showBN(self):
         bif = self.selected_bif.get()
@@ -199,6 +210,7 @@ class BLNLearn:
         #method = self.selected_method.get()
         params = self.params.get()
         output = self.output_filename.get()
+        netOutput = self.net_output_filename.get()
         #cwPreds = self.cwPreds.get().strip().replace(" ", "")
         
         # update settings
@@ -212,6 +224,7 @@ class BLNLearn:
         #self.settings["method"] = method
         self.settings["params"] = params
         self.settings["outputFilename"] = output
+        self.settings["netOutputFilename"] = netOutput
         #self.settings["openWorld"] = self.open_world.get()
         #self.settings["cwPreds"] = cwPreds
         #self.settings["maxSteps"] = self.maxSteps.get()
@@ -227,7 +240,7 @@ class BLNLearn:
         self.master.withdraw()
         
         # create command to execute
-        params = '-x "%s" -b "%s" -t "%s" -o "%s"' % (bif, blog, db, output)
+        params = '-x "%s" -b "%s" -t "%s" -ob "%s" -ox "%s"' % (bif, blog, db, output, netOutput)
         #if cwPreds != "":
         #    params += " -cw %s" % cwPreds
         if self.settings["learnDomains"]: params += " -d"
