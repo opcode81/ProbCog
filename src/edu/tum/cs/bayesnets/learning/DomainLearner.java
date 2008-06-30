@@ -53,11 +53,11 @@ public class DomainLearner extends Learner {
 	protected ClusterNamer<SimpleKMeans> clusterNamer;
 
 	/**
-	 * an array of strings containing the names of nodes for which the domains
+	 * an array of nodes for which the domains
 	 * are to be learnt directly from the set of examples (i.e. every value that
 	 * occurs in the examples is also a possible outcome in the domain);
 	 */
-	protected String[] directDomains;
+	protected BeliefNode[] directDomains;
 
 	/**
 	 * an array of hash sets, where each set contains the outcomes that were
@@ -135,7 +135,7 @@ public class DomainLearner extends Learner {
 			ClusteredDomain[] clusteredDomains, ClusterNamer namer,
 			String[][] duplicateDomains) throws Exception {
 		super(bn);
-		init(directDomains, clusteredDomains, namer, duplicateDomains);
+		init(getBeliefNodes(directDomains), clusteredDomains, namer, duplicateDomains);
 	}
 
 	/**
@@ -171,7 +171,7 @@ public class DomainLearner extends Learner {
 			ClusteredDomain[] clusteredDomains, ClusterNamer namer,
 			String[][] duplicateDomains) {
 		super(bn);
-		init(directDomains, clusteredDomains, namer, duplicateDomains);
+		init(getBeliefNodes(directDomains), clusteredDomains, namer, duplicateDomains);
 	}
 
 	/**
@@ -196,14 +196,17 @@ public class DomainLearner extends Learner {
 	 */
 	public DomainLearner(BeliefNetworkEx bn) {
 		super(bn);
-		BeliefNode[] nodes = bn.bn.getNodes();
-		String[] directDomains = new String[nodes.length];
-		for (int i = 0; i < nodes.length; i++)
-			directDomains[i] = nodes[i].getName();
-		init(directDomains, null, null, null);
+		init(bn.bn.getNodes(), null, null, null);
 	}
 
-	private void init(String[] directDomains,
+	protected BeliefNode[] getBeliefNodes(String[] names) {
+		BeliefNode[] nodes = new BeliefNode[names.length];
+		for(int i = 0; i < names.length; i++)
+			nodes[i] = this.bn.getNode(names[i]);
+		return nodes;
+	}
+	
+	private void init(BeliefNode[] directDomains,
 			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
 			String[][] duplicateDomains) {
 		this.clusteredDomains = clusteredDomains;
@@ -262,7 +265,7 @@ public class DomainLearner extends Learner {
 			// for direct learning, add outcomes to the set of outcomes
 			for (int i = 0; i < numDirectDomains; i++) {
 				((HashSet<String>) directDomainData[i]).add(rs
-						.getString(directDomains[i]));
+						.getString(directDomains[i].getName()));
 			}
 			// for clustering, gather all instances
 			for (int i = 0; i < numClusteredDomains; i++) {
@@ -304,7 +307,7 @@ public class DomainLearner extends Learner {
 			// for direct learning, add outcomes to the set of outcomes
 			for (int i = 0; i < numDirectDomains; i++) {
 				((HashSet<String>) directDomainData[i]).add(instance.stringValue(
-						instances.attribute(directDomains[i])));
+						instances.attribute(directDomains[i].getName())));
 			}
 			// for clustering, gather all instances
 			for (int i = 0; i < numClusteredDomains; i++) {
@@ -417,12 +420,12 @@ public class DomainLearner extends Learner {
 				Discrete domain = new Discrete();
 				for (Iterator<String> iter = hs.iterator(); iter.hasNext();)
 					domain.addName(iter.next());
-				BeliefNode node = bn.getNode(directDomains[i]);
+				BeliefNode node = directDomains[i];
 				if (node == null) {
 					System.out.println("No node with name '" + directDomains[i]
 							+ "' found to learn direct domain for.");
 				}
-				//System.out.println("setting domain " + hs + " to " + node.getName());
+				//System.out.println("DomainLearner: applying domain " + hs + " to " + node.getName());
 				bn.bn.changeBeliefNodeDomain(node, domain);
 			}
 		if (clusteredDomains != null)

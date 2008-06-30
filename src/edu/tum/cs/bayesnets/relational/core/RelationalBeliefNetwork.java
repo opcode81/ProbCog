@@ -642,6 +642,16 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 			return s.toString();
 		}
 	}
+	
+	@Override
+	public BeliefNode getNode(String name) {
+		throw new RuntimeException("This method should never be called in relational networks because they may contain several nodes with the same name, so the mapping may not be well-defined.");
+	}
+	
+	@Override
+	public int getNodeIndex(String nodeName) {
+		throw new RuntimeException("This method should never be called in relational networks because they may contain several nodes with the same name.");
+	}
 }
 
 

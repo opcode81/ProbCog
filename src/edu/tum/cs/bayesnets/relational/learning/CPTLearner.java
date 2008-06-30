@@ -67,7 +67,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 
 		// do some precomputations to determine example weight
 		if(false) {
-			// TODO the code below does not yet consider the possibility of decision nodes as parents
+			// TODO the code in this block does not yet consider the possibility of decision nodes as parents
 			// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights		
 			if(node.aggregator != null && node.aggregator.equals("AVG") && node.parentMode != null && node.parentMode.equals("CP")) {
 				// create a vector of counts/probabilities
@@ -130,6 +130,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				//System.out.println("weight: " + exampleWeight);
 			}
 		}
+		// precomputations done... now the actual counting starts
 			
 		// set the domain indices of all relevant nodes (node itself and parents)			
 		for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
@@ -149,7 +150,14 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					// get the corresponding RelationalNode object
 					RelationalNode ndCurrent = (RelationalNode)extCurrent;
 					// determine the value of the node given the parameter settings implied by the main node
-					String value = ndCurrent.getValueInDB(paramSets.get(ndCurrent.index), db, closedWorld);
+					String[] actualParams = paramSets.get(ndCurrent.index);
+					if(actualParams == null) {
+						Vector<String> availableNodes = new Vector<String>();
+						for(Integer idx : paramSets.keySet())
+							availableNodes.add(idx.toString() + "/" + ndCurrent.getNetwork().getRelationalNode(idx).toString());
+						throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
+					}
+					String value = ndCurrent.getValueInDB(actualParams, db, closedWorld);
 					// if the node is a precondition, i.e. it is required to be true, check that it really is
 					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
 						// it's not, so skip this example

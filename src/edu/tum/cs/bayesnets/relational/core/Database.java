@@ -47,8 +47,10 @@ public class Database {
 	 */
 	public String getVariableValue(String varName, boolean closedWorld) throws Exception {
 		Variable var = this.entries.get(varName.toLowerCase());
+		// if we have the value, return it
 		if(var != null)
 			return var.value;
+		// otherwise, return the default value of false for boolean predicates or raise an exception for non-boolean functions 
 		if(closedWorld) {
 			String nodeName = varName.substring(0, varName.indexOf('('));
 			Signature sig = bn.getSignature(nodeName);

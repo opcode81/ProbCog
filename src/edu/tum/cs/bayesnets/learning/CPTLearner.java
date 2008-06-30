@@ -434,7 +434,7 @@ public class CPTLearner extends Learner {
 			BeliefNode[] nodes = cpf.getDomainProduct();
 			nodeIndices = new int[nodes.length];
 			for(int i = 0; i < nodes.length; i++)
-				nodeIndices[i] = bn.getNodeIndex(nodes[i].getName());	
+				nodeIndices[i] = bn.getNodeIndex(nodes[i]);	
 		}
 	
 		/**
