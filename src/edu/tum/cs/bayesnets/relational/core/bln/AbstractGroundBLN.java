@@ -32,7 +32,9 @@ public abstract class AbstractGroundBLN {
 	protected Vector<String> hardFormulaNodes;
 	protected String databaseFile;
 	protected Database db;
-	protected static final boolean debug = true;
+	protected HashMap<String, Vector<RelationalNode>> functionTemplates;
+	protected HashSet<String> instantiatedVariables;
+	protected static final boolean debug = true;	
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
@@ -52,101 +54,162 @@ public abstract class AbstractGroundBLN {
 		System.out.println("  regular nodes");
 		RelationalBeliefNetwork rbn = bln.rbn;
 		
-		// TODO with comment nodes (#), the topological ordering may not work, because the actual instantiation of the comment node may not have occurred yet 
+		// get an ordering of the functions in which to ground atoms - based on the topological ordering of the nodes in the RBN
+		// and collect the RelationalNodes that can be used to ground variables for the various functions
 		int[] order = rbn.getTopologicalOrder();
+		HashSet<String> handledFunctions = new HashSet<String>();
+		Vector<String> functionOrder = new Vector<String>();
+		functionTemplates = new HashMap<String, Vector<RelationalNode>>();
 		for(int i = 0; i < order.length; i++) {
-			int nodeNo = order[i];		
-
+			int nodeNo = order[i];
 			ExtendedNode extNode = rbn.getExtendedNode(nodeNo);
-			
-			// only RelationalNodes can be instantiated
-			if(!(extNode instanceof RelationalNode)) {
+			// determine if the node can be used to instantiate a variable
+			if(!(extNode instanceof RelationalNode)) 
 				continue;
-			}
-			RelationalNode relNode = (RelationalNode)extNode;
-			
-			// nodes that do not correspond to ground atoms can be ignored
-			if(relNode.isConstant || relNode.isAuxiliary)
+			RelationalNode relNode = (RelationalNode)extNode;			
+			if(relNode.isConstant || relNode.isAuxiliary) // nodes that do not correspond to ground atoms can be ignored
 				continue;
-			
-			System.out.println("    " + relNode);
-			
-			// consider all groundings of the relational node
-			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
-			for(String[] params : parameterSets) {
-				
-				String mainNodeName = relNode.getVariableName(params);
-				if(debug) 
-					System.out.println("      " + mainNodeName);
-				
-				// if the node is subject to preconditions (decision node parents), check if they are met
-				boolean preconditionsMet = true;
-				for(DecisionNode decision : relNode.getDecisionParents()) {					
-					if(!decision.isTrue(relNode.params, params, db, false)) {
-						preconditionsMet = false;
-						break;
-					}
-				}
-				if(!preconditionsMet)
-					continue;
-				
-				// add the node itself to the network				
-				BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
-				onAddGroundAtomNode(relNode, params);
-
-				// add edges from the parents
-				ParentGrounder pg = rbn.getParentGrounder(relNode);
-				Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
-				// - normal case: just one set of parents
-				if(groundings.size() == 1) {
-					if(debug) {
-						System.out.println("        relevant nodes/parents from " + pg.toString());
-						Map<Integer, String[]> grounding = groundings.firstElement();						
-						for(Entry<Integer, String[]> e : grounding.entrySet()) {							
-							System.out.println("          " + bln.rbn.getRelationalNode(e.getKey()).getVariableName(e.getValue()));
-						}
-					}
-					instantiateCPF(groundings.firstElement(), relNode, mainNode);
-				}				
-				// - several sets of parents -> use combination function
-				else { 
-					// create auxiliary nodes, one for each set of parents
-					Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
-					int k = 0; 
-					for(Map<Integer, String[]> grounding : groundings) {
-						// create auxiliary node
-						String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
-						BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
-						auxNodes.add(auxNode);
-						// create links from parents to auxiliary node and transfer CPF
-						instantiateCPF(grounding, relNode, auxNode);
-					}
-					// connect auxiliary nodes to main node
-					for(BeliefNode parent : auxNodes) {
-						//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
-						groundBN.bn.connect(parent, mainNode);
-					}
-					// apply combination function
-					String combFunc = relNode.aggregator;
-					CPFFiller filler;
-					if(combFunc == null || combFunc.equals("OR")) {
-						// check if the domain is really boolean
-						if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
-							throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
-						// set filler
-						filler = new CPFFiller_OR(mainNode);
-					}
-					else
-						throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
-					filler.fill();
-				}
+			// keep track of handled functions and add to the list of functions
+			String f = relNode.getFunctionName();
+			if(!handledFunctions.contains(f)) {
+				functionOrder.add(f);
+				handledFunctions.add(f);
 			}
+			// remember that this node can be instantiated using this relational node
+			Vector<RelationalNode> v = functionTemplates.get(f);
+			if(v == null) {
+				v = new Vector<RelationalNode>();
+				functionTemplates.put(f, v);
+			}
+			v.add(relNode);
 		}
+		
+		// go through all function names in order and generate all groundings for each of them
+		instantiatedVariables = new HashSet<String>();
+		for(String functionName : functionOrder) {
+			System.out.println("    " + functionName);
+			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
+			for(String[] params : parameterSets) 
+				instantiateVariable(functionName, params);
+		}
+		instantiatedVariables = null;
+		//System.exit(1);
 		
 		// ground formulaic nodes
 		System.out.println("  formulaic nodes");
 		hardFormulaNodes = new Vector<String>();
 		groundFormulaicNodes();		
+	}
+	
+	/**
+	 * instantiates the variable that corresponds to the given function name and actual parameters
+	 * by looking for a template and applying it, or simply returns the variable if it was previously instantiated
+	 * @param functionName
+	 * @param params
+	 * @throws Exception
+	 */
+	protected BeliefNode instantiateVariable(String functionName, String[] params) throws Exception {
+		// check if the variable was previously instantiated and return the node if so
+		String varName = RelationalNode.formatName(functionName, params);
+		if(instantiatedVariables.contains(varName))
+			return groundBN.getNode(varName);
+		
+		int suitableTemplates = 0;
+		BeliefNode ret = null;
+		
+		// consider all the relational nodes that could be used to instantiate the variable
+		for(RelationalNode relNode : functionTemplates.get(functionName)) {
+			
+			// if the node is subject to preconditions (decision node parents), check if they are met
+			boolean preconditionsMet = true;
+			for(DecisionNode decision : relNode.getDecisionParents()) {					
+				if(!decision.isTrue(relNode.params, params, db, false)) {
+					preconditionsMet = false;
+					break;
+				}
+			}
+			if(!preconditionsMet)
+				continue;
+			
+			suitableTemplates++;
+			if(suitableTemplates > 1)
+				throw new Exception("More than one relational node could serve as the template for the variable " + varName);
+			
+			ret = instantiateVariable(relNode, params);
+		}
+		
+		if(suitableTemplates == 0)			
+			throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
+
+		return ret;
+	}
+	
+	/**
+	 * instantiates a variable from the given node template for the actual parameters
+	 * @param relNode		the node that is to serve as the template
+	 * @param actualParams	actual parameters
+	 * @return
+	 * @throws Exception
+	 */
+	protected BeliefNode instantiateVariable(RelationalNode relNode, String[] actualParams) throws Exception {
+		// keep track of instantiated variables
+		String mainNodeName = relNode.getVariableName(actualParams);
+		instantiatedVariables.add(mainNodeName);
+		if(debug) 
+			System.out.println("      " + mainNodeName);
+
+		// add the node itself to the network				
+		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
+		onAddGroundAtomNode(relNode, actualParams);
+
+		// add edges from the parents
+		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
+		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(actualParams, db);
+		// - normal case: just one set of parents
+		if(groundings.size() == 1) {
+			if(debug) {
+				System.out.println("        relevant nodes/parents from " + pg.toString());
+				Map<Integer, String[]> grounding = groundings.firstElement();						
+				for(Entry<Integer, String[]> e : grounding.entrySet()) {							
+					System.out.println("          " + bln.rbn.getRelationalNode(e.getKey()).getVariableName(e.getValue()));
+				}
+			}
+			instantiateCPF(groundings.firstElement(), relNode, mainNode);
+		}				
+		// - several sets of parents -> use combination function
+		else { 
+			// create auxiliary nodes, one for each set of parents
+			Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
+			int k = 0; 
+			for(Map<Integer, String[]> grounding : groundings) {
+				// create auxiliary node
+				String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
+				BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
+				auxNodes.add(auxNode);
+				// create links from parents to auxiliary node and transfer CPF
+				instantiateCPF(grounding, relNode, auxNode);
+			}
+			// connect auxiliary nodes to main node
+			for(BeliefNode parent : auxNodes) {
+				//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
+				groundBN.bn.connect(parent, mainNode);
+			}
+			// apply combination function
+			String combFunc = relNode.aggregator;
+			CPFFiller filler;
+			if(combFunc == null || combFunc.equals("OR")) {
+				// check if the domain is really boolean
+				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
+					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
+				// set filler
+				filler = new CPFFiller_OR(mainNode);
+			}
+			else
+				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
+			filler.fill();
+		}
+		
+		return mainNode;
 	}
 	
 	protected void init() {}
@@ -205,10 +268,7 @@ public abstract class AbstractGroundBLN {
 				constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
 				continue;
 			}
-			String parentVarName = relParent.getVariableName(entry.getValue());
-			BeliefNode parent = groundBN.getNode(parentVarName);
-			if(parent == null)
-				throw new Exception("Could not find the parent node that corresponds to the variable " + parentVarName + " while processing " + targetNode.getName());
+			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
 			groundBN.bn.connect(parent, targetNode);
 			src2targetParent.put(relParent.node, parent);
