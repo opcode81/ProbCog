@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.tools.StringTool;
 
 /**
  * generates groundings of all nodes relevant to a given node N for particular bindings of N's parameters; the relevant nodes being N and its parents  
@@ -25,21 +26,20 @@ public class ParentGrounder {
 			this.node = node;
 		}
 		
-		public boolean doLookup(Database db, HashMap<String,String> varBindings) {
+		public void doLookup(Database db, HashMap<String,String> varBindings) throws Exception {
 			// build the key values
 			String[] keyValues = new String[key.keyIndices.size()];
 			int i = 0;
 			for(Integer idxParam : key.keyIndices)
 				keyValues[i++] = varBindings.get(node.params[idxParam]);	
-			// perform the lookup
+			// perform the lookup			
 			String[] params = db.getParameterSet(this.key, keyValues);
 			if(params == null) { // lookup yielded no values
 				String[] buf = new String[node.params.length];
 				for(int k = 0; k < node.params.length; k++) buf[k] = "_";
 				int j = 0;
 				for(Integer k : key.keyIndices) buf[k] = keyValues[j++];
-				System.err.println("Could not perform lookup for " + RelationalNode.formatName(node.getFunctionName(), buf));
-				return false;
+				throw new Exception("Could not perform lookup for " + RelationalNode.formatName(node.getFunctionName(), buf));
 			}
 			// update the variable bindings
 			java.util.Iterator<Integer> iter = key.keyIndices.iterator();
@@ -51,7 +51,6 @@ public class ParentGrounder {
 				}
 				varBindings.put(node.params[i], params[i]);
 			}
-			return true;
 		}
 	}	
 	
@@ -159,12 +158,30 @@ public class ParentGrounder {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		StringBuffer ret = new StringBuffer("<known from main node: ");
+		// known bindings from main node 
+		ret.append(StringTool.join(", ", mainNode.params));
+		// functional lookups
+		ret.append("; functional lookups: ");
+		int i = 0; 
+		for(FunctionalLookup fl : this.functionalLookups) {
+			if(i++ > 0)
+				ret.append(", ");
+			ret.append(fl.key.toString());
+		}
+		ret.append(">");
+		return ret.toString();
+	}
+	
 	/**
 	 * generates a grounding of all parent nodes (and the main node itself), i.e. a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the man node for which this parameter grounding should be performed
 	 * @return mapping of node indices to lists of corresponding actual parameters
+	 * @throws Exception 
 	 */
-	public Map<Integer, String[]> generateParameterSets(String[] actualParameters, Database db) {
+	public Map<Integer, String[]> generateParameterSets(String[] actualParameters, Database db) throws Exception {
 		HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();			
 		m.put(this.mainNode.index, actualParameters);
 		// generate the variable bindings via parameter matching and functional lookups
@@ -234,15 +251,21 @@ public class ParentGrounder {
 		}
 	}
 	
-	protected HashMap<String, String> generateParameterBindings(String[] actualParameters, Database db) {
+	/**
+	 * generates, for a particular binding of the main node's parameters, the complete binding of all relevant variables (which includes all variables/parameters of parents) using the functional lookups that were determined at construction time 
+	 * @param actualParameters
+	 * @param db
+	 * @return
+	 * @throws Exception 
+	 */
+	protected HashMap<String, String> generateParameterBindings(String[] actualParameters, Database db) throws Exception {
 		HashMap<String, String> bindings = new HashMap<String, String>();
 		// add known bindings from main node 
 		for(int i = 0; i < mainNode.params.length; i++)
 			bindings.put(mainNode.params[i], actualParameters[i]);
 		// perform functional lookups
 		for(FunctionalLookup fl : this.functionalLookups)
-			if(!fl.doLookup(db, bindings))
-				return null;
+			fl.doLookup(db, bindings);
 		return bindings;
 	}
 }
