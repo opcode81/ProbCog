@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.Vector;
 
 /**
- * generates groundings of a single relational node
+ * generates groundings (instantiations of the parameters) of a single relational node/predicate
  * @author jain
  *
  */
@@ -19,6 +19,18 @@ public class ParameterGrounder {
 	 */
 	public static Collection<String[]> generateGroundings(RelationalNode node, Database db) throws Exception {
 		return generateGroundings(db, node.getSignature().argTypes);
+	}
+
+	/**
+	 * generates all groundings of the given function using the domain elements specified in the given database
+	 * @param rbn		relational belief network defining the signature of the function
+	 * @param function	the name of the function
+	 * @param db		
+	 * @return a collection of possible parameter bindings
+	 * @throws Exception
+	 */
+	public static Collection<String[]> generateGroundings(RelationalBeliefNetwork rbn, String function, Database db) throws Exception {
+		return generateGroundings(db, rbn.getSignature(function).argTypes);
 	}
 	
 	public static Collection<String[]> generateGroundings(Database db, String[] domainNames) throws Exception {
