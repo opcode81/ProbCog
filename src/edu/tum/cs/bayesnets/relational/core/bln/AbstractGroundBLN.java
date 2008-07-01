@@ -32,7 +32,7 @@ public abstract class AbstractGroundBLN {
 	protected Vector<String> hardFormulaNodes;
 	protected String databaseFile;
 	protected Database db;
-	protected static final boolean debug = false;
+	protected static final boolean debug = true;
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
@@ -56,29 +56,41 @@ public abstract class AbstractGroundBLN {
 		int[] order = rbn.getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
 			int nodeNo = order[i];		
-		//TopologicalOrdering o = new TopologicalSort(rbn.bn).run();
-		//for(Integer nodeNo : o) {
+
 			ExtendedNode extNode = rbn.getExtendedNode(nodeNo);
-			//System.out.println(rbn.bn.getNodes()[nodeNo].getName());
+			
+			// only RelationalNodes can be instantiated
 			if(!(extNode instanceof RelationalNode)) {
 				continue;
 			}
 			RelationalNode relNode = (RelationalNode)extNode;
+			
+			// nodes that do not correspond to ground atoms can be ignored
 			if(relNode.isConstant || relNode.isAuxiliary)
 				continue;
+			
 			System.out.println("    " + relNode);
+			
+			// consider all groundings of the relational node
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(relNode, db);
 			for(String[] params : parameterSets) {
 				
-				// if the node is subject to preconditions (decision node parents), check if they are met
-				for(DecisionNode decision : relNode.getDecisionParents()) {					
-					if(!decision.isTrue(relNode.params, params, db, false))
-						continue;
-				}
-				
-				// add the node itself to the network
 				String mainNodeName = relNode.getVariableName(params);
-				if(debug) System.out.println("      " + mainNodeName);
+				if(debug) 
+					System.out.println("      " + mainNodeName);
+				
+				// if the node is subject to preconditions (decision node parents), check if they are met
+				boolean preconditionsMet = true;
+				for(DecisionNode decision : relNode.getDecisionParents()) {					
+					if(!decision.isTrue(relNode.params, params, db, false)) {
+						preconditionsMet = false;
+						break;
+					}
+				}
+				if(!preconditionsMet)
+					continue;
+				
+				// add the node itself to the network				
 				BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
 				onAddGroundAtomNode(relNode, params);
 
@@ -86,7 +98,14 @@ public abstract class AbstractGroundBLN {
 				ParentGrounder pg = rbn.getParentGrounder(relNode);
 				Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
 				// - normal case: just one set of parents
-				if(groundings.size() == 1) { 
+				if(groundings.size() == 1) {
+					if(debug) {
+						System.out.println("        relevant nodes/parents from " + pg.toString());
+						Map<Integer, String[]> grounding = groundings.firstElement();						
+						for(Entry<Integer, String[]> e : grounding.entrySet()) {							
+							System.out.println("          " + bln.rbn.getRelationalNode(e.getKey()).getVariableName(e.getValue()));
+						}
+					}
 					instantiateCPF(groundings.firstElement(), relNode, mainNode);
 				}				
 				// - several sets of parents -> use combination function
