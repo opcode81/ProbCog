@@ -132,6 +132,7 @@ public class BLNinfer {
 				for(String predName : cwPreds)
 					gbln.getDatabase().setClosedWorldPred(predName);
 			}
+			gbln.instantiateGroundNetwork();
 			if(showBN) {
 				gbln.getGroundNetwork().show();
 			}
