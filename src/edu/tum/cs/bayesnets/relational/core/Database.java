@@ -73,11 +73,16 @@ public class Database {
 	public void addVariable(Variable var) {
 		// add the entry to the main store
 		entries.put(var.getKeyString().toLowerCase(), var);
-		// update lookup table for keys
-		// TODO only add to key hashmap if value is true
+		// update lookup tables for keys
+		// (but only if value is true)
 		Collection<RelationKey> keys = this.bn.getRelationKeys(var.nodeName);
 		if(keys != null) {
+			// add lookup entry if the variable value is true
+			if(!var.isTrue())
+				return;
+			// update all keys
 			for(RelationKey key : keys) {
+				// compute key for map entry
 				StringBuffer sb = new StringBuffer();
 				int i = 0; 
 				for(Integer paramIdx : key.keyIndices) {
@@ -85,6 +90,7 @@ public class Database {
 						sb.append(',');
 					sb.append(var.params[paramIdx]);
 				}
+				// add
 				HashMap<String, String[]> hm = functionalDependencies.get(key);
 				if(hm == null) {
 					hm = new HashMap<String, String[]>(); 
@@ -95,12 +101,14 @@ public class Database {
 		}
 	}
 	
+
 	public String[] getParameterSet(RelationKey key, String[] keyValues) {
+		//System.out.println("doing lookup for " + this.key + " with " + StringTool.join(", ", keyValues));
 		HashMap<String, String[]> m = functionalDependencies.get(key);
 		if(m == null) return null;
 		return m.get(RelationalNode.join(",", keyValues));
 	}
-	
+
 	public void readBLOGDB(String databaseFilename) throws Exception {
 		readBLOGDB(databaseFilename, false);
 	}
@@ -302,6 +310,10 @@ public class Database {
 		public String getPredicate() {
 			// TODO handle boolean values differently
 			return nodeName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
+		}
+		
+		public boolean isTrue() {
+			return value.equalsIgnoreCase("True");
 		}
 	}
 	
