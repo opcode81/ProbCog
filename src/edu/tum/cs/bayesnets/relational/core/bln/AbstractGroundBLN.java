@@ -34,7 +34,7 @@ public abstract class AbstractGroundBLN {
 	protected Database db;
 	protected HashMap<String, Vector<RelationalNode>> functionTemplates;
 	protected HashSet<String> instantiatedVariables;
-	protected static final boolean debug = true;	
+	protected static final boolean debug = false;	
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
@@ -55,7 +55,7 @@ public abstract class AbstractGroundBLN {
 		RelationalBeliefNetwork rbn = bln.rbn;
 		
 		// get an ordering of the functions in which to ground atoms - based on the topological ordering of the nodes in the RBN
-		// and collect the RelationalNodes that can be used to ground variables for the various functions
+		// and collect the RelationalNodes that can be used as templates to ground variables for the various functions
 		int[] order = rbn.getTopologicalOrder();
 		HashSet<String> handledFunctions = new HashSet<String>();
 		Vector<String> functionOrder = new Vector<String>();
@@ -92,8 +92,10 @@ public abstract class AbstractGroundBLN {
 			for(String[] params : parameterSets) 
 				instantiateVariable(functionName, params);
 		}
+		
+		// clean up		
 		instantiatedVariables = null;
-		//System.exit(1);
+		functionTemplates = null;
 		
 		// ground formulaic nodes
 		System.out.println("  formulaic nodes");
@@ -256,7 +258,7 @@ public abstract class AbstractGroundBLN {
 	 * @throws Exception
 	 */
 	protected void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws Exception {
-		// connect parents and determine domain products
+		// connect parents, determine domain products, and set constant nodes (e.g. "x") to their respective constant value
 		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
 		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
@@ -274,8 +276,14 @@ public abstract class AbstractGroundBLN {
 			src2targetParent.put(relParent.node, parent);
 		}
 		
-		// establish the correct domain product order (which must reflect the order in the source node)	
+		// set decision nodes as constantly true
 		BeliefNode[] srcDomainProd = srcRelNode.node.getCPF().getDomainProduct();
+		for(int i = 1; i < srcDomainProd.length; i++) {
+			if(srcDomainProd[i].getType() == BeliefNode.NODE_DECISION)
+				constantSettings.put(srcDomainProd[i], 0); // 0 = True
+		}
+		
+		// establish the correct domain product order (which must reflect the order in the source node)
 		CPF targetCPF = targetNode.getCPF();
 		BeliefNode[] targetDomainProd = targetCPF.getDomainProduct();
 		int j = 1;
@@ -335,11 +343,13 @@ public abstract class AbstractGroundBLN {
 			return;
 		}
 		BeliefNode n = domProd[i];
+		// if we have the setting of the i-th node, use it
 		Integer setting = constantSettings.get(n);
 		if(setting != null) {
 			addr[i] = setting;
 			getSubCPFValues(cpf, constantSettings, i+1, addr, ret);
 		}
+		// otherwise consider all possible settings
 		else {
 			Domain d = domProd[i].getDomain();		
 			for(int j = 0; j < d.getOrder(); j++) {
