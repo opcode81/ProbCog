@@ -3,7 +3,6 @@
  */
 package edu.tum.cs.tools;
 
-import java.util.Collection;
 import java.util.Iterator;
 
 /**
