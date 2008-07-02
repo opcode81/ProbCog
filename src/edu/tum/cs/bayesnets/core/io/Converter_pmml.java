@@ -63,7 +63,7 @@ public class Converter_pmml
 	
     public void load(InputStream stream, OmniFormatV1 writer)
     {
-        _Writer = writer;
+        _Writer = writer; // this is usually an instance of OmniFormatV1_Reader
         _Writer.Start();
         bn_cnt = 0;
         bnode_cnt = 0;
@@ -273,8 +273,9 @@ public class Converter_pmml
 
         if(curNode >= 0)
         {
-            for(Integer p : parents)
+            for(Integer p : parents) {            	
             	_Writer.Connect(p, curNode);
+            }
 
             _Writer.BeginCPF(curNode);
             StringTokenizer tok = new StringTokenizer(CPTString);

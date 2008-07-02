@@ -22,15 +22,19 @@ public class PossibleWorldFromDatabase implements IPossibleWorld {
 			if(sig.isBoolean()) {
 				String value = db.getVariableValue(ga.toString(), closedWorld);
 				if(value == null)
-					throw new RuntimeException("Value of " + ga + " not in database; however it must always be given because it is used in a precondition/decision node.");
-				return value.equalsIgnoreCase("True");
+					throw new RuntimeException("Value of " + ga + " not in the database that is used as a possible world; perhaps it must always be given because it is used in a precondition/decision node.");
+				boolean tv = value.equalsIgnoreCase("True");
+				//System.out.println("value of atom " + ga + " corresponding to boolean function is " + (tv ? "true" : "false"));
+				return tv;
 			}
 			else {
 				String varName = rbn.gndAtom2VarName(ga);
 				String value = db.getVariableValue(varName, closedWorld);
 				if(value == null)
-					throw new RuntimeException("Value of " + varName + " not in database; however it must always be given because it is used in a precondition/decision node.");
-				return value.equals(ga.args[ga.args.length-1]);			
+					throw new RuntimeException("Value of " + varName + " not in the database that is used as a possible world; perhaps it must always be given because it is used in a precondition/decision node.");
+				boolean tv = value.equals(ga.args[ga.args.length-1]);
+				//System.out.println("value of atom " + ga + " corresponding to non-boolean function is " + (tv ? "true" : "false"));
+				return tv;
 			}
 		}
 		catch(Exception e) {
