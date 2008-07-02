@@ -23,6 +23,9 @@ import edu.tum.cs.logic.WorldVariables;
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	
 	protected HashMap<Integer, HashMap<String, Integer>> marginals;
+	protected int numExamples;
+	protected boolean verbose;
+	protected static final boolean debug = true;
 	
 	public CPTLearner(RelationalBeliefNetwork bn) throws Exception {
 		super(bn);		
@@ -158,14 +161,14 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 						throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
 					}
 					String value = ndCurrent.getValueInDB(actualParams, db, closedWorld);
+					if(value == null)
+						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
 					// if the node is a precondition, i.e. it is required to be true, check that it really is
 					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
 						// it's not, so skip this example
 						countExample = false;
 						break;
 					}
-					if(value == null)
-						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
 					// get the current node's domain and the index of its setting
 					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
 					domain_idx = dom.findName(value);
@@ -183,10 +186,27 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					}
 				}
 				domainIndices[extCurrent.index] = domain_idx;
-			}			
+			}		
+			
 			// count this example
-			if(countExample)
-				counter.count(domainIndices, exampleWeight);			
+			if(countExample) {
+				counter.count(domainIndices, exampleWeight);
+				numExamples++;
+				if(debug && verbose) { // just debug output
+					StringBuffer condition = new StringBuffer();
+					for(Entry<Integer, String[]> e : paramSets.entrySet()) {
+						if(e.getKey() == node.index)
+							continue;
+						RelationalNode rn = bn.getRelationalNode(e.getKey());
+						condition.append(' ');
+						condition.append(rn.getVariableName(e.getValue()));
+						condition.append('=');
+						condition.append(rn.getDomain().getName(domainIndices[rn.index]));
+					}
+					System.out.println("    " + node.getVariableName(params) + "=" + node.getDomain().getName(domainIndices[node.index]) + " |" + condition);
+				}
+			}
+			
 			// keep track of counts (just debugging)
 			/*String v = node.node.getDomain().getName(domainIndices[counter.nodeIndices[0]]);
 			Integer i = counts.get(v);
@@ -217,14 +237,19 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @throws Exception
 	 */
 	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
+		this.verbose = verbose;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;		
 		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
 			if(node.isConstant || node.isBuiltInPred()) // ignore constant nodes as they do not correspond to logical atoms 
-				continue; 
-			if(verbose) System.out.println("  " + node.getName());
+				continue;
+			numExamples = 0;
+			if(verbose)
+				System.out.println("  " + node.getName());				
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
 			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
+			if(verbose) 
+				System.out.println("    " + numExamples + " counted");
 			//System.out.println("    counts: " + marginals.get(node.index));
 		}
 	}
