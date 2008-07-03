@@ -411,7 +411,7 @@ public class Converter_pmml
     }
 
     public void SetBeliefNodeName(String name) {
-    	System.out.println(name);
+    	//System.out.println(name);
 		curNode.name = name;
         nodeNames.put(new Integer(curNodeIdx), name);
     }
