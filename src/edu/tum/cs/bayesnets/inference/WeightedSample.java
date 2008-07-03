@@ -51,8 +51,7 @@ public class WeightedSample {
 	 * @param trials
 	 *            the number of steps that was required to obtain this sample
 	 */
-	public WeightedSample(BeliefNetworkEx bn, int[] nodeDomainIndices, double weight,
-			int[] nodeIndices, int trials) {
+	public WeightedSample(BeliefNetworkEx bn, int[] nodeDomainIndices, double weight, int[] nodeIndices, int trials) {
 		this.bn = bn;
 		if (nodeIndices == null) {
 			int numNodes = nodeDomainIndices.length;
@@ -66,6 +65,14 @@ public class WeightedSample {
 		assert nodeIndices.length == nodeDomainIndices.length;
 		this.weight = weight;
 		this.trials = trials;
+	}
+	
+	/**
+	 * constructs an empty sample with initial weight 1.0 and 0 trials, with an identity node mapping
+	 * @param bn	the Bayesian network this sample is for
+	 */
+	public WeightedSample(BeliefNetworkEx bn) {
+		this(bn, new int[bn.bn.getNodes().length], 1.0, null, 0);
 	}
 
 	/**
