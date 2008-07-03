@@ -1,8 +1,6 @@
 package edu.tum.cs.bayesnets.inference;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
-import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.ForwardSampling;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.tools.Stopwatch;
 
@@ -21,10 +19,11 @@ public class LikelihoodWeighting extends Sampler {
 		createDistribution();
 		System.out.println("sampling...");
 		sw.start();
+		WeightedSample s = new WeightedSample(bn);
 		for(int i = 1; i <= numSamples; i++) {
 			if(i % infoInterval == 0)
-				System.out.println("  step " + i);
-			WeightedSample s = getWeightedSample(nodeOrder, evidenceDomainIndices); 
+				System.out.println("  step " + i);			
+			getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			addSample(s);
 		}
 		sw.stop();
@@ -32,51 +31,44 @@ public class LikelihoodWeighting extends Sampler {
 		return dist;
 	}
 	
-	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
+	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
 		BeliefNode[] nodes = bn.bn.getNodes();
-		int[] sampleDomainIndices  = new int[nodes.length];
+		s.trials = 0;
 		boolean successful = false;
-		double weight = 1.0;
-		int trials=0;
-success:while(!successful) {
-			//System.out.println(trials);
-			weight = 1.0;
-			if (trials > MAX_TRIALS)
-				//return null;
+loop:	while(!successful) {
+			s.weight = 1.0;
+			s.trials++;
+			if(s.trials > MAX_TRIALS)
 				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + MAX_TRIALS + ")");
-			for (int i=0; i< nodeOrder.length; i++) {
+			// assign values to the nodes in order
+			for(int i=0; i < nodeOrder.length; i++) {
 				int nodeIdx = nodeOrder[i];
 				int domainIdx = evidenceDomainIndices[nodeIdx];
-				if (domainIdx >= 0) { // This is an evidence node?
-					sampleDomainIndices[nodeIdx] = domainIdx;
-					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
-					double prob = getCPTProbability(nodes[nodeIdx], sampleDomainIndices);
-					if (prob == 0.0) {
-						//System.out.println("sampling failed at evidence node " + nodes[nodeIdx].getName());
-						bn.removeAllEvidences();
-						trials++;
-						if(this.debug)
-							System.out.println("Evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
-						continue success;
+				// for evidence nodes, adjust the weight
+				if(domainIdx >= 0) { 
+					s.nodeDomainIndices[nodeIdx] = domainIdx;
+					double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
+					if(prob == 0.0) {
+						if(debug)
+							System.out.println("!!! evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
+						continue loop;
 					}
-					weight *= prob;
+					s.weight *= prob;
 				} 
+				// for non-evidence nodes, do forward sampling
 				else {
-					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn.bn, generator);
-					if (domainIdx < 0) {
-						System.out.println("Warning: Could not sample forward because of column with 0s in CPT of " + nodes[nodeIdx].getName());
+					domainIdx = sampleForward(nodes[nodeIdx], s.nodeDomainIndices);
+					if(domainIdx < 0) {
+						if(debug)
+							System.out.println("!!! could not sample forward because of column with only 0s in CPT of " + nodes[nodeIdx].getName() + " in step " + (dist.steps+1));
 						bn.removeAllEvidences();
-						trials++;
-						continue success;
+						continue loop;
 					}
-					sampleDomainIndices[nodeIdx] = domainIdx;
-					nodes[nodeIdx].setEvidence(new DiscreteEvidence(domainIdx));
+					s.nodeDomainIndices[nodeIdx] = domainIdx;
 				}
 			}
-			trials++;
-			bn.removeAllEvidences();
 			successful = true;
 		}
-		return new WeightedSample(bn, sampleDomainIndices, weight, null, trials);		
+		return s;		
 	}
 }
