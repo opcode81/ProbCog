@@ -1991,21 +1991,22 @@ class Inference:
     
     # set evidence in the MLN according to the given conjunction of ground literals
     def _setEvidence(self, conjunction):
-        givenAtoms = map(lambda x: x.strip().replace(" ", ""), conjunction.split("^"))
-        for gndAtom in givenAtoms:
-            if gndAtom == '': continue
-            tv = True
-            if(gndAtom[0] == '!'):
-                tv = False
-                gndAtom = gndAtom[1:]
-            idxGA = self.mln.gndAtoms[gndAtom].idx
-            self.mln._setEvidence(idxGA, tv) # set evidence in MLN
-            if idxGA in self.mln.gndBlockLookup: # if the ground atom is in a block and its value is true, set all the other atoms in the same block to false
-                block = self.mln.gndBlocks[self.mln.gndBlockLookup[idxGA]]
-                if tv:
-                    for i in block:
-                        if i != idxGA:
-                            self.mln._setEvidence(i, False)
+        if conjunction is not None:
+            givenAtoms = map(lambda x: x.strip().replace(" ", ""), conjunction.split("^"))
+            for gndAtom in givenAtoms:
+                if gndAtom == '': continue
+                tv = True
+                if(gndAtom[0] == '!'):
+                    tv = False
+                    gndAtom = gndAtom[1:]
+                idxGA = self.mln.gndAtoms[gndAtom].idx
+                self.mln._setEvidence(idxGA, tv) # set evidence in MLN
+                if idxGA in self.mln.gndBlockLookup: # if the ground atom is in a block and its value is true, set all the other atoms in the same block to false
+                    block = self.mln.gndBlocks[self.mln.gndBlockLookup[idxGA]]
+                    if tv:
+                        for i in block:
+                            if i != idxGA:
+                                self.mln._setEvidence(i, False)
         # handle closed-world predicates: Set all their instances that aren't yet known to false
         for pred in self.mln.closedWorldPreds:
             for idxGA in self.mln._getPredGroundingsAsIndices(pred):
