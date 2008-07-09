@@ -15,20 +15,22 @@ import edu.tum.cs.bayesnets.relational.core.ExtendedNode;
 import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
-import edu.tum.cs.bayesnets.relational.core.Database.Variable;
-import edu.tum.cs.logic.GroundAtom;
-import edu.tum.cs.logic.PossibleWorldFromDatabase;
-import edu.tum.cs.logic.WorldVariables;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	
 	protected HashMap<Integer, HashMap<String, Integer>> marginals;
 	protected int numExamples;
 	protected boolean verbose;
-	protected static final boolean debug = true;
+	protected boolean debug = false;
 	
 	public CPTLearner(RelationalBeliefNetwork bn) throws Exception {
-		super(bn);		
+		this(bn, false, false);
+	}
+	
+	public CPTLearner(RelationalBeliefNetwork bn, boolean uniformDefault, boolean debug) throws Exception {
+		super(bn);	
+		setUniformDefault(uniformDefault);
+		this.debug = debug;
 		//marginals = new HashMap<Integer, HashMap<String,Integer>>(); // just for debugging
 	}
 	
