@@ -234,7 +234,7 @@ public class BackwardSampling extends Sampler {
 	 * @param s
 	 */
 	public void getSample(WeightedSample s) {
-		int MAX_TRIALS = 5000;	
+		int MAX_TRIALS = this.maxTrials;	
 loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// init sample
 			s.nodeDomainIndices = evidenceDomainIndices.clone();
@@ -250,7 +250,17 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// forward sampling
 			for(BeliefNode node : forwardSampledNodes) {
 				if(!sampleForward(node, s)) {
-					if(debug) System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep);
+					if(debug) {
+						BeliefNode[] domain_product = node.getCPF().getDomainProduct();
+						StringBuffer cond = new StringBuffer();
+						for(int i = 1; i < domain_product.length; i++) {
+							if(i > 1)
+								cond.append(", ");
+							cond.append(domain_product[i].getName()).append(" = ");
+							cond.append(domain_product[i].getDomain().getName(s.nodeDomainIndices[this.getNodeIndex(domain_product[i])]));
+						}
+						System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep + "; cond: " + cond);
+					}
 					continue loop1;
 				}
 			}
