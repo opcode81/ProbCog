@@ -51,6 +51,10 @@ public class SampledDistribution {
 		}
 	}
 	
+	public double getProbability(int nodeIdx, int domainIdx) {
+		return sums[nodeIdx][domainIdx] / Z;
+	}
+	
 	public void printNodeDistribution(PrintStream out, int index) {
 		BeliefNode node = bn.bn.getNodes()[index];
 		out.println(node.getName() + ":");
