@@ -36,11 +36,14 @@ public abstract class AbstractGroundBLN {
 	protected HashSet<String> instantiatedVariables;
 	protected static final boolean debug = false;	
 	
+	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
+		this.bln = bln;
+		this.db = db;
+	}
+	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.bln = bln;
 		this.databaseFile = databaseFile;
-		init();		
-		
 		System.out.println("reading evidence...");
 		db = new Database(bln.rbn);
 		db.readBLOGDB(databaseFile);		
