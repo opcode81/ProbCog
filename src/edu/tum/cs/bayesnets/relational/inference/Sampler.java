@@ -1,37 +1,42 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
+import java.util.Vector;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 public abstract class Sampler {
 	protected boolean debug = false;
 	
-	public Sampler(BeliefNetworkEx bn) {
-		//super(bn);
-	}
-	
-	public static void printResults(SampledDistribution dist, String[] queries) {
-		Pattern[] patterns = new Pattern[queries.length];
-		for(int i = 0; i < queries.length; i++) {
-			String p = queries[i];
+	public static Vector<InferenceResult> getResults(SampledDistribution dist, Iterable<String> queries) {
+		// generate patterns
+		Vector<Pattern> patterns = new Vector<Pattern>();
+		for(String query : queries) {
+			String p = query;
 			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
 			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
-			patterns[i] = Pattern.compile(p);
+			patterns.add(Pattern.compile(p));
 			//System.out.println("pattern: " + p);
 		}
+		// check all ground variables for matches
+		Vector<InferenceResult> results = new Vector<InferenceResult>();
 		BeliefNode[] nodes = dist.bn.bn.getNodes();		
 		for(int i = 0; i < nodes.length; i++)
-			for(int j = 0; j < patterns.length; j++)				
-				if(patterns[j].matcher(nodes[i].getName()).matches()) {
-					dist.printNodeDistribution(System.out, i);
+			for(Pattern pattern : patterns)				
+				if(pattern.matcher(nodes[i].getName()).matches()) {
+					results.add(new InferenceResult(dist, i));
 					break;
 				}
+		return results;
 	}
 	
-	public abstract SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws Exception;
+	public static void printResults(SampledDistribution dist, Iterable<String> queries) {
+		for(InferenceResult res : getResults(dist, queries))
+			res.print();
+	}
+	
+	public abstract Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception;
 	
 	public abstract String getAlgorithmName();
 	

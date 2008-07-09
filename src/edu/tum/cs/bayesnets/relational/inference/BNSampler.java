@@ -1,5 +1,7 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
+import java.util.Vector;
+
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN;
@@ -12,14 +14,20 @@ import edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN;
 public class BNSampler extends Sampler {
 	AbstractGroundBLN gbln;
 	Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
-	
+	protected int maxTrials;
+		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
-		super(gbln.getGroundNetwork());
 		this.gbln = gbln;
 		this.samplerClass = samplerClass;
+		maxTrials = 5000;
 	}
 	
-	public SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws Exception {
+	public void setMaxTrials(int maxTrials) {
+		this.maxTrials = maxTrials; 
+	}
+	
+	@Override
+	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
@@ -29,11 +37,11 @@ public class BNSampler extends Sampler {
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
+		sampler.setMaxTrials(maxTrials);
 		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
 		
-		// determine query nodes and print their distributions
-		printResults(dist, queries);
-		return dist;
+		// determine query nodes and print their distributions		
+		return getResults(dist, queries);
 	}
 
 	@Override
