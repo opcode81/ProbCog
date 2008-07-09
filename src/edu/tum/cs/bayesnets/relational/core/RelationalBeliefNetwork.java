@@ -75,8 +75,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 		return relationKeys.get(relation.toLowerCase());
 	}
 	
-	public RelationalBeliefNetwork(String xmlbifFile) throws Exception {
-		super(xmlbifFile);
+	public RelationalBeliefNetwork(String networkFile) throws Exception {
+		super(networkFile);
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
@@ -211,12 +211,12 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	}
 	
 	/**
-	 * retrieves the signature of a predicate
-	 * @param predicateName the name of the predicate
+	 * retrieves the signature of a function/predicate
+	 * @param functionName the name of the function/predicate
 	 * @return a Signature object
 	 */
-	public Signature getSignature(String predicateName) {
-		return signatures.get(predicateName.toLowerCase());
+	public Signature getSignature(String functionName) {
+		return signatures.get(functionName.toLowerCase());
 	}
 	
 	public Signature getSignature(RelationalNode node) {
