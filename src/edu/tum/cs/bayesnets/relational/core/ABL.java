@@ -10,8 +10,8 @@ import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 
 public class ABL extends BLOGModel {
 	
-	public ABL(String[] blogFiles, String xmlbifFile) throws Exception {
-		super(blogFiles, xmlbifFile);
+	public ABL(String[] blogFiles, String networkFile) throws Exception {
+		super(blogFiles, networkFile);
 		
 		// read functional dependencies among relation arguments
 		Pattern pat = Pattern.compile("RelationKey\\s+(\\w+)\\s*\\((.*)\\)");
@@ -23,8 +23,8 @@ public class ABL extends BLOGModel {
 		}	
 	}
 	
-	public ABL(String blogFile, String xmlbifFile) throws Exception {
-		this(new String[]{blogFile}, xmlbifFile);
+	public ABL(String blogFile, String networkFile) throws Exception {
+		this(new String[]{blogFile}, networkFile);
 	}
 	
 	@Override

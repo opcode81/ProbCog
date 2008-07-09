@@ -78,7 +78,7 @@ public class BeliefNetworkEx {
 	
 	/**
 	 * constructs a BeliefNetworkEx object from a saved network file
-	 * @param xmlbifFile	the name of the XML-BIF file to load the network from
+	 * @param filename	the name of the file to load the network from
 	 * @throws Exception 
 	 */
 	public BeliefNetworkEx(String filename) throws Exception {
