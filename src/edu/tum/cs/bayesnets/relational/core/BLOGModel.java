@@ -35,11 +35,11 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	/**
 	 * constructs a BLOG model by obtaining the node data from a Bayesian network template and function signatures from one or more BLOG files.
 	 * @param blogFiles
-	 * @param xmlbifFile
+	 * @param networkFile  a Bayesian network file
 	 * @throws Exception
 	 */
-	public BLOGModel(String[] blogFiles, String xmlbifFile) throws Exception {
-		super(xmlbifFile);		
+	public BLOGModel(String[] blogFiles, String networkFile) throws Exception {
+		super(networkFile);		
 		
 		// read the blog files
 		String blog = readBlogContent(blogFiles);
