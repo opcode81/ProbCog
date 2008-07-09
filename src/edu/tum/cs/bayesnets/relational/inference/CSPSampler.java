@@ -1,6 +1,7 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
 import java.util.Random;
+import java.util.Vector;
 
 import org.python.core.PyObject.ConversionException;
 
@@ -17,11 +18,10 @@ public class CSPSampler extends Sampler {
 	AbstractGroundBLN gbln;
 	
 	public CSPSampler(AbstractGroundBLN gbln) {
-		super(gbln.getGroundNetwork());
 		this.gbln = gbln;
 	}
 	
-	public SampledDistribution infer(String[] queries, int numSamples, int infoInterval) throws ConversionException {
+	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws ConversionException {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
