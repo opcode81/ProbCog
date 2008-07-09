@@ -19,6 +19,8 @@ public abstract class Sampler {
 	 */
 	public int numSamples = 1000;
 	
+	protected int maxTrials = 5000;
+	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
 	 */
@@ -82,6 +84,12 @@ public abstract class Sampler {
 		return -1;		
 	}
 
+	/**
+	 * gets the CPT entry of the given node for the configuration of parents that is provided in the array of domain indices
+	 * @param node
+	 * @param nodeDomainIndices domain indices for each node in the network (only the parents of 'node' are required to be set) 
+	 * @return the probability value
+	 */
 	protected double getCPTProbability(BeliefNode node, int[] nodeDomainIndices) {
 		CPF cpf = node.getCPF();
 		BeliefNode[] domProd = cpf.getDomainProduct();
@@ -97,6 +105,10 @@ public abstract class Sampler {
 	
 	public void setInfoInterval(int infoInterval) {
 		this.infoInterval = infoInterval;
+	}
+	
+	public void setMaxTrials(int maxTrials) {
+		this.maxTrials = maxTrials;
 	}
 	
 	public abstract SampledDistribution infer(int[] evidenceDomainIndices) throws Exception;

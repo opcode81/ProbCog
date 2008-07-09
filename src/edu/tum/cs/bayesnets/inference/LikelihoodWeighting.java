@@ -6,7 +6,6 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
-	static final int MAX_TRIALS = 5000;
 	
 	public LikelihoodWeighting(BeliefNetworkEx bn) {
 		super(bn);
@@ -38,8 +37,8 @@ public class LikelihoodWeighting extends Sampler {
 loop:	while(!successful) {
 			s.weight = 1.0;
 			s.trials++;
-			if(s.trials > MAX_TRIALS)
-				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + MAX_TRIALS + ")");
+			if(s.trials > this.maxTrials)
+				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
 			// assign values to the nodes in order
 			for(int i=0; i < nodeOrder.length; i++) {
 				int nodeIdx = nodeOrder[i];
