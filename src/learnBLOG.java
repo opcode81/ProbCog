@@ -18,7 +18,7 @@ public class learnBLOG {
 		try {
 			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
 			
-			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false, toMLN = false;
+			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, basicBLN = false, toMLN = false, debug = false, uniformDefault = false;
 			String blogFile = null, bifFile = null, dbFile = null, outFileBLOG = null, outFileNetwork = null;
 			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
@@ -44,16 +44,22 @@ public class learnBLOG {
 					toMLN = true;
 				else if(args[i].equals("-nn"))
 					noNormalization = true;					
+				else if(args[i].equals("-ud"))
+					uniformDefault = true;					
+				else if(args[i].equals("-debug"))
+					debug = true;					
 			}			
 			if(bifFile == null || dbFile == null || outFileBLOG == null || outFileNetwork == null) {
 				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
-							         "    -b    " + acronym + " file from which to read function signatures\n" +
-						             "    -s    show learned Bayesian network\n" +
-						             "    -d    learn domains\n" + 
-						             "    -i    ignore data on predicates not defined in the model\n" +
-						             "    -nn   no normalization (i.e. keep counts in CPTs)\n" +
-						             "    -bln  output basic .bln file\n" + 
-						             "    -mln  convert learnt model to a Markov logic network\n");
+							         "    -b      " + acronym + " file from which to read function signatures\n" +
+						             "    -s      show learned Bayesian network\n" +
+						             "    -d      learn domains\n" + 
+						             "    -i      ignore data on predicates not defined in the model\n" +
+						             "    -ud     apply uniform distribution by default (for CPT columns with no examples)\n" +
+						             "    -nn     no normalization (i.e. keep counts in CPTs)\n" +
+						             "    -bln    output basic .bln file\n" + 
+						             "    -mln    convert learnt model to a Markov logic network\n" +
+						             "    -debug  output debug information\n");
 				return;
 			}
 			// create a BLOG model
@@ -94,7 +100,7 @@ public class learnBLOG {
 			boolean learnParams = true;
 			if(learnParams) {
 				System.out.println("Learning parameters...");
-				CPTLearner cptLearner = new CPTLearner(bn);
+				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
 				//cptLearner.setUniformDefault(true);
 				cptLearner.learnTyped(db, true, true);
 				if(!noNormalization)
