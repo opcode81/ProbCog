@@ -13,6 +13,7 @@ import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.bayesnets.relational.inference.BNSampler;
 import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
 import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
+import edu.tum.cs.bayesnets.relational.inference.InferenceResult;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
 import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
@@ -33,6 +34,7 @@ public class BLNinfer {
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
+			int maxTrials = 5000;
 			Algorithm algo = Algorithm.LikelihoodWeighting;
 			String[] cwPreds = null;
 			boolean showBN = false;
@@ -40,6 +42,7 @@ public class BLNinfer {
 			boolean debug = false;
 			boolean saveInstance = false;
 			
+			// read arguments
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-b"))
 					blogFile = args[++i];
@@ -61,6 +64,8 @@ public class BLNinfer {
 					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
 					maxSteps = Integer.parseInt(args[++i]);
+				else if(args[i].equals("-maxTrials"))
+					maxTrials = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
 					algo = Algorithm.LikelihoodWeighting;
 				else if(args[i].equals("-epis"))
@@ -84,10 +89,11 @@ public class BLNinfer {
 			}			
 			if(bifFile == null || dbFile == null || blogFile == null || blnFile == null || query == null) {
 				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db>> <-q <comma-sep. queries>> [options]\n\n"+
-							         "    -maxSteps #      the maximum number of steps to take\n" + 
+									 "    -maxSteps #      the maximum number of steps to take\n" +
+									 "    -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
 							         "    -lw              algorithm: likelihood weighting (default)\n" +
 							         "    -gs              algorithm: Gibbs sampling\n" +						
-							         //"    -csp             algorithm: CSP-based sampling\n" +
+							         "    -exp             algorithm: Experimental\n" +
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
@@ -171,8 +177,12 @@ public class BLNinfer {
 			}
 			sampler.setDebugMode(debug);
 			System.out.println("algorithm: " + sampler.getAlgorithmName());
-			sampler.infer(queries.toArray(new String[0]), maxSteps, 100);
+			if(sampler instanceof BNSampler)
+				((BNSampler)sampler).setMaxTrials(maxTrials);
+			Vector<InferenceResult> results = sampler.infer(queries, maxSteps, 100);
 			sw.stop();
+			for(InferenceResult res : results)
+				res.print();
 			System.out.println("total inference time: " + sw.getElapsedTimeSecs() + " seconds");
 		}
 		catch(Exception e) {
