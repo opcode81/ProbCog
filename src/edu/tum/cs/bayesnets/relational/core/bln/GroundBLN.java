@@ -1,6 +1,5 @@
 package edu.tum.cs.bayesnets.relational.core.bln;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -8,6 +7,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 import edu.tum.cs.logic.Formula;
@@ -22,14 +22,16 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected WorldVariables worldVars;
 	protected PossibleWorld state;
 	
-	public GroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
-		super(bln, databaseFile);
-	}
-	
-	public void init() {
+	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
+		super(bln, db);
 		worldVars = new WorldVariables();
 	}
-
+	
+	public GroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
+		super(bln, databaseFile);
+		worldVars = new WorldVariables();
+	}
+	
 	@Override
 	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params) {
 		if(relNode.isBoolean())

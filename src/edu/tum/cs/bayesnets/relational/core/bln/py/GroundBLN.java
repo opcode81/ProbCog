@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.relational.core.bln.py;
 
+import java.util.Arrays;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -148,8 +149,8 @@ public class GroundBLN extends AbstractGroundBLN {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
 				Stopwatch sw = new Stopwatch();
-				sw.start();
-				new LikelihoodWeighting(gbln).infer(new String[]{"rel(X,Y)"}, 1000, 100);
+				sw.start();				
+				new LikelihoodWeighting(gbln).infer(Arrays.asList("rel(X,Y)"), 1000, 100);
 				//gbln.inferAIS(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, 1000);
 				sw.stop();
 				System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
@@ -159,7 +160,7 @@ public class GroundBLN extends AbstractGroundBLN {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
 				gbln.show();
-				new LikelihoodWeighting(gbln).infer(new String[]{"prop1(X)","prop2(Y)"}, 1000, 100);
+				new LikelihoodWeighting(gbln).infer(Arrays.asList("prop1(X)","prop2(Y)"), 1000, 100);
 			}
 		}
 		catch(Exception e) {
