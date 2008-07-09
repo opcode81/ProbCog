@@ -1,7 +1,6 @@
 package edu.tum.cs.bayesnets.relational.core;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,6 +8,7 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.mln.MLNWriter;
+import edu.tum.cs.tools.Pair;
 
 public class RelationalNode extends ExtendedNode {
 	/**
@@ -52,6 +52,14 @@ public class RelationalNode extends ExtendedNode {
 		if(varName.contains("("))
 			return varName.substring(0, varName.indexOf('('));
 		return varName;
+	}
+	
+	public static Pair<String, String[]> parse(String variable) {
+		Pattern p = Pattern.compile("(\\w+)\\(([^\\)]+)\\)");
+		Matcher m = p.matcher(variable);
+		if(!m.matches())
+			return null;
+		return new Pair<String, String[]>(m.group(1), m.group(2).split(","));
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
