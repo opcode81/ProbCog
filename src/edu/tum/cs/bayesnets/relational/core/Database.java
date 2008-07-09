@@ -24,10 +24,10 @@ public class Database {
 	protected HashMap<String, Variable> entries;
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
-	protected RelationalBeliefNetwork bn;
+	protected RelationalBeliefNetwork rbn;
 	
 	public Database(RelationalBeliefNetwork bn) {
-		this.bn = bn;
+		this.rbn = bn;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
@@ -53,7 +53,7 @@ public class Database {
 		// otherwise, return the default value of false for boolean predicates or raise an exception for non-boolean functions 
 		if(closedWorld) {
 			String nodeName = varName.substring(0, varName.indexOf('('));
-			Signature sig = bn.getSignature(nodeName);
+			Signature sig = rbn.getSignature(nodeName);
 			if(sig.isBoolean())
 				return "False";
 			else {
@@ -70,12 +70,39 @@ public class Database {
 		return entries.containsKey(varName.toLowerCase());
 	}
 	
-	public void addVariable(Variable var) {
+	public void addVariable(Variable var) throws Exception {
+		addVariable(var, false);
+	}
+	
+	public void addVariable(Variable var, boolean ignoreUndefinedFunctions) throws Exception {
+		// fill domains
+		Signature sig = rbn.getSignature(var.functionName);
+		if(sig == null) {
+			// if the predicate is not in the model, end here
+			if(ignoreUndefinedFunctions)
+				return;
+			else
+				throw new Exception(String.format("Error: node %s appears in the training data but it is not declared in the model.", var.functionName));
+		}
+		else {
+			if(sig.argTypes.length != var.params.length) 
+				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
+			//if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
+			//	System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
+			fillDomain(sig.returnType, var.value);
+			for(int i = 0; i < sig.argTypes.length; i++) {
+				//if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
+				//	System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
+				fillDomain(sig.argTypes[i], var.params[i]);
+			}
+		}
+		
 		// add the entry to the main store
 		entries.put(var.getKeyString().toLowerCase(), var);
+		
 		// update lookup tables for keys
 		// (but only if value is true)
-		Collection<RelationKey> keys = this.bn.getRelationKeys(var.nodeName);
+		Collection<RelationKey> keys = this.rbn.getRelationKeys(var.functionName);
 		if(keys != null) {
 			// add lookup entry if the variable value is true
 			if(!var.isTrue())
@@ -114,19 +141,25 @@ public class Database {
 	}
 
 	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
+		boolean verbose = true;
+		
 		// read file content
+		if(verbose) System.out.println("  reading file contents");
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
 		// remove comments
+		if(verbose) System.out.println("  removing comments");
 		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");		
 
 		// read lines
+		if(verbose) System.out.println("  reading items");
 		Pattern re_entry = Pattern.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
 		Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(.*?)\\}");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
+		int numVars = 0;
 		while((line = br.readLine()) != null) {
 			line = line.trim();			
 			// parse variable assignment
@@ -135,7 +168,9 @@ public class Database {
 				//String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
 				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3));
 				//System.out.println(var.toString());				
-				addVariable(var);
+				addVariable(var, ignoreUndefinedNodes);
+				if(++numVars % 100 == 0 && verbose)
+					System.out.print("    " + numVars + " vars read\r");
 				continue;
 			}			
 			// parse domain decls
@@ -150,27 +185,6 @@ public class Database {
 			// something else
 			if(line.length() != 0) {
 				System.err.println("Line could not be read: " + line);
-			}
-		}
-		
-		// fill domains (of both return types and arguments)		
-		for(Variable var : entries.values()) {
-			Signature sig = bn.getSignature(var.nodeName);
-			if(sig == null) {
-				if(ignoreUndefinedNodes)
-					continue;
-				else
-					throw new Exception(String.format("Error: node %s appears in the training data but it is not declared in the model.", var.nodeName));
-			}
-			if(sig.argTypes.length != var.params.length) 
-				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
-			//if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
-			//	System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
-			fillDomain(sig.returnType, var.value);
-			for(int i = 0; i < sig.argTypes.length; i++) {
-				//if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
-				//	System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
-				fillDomain(sig.argTypes[i], var.params[i]);
 			}
 		}
 	}	
@@ -210,7 +224,7 @@ public class Database {
 					if(dom2.contains(value)) { // replace all occurrences of the j-th domain by the i-th
 						if(verbose)
 							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap (both contain " + value + "). Merging...");
-						this.bn.replaceType(domNames.get(j), domNames.get(i));
+						this.rbn.replaceType(domNames.get(j), domNames.get(i));
 						dom1.addAll(dom2);
 						doms.set(j, dom1);
 						break;
@@ -253,16 +267,17 @@ public class Database {
 	
 	/**
 	 * adds all missing values of ground atoms of the given predicate, setting them to "False".
-	 * Invoke <b>after</b> the database has been read!
+	 * Invoke <i>after</i> the database has been read!
 	 * @param predName
+	 * @throws Exception 
 	 */
-	public void setClosedWorldPred(String predName) {
-		Signature sig = this.bn.getSignature(predName);
+	public void setClosedWorldPred(String predName) throws Exception {
+		Signature sig = this.rbn.getSignature(predName);
 		String[] params = new String[sig.argTypes.length];
 		setClosedWorldPred(sig, 0, params);
 	}
 	
-	protected void setClosedWorldPred(Signature sig, int i, String[] params) {
+	protected void setClosedWorldPred(Signature sig, int i, String[] params) throws Exception {
 		if(i == params.length) {
 			String varName = RelationalNode.formatName(sig.functionName, params);
 			if(!this.contains(varName)) {				
@@ -278,11 +293,11 @@ public class Database {
 		}
 	}	
 	
-	public class Variable {
+	public static class Variable {
 		/**
 		 * the node name or function/predicate name
 		 */
-		public String nodeName;
+		public String functionName;
 		/**
 		 * the actual parameters of the function/predicate
 		 */
@@ -290,7 +305,7 @@ public class Database {
 		public String value;
 		
 		public Variable(String predicate, String[] params, String value) {
-			this.nodeName = predicate;
+			this.functionName = predicate;
 			this.params = params;
 			this.value = value;
 		}
@@ -300,16 +315,16 @@ public class Database {
 		}
 		
 		public String getKeyString() {
-			return nodeName + "(" + RelationalNode.join(",", params) + ")";
+			return functionName + "(" + RelationalNode.join(",", params) + ")";
 		}
 		
 		/**
-		 * gets the predicate that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
+		 * gets the predicate representation that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
 		 * @return
 		 */
 		public String getPredicate() {
 			// TODO handle boolean values differently
-			return nodeName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
+			return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
 		}
 		
 		public boolean isTrue() {
@@ -317,8 +332,8 @@ public class Database {
 		}
 	}
 	
-	public Signature getSignature(String predicateName) {
-		return bn.getSignature(predicateName);
+	public Signature getSignature(String functionName) {
+		return rbn.getSignature(functionName);
 	}
 	
 	public void printDomain(PrintStream out) {
