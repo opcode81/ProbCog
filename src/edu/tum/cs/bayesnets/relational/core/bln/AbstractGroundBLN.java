@@ -24,6 +24,7 @@ import edu.tum.cs.bayesnets.relational.core.ParentGrounder;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
 import edu.tum.cs.bayesnets.relational.core.RelationalNode;
 import edu.tum.cs.tools.Pair;
+import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
 public abstract class AbstractGroundBLN {
@@ -50,6 +51,9 @@ public abstract class AbstractGroundBLN {
 	}
 
 	public void instantiateGroundNetwork() throws Exception {
+		Stopwatch sw = new Stopwatch();
+		sw.start();
+		
 		System.out.println("generating network...");
 		groundBN = new BeliefNetworkEx();
 		
@@ -104,6 +108,9 @@ public abstract class AbstractGroundBLN {
 		System.out.println("  formulaic nodes");
 		hardFormulaNodes = new Vector<String>();
 		groundFormulaicNodes();		
+		
+		System.out.println("network size: " + getGroundNetwork().bn.getNodes().length + " nodes");
+		System.out.println(String.format("construction time: %.4fs", sw.getElapsedTimeSecs()));
 	}
 	
 	/**
