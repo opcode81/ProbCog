@@ -90,6 +90,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		}
 		
 		protected double getProb(CPF cpf, int[] nodeDomainIndices) {
+			final boolean debugCache = false;
 			probSW.start();
 			// get the key in the CPF-specific cache
 			Double cacheValue = null;
@@ -112,7 +113,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			HashMap<Integer, Double> cpfCache = probCache.get(cpf);
 			if(cpfCache != null) {
 				Double value = cacheValue = cpfCache.get(key);
-				if(false && value != null) {
+				if(!debugCache && value != null) {
 					probSW.stop();
 					return value;					
 				}
@@ -184,7 +185,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		final boolean useCache = true;
 		distSW.start();
 		
-		if(useCache) {
+		if(useCache) { // TODO optimize this further (semi-lifted): because the distributions of many nodes are identical, use some index that combines the relational node's index plus possible constant node settings
 			// calculate key		
 			BeliefNode[] domProd = node.getCPF().getDomainProduct();
 			// - consider node itself and all parents			
