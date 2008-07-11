@@ -39,7 +39,7 @@ public class TopologicalSort {
 		int numExtracted = 0;
 		Integer numLevel = 0;
 		while(numExtracted < vertices.length) {
-			System.out.println(numExtracted + " of " + vertices.length);
+			//System.out.println(numExtracted + " of " + vertices.length);
 			Vector<Integer> level = new Vector<Integer>();
 			int[] indeg2 = new int[indeg.length];			
 			for(int i = 0; i < indeg.length; i++) {
