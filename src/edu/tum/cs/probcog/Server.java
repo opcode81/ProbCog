@@ -6,16 +6,17 @@ import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Vector;
 
-import edu.tum.cs.bayesnets.relational.core.ABL;
-import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.tools.StringTool;
 
 public class Server {
-	public Server() {
-		
+	ModelPool modelPool; 
+	
+	public Server() throws IOException, ParseException, Exception {
+		modelPool = new ModelPool(null);
 	}
 	
-	public static Collection<String[]> readListOfLispTuples(String s) {
+	public static Vector<String[]> readListOfLispTuples(String s) {
 		Vector<String[]> ret = new Vector<String[]>();		
 		s = s.substring(2, s.length()-2); // remove leading and trailing braces
 		String[] tuples = s.split("\\)\\s*\\(");
@@ -24,20 +25,32 @@ public class Server {
 		return ret;
 	}
 	
-	public String query(String request) throws IOException, ParseException, Exception {
-			
+	public Vector<InferenceResult> query(String request) throws IOException, ParseException, Exception {
 		// get request components
 		String[] qs = request.split(";");
 		String query = qs[0];
 		String evidence = qs[1];
 		
-		// read model
-		Model model = new BLNModel("/usr/stud/waldhers/kitchen/new/meals_any_for.blog", "/usr/stud/waldhers/kitchen/new/meals_any_for.learnt.xml", "/usr/stud/waldhers/kitchen/new/meals_any_for.bln");
-		
-		// read queries
-		Collection<String> queries = new Vector<String>();
+		// read queries		
 		Collection<String[]> queryTuples = readListOfLispTuples(query);
+		Vector<String> queries = queriesFromTuples(queryTuples);
+		
+		// read evidence
+		Collection<String[]> evidenceTuples = readListOfLispTuples(evidence);
+				
+		return query("tableSetting", queries, evidenceTuples);
+	}
+	
+	/**
+	 * translates a list of LISP-style tuples, such as (sitsAtIn ?PERSON ?SEATING-LOCATION M),
+	 * to regular query strings, such as "sitsAtIn(a1,a2,M)"
+	 * @param queryTuples
+	 * @return collection of query strings
+	 */
+	public static Vector<String> queriesFromTuples(Collection<String[]> queryTuples) {		
+		Vector<String> queries = new Vector<String>();
 		for(String[] tuple : queryTuples) {
+			//System.out.println("tuple: (" + StringTool.join("," , tuple) + ")");
 			StringBuffer sb = new StringBuffer(tuple[0] + "(");
 			for(int i = 1; i < tuple.length; i++) {
 				if(i > 1)
@@ -51,16 +64,20 @@ public class Server {
 			System.out.println("query: " + sb.toString());
 			queries.add(sb.toString());
 		}
-		
-		// read and set evidence
-		Collection<String[]> evidenceTuples = readListOfLispTuples(evidence);
-		model.setEvidence(evidenceTuples);
-		
+		return queries;
+	}
+	
+	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Collection<String[]> evidence) throws Exception {
+		// get model
+		Model model = modelPool.getModel(modelName);		
+		// set evidence		
+		model.setEvidence(evidence);
 		// instantiate model and perform inference
 		model.instantiate();
-		Vector<InferenceResult> results = model.infer(queries);
-		
-		// create list of list tuples for results
+		return model.infer(queries);
+	}
+	
+	public static String inferenceResults2LispTuples(Vector<InferenceResult> results) {
 		StringBuffer sb = new StringBuffer('(');
 		for(InferenceResult res : results) {
 			sb.append('(');
@@ -71,7 +88,6 @@ public class Server {
 			sb.append(')');
 		}
 		sb.append(')');
-		
 		return sb.toString();
 	}
 	
@@ -84,7 +100,7 @@ public class Server {
 			boolean test = true;
 			if(test) {
 				String input = "((sitsAtIn ?PERSON ?SEATING-LOCATION M) (usesAnyIn ?PERSON ?UTENSIL M));((takesPartIn P1 M) (name P1 Anna) (takesPartIn P2 M) (name P2 Bert) (takesPartIn P3 M) (name P3 Dorothy) (mealT M Breakfast))";
-				String output = server.query(input); 
+				String output = inferenceResults2LispTuples(server.query(input)); 
 				System.out.println(output);
 			}
 			// server loop
@@ -96,7 +112,8 @@ public class Server {
 					break;
 				}
 				System.err.println("Received query: " + line);
-				server.query(line);
+				String result = inferenceResults2LispTuples(server.query(line));
+				System.out.println(result);
 			}
 		}
 		catch(Exception e) {
