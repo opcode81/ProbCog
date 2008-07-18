@@ -125,6 +125,10 @@ public class RelationalNode extends ExtendedNode {
 		return this.node.getName();
 	}
 	
+	public int getNodeIndex() {
+		return this.index;
+	}
+	
 	/**
 	 * gets the clean name of this node (the label without prefixes or suffixes), i.e. only the predicate and its parameters
 	 * @return
