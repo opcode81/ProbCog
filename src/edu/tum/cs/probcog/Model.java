@@ -32,4 +32,8 @@ public abstract class Model {
 	protected void setParameter(String key, String value) {
 		parameters.put(key, value);
 	}
+	
+	public String getName() {
+		return name;
+	}
 }

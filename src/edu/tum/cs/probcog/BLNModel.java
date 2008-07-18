@@ -20,8 +20,8 @@ public class BLNModel extends Model {
 	protected GroundBLN gbln;
 	protected Database db;
 	
-	public BLNModel(String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
-		super(networkFile);
+	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
+		super(modelName);
 		this.bln = new BayesianLogicNetwork(new ABL(blogFile, networkFile), logicFile);
 	}
 	
