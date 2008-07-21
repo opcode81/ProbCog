@@ -35,6 +35,7 @@ public abstract class AbstractGroundBLN {
 	protected Database db;
 	protected HashMap<String, Vector<RelationalNode>> functionTemplates;
 	protected HashSet<String> instantiatedVariables;
+	protected HashMap<String, Value[]> subCPFCache;
 	protected static final boolean debug = false;	
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
@@ -93,6 +94,7 @@ public abstract class AbstractGroundBLN {
 		
 		// go through all function names in order and generate all groundings for each of them
 		instantiatedVariables = new HashSet<String>();
+		subCPFCache = new HashMap<String, Value[]>();
 		for(String functionName : functionOrder) {
 			System.out.println("    " + functionName);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
@@ -100,9 +102,10 @@ public abstract class AbstractGroundBLN {
 				instantiateVariable(functionName, params);
 		}
 		
-		// clean up		
+		// clean up
 		instantiatedVariables = null;
 		functionTemplates = null;
+		subCPFCache = null;
 		
 		// ground formulaic nodes
 		System.out.println("  formulaic nodes");
@@ -315,10 +318,23 @@ public abstract class AbstractGroundBLN {
 		targetCPF.buildZero(targetDomainProd, false);
 		
 		// transfer the CPF values
+		// - if the original relational node had exactly the same number of parents as the instance, 
+		//   we can safely transfer its CPT to the instantiated node
 		if(srcDomainProd.length == targetDomainProd.length)
 			targetCPF.setValues(srcRelNode.node.getCPF().getValues());
-		else
-			targetCPF.setValues(getSubCPFValues(srcRelNode.node.getCPF(), constantSettings));
+		// - otherwise we must extract the relevant columns that apply to the constant setting
+		else {
+			Value[] subCPF;						
+			// get the subpart from the cache if possible
+			String cacheKey = Integer.toString(srcRelNode.index) + constantSettings.toString(); 
+			subCPF = subCPFCache.get(cacheKey);
+			if(subCPF == null) {
+				subCPF = getSubCPFValues(srcRelNode.node.getCPF(), constantSettings);
+				subCPFCache.put(cacheKey, subCPF);
+			}
+			
+			targetCPF.setValues(subCPF);
+		}
 		
 		/*
 		// print domain products (just to check)
