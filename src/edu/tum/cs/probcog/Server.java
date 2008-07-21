@@ -12,8 +12,8 @@ import edu.tum.cs.tools.StringTool;
 public class Server {
 	ModelPool modelPool; 
 	
-	public Server() throws IOException, ParseException, Exception {
-		modelPool = new ModelPool(null);
+	public Server(String modelPoolFile) throws IOException, ParseException, Exception {
+		modelPool = new ModelPool(modelPoolFile);
 	}
 	
 	public static Vector<String[]> readListOfLispTuples(String s) {
@@ -93,7 +93,7 @@ public class Server {
 	
 	public static void main(String[] args) {
 		try {
-			Server server = new Server();
+			Server server = new Server("/usr/wiss/jain/work/code/SRLDB/models/models.xml");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			System.err.println("ProbCog Server running...");
 			// test case

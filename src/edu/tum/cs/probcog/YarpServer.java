@@ -18,8 +18,15 @@ public class YarpServer extends Server {
 	 */
 	YarpRpcServer port;
 	
-    public YarpServer(String portName) throws IOException, ParseException, Exception {
-		super();	
+	/**
+	 * @param modelPoolFile an XML file containing a pool of models to serve
+	 * @param portName name under which to register the service
+	 * @throws IOException 
+	 * @throws ParseException
+	 * @throws Exception
+	 */
+    public YarpServer(String modelPoolFile, String portName) throws IOException, ParseException, Exception {
+		super(modelPoolFile);	
 		port = new YarpRpcServer(portName);
 	}
 
@@ -54,59 +61,98 @@ public class YarpServer extends Server {
     }
     
     /**
-     * handles an RPC call
+     * handles a remote procedure call
      * @param call
      * @return the reply to send on this server's port
      * @throws Exception
      */
-	public YarpRpcReply handleCall(YarpRpcCall call) throws Exception {
-        YarpRpcReply result = new YarpRpcReply( call );
-        
-        if(call.procName().equals("query")) {
-        	// perform inference
-        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(0).asList()));
-        	Vector<String[]> evidence = readListOfLists(call.get(1).asList());
-        	Vector<InferenceResult> results = query("tableSetting", queries, evidence);
-        	// write results
-        	Bottle listOfResults = result.addList();
-        	for(InferenceResult r : results) {
-        		Bottle tuple = listOfResults.addList();
-        		tuple.addString(r.functionName);
-        		for(String param : r.params)
-        			tuple.addString(param);
-        		tuple.addDouble(r.probability);
-        	}
+	public YarpRpcReply handleCall(YarpRpcCall call) {
+		try {
+	        YarpRpcReply result = new YarpRpcReply(call);        
+	        if(call.procName().equals("query")) {
+	        	// perform inference
+	        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(0).asList()));
+	        	Vector<String[]> evidence = readListOfLists(call.get(1).asList());
+	        	Vector<InferenceResult> results = query("tableSetting", queries, evidence);
+	        	// write results
+	        	Bottle listOfResults = result.addList();
+	        	for(InferenceResult r : results) {
+	        		Bottle tuple = listOfResults.addList();
+	        		tuple.addString(r.functionName);
+	        		for(String param : r.params)
+	        			tuple.addString(param);
+	        		tuple.addDouble(r.probability);
+	        	}
+	        }
+	        else
+	        	throw new Exception("Don't know how to handle calls to method '" + call.procName() + "'");
+	        return result;
+		}
+        catch(Exception e) {
+        	e.printStackTrace();
+        	YarpRpcReply result = new YarpRpcReply(call);
+        	result.addString("error");
+        	result.addString(e.getMessage());
+        	return result;
         }
-        else {
-        	System.err.println("Error: Don't know how to handle calls to method '" + call.procName() + "'");
-            result.addString("error");
-        }
-        return result;
     }
 	
-	public void run() throws Exception {           
-        boolean doTest = true;
-        if(doTest) {
-        	Vector<String[]> query = readListOfLispTuples("((sitsAtIn ?PERSON ?SEATING-LOCATION M) (usesAnyIn ?PERSON ?UTENSIL M))");
-        	Vector<String[]> evidence = readListOfLispTuples("((takesPartIn P1 M) (name P1 Anna) (takesPartIn P2 M) (name P2 Bert) (takesPartIn P3 M) (name P3 Dorothy) (mealT M Breakfast))");
-        	YarpRpcCall cl = new YarpRpcCall("query");
-        	writeListOfLists(query, cl.addList());
-        	writeListOfLists(evidence, cl.addList());
-        	YarpRpcReply reply = handleCall(cl);
-        	System.out.println("Test result: " + reply.toString());
-        }
+	/**
+	 * starts the server loop
+	 */
+	public void run() {           
         while(true) {
         	System.out.println("Waiting for call...");
             YarpRpcCall cl = port.read();
             port.reply(handleCall(cl));
         }
 	}
+	
+	/**
+	 * performs a test by querying the tableSetting model, printing the results
+	 */
+	public void test() {
+    	Vector<String[]> query = readListOfLispTuples("((sitsAtIn ?PERSON ?SEATING-LOCATION M) (usesAnyIn ?PERSON ?UTENSIL M))");
+    	Vector<String[]> evidence = readListOfLispTuples("((takesPartIn P1 M) (name P1 Anna) (takesPartIn P2 M) (name P2 Bert) (takesPartIn P3 M) (name P3 Dorothy) (mealT M Breakfast))");
+    	// construct test call
+    	YarpRpcCall cl = new YarpRpcCall("query");
+    	writeListOfLists(query, cl.addList());
+    	writeListOfLists(evidence, cl.addList());
+    	// process and print result
+    	YarpRpcReply reply = handleCall(cl);
+    	System.out.println("Test result: " + reply.toString());
+	}
     
     public static void main(String[] args) {
+    	// initialize YARP-RPC
         System.loadLibrary("jyarprpc");
         Network.init();
         try {
-			new YarpServer("/rpc/probcog").run();
+        	System.out.println("\nProbCog YARP Server\n");
+        	// check arguments
+        	String modelPoolFile = null;
+        	boolean doTest = false;
+        	for(int i = 0; i < args.length; i++) {
+        		if(args[i].charAt(0) == '-') {
+	        		if(args[i].equals("-?")) {
+	        			System.out.println("usage: YarpServer [-test] [XML file containing pool of models]\n");
+	        			return;
+	        		}
+	        		else if(args[i].equals("-test"))
+	        			doTest = true;
+        		}
+        		else
+        			modelPoolFile = args[0];
+        	}
+        	if(modelPoolFile == null) {
+        		modelPoolFile = "/usr/wiss/jain/work/code/SRLDB/models/models.xml";
+        		System.out.println("No model pool file specified, defaulting to " + modelPoolFile);
+        	}
+        	// run server
+			YarpServer server = new YarpServer(modelPoolFile, "/rpc/probcog");
+			if(doTest)
+				server.test();
+			server.run();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
