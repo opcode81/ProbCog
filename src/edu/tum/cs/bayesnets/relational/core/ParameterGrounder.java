@@ -30,7 +30,12 @@ public class ParameterGrounder {
 	 * @throws Exception
 	 */
 	public static Collection<String[]> generateGroundings(RelationalBeliefNetwork rbn, String function, Database db) throws Exception {
-		return generateGroundings(db, rbn.getSignature(function).argTypes);
+		try {
+			return generateGroundings(db, rbn.getSignature(function).argTypes);
+		}
+		catch(Exception e) {
+			throw new Exception(e.getMessage() + " (while grounding '" + function + "')");
+		}
 	}
 	
 	public static Collection<String[]> generateGroundings(Database db, String[] domainNames) throws Exception {

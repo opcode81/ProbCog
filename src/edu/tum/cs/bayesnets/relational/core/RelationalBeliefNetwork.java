@@ -288,7 +288,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 					String key = node.params[i];
 					String value = types.get(key);
 					if(value != null && !value.equals(sig.argTypes[i]))
-						throw new Exception(String.format("Type mismatch: '%s' has types '%s' and '%s'", key, value, sig.argTypes[i]));
+						throw new Exception(String.format("Type mismatch while processing node '%s': '%s' has types '%s' and '%s'", node.getName(), key, value, sig.argTypes[i]));
 					types.put(key, sig.argTypes[i]);
 				}
 			}
