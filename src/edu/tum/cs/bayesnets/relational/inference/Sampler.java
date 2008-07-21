@@ -20,6 +20,7 @@ public abstract class Sampler {
 			//System.out.println("pattern: " + p);
 		}
 		// check all ground variables for matches
+		// TODO This should be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
 		Vector<InferenceResult> results = new Vector<InferenceResult>();
 		BeliefNode[] nodes = dist.bn.bn.getNodes();		
 		for(int i = 0; i < nodes.length; i++)
