@@ -753,7 +753,7 @@ class MLN:
             print "%*d " % (int(math.ceil(math.log(len(self.worlds)) / math.log(10))), k),
             self.printWorld(world, mode=mode, format=format)
             k += 1        
-        print "total: %.0f" % self.partition_function
+        print "Z = %f" % self.partition_function
     
     # prints the worlds where the given formula (condition) is true (otherwise same as printWorlds)
     def printWorldsFiltered(self, condition, mode=1, format=1):
