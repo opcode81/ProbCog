@@ -142,7 +142,7 @@ public class YarpServer extends Server {
 	        			doTest = true;
         		}
         		else
-        			modelPoolFile = args[0];
+        			modelPoolFile = args[i];
         	}
         	if(modelPoolFile == null) {
         		modelPoolFile = "/usr/wiss/jain/work/code/SRLDB/models/models.xml";
