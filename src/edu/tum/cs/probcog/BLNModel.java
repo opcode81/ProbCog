@@ -75,7 +75,7 @@ public class BLNModel extends Model {
 			String functionName = tuple[0];
 			Signature sig = bln.rbn.getSignature(functionName);
 			if(sig == null)
-				throw new Exception("Function " + functionName + " appearing in evidence not found in model " + name);
+				throw new Exception("Function '" + functionName + "' appearing in evidence not found in model " + name);
 			String value;
 			String[] params;
 			if(!sig.isBoolean()) { // non-boolean function
