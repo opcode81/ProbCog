@@ -1,15 +1,16 @@
 package edu.tum.cs.probcog;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
+import javax.xml.parsers.SAXParserFactory;
+
 import org.xml.sax.Attributes;
-import org.xml.sax.InputSource;
-import org.xml.sax.XMLReader;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 import edu.tum.cs.logic.parser.ParseException;
 
@@ -23,19 +24,19 @@ public class ModelPool {
 		File poolFile = new File(poolFilename);
 		poolPath = poolFile.getParentFile();
 		
-		XMLReader xr = XMLReaderFactory.createXMLReader();
-		PoolReader handler = new PoolReader();
-		xr.setContentHandler(handler);
-		xr.setErrorHandler(handler);
-	    FileReader r = new FileReader(poolFile);
-		xr.parse(new InputSource(r));			 
+		SAXParserFactory factory = SAXParserFactory.newInstance();
+		factory.setValidating(true);
+		factory.newSAXParser().parse(poolFile, new PoolReader());
 	}
 	
 	public Model getModel(String name) {
 		return pool.get(name);
 	}
 	
-	protected class PoolReader extends DefaultHandler {
+	/**
+	 * Reader for XML-based format for pools of models 
+	 */
+	protected class PoolReader extends DefaultHandler implements ErrorHandler {
 		protected class ModelData {
 			String name, type, path;
 			HashMap<String, String> files;
@@ -99,8 +100,6 @@ public class ModelPool {
 			else if(qName.equals("file")) {
 				String type = attrs.getValue("type");
 				String filename = attrs.getValue("name");
-				if(type == null || filename == null)
-					throw new RuntimeException("The 'filename' tag must have 'type' and 'name' attributes.");
 				currentModel.files.put(type, filename);
 			}
 		}
@@ -113,6 +112,18 @@ public class ModelPool {
 			catch (Exception e) {
 				throw new RuntimeException(e.getMessage());					
 			}
+		}
+		
+		public void warning(SAXParseException e) throws SAXException {
+			throw e;
+		}
+
+		public void error(SAXParseException e) throws SAXException {
+			throw e;
+		}
+
+		public void fatalError(SAXParseException e) throws SAXException {
+			throw e;
 		}
 	}
 }
