@@ -15,11 +15,11 @@ public class TopologicalSort {
 		this.bn = bn;
 	}
 	
-	public TopologicalOrdering run() {
+	public TopologicalOrdering run() throws Exception {
 		return run(false);
 	}
 	
-	public TopologicalOrdering run(boolean createTierMap) {
+	public TopologicalOrdering run(boolean createTierMap) throws Exception {
 		Graph g = bn.getGraph();
 		BeliefNode[] nodes = bn.getNodes();
 		HashMap<BeliefNode, Integer> tierMap = null;
@@ -38,8 +38,13 @@ public class TopologicalSort {
 		Vector<Vector<Integer>> ret = new Vector<Vector<Integer>>();
 		int numExtracted = 0;
 		Integer numLevel = 0;
+		int prevExtracted = -1;
+		boolean debug = false;
 		while(numExtracted < vertices.length) {
-			//System.out.println(numExtracted + " of " + vertices.length);
+			if(prevExtracted == numExtracted)
+				throw new Exception(String.format("Topological ordering could not be obtained because of cycles in the network (%d nodes remain).", vertices.length-numExtracted));
+			prevExtracted = numExtracted;
+			if(debug) System.out.println(numExtracted + " of " + vertices.length);
 			Vector<Integer> level = new Vector<Integer>();
 			int[] indeg2 = new int[indeg.length];			
 			for(int i = 0; i < indeg.length; i++) {
@@ -53,6 +58,8 @@ public class TopologicalSort {
 					for(Vertex child : g.getChildren(vertices[i]))
 						indeg2[child.loc()]--;
 				}
+				else if(debug)
+					System.out.println(String.format("  %d %s", indeg[i], nodes[i].getName()));				
 			}
 			indeg = indeg2;
 			ret.add(level);

@@ -77,7 +77,7 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 	}
 	
 	@Override
-	protected void prepareInference(int[] evidenceDomainIndices) {
+	protected void prepareInference(int[] evidenceDomainIndices) throws Exception {
 		super.prepareInference(evidenceDomainIndices);
 		System.out.println("computing priors...");
 		computePriors(evidenceDomainIndices);
