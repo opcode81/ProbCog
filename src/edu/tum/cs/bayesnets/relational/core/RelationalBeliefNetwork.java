@@ -200,14 +200,12 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	
 	public void addSignature(String predicateName, Signature sig) {
 		//relNodesByIdx.get(nodeIndex).sig = sig;
-		signatures.put(predicateName.toLowerCase(), sig);
+		String key = predicateName; //.toLowerCase()
+		signatures.put(predicateName, sig);
 	}
 	
 	public void addSignature(RelationalNode node, Signature sig) {
-		String name = node.getFunctionName().toLowerCase();
-		/*if(node.isConstant)
-			name = "__CONST" + node.index;*/
-		signatures.put(name, sig);
+		addSignature(node.getFunctionName(), sig);
 	}
 	
 	/**
@@ -216,14 +214,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	 * @return a Signature object
 	 */
 	public Signature getSignature(String functionName) {
-		return signatures.get(functionName.toLowerCase());
+		return signatures.get(functionName/*.toLowerCase()*/);
 	}
 	
 	public Signature getSignature(RelationalNode node) {
-		/*if(node.isConstant) 
-			return signatures.get("__CONST" + node.index);
-		else*/
-			return signatures.get(node.getFunctionName().toLowerCase());
+		return signatures.get(node.getFunctionName());
 	}
 	
 	public Collection<Signature> getSignatures() {
