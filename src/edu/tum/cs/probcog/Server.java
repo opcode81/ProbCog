@@ -16,7 +16,7 @@ public class Server {
 		modelPool = new ModelPool(modelPoolFile);
 	}
 	
-	public static Vector<String[]> readListOfLispTuples(String s) {
+	protected static Vector<String[]> readListOfLispTuples(String s) {
 		Vector<String[]> ret = new Vector<String[]>();		
 		s = s.substring(2, s.length()-2); // remove leading and trailing braces
 		String[] tuples = s.split("\\)\\s*\\(");
@@ -41,13 +41,21 @@ public class Server {
 		return query("tableSetting", queries, evidenceTuples);
 	}
 	
+	public Vector<String[]> getPredicates(String modelName) {
+		return modelPool.getModel(modelName).getPredicates();
+	}
+	
+	public Vector<String[]> getDomains(String modelName) {
+		return modelPool.getModel(modelName).getDomains();
+	}
+	
 	/**
 	 * translates a list of LISP-style tuples, such as (sitsAtIn ?PERSON ?SEATING-LOCATION M),
 	 * to regular query strings, such as "sitsAtIn(a1,a2,M)"
 	 * @param queryTuples
 	 * @return collection of query strings
 	 */
-	public static Vector<String> queriesFromTuples(Collection<String[]> queryTuples) {		
+	protected static Vector<String> queriesFromTuples(Collection<String[]> queryTuples) {		
 		Vector<String> queries = new Vector<String>();
 		for(String[] tuple : queryTuples) {
 			//System.out.println("tuple: (" + StringTool.join("," , tuple) + ")");
@@ -77,7 +85,7 @@ public class Server {
 		return model.infer(queries);
 	}
 	
-	public static String inferenceResults2LispTuples(Vector<InferenceResult> results) {
+	protected static String inferenceResults2LispTuples(Vector<InferenceResult> results) {
 		StringBuffer sb = new StringBuffer('(');
 		for(InferenceResult res : results) {
 			sb.append('(');
