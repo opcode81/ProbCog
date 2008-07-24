@@ -115,8 +115,9 @@ public class BackwardSampling extends Sampler {
 	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
+	 * @throws Exception 
 	 */
-	protected void getOrdering(int[] evidenceDomainIndices) {
+	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
@@ -197,7 +198,7 @@ public class BackwardSampling extends Sampler {
 		return d;
 	}
 	
-	protected void prepareInference(int[] evidenceDomainIndices) {
+	protected void prepareInference(int[] evidenceDomainIndices) throws Exception {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		getOrdering(evidenceDomainIndices);
 		if(debug) {
