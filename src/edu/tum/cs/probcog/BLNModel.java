@@ -1,7 +1,9 @@
 package edu.tum.cs.probcog;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import edu.tum.cs.bayesnets.relational.core.ABL;
 import edu.tum.cs.bayesnets.relational.core.Database;
@@ -92,5 +94,38 @@ public class BLNModel extends Model {
 			}
 			db.addVariable(new Database.Variable(functionName, params, value));
 		}
+	}
+
+	@Override
+	public Vector<String[]> getPredicates() {
+		Vector<String[]> ret = new Vector<String[]>();
+		for(Signature sig : this.bln.rbn.getSignatures()) {
+			int numArgTypes = sig.argTypes.length; 
+			if(!sig.isBoolean())
+				numArgTypes++;
+			String[] a = new String[1+numArgTypes];
+			a[0] = sig.functionName;
+			for(int i = 1; i < a.length; i++) {
+				if(i-1 < sig.argTypes.length)
+					a[i] = sig.argTypes[i-1];
+				else
+					a[i] = sig.returnType;
+			}
+			ret.add(a);
+		}
+		return ret;
+	}
+	
+	public Vector<String[]> getDomains() {
+		Vector<String[]> ret = new Vector<String[]>();
+		for(Entry<String,String[]> e : this.bln.rbn.getGuaranteedDomainElements().entrySet()) {
+			String[] elems = e.getValue();
+			String[] tuple = new String[elems.length+1];
+			tuple[0] = e.getKey();
+			for(int i = 0; i < elems.length; i++)
+				tuple[i+1] = elems[i];
+			ret.add(tuple);
+		}
+		return ret;
 	}
 }

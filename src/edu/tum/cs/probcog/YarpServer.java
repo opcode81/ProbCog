@@ -60,6 +60,11 @@ public class YarpServer extends Server {
     	}
     }
     
+    protected void checkNumParams(YarpRpcCall call, int n) throws Exception {
+    	if(call.size() != n)
+    		throw new Exception(String.format("Call to precedure '%s' requires exactly %d parameters.", call.procName(), n));
+    }
+    
     /**
      * handles a remote procedure call
      * @param call
@@ -70,12 +75,14 @@ public class YarpServer extends Server {
 		try {
 	        YarpRpcReply result = new YarpRpcReply(call);        
 	        if(call.procName().equals("query")) {
+	        	checkNumParams(call, 3);
 	        	// perform inference
-	        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(0).asList()));
-	        	Vector<String[]> evidence = readListOfLists(call.get(1).asList());
-	        	Vector<InferenceResult> results = query("tableSetting", queries, evidence);
+	        	String modelName = call.get(0).toString();
+	        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(1).asList()));
+	        	Vector<String[]> evidence = readListOfLists(call.get(2).asList());
+	        	Vector<InferenceResult> results = query(modelName, queries, evidence);
 	        	// write results
-	        	Bottle listOfResults = result.addList();
+	        	Bottle listOfResults = result;
 	        	for(InferenceResult r : results) {
 	        		Bottle tuple = listOfResults.addList();
 	        		tuple.addString(r.functionName);
@@ -83,6 +90,16 @@ public class YarpServer extends Server {
 	        			tuple.addString(param);
 	        		tuple.addDouble(r.probability);
 	        	}
+	        }
+	        else if(call.procName().equals("getPredicates")) {
+	        	checkNumParams(call, 1);
+	        	String modelName = call.get(0).toString();
+	        	writeListOfLists(getPredicates(modelName), result);
+	        }
+	        else if(call.procName().equals(("getDomains"))) {
+	        	checkNumParams(call, 1);
+	        	String modelName = call.get(0).toString();
+	        	writeListOfLists(getDomains(modelName), result);
 	        }
 	        else
 	        	throw new Exception("Don't know how to handle calls to method '" + call.procName() + "'");
@@ -108,19 +125,31 @@ public class YarpServer extends Server {
         }
 	}
 	
+	public void test(YarpRpcCall call) {
+		System.out.println("\nTest Call: " + call.toString());
+		System.out.println("Result: " + handleCall(call).toString());
+	}
+	
 	/**
 	 * performs a test by querying the tableSetting model, printing the results
 	 */
 	public void test() {
+		// query test
     	Vector<String[]> query = readListOfLispTuples("((sitsAtIn ?PERSON ?SEATING-LOCATION M) (usesAnyIn ?PERSON ?UTENSIL M))");
     	Vector<String[]> evidence = readListOfLispTuples("((takesPartIn P1 M) (name P1 Anna) (takesPartIn P2 M) (name P2 Bert) (takesPartIn P3 M) (name P3 Dorothy) (mealT M Breakfast))");
-    	// construct test call
     	YarpRpcCall cl = new YarpRpcCall("query");
+    	cl.addString("tableSetting");
     	writeListOfLists(query, cl.addList());
     	writeListOfLists(evidence, cl.addList());
-    	// process and print result
-    	YarpRpcReply reply = handleCall(cl);
-    	System.out.println("Test result: " + reply.toString());
+    	test(cl);
+    	// getPredicates test
+    	cl = new YarpRpcCall("getPredicates");
+    	cl.addString("tableSetting");
+    	test(cl);
+    	// getDomains test
+    	cl = new YarpRpcCall("getDomains");
+    	cl.addString("tableSetting");
+    	test(cl);
 	}
     
     public static void main(String[] args) {
