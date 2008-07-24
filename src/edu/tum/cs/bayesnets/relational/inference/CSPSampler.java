@@ -21,7 +21,7 @@ public class CSPSampler extends Sampler {
 		this.gbln = gbln;
 	}
 	
-	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws ConversionException {
+	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
