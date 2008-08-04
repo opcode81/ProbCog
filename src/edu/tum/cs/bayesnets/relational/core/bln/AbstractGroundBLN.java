@@ -193,26 +193,36 @@ public abstract class AbstractGroundBLN {
 		}				
 		// - several sets of parents -> use combination function
 		else { 
-			// create auxiliary nodes, one for each set of parents
-			Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
-			int k = 0; 
-			for(Map<Integer, String[]> grounding : groundings) {
-				// create auxiliary node
-				String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
-				BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
-				auxNodes.add(auxNode);
-				// create links from parents to auxiliary node and transfer CPF
-				instantiateCPF(grounding, relNode, auxNode);
+			// determine if auxiliary nodes need to be used and connect the parents appropriately			
+			if(relNode.aggregator.charAt(0) != '=') {
+				// create auxiliary nodes, one for each set of parents
+				Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
+				int k = 0; 
+				for(Map<Integer, String[]> grounding : groundings) {
+					// create auxiliary node
+					String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
+					BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
+					auxNodes.add(auxNode);
+					// create links from parents to auxiliary node and transfer CPF
+					instantiateCPF(grounding, relNode, auxNode);
+				}
+				// connect auxiliary nodes to main node
+				for(BeliefNode parent : auxNodes) {
+					//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
+					groundBN.bn.connect(parent, mainNode);
+				}
 			}
-			// connect auxiliary nodes to main node
-			for(BeliefNode parent : auxNodes) {
-				//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
-				groundBN.bn.connect(parent, mainNode);
+			// if the node is functionally determined by the parents, aux. nodes carrying the CPD in the template node are not required
+			// we link the grounded parents directly
+			else {
+				for(Map<Integer, String[]> grounding : groundings) {
+					connectParents(grounding, relNode, mainNode, null, null);
+				}
 			}
 			// apply combination function
 			String combFunc = relNode.aggregator;
 			CPFFiller filler;
-			if(combFunc == null || combFunc.equals("OR")) {
+			if(combFunc == null || combFunc.equals("OR") || combFunc.equals("=OR")) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
@@ -264,6 +274,32 @@ public abstract class AbstractGroundBLN {
 	}
 	
 	/**
+	 * connects the parents given by the grounding to the target node 
+	 * @param parentGrounding
+	 * @param srcRelNode  the relational node that the target node is an instance to
+	 * @param targetNode  the node to connect the parents to
+	 * @param src2targetParent  a mapping in which to store which node in the model produced which instantiated parent (or null)
+	 * @param constantSettings  a mapping in which to store bindings of constants (or null)
+	 * @throws Exception 
+	 */
+	protected void connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws Exception {
+		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
+			RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
+			if(relParent == srcRelNode)
+				continue;
+			if(relParent.isConstant) {
+				//System.out.println("Constant node: " + parent.getName() + " = " + entry.getValue()[0]);
+				if(constantSettings != null) constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
+				continue;
+			}
+			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
+			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
+			groundBN.bn.connect(parent, targetNode);
+			if(src2targetParent != null) src2targetParent.put(relParent.node, parent);
+		}
+	}
+	
+	/**
 	 * connects the parents given by the grounding to the target node and transfers the (correct part of the) CPF to the target node
 	 * @param parentGrounding  a grounding
 	 * @param srcRelNode  relational node that the CPF is to be copied from 
@@ -274,20 +310,7 @@ public abstract class AbstractGroundBLN {
 		// connect parents, determine domain products, and set constant nodes (e.g. "x") to their respective constant value
 		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
-		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
-			RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
-			if(relParent == srcRelNode)
-				continue;
-			if(relParent.isConstant) {
-				//System.out.println("Constant node: " + parent.getName() + " = " + entry.getValue()[0]);
-				constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
-				continue;
-			}
-			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
-			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
-			groundBN.bn.connect(parent, targetNode);
-			src2targetParent.put(relParent.node, parent);
-		}
+		connectParents(parentGrounding, srcRelNode, targetNode, src2targetParent, constantSettings);
 		
 		// set decision nodes as constantly true
 		BeliefNode[] srcDomainProd = srcRelNode.node.getCPF().getDomainProduct();
