@@ -78,7 +78,7 @@ public class RelationalNode extends ExtendedNode {
 		}
 		// preprocessing: special child node that has a variable number of parents
 		// - aggregator as prefix
-		Pattern aggPat = Pattern.compile("([A-Z]+):.*");
+		Pattern aggPat = Pattern.compile("(=?[A-Z]+):.*");
 		Matcher m = aggPat.matcher(name);
 		if(m.matches()) {
 			aggregator = m.group(1);
