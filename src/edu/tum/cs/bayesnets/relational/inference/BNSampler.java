@@ -15,6 +15,10 @@ public class BNSampler extends Sampler {
 	AbstractGroundBLN gbln;
 	Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
 	protected int maxTrials;
+	/**
+	 * whether steps that exceed the max number of trials should just be skipped rather than raising an exception
+	 */
+	protected boolean skipFailedSteps;
 		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
 		this.gbln = gbln;
@@ -24,6 +28,10 @@ public class BNSampler extends Sampler {
 	
 	public void setMaxTrials(int maxTrials) {
 		this.maxTrials = maxTrials; 
+	}
+	
+	public void setSkipFailedSteps(boolean canSkip) {
+		this.skipFailedSteps = canSkip;
 	}
 	
 	@Override
@@ -38,6 +46,7 @@ public class BNSampler extends Sampler {
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
 		sampler.setMaxTrials(maxTrials);
+		sampler.setSkipFailedSteps(skipFailedSteps);
 		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
 		
 		// determine query nodes and print their distributions		

@@ -22,11 +22,12 @@ public class LikelihoodWeighting extends Sampler {
 		for(int i = 1; i <= numSamples; i++) {
 			if(i % infoInterval == 0)
 				System.out.println("  step " + i);			
-			getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
-			addSample(s);
+			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
+			if(ret != null) 
+				addSample(ret);
 		}
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
+		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
 		return dist;
 	}
 	
@@ -37,8 +38,12 @@ public class LikelihoodWeighting extends Sampler {
 loop:	while(!successful) {
 			s.weight = 1.0;
 			s.trials++;
-			if(s.trials > this.maxTrials)
-				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
+			if(s.trials > this.maxTrials) {
+				if(!this.skipFailedSteps)
+					throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
+				else
+					return null;
+			}
 			// assign values to the nodes in order
 			for(int i=0; i < nodeOrder.length; i++) {
 				int nodeIdx = nodeOrder[i];

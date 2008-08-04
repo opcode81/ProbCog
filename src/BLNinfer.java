@@ -41,6 +41,7 @@ public class BLNinfer {
 			boolean usePython = false;
 			boolean debug = false;
 			boolean saveInstance = false;
+			boolean skipFailedSteps = false;
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -58,6 +59,8 @@ public class BLNinfer {
 					showBN = true;				
 				else if(args[i].equals("-si"))
 					saveInstance = true;				
+				else if(args[i].equals("-skipFailedSteps"))
+					skipFailedSteps = true;				
 				else if(args[i].equals("-py"))
 					usePython = true;				
 				else if(args[i].equals("-cw"))
@@ -91,6 +94,7 @@ public class BLNinfer {
 				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db>> <-q <comma-sep. queries>> [options]\n\n"+
 									 "    -maxSteps #      the maximum number of steps to take\n" +
 									 "    -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
+									 "    -skipFailedSteps failed steps (> max trials) should just be skipped\n" +
 							         "    -lw              algorithm: likelihood weighting (default)\n" +
 							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -exp             algorithm: Experimental\n" +
@@ -177,8 +181,10 @@ public class BLNinfer {
 			}
 			sampler.setDebugMode(debug);
 			System.out.println("algorithm: " + sampler.getAlgorithmName());
-			if(sampler instanceof BNSampler)
+			if(sampler instanceof BNSampler) {
 				((BNSampler)sampler).setMaxTrials(maxTrials);
+				((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
+			}
 			Vector<InferenceResult> results = sampler.infer(queries, maxSteps, 100);
 			sw.stop();
 			for(InferenceResult res : results)
