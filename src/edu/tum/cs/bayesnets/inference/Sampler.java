@@ -20,6 +20,7 @@ public abstract class Sampler {
 	public int numSamples = 1000;
 	
 	protected int maxTrials = 5000;
+	protected boolean skipFailedSteps = false;
 	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
@@ -109,6 +110,10 @@ public abstract class Sampler {
 	
 	public void setMaxTrials(int maxTrials) {
 		this.maxTrials = maxTrials;
+	}
+	
+	public void setSkipFailedSteps(boolean canSkip) {
+		this.skipFailedSteps = canSkip;
 	}
 	
 	public abstract SampledDistribution infer(int[] evidenceDomainIndices) throws Exception;
