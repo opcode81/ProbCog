@@ -11,7 +11,7 @@ public class Biimplication extends ComplexFormula {
 	}
 	
 	public Biimplication(Formula f1, Formula f2) {
-		super(new Formula[]{f2, f2});
+		super(new Formula[]{f1, f2});
 	}
 	
 	public String toString() {
