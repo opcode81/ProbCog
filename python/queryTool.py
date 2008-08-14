@@ -34,6 +34,11 @@ from widgets import *
 import config
 import MLN
 
+def config_value(key, default):
+    if key in dir(config):
+        return eval("config.%s" % key)
+    return default
+
 # --- main gui class ---
 
 class MLNQuery:
@@ -73,7 +78,6 @@ class MLNQuery:
         self.selected_mln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
         
-        #row += 1
         self.convert_to_alchemy = IntVar()
         self.cb_convert_to_alchemy = Checkbutton(self.selected_mln.options_frame, text="convert to Alchemy format", variable=self.convert_to_alchemy)
         self.cb_convert_to_alchemy.pack(side=LEFT)
@@ -89,7 +93,7 @@ class MLNQuery:
         # inference method selection
         row += 1
         self.list_methods_row = row
-        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
+        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
         self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP":"-a"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
@@ -267,7 +271,7 @@ class MLNQuery:
             # - to settings
             self.settings["queryByDB"][db] = self.settings["query"]
             # write settings
-            pickle.dump(self.settings, file("query.config.dat", "w+"))
+            pickle.dump(self.settings, file(configname, "w+"))
             # hide main window
             self.master.withdraw()
             # some information
@@ -331,7 +335,7 @@ class MLNQuery:
                 if self.settings["convertAlchemy"]:
                     print "\n--- temporary MLN ---\n"
                     mlnObject = MLN.MLN(mln)
-                    infile = "%s.tmp" % mln 
+                    infile = mln[:mln.rfind(".")]+".alchemy.mln"
                     f = file(infile, "w")
                     mlnObject.write(f)
                     f.close()
@@ -339,6 +343,8 @@ class MLNQuery:
                     print "\n---"
                 # get alchemy version-specific data
                 alchemy_version = self.alchemy_versions[self.selected_engine.get()]
+                print alchemy_version
+                print type(alchemy_version)
                 if type(alchemy_version) != dict:
                     alchemy_version = {"path": str(alchemy_version)}
                 usage = config.default_infer_usage
@@ -392,8 +398,8 @@ class MLNQuery:
                 # delete written db
                 if not(keep_written_db) and wrote_db:
                     os.unlink(db)
-                # delete temporary mln (if any)
-                if self.settings["convertAlchemy"]:
+                # delete temporary mln
+                if self.settings["convertAlchemy"] and not config_value("keep_alchemy_conversions", True):
                     os.unlink(infile)
             # open results file
             if haveOutFile and config.query_edit_outfile_when_done:
@@ -418,11 +424,15 @@ class MLNQuery:
 if __name__ == '__main__':
     # read settings
     settings = {}
-    if os.path.exists("query.config.dat"):
-        try:
-            settings = pickle.load(file("query.config.dat", "r"))
-        except:
-            pass
+    confignames = ["mlnquery.config.dat", "query.config.dat"]
+    for filename in confignames:
+        configname = filename
+        if os.path.exists(configname):
+            try:
+                settings = pickle.load(file(configname, "r"))
+            except:
+                pass
+            break
     # process command line arguments
     argv = sys.argv
     i = 1
