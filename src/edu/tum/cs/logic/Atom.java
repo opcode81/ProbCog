@@ -68,7 +68,6 @@ public class Atom extends Formula {
 
 	@Override
 	public void getGroundAtoms(Set<GroundAtom> ret) {
-		// TODO Auto-generated method stub		
 	}
 
 	@Override
