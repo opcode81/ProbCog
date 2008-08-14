@@ -11,7 +11,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public class BackwardSamplingWithPriors extends BackwardSampling {
 
-	HashMap<BeliefNode, double[]> priors;
+	public HashMap<BeliefNode, double[]> priors;
 
 	public static class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSampling.BackSamplingDistribution {
 
