@@ -39,7 +39,9 @@ public abstract class Sampler {
 	
 	public abstract Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception;
 	
-	public abstract String getAlgorithmName();
+	public String getAlgorithmName() {
+		return this.getClass().getSimpleName();
+	}
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
