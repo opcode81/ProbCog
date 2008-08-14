@@ -62,7 +62,7 @@ public class YarpServer extends Server {
     
     protected void checkNumParams(YarpRpcCall call, int n) throws Exception {
     	if(call.size() != n)
-    		throw new Exception(String.format("Call to precedure '%s' requires exactly %d parameters.", call.procName(), n));
+    		throw new Exception(String.format("Call to procedure '%s' requires exactly %d parameters.", call.procName(), n));
     }
     
     /**
