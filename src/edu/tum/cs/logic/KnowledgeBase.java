@@ -3,6 +3,7 @@ package edu.tum.cs.logic;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -20,9 +21,14 @@ import edu.tum.cs.tools.FileUtil;
  */
 public class KnowledgeBase implements Iterable<Formula> {
 	protected Vector<Formula> formulas;
+	/**
+	 * stores for ground KBs the index of the original formula from which the formula was instantiated
+	 */
+	protected HashMap<Formula, Integer> templateIDs;
 	
 	public KnowledgeBase() {
 		formulas = new Vector<Formula>();
+		templateIDs = new HashMap<Formula, Integer>();
 	}
 	
 	/**
@@ -62,8 +68,14 @@ public class KnowledgeBase implements Iterable<Formula> {
 	
 	public KnowledgeBase ground(Database db, WorldVariables worldVars) throws Exception {
 		KnowledgeBase ret = new KnowledgeBase();
+		Integer formulaID = 0;
 		for(Formula f : formulas) {
+			int i = ret.formulas.size();
 			f.addAllGroundingsTo(ret.formulas, db, worldVars);
+			for(; i < ret.formulas.size(); i++) {
+				templateIDs.put(ret.formulas.get(i), formulaID);
+			}
+			formulaID++;
 		}
 		return ret;
 	}
@@ -74,5 +86,9 @@ public class KnowledgeBase implements Iterable<Formula> {
 	
 	public int size() {
 		return formulas.size();
+	}
+	
+	public Integer getTemplateID(Formula f) {
+		return templateIDs.get(f);
 	}
 }
