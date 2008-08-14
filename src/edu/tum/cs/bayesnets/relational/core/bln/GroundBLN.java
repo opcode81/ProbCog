@@ -72,6 +72,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			Pair<BeliefNode, BeliefNode[]> nodeData = addHardFormulaNode(nodeName, parentGAs);
 			// set cpf
 			fillFormulaCPF(gf, nodeData.first.getCPF(), nodeData.second, parentGAs);
+			this.cpfIDs.put(nodeData.first, "F" + gkb.getTemplateID(gf));
 		}
 		state = null;
 	}
