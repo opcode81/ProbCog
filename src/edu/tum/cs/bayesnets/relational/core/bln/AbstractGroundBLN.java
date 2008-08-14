@@ -37,18 +37,27 @@ public abstract class AbstractGroundBLN {
 	protected HashSet<String> instantiatedVariables;
 	protected HashMap<String, Value[]> subCPFCache;
 	protected static final boolean debug = false;	
+	/**
+	 * maps an instantiated ground node to a string identifying the CPF template that was used to create it
+	 */
+	protected HashMap<BeliefNode, String> cpfIDs;
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
-		this.bln = bln;
-		this.db = db;
+		init(bln, db);
 	}
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
-		this.bln = bln;
 		this.databaseFile = databaseFile;
 		System.out.println("reading evidence...");
-		db = new Database(bln.rbn);
-		db.readBLOGDB(databaseFile);		
+		Database db = new Database(bln.rbn);
+		db.readBLOGDB(databaseFile);
+		init(bln, db);
+	}
+	
+	private void init(AbstractBayesianLogicNetwork bln, Database db) {
+		this.bln = bln;
+		this.db = db;		
+		cpfIDs = new HashMap<BeliefNode, String>();
 	}
 
 	public void instantiateGroundNetwork() throws Exception {
@@ -232,6 +241,7 @@ public abstract class AbstractGroundBLN {
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
 			filler.fill();
+			cpfIDs.put(mainNode, combFunc);
 		}
 		
 		return mainNode;
@@ -341,23 +351,26 @@ public abstract class AbstractGroundBLN {
 		targetCPF.buildZero(targetDomainProd, false);
 		
 		// transfer the CPF values
+		String cpfID = Integer.toString(srcRelNode.index);
 		// - if the original relational node had exactly the same number of parents as the instance, 
 		//   we can safely transfer its CPT to the instantiated node
-		if(srcDomainProd.length == targetDomainProd.length)
+		if(srcDomainProd.length == targetDomainProd.length) {			
 			targetCPF.setValues(srcRelNode.node.getCPF().getValues());
+		}
 		// - otherwise we must extract the relevant columns that apply to the constant setting
 		else {
 			Value[] subCPF;						
 			// get the subpart from the cache if possible
-			String cacheKey = Integer.toString(srcRelNode.index) + constantSettings.toString(); 
-			subCPF = subCPFCache.get(cacheKey);
+			cpfID += constantSettings.toString(); 
+			subCPF = subCPFCache.get(cpfID);
 			if(subCPF == null) {
 				subCPF = getSubCPFValues(srcRelNode.node.getCPF(), constantSettings);
-				subCPFCache.put(cacheKey, subCPF);
+				subCPFCache.put(cpfID, subCPF);
 			}
 			
 			targetCPF.setValues(subCPF);
-		}
+		}		
+		cpfIDs.put(targetNode, cpfID);
 		
 		/*
 		// print domain products (just to check)
@@ -457,12 +470,6 @@ public abstract class AbstractGroundBLN {
 		}
 	}
 	
-	
-	/*protected void transferCPF(RelationalNode source, BeliefNode target) {
-		// TODO this might fail because of incorrect ordering of parents
-		target.getCPF().setValues(source.node.getCPF().getValues());	
-	}*/
-	
 	public void show() {
 		groundBN.show();
 	}
@@ -508,5 +515,15 @@ public abstract class AbstractGroundBLN {
 	
 	public BeliefNetworkEx getGroundNetwork() {
 		return this.groundBN;
+	}
+	
+	/**
+	 * gets the unique identifier of the CPF that is associated with the given ground node of the network
+	 * @param node
+	 * @return
+	 */
+	public String getCPFID(BeliefNode node) {
+		String cpfID = cpfIDs.get(node);
+		return cpfID;
 	}
 }
