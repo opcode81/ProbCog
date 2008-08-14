@@ -14,6 +14,7 @@ import edu.tum.cs.bayesnets.relational.inference.BNSampler;
 import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
 import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
 import edu.tum.cs.bayesnets.relational.inference.InferenceResult;
+import edu.tum.cs.bayesnets.relational.inference.LiftedBackwardSampling;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
 import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
@@ -21,7 +22,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling};
 	
 	/**
 	 * @param args
@@ -83,6 +84,8 @@ public class BLNinfer {
 					algo = Algorithm.SmileBackwardSampling;
 				else if(args[i].equals("-bsp"))
 					algo = Algorithm.BackwardSamplingPriors;
+				else if(args[i].equals("-lbs"))
+					algo = Algorithm.LiftedBackwardSampling;
 				else if(args[i].equals("-exp"))
 					algo = Algorithm.Experimental;
 				else if(args[i].equals("-debug"))
@@ -178,6 +181,10 @@ public class BLNinfer {
 				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
 			case Experimental:
 				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
+			case LiftedBackwardSampling:
+				sampler = new LiftedBackwardSampling(gbln); break;
+			default: 
+				throw new Exception("algorithm not handled");
 			}
 			sampler.setDebugMode(debug);
 			System.out.println("algorithm: " + sampler.getAlgorithmName());
