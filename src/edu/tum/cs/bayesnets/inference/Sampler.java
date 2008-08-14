@@ -9,10 +9,10 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public abstract class Sampler {
-	protected BeliefNetworkEx bn;
-	protected SampledDistribution dist;
-	protected HashMap<BeliefNode, Integer> nodeIndices;
-	protected Random generator;
+	public BeliefNetworkEx bn;
+	public SampledDistribution dist;
+	public HashMap<BeliefNode, Integer> nodeIndices;
+	public Random generator;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
