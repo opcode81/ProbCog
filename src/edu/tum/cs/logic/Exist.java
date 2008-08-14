@@ -45,4 +45,9 @@ public class Exist extends UngroundedFormula {
 		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars);
 		return new Disjunction(disjuncts);
 	}
+
+	@Override
+	public Formula toCNF() {
+		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
+	}
 }

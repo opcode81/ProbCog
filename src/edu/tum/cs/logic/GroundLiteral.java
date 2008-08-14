@@ -37,4 +37,9 @@ public class GroundLiteral extends Formula {
 	public String toString() {
 		return isPositive ? gndAtom.toString() : "!" + gndAtom.toString();
 	}
+
+	@Override
+	public Formula toCNF() {		
+		return this;
+	}
 }

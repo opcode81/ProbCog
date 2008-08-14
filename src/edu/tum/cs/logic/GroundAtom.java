@@ -56,4 +56,9 @@ public class GroundAtom extends Formula {
 	public String toString() {
 		return predicate + "(" + StringTool.join(",", args) + ")";
 	}
+
+	@Override
+	public Formula toCNF() {		
+		return this;
+	}
 }

@@ -74,4 +74,9 @@ public class Atom extends Formula {
 	public boolean isTrue(IPossibleWorld w) {
 		throw new RuntimeException("not supported");
 	}
+
+	@Override
+	public Formula toCNF() {
+		return this;
+	}
 }

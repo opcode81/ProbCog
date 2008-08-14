@@ -26,4 +26,9 @@ public class Literal extends UngroundedFormula {
 	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
 		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
 	}
+
+	@Override
+	public Formula toCNF() {
+		return this;
+	}
 }

@@ -28,4 +28,9 @@ public class Equality extends UngroundedFormula {
 		if(b == null) b = right;
 		return TrueFalse.getInstance(a == b);
 	}
+
+	@Override
+	public Formula toCNF() {
+		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
+	}
 }
