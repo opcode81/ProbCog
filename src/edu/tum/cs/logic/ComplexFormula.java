@@ -15,9 +15,13 @@ public abstract class ComplexFormula extends Formula {
 		this.children = children.toArray(new Formula[children.size()]);
 	}
 	
-	public ComplexFormula(Formula[] children) {
+	public ComplexFormula(Formula ... children) {
 		this.children = children;
 	}
+	
+	/*public ComplexFormula(Formula[] children) {
+		this.children = children;
+	}*/
 	
 	@Override
 	public void getVariables(Database db, Map<String, String> ret) {

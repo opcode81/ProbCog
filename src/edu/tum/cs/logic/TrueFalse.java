@@ -39,8 +39,17 @@ public class TrueFalse extends Formula {
 		return isTrue;
 	}
 	
+	public boolean isTrue() {
+		return isTrue;
+	}
+	
 	@Override
 	public String toString() {
 		return isTrue ? "True" : "False";
+	}
+
+	@Override
+	public Formula toCNF() {		
+		return this;
 	}
 }

@@ -77,4 +77,6 @@ public abstract class Formula {
 			generateGroundings(ret, db, binding, varNames, i+1, var2domName, worldVars);	
 		}		
 	}
+	
+	public abstract Formula toCNF();
 }

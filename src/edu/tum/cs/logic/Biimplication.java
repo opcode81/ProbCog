@@ -22,4 +22,11 @@ public class Biimplication extends ComplexFormula {
 	public boolean isTrue(IPossibleWorld w) {		
 		return children[0].isTrue(w) == children[1].isTrue(w);
 	}
+
+	@Override
+	public Formula toCNF() {
+		Formula c1 = new Disjunction(new Negation(children[0]), children[1]);
+		Formula c2 = new Disjunction(children[0], new Negation(children[1]));
+		return new Conjunction(c1, c2).toCNF();
+	}
 }

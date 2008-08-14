@@ -21,4 +21,9 @@ public class Implication extends ComplexFormula {
 	public boolean isTrue(IPossibleWorld w) {		
 		return !children[0].isTrue(w) || children[1].isTrue(w);
 	}
+
+	@Override
+	public Formula toCNF() {		
+		return new Disjunction(new Negation(children[0]), children[1]).toCNF();
+	}
 }
