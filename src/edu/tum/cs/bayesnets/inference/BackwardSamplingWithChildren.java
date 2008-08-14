@@ -1,6 +1,5 @@
 package edu.tum.cs.bayesnets.inference;
 
-import java.util.HashMap;
 import java.util.HashSet;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -8,13 +7,23 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.tools.Cache2D;
 import edu.tum.cs.tools.MutableDouble;
 import edu.tum.cs.tools.Stopwatch;
 
+/**
+ * a backward sampling algorithm that, to sample the parents of an instantiated node N, considers 
+ * not only the conditional probability of N given its parents but also the the children of N's parents
+ * and their parents (using existing instantiations and, where nodes are yet uninstantiated,
+ * the prior probability of the nodes)
+ * 
+ * @author jain
+ *
+ */
 public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 
-	protected HashMap<CPF, HashMap<Integer, Double>> probCache;
-	protected HashMap<BeliefNode, HashMap<Long, BackSamplingDistribution>> distCache;
+	protected Cache2D<CPF, Integer, Double> probCache;
+	protected Cache2D<BeliefNode, Long, BackSamplingDistribution> distCache;
 	protected Stopwatch probSW, distSW;
 	
 	public class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
@@ -110,23 +119,16 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 				return cpf.getDouble(addr);
 			}
 			// check if we already have the value in the cache
-			HashMap<Integer, Double> cpfCache = probCache.get(cpf);
-			if(cpfCache != null) {
-				Double value = cacheValue = cpfCache.get(key);
-				if(!debugCache && value != null) {
-					probSW.stop();
-					return value;					
-				}
-			}
-			else {
-				cpfCache = new HashMap<Integer,Double>();
-				probCache.put(cpf, cpfCache);
+			Double value = cacheValue = probCache.get(cpf, key);
+			if(!debugCache && value != null) {
+				probSW.stop();
+				return value;					
 			}
 			// not in the cache, so calculate the value
 			MutableDouble p = new MutableDouble(0.0);
 			getProb(cpf, 0, addr, nodeDomainIndices, p);
 			// store in cache
-			cpfCache.put(key, p.value);
+			probCache.put(p.value);
 			// return value
 			if(cacheValue != null && p.value != cacheValue) {
 				throw new RuntimeException("cache mismatch");
@@ -180,7 +182,6 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	@Override
 	protected BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
 		BackSamplingDistribution d;
-		HashMap<Long,BackSamplingDistribution> nodeCache = null;
 		long key = 0;
 		final boolean useCache = true;
 		distSW.start();
@@ -220,16 +221,9 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 			}
 		
 			// check if we have a cache value
-			nodeCache = distCache.get(node);
-			if(nodeCache != null) {
-				d = nodeCache.get(key);
-				if(d != null)
-					return d;
-			}
-			else {
-				nodeCache = new HashMap<Long, BackSamplingDistribution>();
-				distCache.put(node, nodeCache);
-			}
+			d = distCache.get(node, key);
+			if(d != null)
+				return d;
 		}
 		
 		// obtain new distribution
@@ -238,7 +232,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		
 		// store in cache
 		if(useCache)
-			nodeCache.put(key, d); 
+			distCache.put(d); 
 		
 		distSW.stop();
 		return d;
@@ -250,8 +244,8 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	
 	@Override
 	public void prepareInference(int[] evidenceDomainIndices) throws Exception {
-		probCache = new HashMap<CPF, HashMap<Integer, Double>>();
-		distCache = new HashMap<BeliefNode, HashMap<Long, BackSamplingDistribution>>();
+		probCache = new Cache2D<CPF, Integer, Double>();
+		distCache = new Cache2D<BeliefNode, Long, BackSamplingDistribution>();
 		super.prepareInference(evidenceDomainIndices);
 	}
 	
@@ -260,7 +254,9 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		distSW = new Stopwatch();
 		SampledDistribution d = super.infer(evidenceDomainIndices);
 		System.out.println("prob time: " + probSW.getElapsedTimeSecs());
+		System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
 		System.out.println("dist time: " + distSW.getElapsedTimeSecs());
+		System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.distCache.getHitRatio(), this.distCache.getNumAccesses()));
 		System.out.println();
 		return d;
 	}
