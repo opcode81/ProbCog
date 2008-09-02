@@ -33,22 +33,34 @@ public class Disjunction extends ComplexFormula {
 
 	@Override
 	public Formula toCNF() {
+		//System.out.println(this);
 		Set<Formula> clause = new HashSet<Formula>();
+		Set<String> strClause = new HashSet<String>();
 		Collection<Conjunction> conjunctions = new Vector<Conjunction>();
+		// convert children to CNF and group by disjunction (flattened) and conjunction
+		// make sure that the flattened disjunction contains no duplicates
 		for(Formula child : children) {
 			child = child.toCNF();
 			if(child instanceof Conjunction) {
 				conjunctions.add((Conjunction)child);
 			}
 			else if(child instanceof Disjunction) {
-				clause.addAll(Arrays.asList(((Disjunction)child).children));
+				for(Formula c : ((Disjunction)child).children)
+					if(!strClause.contains(child.toString())) {
+						clause.add(c);
+						strClause.add(c.toString());
+					}					
+				//clause.addAll(Arrays.asList(((Disjunction)child).children));
 			}
 			else if(child instanceof TrueFalse) {
 				if(((TrueFalse)child).isTrue())
 					return child;
 			}
-			else {
-				clause.add(child);
+			else { // must be literal/atom
+				if(!strClause.contains(child.toString())) {
+					clause.add(child);
+					strClause.add(child.toString());
+				}
 			}
 		}
 		if(conjunctions.isEmpty())			
@@ -57,7 +69,7 @@ public class Disjunction extends ComplexFormula {
 	        // apply distributivity
 	        // use the first conjunction to distribute: (C_1 ^ ... ^ C_n) v RD = (C_1 v RD) ^ ... ^  (C_n v RD)
 			Iterator<Conjunction> i = conjunctions.iterator();			
-			Formula[] conjuncts = conjunctions.iterator().next().children;
+			Formula[] conjuncts = i.next().children;
 			while(i.hasNext())
 				clause.add(i.next());
 			Formula RD = new Disjunction(clause);

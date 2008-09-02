@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.logic.parser.FormulaParser;
+import edu.tum.cs.logic.parser.ParseException;
 
 public abstract class Formula {	
 	public abstract void getVariables(Database db, Map<String,String> ret);
@@ -79,4 +81,17 @@ public abstract class Formula {
 	}
 	
 	public abstract Formula toCNF();
+	
+	public static Formula fromString(String f) throws ParseException {
+		return FormulaParser.parse(f);
+	}
+	
+	public static void main(String[] args) throws ParseException {
+		String s = "a(x) <=> b(x)";
+		s = "a(x) v (b(x) ^ c(x))";
+		s = "(a(x) v (b(x) ^ c(x))) => f(x)";
+		//s = "(a(x) ^ b(x) ^ !c(x) ^ !d(x)) v (a(x) ^ !b(x) ^ c(x) ^ !d(x)) v (!a(x) ^ b(x) ^ c(x) ^ !d(x)) v (a(x) ^ !b(x) ^ !c(x) ^ d(x)) v (!a(x) ^ b(x) ^ !c(x) ^ d(x)) v (!a(x) ^ !b(x) ^ c(x) ^ d(x))";
+		Formula f = fromString(s);
+		System.out.println("CNF: " + f.toCNF().toString());
+	}
 }

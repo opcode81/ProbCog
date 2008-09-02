@@ -35,7 +35,12 @@ public class Negation extends ComplexFormula {
 			else
 				return new Disjunction(negChildren).toCNF();
 		}
-		else
-			throw new RuntimeException("not yet implemented");
+		else {
+			if(f instanceof Literal) {
+				Literal l = (Literal)f;
+				return new Literal(!l.isPositive, l.atom);
+			}
+			throw new RuntimeException("CNF conversion of negation of " + children[0].getClass().getSimpleName() + " not handled.");
+		}
 	}
 }
