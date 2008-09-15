@@ -10,4 +10,14 @@ public class InferenceResult {
 		this.params = params;
 		this.probability = p;
 	}
+	
+	public boolean mapConstants(Model m) {
+		//String[] mappedParams = new String[params.length];
+		for(int i = 0; i < params.length; i++) {
+			params[i] = m.mapConstant(params[i]);
+			if(params[i] == null)
+				return false;			
+		}
+		return true;
+	}
 }

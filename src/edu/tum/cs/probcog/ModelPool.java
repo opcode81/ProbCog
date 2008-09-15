@@ -41,9 +41,12 @@ public class ModelPool {
 			String name, type, path;
 			HashMap<String, String> files;
 			HashMap<String, String> params;
+			HashMap<String, String> constantMap;
 			
 			public ModelData() {
 				files = new HashMap<String,String>();
+				params = new HashMap<String,String>();
+				constantMap = new HashMap<String,String>();
 			}
 			
 			private void checkFileTypes(String[] requiredTypes) throws Exception {
@@ -76,6 +79,7 @@ public class ModelPool {
 				}
 				else
 					throw new Exception(String.format("Unknown model type '%s'", type));
+				m.setConstantMap(constantMap);
 				return m;
 			}
 		}
@@ -101,6 +105,11 @@ public class ModelPool {
 				String type = attrs.getValue("type");
 				String filename = attrs.getValue("name");
 				currentModel.files.put(type, filename);
+			}
+			else if(qName.equals("constantMap")) {
+				String from = attrs.getValue("from");
+				String to = attrs.getValue("to");
+				currentModel.constantMap.put(from, to);
 			}
 		}
 	

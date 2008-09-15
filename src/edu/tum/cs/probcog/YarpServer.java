@@ -78,12 +78,15 @@ public class YarpServer extends Server {
 	        	checkNumParams(call, 3);
 	        	// perform inference
 	        	String modelName = call.get(0).toString();
+	        	Model model = this.modelPool.getModel(modelName);
 	        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(1).asList()));
 	        	Vector<String[]> evidence = readListOfLists(call.get(2).asList());
 	        	Vector<InferenceResult> results = query(modelName, queries, evidence);
 	        	// write results
 	        	Bottle listOfResults = result;
 	        	for(InferenceResult r : results) {
+	        		if(!r.mapConstants(model))
+	        			continue;	        		
 	        		Bottle tuple = listOfResults.addList();
 	        		tuple.addString(r.functionName);
 	        		for(String param : r.params)
@@ -121,13 +124,14 @@ public class YarpServer extends Server {
         while(true) {
         	System.out.println("Waiting for call...");
             YarpRpcCall cl = port.read();
+            System.out.println("\nCall: " + cl.procName() + " " + cl.toString());
             port.reply(handleCall(cl));
         }
 	}
 	
-	public void test(YarpRpcCall call) {
-		System.out.println("\nTest Call: " + call.toString());
-		System.out.println("Result: " + handleCall(call).toString());
+	public void test(YarpRpcCall cl) {		
+		System.out.println("\nCall: " + cl.procName() + " " + cl.toString());
+		System.out.println("Result: " + handleCall(cl).toString());
 	}
 	
 	/**
