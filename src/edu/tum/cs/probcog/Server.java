@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.Vector;
 
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.tools.StringTool;
 
 public class Server {
 	ModelPool modelPool; 

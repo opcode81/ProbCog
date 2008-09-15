@@ -1,7 +1,7 @@
 package edu.tum.cs.probcog;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -120,11 +120,15 @@ public class BLNModel extends Model {
 		Vector<String[]> ret = new Vector<String[]>();
 		for(Entry<String,String[]> e : this.bln.rbn.getGuaranteedDomainElements().entrySet()) {
 			String[] elems = e.getValue();
-			String[] tuple = new String[elems.length+1];
-			tuple[0] = e.getKey();
-			for(int i = 0; i < elems.length; i++)
-				tuple[i+1] = elems[i];
-			ret.add(tuple);
+			ArrayList<String> tuple = new ArrayList<String>(elems.length+1);
+			tuple.add(e.getKey());
+			for(int i = 0; i < elems.length; i++) {
+				String c = mapConstant(elems[i]);
+				if(c == null)
+					continue;
+				tuple.add(c);
+			}				
+			ret.add(tuple.toArray(new String[tuple.size()]));
 		}
 		return ret;
 	}
