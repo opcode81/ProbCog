@@ -16,13 +16,14 @@ import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
 import edu.tum.cs.bayesnets.relational.inference.InferenceResult;
 import edu.tum.cs.bayesnets.relational.inference.LiftedBackwardSampling;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
+import edu.tum.cs.bayesnets.relational.inference.SATIS;
 import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
 
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS};
 	
 	/**
 	 * @param args
@@ -88,6 +89,8 @@ public class BLNinfer {
 					algo = Algorithm.LiftedBackwardSampling;
 				else if(args[i].equals("-exp"))
 					algo = Algorithm.Experimental;
+				else if(args[i].equals("-satis"))
+					algo = Algorithm.SATIS;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -101,6 +104,7 @@ public class BLNinfer {
 							         "    -lw              algorithm: likelihood weighting (default)\n" +
 							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -exp             algorithm: Experimental\n" +
+							         "    -satis           algorithm: SAT-IS\n" +
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
@@ -183,6 +187,8 @@ public class BLNinfer {
 				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
 			case LiftedBackwardSampling:
 				sampler = new LiftedBackwardSampling(gbln); break;
+			case SATIS:
+				sampler = new SATIS((GroundBLN)gbln); break;
 			default: 
 				throw new Exception("algorithm not handled");
 			}

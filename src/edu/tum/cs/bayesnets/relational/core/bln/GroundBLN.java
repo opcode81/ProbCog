@@ -1,5 +1,7 @@
 package edu.tum.cs.bayesnets.relational.core.bln;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -15,46 +17,102 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.tools.Pair;
+import edu.tum.cs.tools.StringTool;
 
 public class GroundBLN extends AbstractGroundBLN {
 	
 	protected WorldVariables worldVars;
 	protected PossibleWorld state;
+	/**
+	 * grounded knowledge base of hard constraints
+	 */
+	protected KnowledgeBase gkb;
+	protected HashMap<BeliefNode, IVarValueFromPossWorld> variable2groundAtomLookup;
+	protected HashMap<GroundAtom, BeliefNode> groundAtom2variable;
 	
 	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
 		super(bln, db);
-		worldVars = new WorldVariables();
 	}
 	
 	public GroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		super(bln, databaseFile);
-		worldVars = new WorldVariables();
 	}
 	
 	@Override
-	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params) {
-		if(relNode.isBoolean())
-			worldVars.add(new GroundAtom(relNode.getFunctionName(), params));
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) {
+		super.init(bln, db);
+		worldVars = new WorldVariables();
+		variable2groundAtomLookup = new HashMap<BeliefNode, IVarValueFromPossWorld>();
+		groundAtom2variable = new HashMap<GroundAtom, BeliefNode>();
+	}
+	
+	@Override
+	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params, BeliefNode var) {
+		if(relNode.isBoolean()) {
+			GroundAtom ga = new GroundAtom(relNode.getFunctionName(), params);
+			worldVars.add(ga);
+			variable2groundAtomLookup.put(var, new VarValueOfAtomFromPW(ga));
+			groundAtom2variable.put(ga, var);
+		}
 		else {
-			// node is non-Boolean, so add one ground atom for each possible value
+			// node is non-Boolean, so add one block containing the ground atoms for each possible value
 			Discrete dom = relNode.getDomain();
 			String[] atomParams = new String[params.length+1];
 			for(int i = 0; i < params.length; i++)
 				atomParams[i] = params[i];
+			Collection<GroundAtom> block = new Vector<GroundAtom>(dom.getOrder());
 			for(int i = 0; i < dom.getOrder(); i++) {
 				atomParams[atomParams.length-1] = dom.getName(i);
 				GroundAtom ga = new GroundAtom(relNode.getFunctionName(), atomParams.clone());
-				worldVars.add(ga);
-			}
+				block.add(ga);
+				groundAtom2variable.put(ga, var);
+			} 
+			Block b = worldVars.addBlock(block);
+			variable2groundAtomLookup.put(var, new VarValueOfBlockFromPW(b));
 		}
 	}
 	
+	protected interface IVarValueFromPossWorld {
+		public int getValue(PossibleWorld w);		
+	}
+	
+	protected static class VarValueOfAtomFromPW implements IVarValueFromPossWorld {
+		public int idxGndAtom;
+		
+		public VarValueOfAtomFromPW(GroundAtom ga) {
+			this.idxGndAtom = ga.index;
+		}
+		
+		public int getValue(PossibleWorld w) {			
+			return w.get(idxGndAtom) ? 1 : 0;
+		}		
+	}
+	
+	protected static class VarValueOfBlockFromPW implements IVarValueFromPossWorld {
+		protected Block block;
+		
+		public VarValueOfBlockFromPW(Block b) {
+			block = b;
+		}
+		
+		public int getValue(PossibleWorld w) {
+			int i = 0;
+			for(GroundAtom ga : block) {
+				if(ga.isTrue(w))
+					return i;
+				++i;
+			}
+			throw new RuntimeException("No true atom in block " + block);
+		}		
+	}
+	
 	@Override	
-	public void groundFormulaicNodes() throws Exception {
+	protected void groundFormulaicNodes() throws Exception {
 		state = new PossibleWorld(worldVars);
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
-		KnowledgeBase gkb = bln.kb.ground(this.db, this.worldVars);
+		gkb = bln.kb.ground(this.db, this.worldVars);
 		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		int i = 0;
 		for(Formula gf : gkb) {
@@ -150,5 +208,33 @@ public class GroundBLN extends AbstractGroundBLN {
 			// recurse
 			fillFormulaCPF(gf, cpf, parents, parentGAs, iParent+1, addr);
 		}
+	}
+	
+	public KnowledgeBase getKB() {
+		return gkb;
+	}
+	
+	public WorldVariables getWorldVars() {
+		return worldVars;
+	}
+	
+	/**
+	 * gets the variable name in the ground network that corresponds to the given logical ground atom
+	 * @param gndAtom
+	 * @return
+	 */
+	public String getVariableName(GroundAtom gndAtom) {
+		if(bln.rbn.isBoolean(gndAtom.predicate)) 
+			return gndAtom.toString();				
+		else 
+			return gndAtom.predicate + "(" + StringTool.join(",", gndAtom.args, 0, gndAtom.args.length-1) + ")";		
+	}
+	
+	public BeliefNode getVariable(GroundAtom gndAtom) {
+		return groundAtom2variable.get(gndAtom);
+	}
+	
+	public int getVariableValue(BeliefNode var, PossibleWorld w) {
+		return variable2groundAtomLookup.get(var).getValue(w);
 	}
 }

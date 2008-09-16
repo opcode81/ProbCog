@@ -6,8 +6,8 @@ import java.util.Set;
 import edu.tum.cs.bayesnets.relational.core.Database;
 
 public class GroundLiteral extends Formula {
-	protected boolean isPositive;
-	protected GroundAtom gndAtom;
+	public boolean isPositive;
+	public GroundAtom gndAtom;
 	
 	public GroundLiteral(boolean isPositive, GroundAtom gndAtom) {
 		this.gndAtom = gndAtom;

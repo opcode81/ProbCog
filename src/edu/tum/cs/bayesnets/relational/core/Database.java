@@ -24,8 +24,12 @@ public class Database {
 	protected HashMap<String, Variable> entries;
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
-	protected RelationalBeliefNetwork rbn;
+	public RelationalBeliefNetwork rbn;
 	
+	/**
+	 * constructs an empty database for the given model
+	 * @param bn
+	 */
 	public Database(RelationalBeliefNetwork bn) {
 		this.rbn = bn;
 		entries = new HashMap<String, Variable>();
@@ -322,9 +326,11 @@ public class Database {
 		 * gets the predicate representation that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
 		 * @return
 		 */
-		public String getPredicate() {
-			// TODO handle boolean values differently
-			return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
+		public String getPredicate(RelationalBeliefNetwork rbn) {
+			if(rbn.getSignature(functionName).isBoolean())
+				return functionName + "(" + RelationalNode.join(",", params) + ")";
+			else				
+				return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
 		}
 		
 		public boolean isTrue() {
