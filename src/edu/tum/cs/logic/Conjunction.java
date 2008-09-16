@@ -40,9 +40,13 @@ public class Conjunction extends ComplexFormula {
 				Conjunction conj = (Conjunction)child;
 				clauses.addAll(Arrays.asList(conj.children));
 			}
-			else {
-				clauses.add(child);
+			else if(child instanceof TrueFalse) {
+				TrueFalse tf = (TrueFalse)child;
+				if(!tf.isTrue())
+					return tf;
 			}
+			else
+				clauses.add(child);			
 		}
 		// normalize the obtained clauses by eliminating clauses that are supersets of other clauses
 		Vector<HashSet<String>> sclauses = new Vector<HashSet<String>>();
@@ -83,7 +87,7 @@ public class Conjunction extends ComplexFormula {
 				if(iLarger == j)
 					j--;
 				else 
-					j = -1;
+					j = i;
 			}			
 		}
 		// return the conjunction of clauses

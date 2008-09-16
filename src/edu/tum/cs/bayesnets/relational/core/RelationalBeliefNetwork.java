@@ -647,6 +647,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx {
 	public int getNodeIndex(String nodeName) {
 		throw new RuntimeException("This method should never be called in relational networks because they may contain several nodes with the same name.");
 	}
+	
+	public boolean isBoolean(String functionName) {
+		return getSignature(functionName).isBoolean();
+	}
 }
 
 

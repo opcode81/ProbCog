@@ -54,7 +54,7 @@ public abstract class AbstractGroundBLN {
 		init(bln, db);
 	}
 	
-	private void init(AbstractBayesianLogicNetwork bln, Database db) {
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) {
 		this.bln = bln;
 		this.db = db;		
 		cpfIDs = new HashMap<BeliefNode, String>();
@@ -184,7 +184,7 @@ public abstract class AbstractGroundBLN {
 
 		// add the node itself to the network				
 		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
-		onAddGroundAtomNode(relNode, actualParams);
+		onAddGroundAtomNode(relNode, actualParams, mainNode);
 
 		// add edges from the parents
 		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
@@ -251,7 +251,7 @@ public abstract class AbstractGroundBLN {
 	
 	protected abstract void groundFormulaicNodes() throws Exception;
 	
-	protected abstract void onAddGroundAtomNode(RelationalNode relNode, String[] params);
+	protected abstract void onAddGroundAtomNode(RelationalNode relNode, String[] params, BeliefNode instance);
 	
 	/**
 	 * adds a node corresponding to a hard constraint to the network - along with the necessary edges

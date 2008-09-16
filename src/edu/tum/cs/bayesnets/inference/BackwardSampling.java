@@ -23,10 +23,10 @@ import edu.tum.cs.tools.StringTool;
  */
 public class BackwardSampling extends Sampler {
 
-	Vector<BeliefNode> backwardSampledNodes;
-	Vector<BeliefNode> forwardSampledNodes;
-	HashSet<BeliefNode> outsideSamplingOrder;
-	int[] evidenceDomainIndices;
+	protected Vector<BeliefNode> backwardSampledNodes;
+	protected Vector<BeliefNode> forwardSampledNodes;
+	protected HashSet<BeliefNode> outsideSamplingOrder;
+	protected int[] evidenceDomainIndices;
 	protected int currentStep;
 	
 	protected static class BackSamplingDistribution {
@@ -237,9 +237,8 @@ public class BackwardSampling extends Sampler {
 	public void getSample(WeightedSample s) {
 		int MAX_TRIALS = this.maxTrials;	
 loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
-			// init sample
-			s.nodeDomainIndices = evidenceDomainIndices.clone();
-			s.weight = 1.0;
+			// initialize sample
+			initSample(s);
 			// backward sampling
 			for(BeliefNode node : backwardSampledNodes) {
 				if(!sampleBackward(node, s)) {
@@ -289,10 +288,16 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 					continue loop1;
 				}
 			}
+			// sample could be obtained in this trial (t)
 			s.trials = t;
 			return;
 		}
 		throw new RuntimeException("Maximum number of trials exceeded.");
+	}
+	
+	public void initSample(WeightedSample s) {
+		s.nodeDomainIndices = evidenceDomainIndices.clone();
+		s.weight = 1.0;
 	}
 	
 	protected boolean sampleForward(BeliefNode node, WeightedSample s) {

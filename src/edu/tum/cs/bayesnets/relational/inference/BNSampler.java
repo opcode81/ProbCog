@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Vector;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
@@ -13,17 +14,17 @@ import edu.tum.cs.bayesnets.relational.core.bln.AbstractGroundBLN;
  */
 public class BNSampler extends Sampler {
 	AbstractGroundBLN gbln;
-	Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
 	protected int maxTrials;
 	/**
 	 * whether steps that exceed the max number of trials should just be skipped rather than raising an exception
 	 */
 	protected boolean skipFailedSteps;
+	protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
 		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
 		this.gbln = gbln;
-		this.samplerClass = samplerClass;
 		maxTrials = 5000;
+		this.samplerClass = samplerClass;
 	}
 	
 	public void setMaxTrials(int maxTrials) {
@@ -40,8 +41,8 @@ public class BNSampler extends Sampler {
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
-		// sample
-		edu.tum.cs.bayesnets.inference.Sampler sampler = samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());
+		// sample		
+		edu.tum.cs.bayesnets.inference.Sampler sampler = getSampler();
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
@@ -51,6 +52,10 @@ public class BNSampler extends Sampler {
 		
 		// determine query nodes and print their distributions		
 		return getResults(dist, queries);
+	}
+	
+	protected edu.tum.cs.bayesnets.inference.Sampler getSampler() throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+		return samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());	
 	}
 
 	@Override

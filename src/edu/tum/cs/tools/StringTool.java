@@ -1,14 +1,18 @@
 package edu.tum.cs.tools;
 
 public class StringTool {
-	public static String join(String glue, Object[] elems) {
+	public static String join(String glue, Object[] elems, int iStart, int iEnd) {
 		StringBuffer res = new StringBuffer();
-		for(int i = 0; i < elems.length; i++) {
+		for(int i = iStart; i < iEnd; i++) {
 			res.append(elems[i].toString());
-			if(i < elems.length-1)
+			if(i < iEnd-1)
 				res.append(glue);
 		}
 		return res.toString();
+	}
+	
+	public static String join(String glue, Object[] elems) {
+		return join(glue, elems, 0, elems.length);
 	}
 
 	public static String join(String glue, Iterable<?> elems) {

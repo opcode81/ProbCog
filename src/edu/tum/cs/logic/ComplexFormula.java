@@ -9,7 +9,7 @@ import java.util.Vector;
 import edu.tum.cs.bayesnets.relational.core.Database;
 
 public abstract class ComplexFormula extends Formula {
-	protected Formula[] children;
+	public Formula[] children;
 	
 	public ComplexFormula(Collection<Formula> children) {
 		this.children = children.toArray(new Formula[children.size()]);

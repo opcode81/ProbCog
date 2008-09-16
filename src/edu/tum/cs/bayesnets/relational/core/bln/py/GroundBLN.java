@@ -169,8 +169,9 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 
 	@Override
-	public void onAddGroundAtomNode(RelationalNode relNode, String[] params) {
+	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params,
+			BeliefNode instance) {
+		// TODO Auto-generated method stub
 		
 	}
-
 }

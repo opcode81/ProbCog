@@ -61,4 +61,14 @@ public class GroundAtom extends Formula {
 	public Formula toCNF() {		
 		return this;
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		return this.index == ((GroundAtom)other).index;
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.index;
+	}
 }
