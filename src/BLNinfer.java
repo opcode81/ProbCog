@@ -17,13 +17,14 @@ import edu.tum.cs.bayesnets.relational.inference.InferenceResult;
 import edu.tum.cs.bayesnets.relational.inference.LiftedBackwardSampling;
 import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
 import edu.tum.cs.bayesnets.relational.inference.SATIS;
+import edu.tum.cs.bayesnets.relational.inference.SATISEx;
 import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
 
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS};
+	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx};
 	
 	/**
 	 * @param args
@@ -91,6 +92,8 @@ public class BLNinfer {
 					algo = Algorithm.Experimental;
 				else if(args[i].equals("-satis"))
 					algo = Algorithm.SATIS;
+				else if(args[i].equals("-satisex"))
+					algo = Algorithm.SATISEx;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -189,6 +192,8 @@ public class BLNinfer {
 				sampler = new LiftedBackwardSampling(gbln); break;
 			case SATIS:
 				sampler = new SATIS((GroundBLN)gbln); break;
+			case SATISEx:
+				sampler = new SATISEx((GroundBLN)gbln); break;
 			default: 
 				throw new Exception("algorithm not handled");
 			}
