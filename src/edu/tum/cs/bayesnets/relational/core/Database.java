@@ -347,4 +347,9 @@ public class Database {
 			out.println(e.getKey() + ": " + StringTool.join(", ", e.getValue()));
 		}
 	}
+	
+	public void print() {
+		for(Variable v : getEntries()) 
+			System.out.println(v.toString());		
+	}
 }
