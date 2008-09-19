@@ -14,7 +14,6 @@ import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
 import edu.tum.cs.bayesnets.relational.core.bln.GroundBLN;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
-import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
@@ -31,7 +30,7 @@ public class SampleSAT {
 	protected Random rand;
 	protected WorldVariables vars;
 	protected HashMap<Integer,Boolean> evidence;
-	protected final boolean verbose = true;
+	protected final boolean verbose = false;
 	
 	public SampleSAT(ClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
 		System.out.println("KB:");
@@ -46,6 +45,8 @@ public class SampleSAT {
 		constraints = new Vector<Constraint>(kb.size());
 		
 		// read evidence
+		System.out.println("evidence:");
+		evidence.print();
 		this.evidence = new HashMap<Integer,Boolean>();
 		for(Variable var : evidence.getEntries()) {
 			String strGndAtom = var.getPredicate(evidence.rbn);
@@ -94,14 +95,19 @@ public class SampleSAT {
 	}
 	
 	public void run() {	
-		System.out.println("setting random state...");
+		// init
+		bottlenecks.clear();
+		unsatisfiedConstraints.clear();
+		if(verbose) System.out.println("setting random state...");
 		setRandomState();
+		if(verbose) state.print();
 		for(Constraint c : constraints)
 			c.initState();
-		System.out.println("running SampleSAT...");
+		
+		if(verbose) System.out.println("running SampleSAT...");
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {			
-			if(verbose) {				
+			if(verbose /*|| step % 10 == 0*/) {				
 				System.out.println("SampleSAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
 				//state.print();
 				for(Constraint c : unsatisfiedConstraints) {
@@ -118,6 +124,8 @@ public class SampleSAT {
 			}
 			step++;
 		}
+		/*System.out.println("SampleSAT finished");
+		System.exit(0);*/
 	}
 	
 	public PossibleWorld getState() {
@@ -126,7 +134,7 @@ public class SampleSAT {
 	
 	protected void setRandomState() {
 		for(int i = 0; i < vars.size();) {
-			System.out.println(vars.get(i));
+			//System.out.println("  setting " + vars.get(i));
 			Block block = vars.getBlock(i); 
 			if(block != null) {
 				if(!this.evidence.containsKey(i)) {
@@ -143,8 +151,7 @@ public class SampleSAT {
 					state.set(i, rand.nextBoolean());
 				++i;
 			}
-		}
-		System.out.println("state set");
+		}		
 	}
 	
 	protected void walkSATMove() {
@@ -374,6 +381,8 @@ public class SampleSAT {
 		SampleSAT ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase());
 		ss.run();
 		sw.stop();
+		/*System.out.println("SECOND RUN");
+		ss.run();*/
 		System.out.println("done");
 		state.print();
 		System.out.println("time taken: " + sw.getElapsedTimeSecs());		
