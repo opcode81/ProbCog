@@ -19,9 +19,17 @@ import edu.tum.cs.logic.sat.ClausalKB;
 import edu.tum.cs.logic.sat.Clause;
 import edu.tum.cs.logic.sat.SampleSAT;
 
+/**
+ * SAT-IS: satisfiability-based importance sampling for inference in mixed networks with probabilistic and deterministic constraints
+ * 
+ * @author jain
+ */
 public class SATIS extends BNSampler {
 
 	GroundBLN gbln;
+	/**
+	 * the SAT sampler that is used to sample the sub-state that is determined by the hard logical constraints 
+	 */
 	SampleSAT ss;
 	/**
 	 * the set of nodes whose values are determined by the SAT sampler (because they are part of a hard logical constraint)
@@ -37,7 +45,7 @@ public class SATIS extends BNSampler {
 	protected void initSATSampler() throws Exception {
 		// create SAT sampler
 		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
-		ClausalKB ckb = new ClausalKB(gbln.getKB());
+		ClausalKB ckb = getClausalKB();
 		ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase());
 		
 		// get the set of variables that is determined by the sat sampler
@@ -47,6 +55,10 @@ public class SATIS extends BNSampler {
 				determinedVars.add(gbln.getVariable(lit.gndAtom));
 			}
 		}		
+	}
+	
+	protected ClausalKB getClausalKB() throws Exception {
+		return new ClausalKB(gbln.getKB());
 	}
 	
 	@Override
@@ -132,7 +144,7 @@ public class SATIS extends BNSampler {
 					forwardSampledNodes.add(nodes[i]);
 			}
 			
-			System.out.println("node distribution: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
+			System.out.println("node ordering: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
 		}
 	}
 }
