@@ -86,7 +86,7 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 		
 		public int getValue(PossibleWorld w) {			
-			return w.get(idxGndAtom) ? 1 : 0;
+			return w.get(idxGndAtom) ? 0 : 1; // True is first element
 		}		
 	}
 	
