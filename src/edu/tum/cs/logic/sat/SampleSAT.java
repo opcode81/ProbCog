@@ -109,9 +109,11 @@ public class SampleSAT {
 		while(unsatisfiedConstraints.size() > 0) {			
 			if(verbose /*|| step % 10 == 0*/) {				
 				System.out.println("SampleSAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
-				//state.print();
-				for(Constraint c : unsatisfiedConstraints) {
-					System.out.println("  unsatisfied: " + c);
+				if(false) {
+					//state.print();				
+					for(Constraint c : unsatisfiedConstraints) {
+						System.out.println("  unsatisfied: " + c);
+					}
 				}
 			}
 			if(rand.nextDouble() < 0.9) {

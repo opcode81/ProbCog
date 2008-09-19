@@ -42,4 +42,8 @@ public class GroundLiteral extends Formula {
 	public Formula toCNF() {		
 		return this;
 	}
+	
+	public void negate() {
+		isPositive = !isPositive;
+	}
 }
