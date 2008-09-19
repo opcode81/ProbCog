@@ -1,0 +1,189 @@
+<html>
+<head>
+	<title>PyMLNs: Markov logic networks in Python</title>
+	<style>
+	body {font-face:Verdana,Arial,sans-serif; font-size:10pt; text-align:justify}
+	span.hl {background:#ffffff; border-bottom:1px dashed #0011aa;}
+	h1 {font-size:177%; font-weight:normal; margin-top:0;}
+	h2 {font-size:154%; font-weight:normal}
+	h3 {font-size:116%; font-weight:normal}
+	h4 {margin:0; font-weight:normal; font-size:100%; margin-bottom:5px; font-style:italic;}
+	a {color:#0011aa; text-decoration:none}
+	a:hover { text-decoration:underline}
+	li {margin-bottom:5px;}
+	ul {margin-top:5px;}
+	span.code {font-face:Lucida Console, Courier New, fixed-width;}
+	</style>
+</head>
+
+<body style="background:#f3f3f3">
+
+<div style="width:800px; border:1px dotted #0011aa; padding:45px; margin:25px; background:white;">
+
+<h1 style="margin-bottom:5pt">PyMLNs: Markov logic networks in Python</h1>
+
+<div style="margin-bottom:20px">by Dominik Jain (<a href="mailto:jain@cs.tum.edu">jain@cs.tum.edu</a>)</div>
+
+This package consists of:
+<ul>
+	<li>An <span class="hl">implementation of MLNs as a Python module</span> (MLN.py) that you can use to work with MLNs in your own Python scripts
+	<li><span class="hl">Graphical tools</span> for performing inference in MLNs and learning the parameters of MLNs,
+	    using either the Python MLN class or the <a href="http://alchemy.cs.washington.edu">Alchemy system</a> as the underlying engine.</li>
+</ul>
+
+Prerequisites:
+<ul>
+	<li><a href="http://www.python.org">Python</a> 2.4 or above
+	<li>The necessary Python module pyparsing is packaged with PyMLNs (v1.4.6).<br> if you want/need to install a different version, go <a href="http://pyparsing.wikispaces.com">here</a>.
+	<li>Recommended optional Python modules:
+	<ul>
+		<li>To enable parameter learning with the PyMLNs engine, you need <a href="http://www.scipy.org">SciPy</a> and <a href="http://numpy.scipy.org">NumPy</a>.</li>
+		<li>To speed up calculations with the internal engine on i386-compatible machines, I highly recommend installing <a href="http://psyco.sourceforge.net">Psyco</a>.</li>
+	</ul>
+	</li>
+</ul>
+
+<h2>The Graphical Tools</h2>
+
+<p>Two graphical tools, whose usage is hopefully self-explanatory, are part of the package: There's an inference tool (<span class="hl">queryTool.py</span>) and a parameter learning tool (<span class="hl">learningTool.py</span>). Simply invoke them using the Python interpreter. (On Windows, do not use pythonw.exe to run them because the console output is an integral part of these tools.)</p>
+
+<p>Before you get started using them, please adjust the <span class="hl">configuration settings in config.py</span>. If you want to use the tools to invoke the Alchemy system (more than one Alchemy installation is even supported), you will have to configure the paths where these installations can be found as well as the set of command line switches that applies to your version (they have changed over time). Both tools work with .mln and .db files in the current directory and will by default write output files to the current directory, too. (Note that when you invoke the tools, the working directory need not be the directory in which the tools themselves are located.) In config.py, you can configure the file masks for MLN and database files, as well as naming conventions for output files (based on input filenames and settings used), which comes in handy when you are dealing with more than just a handful of files. Further options concern the user interface, output variants and the workflow.</p>
+
+<p>The tools allow you to invoke the actual MLN learning and inference algorithms of either the Python-based MLN engine or the Alchemy system. Once you start the actual algorithm, the tool window itself will be hidden as long as the job is running, while the output of the algorithm is written to the console for you to follow. At the beginning, the tools list the main input parameters for your convenience, and, at the end, the query tool additionally outputs the inference results to the console (so even if you are using the Alchemy system, there is not really a need to open the results file that is generated).</p>
+
+<p>The tools feature integrated editors for .db and .mln files. If you modify a file in the internal editor, it will automatically be saved as soon as you invoke the learning or inference method. The new content can either be saved to the same file (overwriting the old content) or a new file, which you can choose to name as desired. Furthermore, the tools will save all the settings you made whenever the learning or inference method is invoked, so that you can easily resume a session. When performing inference, one typically associates a particular query with each evidence database, so the query tool specifically remembers the query you made for each evidence database and restores it whenever you change back to the evidence database.</p>
+
+<p>When starting the tools from the command line, they (to some degree) interpret and take over any Alchemy-style command line parameters, i.e. you can, for example, directly select the input MLN file by passing &quot;-i &lt;mln file&gt;&quot; as a command line parameter to learningTool.py.
+
+<p>Some further information on some of the options of the individual tools:</p>
+
+<h3>Query Tool</h3>
+
+<ul>
+	<li>
+		<h4>Queries</h4>
+		a comma-separated list of queries, where a query can be any one of the following:
+	  	<ul>
+			<li>a ground atom, e.g. foobar(X,Y)</li>
+			<li>the name of a predicate, e.g. foobar</li>
+			<li>a ground formula, e.g. foobar(X,Y) ^ foobar(Y,X) (internal engine only) </li>
+		</ul>	
+	</li>
+	<li>
+		<h4>Max. Steps, Num. Chains</h4>
+		the maximum number of steps to run sampling-based algorithms, and the number of parallel chains to use<br>
+		If you leave the fields empty, defaults will be used.
+	</li>
+	<li>
+		<h4>Add. params</h4>
+		additional parameters to pass to the inference method<br>
+		For the Alchemy system, you can simply supply additional command line parameters to pass on to Alchemy's <i>infer</i>.<br>
+		For the internal engine, you can specify a comma-separated list of assignments of parameters of the <i>infer</i> method you are calling (refer to MLN.py for valid options.) For example, to obtain detailed debug information for MC-SAT, you could specify &quot;debug=True, debugLevel=2&quot; with exact inference, setting <i>debug</i>
+		to <i>True</i> will print the entire distribution over possible worlds.
+	</li>
+</ul>
+
+<h2>File Formats</h2>
+
+<p>The file formats for MLN and database files that our Python implementation of MLNs processes are for the most part compatible with the ones used by the Alchemy system.</p>
+
+<p>General conventions</p>
+<ul>
+	<li>All constant symbols that aren't integers must begin with an upper-case letter</li>
+	<li>Domain symbols must begin with a lower-case letter</li>
+	<li>Identifiers may contain only alphanumeric characters, "-", "_" and "'"</li>
+</ul>
+
+<h3>MLN Files</h3>
+
+An MLN file may contain:
+<ul>
+	<li>
+		<h4>C++-style comments</h4>
+		i.e. // and /* */
+	<li>
+		<h4>Domain declarations</h4>
+		to assign a set of constants to a particular type/domain<br>
+		e.g. <span class="code">domFoo = {A, B, C}</span>
+	</li>
+	<li>
+		<h4>Predicate declarations</h4>
+		to declare a predicate and the types/domains that apply to each of its parameters<br>
+		e.g. <span class="code">myPredicate(domFoo, domBar)</span><br>
+		A predicate declaration may coincide with a rule for mutual exclusiveness and exhaustiveness (see below).
+	</li>
+	<li>
+		<h4>Rules for mutual exclusiveness and exhaustiveness</h4>
+		to declare that for a particular binding of some of the parameters of a predicate, the value assignments of the remaining parameters are mutually exclusive and exhaustive, i.e. that the remaining parameters are functionally determined by the others.<br>
+		For example, you can add the rule <span class="code">myPredicate(f,b!)</span> to declare that the second parameter of <span class="code">myPredicate</span> is functionally determined by the first (i.e. that for each binding of <span class="code">f</span> there is exactly one binding of <span class="code">b</span> for which the atom is true).
+	</li>
+	<li>
+		<h4>Formulas with attached weights</h4>
+		as constraints on the set of possible worlds that is implicitly defined by an MLN's set of predicates and a set of (typed) constants with which it is combined.<br>
+		A formula must always be specified either along with a weight preceding it or, in case of a hard constraint, a period (.) succeeding it. Usually, a weight will be specified as a numeric constant, but when using the internal engine, weights can also be specified as arithmetic expressions, which may contain calls to functions of the Python math module (and the special function logx which returns -100 when passed 0). Note, however, that the expression must not contain any spaces. For example, you could specify an expression such as <span class="code">log(4)/2</span> instead of <span class="code">0.69314718055994529</span>.<br>
+		The formulas themselves may make use of the following operators/syntactic elements (operators in order of precedence):
+	  	<ul>
+			<li>existential quantification, e.g. <span class="code">EXIST x myPred(x,MyConstant)</span> or <span class="code">EXIST x,y (...)</span>
+			<br>Quantification applies only to the formula that follows immediately after the list of quantified variables, so if it is a complex formula, enclose it in parentheses.
+			<li>equality, e.g. <span class="node">x=y</span></li>
+			<li>negation, e.g. <span class="node">!myPred(x,y)</span> or <span class="code">!(x=y)</span></li>
+			<li>disjunction, e.g. <span class="code">myPred(x,y) v myPred(y,x)</span></li>
+			<li>conjunction, e.g. <span class="code">myPred(x,y) ^ myPred(y,x)</span></li>
+			<li>implication, e.g. <span class="code">myPred(x,y) ^ myPred(y,z) =&gt; myPred(x,z)</span></li>
+			<li>biimplication, e.g. <span class="code">myPred(x,y) &lt;=&gt; myPred(y,x)</span></li>
+		</ul>
+		When a formula that contains free variables is grounded, there will be a separate instance of the formula for each grounding of the free variables in the ground Markov network (each having the same weight).<br>
+		While the internal engine may perform a CNF conversion of the formulas, it does not not decompose the CNF formulas if they are made up of more than one conjunct in order to obtain individual clauses. With the internal engine, all formulas are indivisible.
+	</li>
+	<li>
+		<h4>Probability constraints on formulas <span style="font-style:normal">(internal engine only)</span></h4>
+		to ensure that certain formulas have a fixed marginal probability regardless of the size of the domain with which a model is instantiated. This is accomplished by dynamically adjusting the weight of the formula when instantiating a ground Markov network.<br>
+		e.g. <span class="code">P(myPred(x,y)) = 0.75</span> or <span class="code">P(myPred(x,y) ^ myPred(y,x)) = 0.9</span><br>
+		Note that any formulas for which a constraint is specified must also be part of the MLN.
+	</li>
+	<li>
+		<h4>Formula templates</h4>
+		An atom in a formula can be prefixed with an asterisk (*) to define a template that stands for two variants of the formula, one with the positive literal and one with the negative literal. (e.g. <span class="code">*myPred(x,y)</span>)<br>
+		Moreover, you can prefix a variable that is an argument of an atom with a <span class="code">+</span> character to define a template that will generate one formula for each possible grounding of that variable with one of the domain elements applicable to that argument. (e.g. <span class="code">myPred(+x,y)</span>)
+	</li>
+</ul>
+
+Limitations:
+<ul>
+	<li> no support for functions, numbers/numeric operators or anything that is related to it</li>
+	<li> formulas must always be preceded by a weight or be terminated by a period, even if they are only to be used in an input MLN for parameter learning</li>
+	<li> no definition can span multiple lines</li>
+</ul>
+
+<h3>Database/Evidence files</h3>
+
+A database file may contain:
+<ul>
+	<li>
+		<h4>C++-style comments</h4>
+		i.e. // and /* */
+	</li>
+	<li>
+		<h4>Positive and negative ground literals</h4>
+		e.g. <span class="code">myPred(A,B)</span> or <span class="code">!myPred(A,B)</span>
+	</li>
+	<li>
+		<h4>Domain extensions</h4>
+		as domain declarations (see above); useful if you want to define constants without making any statements about them.
+	</li>
+</ul>
+
+<h2>Modules</h2>
+
+<p>The main functionality of PyMLNs is contained in MLN.py (everything directly related to Markov logic, including inference and parameter learning) and FOL.py (first-order logic). The graphical tools expose but a small fraction of the full functionality. Use Python's help method on the modules to find out more about what's there &ndash; or simply take a look at the source files; there is quite a bit of documentation available (though not quite enough). </p>
+
+<p>The MLN module also contains a main app &ndash; a little helper script &ndash; that offers some basic functions that may be useful.</p>
+
+<h2>Contact</h2>
+
+<p>If you have any questions or comments, please don't hesitate to <a href="mailto:jain@cs.tum.edu">contact me</a>.
+
+</div>
+
+</body>
+</html>
