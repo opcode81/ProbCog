@@ -207,4 +207,16 @@ public class WeightedSample {
 		}
 		return true;
 	}
+	
+	public String getCPDLookupString(BeliefNode node) {
+		BeliefNode[] domain_product = node.getCPF().getDomainProduct();
+		StringBuffer cond = new StringBuffer();
+		for(int i = 0; i < domain_product.length; i++) {
+			if(i > 0)
+				cond.append(", ");
+			cond.append(domain_product[i].getName()).append(" = ");
+			cond.append(domain_product[i].getDomain().getName(nodeDomainIndices[this.bn.getNodeIndex(domain_product[i])]));
+		}
+		return cond.toString();
+	}
 }

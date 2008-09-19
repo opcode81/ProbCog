@@ -250,7 +250,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// forward sampling
 			for(BeliefNode node : forwardSampledNodes) {
 				if(!sampleForward(node, s)) {
-					if(debug) {
+					if(debug) {/*
 						BeliefNode[] domain_product = node.getCPF().getDomainProduct();
 						StringBuffer cond = new StringBuffer();
 						for(int i = 1; i < domain_product.length; i++) {
@@ -258,8 +258,8 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 								cond.append(", ");
 							cond.append(domain_product[i].getName()).append(" = ");
 							cond.append(domain_product[i].getDomain().getName(s.nodeDomainIndices[this.getNodeIndex(domain_product[i])]));
-						}
-						System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep + "; cond: " + cond);
+						}*/						
+						System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					}
 					continue loop1;
 				}
@@ -270,7 +270,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 				s.weight *= this.getCPTProbability(node, s.nodeDomainIndices);
 				if(s.weight == 0.0) {
 					// error diagnosis					
-					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep);
+					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					if(debug && this instanceof BackwardSamplingWithPriors) {
 						double[] dist = ((BackwardSamplingWithPriors)this).priors.get(node);
 						System.out.println("prior: " + StringTool.join(", ", dist) + " value=" + s.nodeDomainIndices[getNodeIndex(node)]);
