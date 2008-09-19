@@ -3,6 +3,7 @@ package edu.tum.cs.logic;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Vector;
 
 import edu.tum.cs.tools.StringTool;
 
@@ -42,7 +43,7 @@ public class WorldVariables {
 	 * (each individual logical atom will be added to the set of logical variables)
 	 * @param block
 	 */
-	public Block addBlock(Collection<GroundAtom> block) {
+	public Block addBlock(Vector<GroundAtom> block) {
 		Block b = new Block(block);
 		for(GroundAtom ga : block) {
 			add(ga);
@@ -77,10 +78,10 @@ public class WorldVariables {
 	}
 	
 	public static class Block implements Iterable<GroundAtom> {
-		protected Collection<GroundAtom> gndAtoms;
+		protected Vector<GroundAtom> gndAtoms;
 		protected GroundAtom trueOne;
 		
-		public Block(Collection<GroundAtom> list) {
+		public Block(Vector<GroundAtom> list) {
 			gndAtoms = list;
 			trueOne = null;
 		}
@@ -107,6 +108,10 @@ public class WorldVariables {
 		
 		public int size() {
 			return gndAtoms.size();
+		}
+		
+		public GroundAtom get(int index) {
+			return gndAtoms.get(index);
 		}
 	}
 }
