@@ -1,6 +1,5 @@
 package edu.tum.cs.bayesnets.relational.inference;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.PriorityQueue;
@@ -29,17 +28,13 @@ public class SATIS extends BNSampler {
 	 */
 	HashSet<BeliefNode> determinedVars;
 	
-	public SATIS(GroundBLN bln) throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+	public SATIS(GroundBLN bln) throws Exception {
 		super(bln, SATIS_BSampler.class);
 		gbln = bln;
+		initSATSampler();
 	}
 	
-	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
-
-		if(gbln == null)
-			System.out.println("NO GOOD");
-		
+	protected void initSATSampler() throws Exception {
 		// create SAT sampler
 		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
 		ClausalKB ckb = new ClausalKB(gbln.getKB());
@@ -51,15 +46,14 @@ public class SATIS extends BNSampler {
 			for(GroundLiteral lit : c.lits) {
 				determinedVars.add(gbln.getVariable(lit.gndAtom));
 			}
-		}
-		
-		return super.infer(queries, numSamples, 1);		
+		}		
 	}
 	
 	@Override
 	protected Sampler getSampler() {
 		return new SATIS_BSampler(gbln.getGroundNetwork());
-	}
+	}	
+	
 
 	public class SATIS_BSampler extends BackwardSampling {
 
@@ -76,8 +70,9 @@ public class SATIS extends BNSampler {
 			PossibleWorld state = ss.getState();
 			
 			// apply the state found by SampleSAT to the sample 
-			for(BeliefNode var : determinedVars) 				
-				s.nodeDomainIndices[this.getNodeIndex(var)] = gbln.getVariableValue(var, state);			
+			for(BeliefNode var : determinedVars) { 				
+				s.nodeDomainIndices[this.getNodeIndex(var)] = gbln.getVariableValue(var, state);
+			}
 		}
 		
 		/**
@@ -95,7 +90,7 @@ public class SATIS extends BNSampler {
 			PriorityQueue<BeliefNode> backSamplingCandidates = new PriorityQueue<BeliefNode>(1, new TierComparator(topOrder));
 
 			// remove logically determined nodes from the set of uninstantiated nodes
-			// and store them as outside the sampling order so their conditional probability is added to the sample weight
+			// and store them as outside the sampling order so their conditional probability is considered in the sample weight
 			for(BeliefNode n : determinedVars) {
 				uninstantiatedNodes.remove(n);
 				outsideSamplingOrder.add(n);
@@ -136,6 +131,8 @@ public class SATIS extends BNSampler {
 				if(uninstantiatedNodes.contains(nodes[i]))
 					forwardSampledNodes.add(nodes[i]);
 			}
+			
+			System.out.println("node distribution: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
 		}
 	}
 }
