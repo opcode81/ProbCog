@@ -20,7 +20,12 @@ import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
-
+/**
+ * Implementation of the stochastic SAT sampling algorithm SampleSAT by Wei et al.
+ * It near-uniformly samples a solution from the set of solutions
+ * 
+ * @author jain
+ */
 public class SampleSAT {
 	protected HashMap<Integer,Vector<Constraint>> bottlenecks;
 	protected HashMap<Integer,Vector<Constraint>> GAOccurrences;
