@@ -108,6 +108,7 @@ public class BLNinfer {
 							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -exp             algorithm: Experimental\n" +
 							         "    -satis           algorithm: SAT-IS\n" +
+							         "    -satisex         algorithm: SAT-IS (extended with hard CPT constraints) \n" +
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
