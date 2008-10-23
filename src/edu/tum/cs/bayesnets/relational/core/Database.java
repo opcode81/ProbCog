@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.tools.StringTool;
 
 
@@ -24,13 +25,13 @@ public class Database {
 	protected HashMap<String, Variable> entries;
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
-	public RelationalBeliefNetwork rbn;
+	public RelationalModel rbn;
 	
 	/**
 	 * constructs an empty database for the given model
 	 * @param bn
 	 */
-	public Database(RelationalBeliefNetwork bn) {
+	public Database(RelationalModel bn) {
 		this.rbn = bn;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
