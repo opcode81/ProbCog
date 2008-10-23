@@ -16,11 +16,12 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.mln.MLNWriter;
+import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.tools.CollectionFilter;
 import edu.tum.cs.tools.StringTool;
 
-public class RelationalBeliefNetwork extends BeliefNetworkEx {
+public class RelationalBeliefNetwork extends BeliefNetworkEx implements RelationalModel {
 	/**
 	 * maps a node index to the corresponding extended node
 	 */
