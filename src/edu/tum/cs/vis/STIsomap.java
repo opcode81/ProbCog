@@ -1,11 +1,9 @@
 package edu.tum.cs.vis;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Arrays;
 
-import edu.tum.cs.tools.MySQLConnection;
 import processing.core.PApplet;
+import edu.tum.cs.tools.MySQLConnection;
 
 public class STIsomap extends AnimatedCanvas {
 
@@ -38,7 +36,7 @@ public class STIsomap extends AnimatedCanvas {
 			}
 		}
 		catch (Exception e) {
-			throw new RuntimeException(e.getMessage());
+			throw new RuntimeException(e.getClass().getCanonicalName() + ": " + e.getMessage());
 		}
 		
 		traj.segment();

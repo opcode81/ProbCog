@@ -3,6 +3,8 @@ package edu.tum.cs.vis;
 import java.util.PriorityQueue;
 import java.util.Vector;
 
+import edu.tum.cs.tools.Vector3f;
+
 public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
@@ -25,10 +27,12 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			if(prev != null) { // draw line connecting previous point with current point
 				c.stroke(255,255,255);
 				//System.out.printf("%f %f %f -> %f %f %f\n",prev.x, prev.y, prev.z, p.x, p.y, p.z);
-				c.line(prev.x, prev.y, prev.z, p.x, p.y, p.z);
+				c.line(prev.v.x, prev.v.y, prev.v.z, p.v.x, p.v.y, p.v.z);
 			}
 			prev = p;
 		}
+		
+		//c.eyeTarget.set(prev.v);
 	}
 	
 	public int getNumSteps() {
@@ -50,7 +54,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				int min_distance_point_idx = -1;
 				for(int j = i-3; j >= 0; j--) {
 					Point p2 = points.get(j);
-					double dist = p.distance(p2);
+					double dist = p.v.distance(p2.v);
 					if(dist < min_distance) {
 						min_distance = dist;
 						min_distance_point_idx = j;
@@ -67,11 +71,11 @@ public class Trajectory implements Drawable, DrawableAnimated {
 					if(min_distance_point_idx == 0)
 						dirSimilar = true;
 					else {
-						Point dir1 = new Point(p);
-						dir1.subtract(points.get(i-1));
-						Point dir2 = new Point(p2);
-						dir2.subtract(points.get(min_distance_point_idx-1));
-						double angle = dir1.angleTo(dir2);
+						Vector3f dir1 = new Vector3f(p.v);
+						dir1.subtract(points.get(i-1).v);
+						Vector3f dir2 = new Vector3f(p2.v);
+						dir2.subtract(points.get(min_distance_point_idx-1).v);
+						double angle = dir1.angle(dir2);
 						System.out.println("angle = " + angle * 180/Math.PI);
 						dirSimilar = angle < Math.PI*40/180;
 					}
