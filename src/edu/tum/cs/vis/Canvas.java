@@ -11,9 +11,6 @@ import processing.xml.*;
 
 import java.awt.event.*;
 
-import java.sql.ResultSet;
-
-import edu.tum.cs.tools.MySQLConnection;
 
 public class Canvas extends PApplet implements MouseListener,
 		MouseMotionListener {
@@ -53,6 +50,7 @@ public class Canvas extends PApplet implements MouseListener,
 	ArrayList<String> activeObjects = new ArrayList<String>();
 	ArrayList<String> activeObjectClasses = new ArrayList<String>();
 
+	@Deprecated
 	ArrayList<float[]> points = new ArrayList<float[]>(); // positions on the ground
 	ArrayList<float[]> ellipses = new ArrayList<float[]>(); // ellipses, e.g. for clusters
 	ArrayList<float[]> trajectories = new ArrayList<float[]>(); // lists of points to be drawn as a trajectory
@@ -105,33 +103,6 @@ public class Canvas extends PApplet implements MouseListener,
 		setColors();
 		background(255, 255, 255);
 
-		//readMeshData("meshdata/unclassified300p.vtk");
-
-		String host = "atradig131";
-		String db = "stt-human-import";
-		String user = "tenorth";
-		String password = "UEY9KbNb";
-		
-		Trajectory traj = new Trajectory();
-		add(traj);
-		try {
-			MySQLConnection conn = new MySQLConnection(host, user, password, db);
-			ResultSet rs = conn
-					.select("select x,y,z from STT_DETAILED_ABSTRACT_EXP_ISOMAP3D_INTERVAL where episode_nr=0 and occurrence_nr=1 order by instance_nr");
-			while (rs.next()) {
-				float x = rs.getFloat(1) / 4000 * 500;
-				float y = rs.getFloat(2) / 4000 * 500;
-				float z = rs.getFloat(3) / 4000 * 500;
-				System.out.printf("%f/%f/%f\n", x, y, z);
-				//this.addPointData(x, y, z, 0xff0000);
-				//this.add(new Point(x, y, z, 0x0000ff));
-				traj.addPoint(x, y, z);
-			}
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e.getMessage());
-		}
-
 		noLoop();
 		draw();
 	}
@@ -155,15 +126,6 @@ public class Canvas extends PApplet implements MouseListener,
 
 		scale(zoomDisplay);
 
-		// coordinate system
-		stroke(255, 0, 0);
-		line(0, 0, 0, 500, 0, 0);
-		stroke(0, 255, 0);
-		line(0, 0, 0, 0, 500, 0);
-		stroke(0, 0, 255);
-		line(0, 0, 0, 0, 0, -500);
-		stroke(0, 0, 0);
-
 		// draw the meshes
 		drawMeshes();
 
@@ -180,14 +142,18 @@ public class Canvas extends PApplet implements MouseListener,
 		drawEllipses();
 
 		//drawTable();
+		
+		drawItems();
 
+		popMatrix();
+
+		popMatrix();
+
+	}
+	
+	public void drawItems() {
 		for(Drawable d : items)
-			d.draw(this);
-
-		popMatrix();
-
-		popMatrix();
-
+			d.draw(this);		
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -747,11 +713,7 @@ public class Canvas extends PApplet implements MouseListener,
 		redraw();
 	}
 
-	public void keyPressed() {
-		redraw();
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// 
@@ -798,9 +760,5 @@ public class Canvas extends PApplet implements MouseListener,
 	}
 
 	//final Timer timer = new Timer(1, new ActionListener() {
-
-	public static void main(String[] args) {
-		PApplet.main(new String[] { "edu.tum.cs.vis.Canvas" });
-	}
 
 }
