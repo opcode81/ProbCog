@@ -1,15 +1,18 @@
 package edu.tum.cs.vis;
 
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
-import processing.core.*;
-import processing.xml.*;
-
-import java.awt.event.*;
+import processing.core.PApplet;
+import processing.core.PFont;
+import processing.xml.XMLElement;
+import edu.tum.cs.tools.Vector3f;
 
 
 public class Canvas extends PApplet implements MouseListener,
@@ -25,6 +28,8 @@ public class Canvas extends PApplet implements MouseListener,
 			rightMouseY = -1.0f, centerMouseY = -1.0f;
 	float xRotDisplay = 24.4f, yRotDisplay = -14.8f, xShiftDisplay = 96.0f,
 			zShiftDisplay = -315.5f, zoomDisplay = 2.12f;
+	
+	protected Vector3f eye, eyeTarget, eyeUp;
 
 	// shift the human pose data into the world coordinate system
 	//public static final float xShiftTrajectory = 1.35f;
@@ -33,6 +38,8 @@ public class Canvas extends PApplet implements MouseListener,
 	public static final float xShiftTrajectory = 0.0f;
 	public static final float yShiftTrajectory = 0.0f;
 	public static final float zShiftTrajectory = 0.0f;
+	
+	public static final boolean useCamera = false;
 
 	////////////////////////////////////////////////////////////////////////////////
 	// BUFFERS
@@ -93,6 +100,12 @@ public class Canvas extends PApplet implements MouseListener,
 
 		size(800, 600, P3D);
 		lights();
+		
+		eye = new Vector3f(0.0f,-50f,0f);
+		eyeUp = new Vector3f(0,0,1);
+		eyeTarget = new Vector3f(0,0,0);
+		xShiftDisplay = 0;
+		zShiftDisplay = 0;
 
 		PFont font = createFont("Verdana", 11);
 		textFont(font);
@@ -112,17 +125,20 @@ public class Canvas extends PApplet implements MouseListener,
 		background(60, 60, 60);
 		cursor(CROSS);
 
-		pushMatrix();
-		translate(width / 4.0f, height / 1.5f, -400.0f);
-
-		lights();
-		pushMatrix();
-		rotateZ(-PI / 2);
-		rotateY(-PI / 2);
-		translate(0.0f, zShiftDisplay, xShiftDisplay);
-
-		rotateZ(radians(xRotDisplay));
-		rotateY(radians(yRotDisplay));
+		if(!useCamera) {
+			pushMatrix();
+			translate(width / 4.0f, height / 1.5f, -400.0f);
+	
+			lights();
+			pushMatrix();	
+			
+			rotateZ(-PI / 2);
+			rotateY(-PI / 2);
+			translate(0.0f, zShiftDisplay, xShiftDisplay);
+	
+			rotateZ(radians(xRotDisplay));
+			rotateY(radians(yRotDisplay));
+		}
 
 		scale(zoomDisplay);
 
@@ -145,10 +161,21 @@ public class Canvas extends PApplet implements MouseListener,
 		
 		drawItems();
 
-		popMatrix();
-
-		popMatrix();
-
+		if(useCamera)
+			setCamera();
+		else {
+			popMatrix();
+	
+			popMatrix();
+		}
+	}
+	
+	protected void setCamera() {
+		//beginCamera();
+		camera(eye.x, eye.y, eye.z, eyeTarget.x, eyeTarget.y, eyeTarget.z, eyeUp.x, eyeUp.y, eyeUp.z);
+		//endCamera();
+		
+		System.out.println("eye: " + eye + " -> " + eyeTarget + "  up: " + eyeUp);
 	}
 	
 	public void drawItems() {
@@ -689,25 +716,73 @@ public class Canvas extends PApplet implements MouseListener,
 	public void mouseDragged(MouseEvent e) {
 
 		if (leftMouseX != -1.0f) { // change rotation
+			float dx = (e.getX() - leftMouseX) * 0.05f;
+			float dy = (e.getY() - leftMouseY) * 0.05f;
+			
 			yRotDisplay -= (e.getY() - leftMouseY) * 0.05;
 			xRotDisplay += (e.getX() - leftMouseX) * 0.05;
 			leftMouseX = e.getX();
 			leftMouseY = e.getY();
+			
+			// rotation around vertical axis
+			eye.rotate(dx, eyeUp);
 
+			// rotation around horizontal axis
+			Vector3f dir = new Vector3f(eyeTarget);
+			dir.subtract(eye);
+			Vector3f horDir = new Vector3f();
+			horDir.cross(eyeUp, dir);			
+			eye.rotate(dy, horDir);
+			eyeUp.rotate(dy, horDir);
+			eyeUp.normalize();
 		}
 		else if (rightMouseX != -1.0f) { // change translation
+			float dx = (e.getX() - rightMouseX) * 0.05f;
+			float dy = (e.getY() - rightMouseY) * 0.05f;
+			
 			xShiftDisplay += (e.getY() - rightMouseY) * 0.5;
 			zShiftDisplay += (e.getX() - rightMouseX) * 0.5;
 			rightMouseX = e.getX();
 			rightMouseY = e.getY();
-
+			
+			// horizontal translation
+			Vector3f dir = new Vector3f(eyeTarget);
+			dir.subtract(eye);
+			Vector3f horDir = new Vector3f();
+			horDir.cross(eyeUp, dir);
+			horDir.normalize();
+			horDir.scale(dx);
+			
+			// vertical translation
+			Vector3f vertDir = new Vector3f(eyeUp);
+			vertDir.normalize();
+			vertDir.scale(dy);
+			vertDir.negate();
+			System.out.println("hor move: " + horDir);
+			System.out.println("vert mode: " + vertDir);
+			
+			eye.add(horDir);
+			eye.add(vertDir);
+			eyeTarget.add(horDir);
+			eyeTarget.add(vertDir);
 		}
 		else if (centerMouseY != -1.0f) { // zoom
+			float dy = (e.getY() - centerMouseY) * 0.005f;			
+			
 			zoomDisplay += (e.getY() - centerMouseY) * 0.02;
 			if (zoomDisplay < 0.01) {
 				zoomDisplay = 0.01f;
 			}
 			centerMouseY = e.getY();
+			
+			Vector3f dir = new Vector3f(eyeTarget);
+			dir.subtract(eye);
+			dir.normalize();
+			dir.scale(dy);
+			
+			eye.x += dir.x;
+			eye.y += dir.y;
+			eye.z += dir.z;
 		}
 
 		redraw();
