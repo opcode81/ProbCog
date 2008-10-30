@@ -6,10 +6,10 @@ import edu.tum.cs.srldb.datadict.DDException;
 
 import java.sql.*;
 import fipm.data.db.models.DBMotionReader;
-import de.tum.in.fipm.base.data.GameData;
 import de.tum.in.fipm.base.models.motion.IMotion;
 import de.tum.in.fipm.base.models.motion.MotionQueryException;
 import de.tum.in.fipm.base.models.util.Position;
+import de.tum.in.fipm.base.models.util.GameData;
 
 public class Situation extends Object {
 	

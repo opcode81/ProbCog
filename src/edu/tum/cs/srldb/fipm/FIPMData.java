@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.util.Iterator;
 import java.util.Vector;
 
-import de.tum.in.fipm.base.data.GameData;
 import de.tum.in.fipm.base.database.Queryengine;
 import de.tum.in.fipm.base.util.Settings;
 
@@ -21,6 +20,7 @@ import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
 import fipm.data.db.base.DBGameDataIO;
 import fipm.data.db.models.DBMotionReader;
+import de.tum.in.fipm.base.models.util.GameData;
 
 
 public class FIPMData {
@@ -94,7 +94,7 @@ public class FIPMData {
 		
 		// get a list of all the games
         DBGameDataIO gameIO = DBGameDataIO.getInstance();
-        Iterator<GameData> iGameData = gameIO.readAll(gameDBCond).iterator();
+        Iterator<GameData> iGameData = null; //(Iterator<GameData>) gameIO.readAll(gameDBCond).iterator();
         
 		// process all the listed game databases...	        		
         database = new Database(datadict);

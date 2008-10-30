@@ -1,8 +1,8 @@
 package edu.tum.cs.srldb.fipm;
 
 import java.util.HashMap;
-import de.tum.in.fipm.base.data.GameData;
 
+import de.tum.in.fipm.base.models.util.GameData;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.Object;
 import edu.tum.cs.srldb.datadict.DDException;
