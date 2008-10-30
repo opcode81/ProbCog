@@ -496,6 +496,7 @@ public abstract class AbstractGroundBLN {
 		return groundBN.evidence2DomainIndices(fullEvidence);
 	}
 	
+	@Deprecated
 	public void inferAIS(int numSamples) {
 		boolean useEvidence = true;
 		if(useEvidence) {
