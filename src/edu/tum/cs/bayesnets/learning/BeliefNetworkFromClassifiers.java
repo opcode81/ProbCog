@@ -8,6 +8,8 @@ import java.util.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import de.tum.in.fipm.base.util.weka.NamedClassifier;
+
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.REPTree;
 import weka.core.Attribute;
@@ -20,7 +22,6 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.DiscretizationFilter;
 import edu.tum.cs.bayesnets.core.Discretized;
 import edu.tum.cs.tools.MathUtils;
-import fipm.gui.weka.NamedClassifier;
 
 /**
  * An instance of <code>BeliefNetworkFromClassifiers</code> is able to create the structure
