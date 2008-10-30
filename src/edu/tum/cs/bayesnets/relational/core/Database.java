@@ -327,7 +327,7 @@ public class Database {
 		 * gets the predicate representation that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
 		 * @return
 		 */
-		public String getPredicate(RelationalBeliefNetwork rbn) {
+		public String getPredicate(RelationalModel rbn) {
 			if(rbn.getSignature(functionName).isBoolean())
 				return functionName + "(" + RelationalNode.join(",", params) + ")";
 			else				
