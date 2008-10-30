@@ -771,7 +771,7 @@ class MLN:
         self._getWorlds()
         worlds = list(self.worlds)
         worlds.sort(key=lambda w: -w["sum"])
-        for i in range(max(num,len(worlds))):
+        for i in range(min(num,len(worlds))):
             self.printWorld(worlds[i], mode=mode, format=format)
 
     # prints, for the given world, the probability, the literals, the sum of weights, plus for each ground formula the truth value on a separate line
@@ -2796,7 +2796,7 @@ class SampleSAT:
                     idxGAsecond = trueOne
                 else: # otherwise, this literal must be excluded and must not be flipped
                     continue
-                num += len(self.bottlenecks.get(idxGAsecond, [])) # !!!!!! additivity ignores the possibility that the first and the second GA could occur together in the same formula
+                num += len(self.bottlenecks.get(idxGAsecond, [])) # !!!!!! additivity ignores the possibility that the first and the second GA could occur together in the same formula (should perhaps perform the first flip temporarily)
             num += len(self.bottlenecks.get(idxGA, []))
             # check if it's better than the previous best (or equally good)
             newBest = False
@@ -3033,6 +3033,7 @@ if __name__ == '__main__':
         print "                      To use just the constants declared in the MLN, use {}"
         print "              query, evidence: ground formulas\n" 
         print "           inferGibbs <mln file> <domain> <query> <evidence>\n"
+        print "           topWorlds <mln file> <domain>\n"
         print "           test <test name>"
         print "              run the test with the given name (dev only)\n"
         print "  NOTE: This script exposes but a tiny fraction of the functionality of the MLN class!\n"
@@ -3057,6 +3058,10 @@ if __name__ == '__main__':
         mln = MLN(args[1])
         mln.combine(eval(args[2]))
         mln.inferExact(args[3], args[4])
+    elif args[0] == "topWorlds":
+        mln = MLN(args[1])
+        mln.combineDB(args[2])
+        mln.printTopWorlds(10)
     elif args[0] == "inferGibbs":
         mln = MLN(args[1])
         mln.combine(eval(args[2]))
