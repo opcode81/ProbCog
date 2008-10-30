@@ -8,13 +8,14 @@ import edu.tum.cs.tools.Vector3f;
 public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
+	public float pointSize = 40.0f, sphereSize = 120.0f;
 	
 	public Trajectory() {
 		points = new Vector<Point>();
 	}
 	
 	public void addPoint(float x, float y, float z) {
-		points.add(new Point(x, y, z, 0xffcbcbcb, 5.0f));
+		points.add(new Point(x, y, z, 0xffcbcbcb, pointSize));
 	}
 	
 	public void draw(Canvas c, int step) {
@@ -31,6 +32,9 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			}
 			prev = p;
 		}
+		
+		// draw sphere for current pos
+		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, 0xffffff00).draw(c);
 		
 		//c.eyeTarget.set(prev.v);
 	}
@@ -109,5 +113,9 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 		System.out.println("max diff: " + max_diff + " @ " + max_diff_value);
 		
+	}
+
+	public int getMaxStep() {
+		return getNumSteps();
 	}
 }
