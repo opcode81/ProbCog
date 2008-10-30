@@ -6,14 +6,17 @@ public class AnimatedCanvas extends Canvas {
 
 	private static final long serialVersionUID = 1L;
 	
-	protected int animationStep = 0;
+	protected int animationStep = 0, maxAnimationStep = 0;
 	protected Vector<DrawableAnimated> animatedItems = new Vector<DrawableAnimated>();
 
 	@Override
 	public void keyPressed() {
 		if (keyCode == RIGHT) {
 			// step forward
-			animationStep++;
+			if(animationStep < maxAnimationStep)
+				animationStep++;
+			else
+				return;
 		}
 
 		if(keyCode == LEFT) {
@@ -38,6 +41,7 @@ public class AnimatedCanvas extends Canvas {
 	}
 	
 	public void addAnimated(DrawableAnimated item) {
+		maxAnimationStep = Math.max(maxAnimationStep, item.getMaxStep());
 		animatedItems.add(item);
 	}
 }
