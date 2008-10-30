@@ -31,14 +31,6 @@ public class Canvas extends PApplet implements MouseListener,
 	
 	protected Vector3f eye, eyeTarget, eyeUp;
 
-	// shift the human pose data into the world coordinate system
-	//public static final float xShiftTrajectory = 1.35f;
-	//public static final float yShiftTrajectory = 2.5f;
-	//public static final float zShiftTrajectory = 1.05f;
-	public static final float xShiftTrajectory = 0.0f;
-	public static final float yShiftTrajectory = 0.0f;
-	public static final float zShiftTrajectory = 0.0f;
-	
 	public static final boolean useCamera = false;
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -57,8 +49,6 @@ public class Canvas extends PApplet implements MouseListener,
 	ArrayList<String> activeObjects = new ArrayList<String>();
 	ArrayList<String> activeObjectClasses = new ArrayList<String>();
 
-	@Deprecated
-	ArrayList<float[]> points = new ArrayList<float[]>(); // positions on the ground
 	ArrayList<float[]> ellipses = new ArrayList<float[]>(); // ellipses, e.g. for clusters
 	ArrayList<float[]> trajectories = new ArrayList<float[]>(); // lists of points to be drawn as a trajectory
 	ArrayList<int[]> jointPositionsWithPoseTime = new ArrayList<int[]>(); //contains vectors of 2 elements: 
@@ -83,10 +73,6 @@ public class Canvas extends PApplet implements MouseListener,
 
 	int episodeToBeVisualized; // episode chosen to be visualized
 
-	// TODO: check if they are equivalent to traj_begin and traj_end
-	int begin = 0; // beginning and end-index for the trajectory between two action places 
-	int end = 0;
-
 	////////////////////////////////////////////////////////////////////////////////
 	// FLAGS
 
@@ -96,9 +82,19 @@ public class Canvas extends PApplet implements MouseListener,
 	boolean isHumanPoseVis; // true for the visualization HumanPose, false for the visualization JointTrajectories
 	boolean entityDrawnInLastFrame = false; // is true after a entity was drawn and false after a trajectory was drawn.
 
+	protected int width = 800, height = 600; 
+	
+	public void setWidth(int width) {
+		this.width = width;
+	}
+	
+	public void setHeight(int height) {
+		this.height = height;
+	}
+	
 	public void setup() {
 
-		size(800, 600, P3D);
+		size(width, height, P3D);
 		lights();
 		
 		eye = new Vector3f(0.0f,-50f,0f);
@@ -151,9 +147,6 @@ public class Canvas extends PApplet implements MouseListener,
 		// draw the knobs (spheres)
 		drawSpheres();
 
-		// draw positions on the floor
-		drawPoints();
-
 		// draw places
 		drawEllipses();
 
@@ -189,26 +182,6 @@ public class Canvas extends PApplet implements MouseListener,
 	// 
 	// PRIMITIVE DRAWING FUNCTIONS (POINTS, BOXES, TRAJECTORIES,...)
 	// 
-
-	@Deprecated
-	public void drawPoints() {
-		pushMatrix();
-		scale(100);
-		//translate(0, 0, -0.1f);
-		for (int i = 0; i < this.points.size(); i++) {
-			float[] pt = this.points.get(i);
-			float z = pt[2];
-			//z = pt[1];
-			translate(0, 0, z);
-			noStroke();
-			fill(Integer.valueOf(0xFF000000)
-					+ Integer.valueOf(round(254 * 254 * this.points.get(i)[3])));
-			ellipse(Float.valueOf(this.points.get(i)[0]), Float
-					.valueOf(this.points.get(i)[1]), 0.05f, 0.05f);
-			translate(0, 0, -z);
-		}
-		popMatrix();
-	}
 
 	public void drawEllipses() {
 
@@ -436,17 +409,6 @@ public class Canvas extends PApplet implements MouseListener,
 		items.add(item);
 	}
 
-	@Deprecated
-	public void addPointData(float x, float y, float z, int color) {
-
-		float[] newPoint = new float[4];
-		newPoint[0] = x;
-		newPoint[1] = y;
-		newPoint[2] = z;
-		newPoint[3] = color;
-		points.add(newPoint);
-	}
-
 	public void addEllipseData(float x, float y, float width, float height,
 			int color) {
 
@@ -457,22 +419,6 @@ public class Canvas extends PApplet implements MouseListener,
 		newEllipse[3] = height;
 		newEllipse[4] = color;
 		ellipses.add(newEllipse);
-	}
-
-	public void addTrajectoryData(int episode_traj, float x, float y, float z) {
-		addTrajectoryData(episode_traj, x, y, z, 0.6f);
-	}
-
-	public void addTrajectoryData(int episode_traj, float x, float y, float z,
-			float color) {
-
-		float[] new_Point = new float[5];
-		new_Point[0] = episode_traj;
-		new_Point[1] = x;
-		new_Point[2] = y;
-		new_Point[3] = z;
-		new_Point[4] = color;
-		trajectories.add(new_Point);
 	}
 
 	public void addObject(String name, int color) {
@@ -794,15 +740,6 @@ public class Canvas extends PApplet implements MouseListener,
 	// 
 	// HELPER FUNCTIONS
 	// 
-
-	public int findTrajectoryIndex(float b21_x, float b21_y) {
-		for (int i = begin; i < this.trajectories.size(); i++)
-			if ((abs(this.trajectories.get(i)[1] - b21_x) < 0.1)
-					&& (abs(this.trajectories.get(i)[2] - b21_y) < 0.1)) {
-				return i;
-			}
-		return 0;
-	}
 
 	public int[] makeColor(int r, int g, int b) {
 		int[] color = new int[3];
