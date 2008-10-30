@@ -6,6 +6,7 @@ import edu.tum.cs.srldb.datadict.DDException;
 
 import java.sql.*;
 import fipm.data.db.models.DBMotionReader;
+import de.tum.in.fipm.base.data.ReaderException;
 import de.tum.in.fipm.base.models.motion.IMotion;
 import de.tum.in.fipm.base.models.motion.MotionQueryException;
 import de.tum.in.fipm.base.models.util.Position;
@@ -23,7 +24,7 @@ public class Situation extends Object {
 	protected PositionEx ballPos;
 	
 	protected class PositionEx extends Position {	
-		public PositionEx(Connection conn, GameData gameData, int object, int time, DBMotionReader mr) throws SQLException, MotionQueryException {
+		public PositionEx(Connection conn, GameData gameData, int object, int time, DBMotionReader mr) throws SQLException, MotionQueryException, ReaderException {
 			super(-1,-1);
 			Statement stmt = conn.createStatement();
 			ResultSet rs = stmt.executeQuery("select * from motion where object=" + object + " and time <=" + time + " order by time desc limit 1");			
@@ -93,12 +94,13 @@ public class Situation extends Object {
 	 * @throws MotionQueryException
 	 * @throws SQLException
 	 * @throws DDException 
+	 * @throws ReaderException 
 	 */
-	public Situation(Connection connGame, Game game, int time, DBMotionReader mr) throws MotionQueryException, SQLException, DDException {
+	public Situation(Connection connGame, Game game, int time, DBMotionReader mr) throws MotionQueryException, SQLException, DDException, ReaderException {
 		this(connGame, game, time, mr, null);
 	}
 	
-	public Situation(Connection connGame, Game game, int time, DBMotionReader mr, Player playerInPossession) throws MotionQueryException, SQLException, DDException {
+	public Situation(Connection connGame, Game game, int time, DBMotionReader mr, Player playerInPossession) throws MotionQueryException, SQLException, DDException, ReaderException {
 		super(game.getDatabase());
 		
 		GameData gameData = game.getData();
