@@ -9,19 +9,36 @@ public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
 	public float pointSize = 40.0f, sphereSize = 120.0f;
+	public int pointColor = 0xffcbcbcb, sphereColor = 0xffffff00; 
+	public float minx = Float.MAX_VALUE, miny = Float.MAX_VALUE, minz = Float.MAX_VALUE, maxx = Float.MIN_VALUE, maxy = Float.MIN_VALUE, maxz = Float.MIN_VALUE;
+	public float range = 0;
 	
 	public Trajectory() {
 		points = new Vector<Point>();
 	}
 	
 	public void addPoint(float x, float y, float z) {
-		points.add(new Point(x, y, z, 0xffcbcbcb, pointSize));
+		points.add(new Point(x, y, z, pointColor, pointSize));
+		minx = Math.min(x, minx);
+		miny = Math.min(y, miny);
+		minz = Math.min(z, minz);
+		maxx = Math.max(x, maxx);
+		maxy = Math.max(y, maxy);
+		maxz = Math.max(z, maxz);
+		float xrange = maxx - minx;
+		float yrange = maxy - miny;
+		float zrange = maxz - minz;
+		range = Math.max(Math.max(xrange, yrange), zrange);
 	}
 	
 	public void draw(Canvas c, int step) {
+		pointSize = range / 150;
+		sphereSize = pointSize * 2;
+		System.out.println(pointSize);
 		Point prev = null;
 		int s = 0;
 		for(Point p : points) {
+			p.size = pointSize;
 			if(s++ > step)
 				break;
 			p.draw(c);
@@ -34,7 +51,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 		
 		// draw sphere for current pos
-		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, 0xffffff00).draw(c);
+		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, sphereColor).draw(c);
 		
 		//c.eyeTarget.set(prev.v);
 	}
