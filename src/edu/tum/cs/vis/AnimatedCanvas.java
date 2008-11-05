@@ -11,23 +11,26 @@ public class AnimatedCanvas extends Canvas {
 
 	@Override
 	public void keyPressed() {
-		if (keyCode == RIGHT) {
-			// step forward
-			if(animationStep < maxAnimationStep)
-				animationStep++;
-			else
-				return;
-		}
-
-		if(keyCode == LEFT) {
-			// check if at the beginning of the sequence
-			if(animationStep == 0)
-				return;
-
-			// step back
+		if(keyCode == RIGHT)
+			animationStepForward();
+		if(keyCode == LEFT)
+			animationStepBackward();
+	}
+	
+	public void animationStepForward() {
+		if(animationStep < maxAnimationStep)
+			animationStep++;
+		redraw();
+	}
+	
+	public void animationStepBackward() {
+		if(animationStep > 0)
 			animationStep--;
-		}
-
+		redraw();
+	}
+	
+	public void animationReset() {
+		animationStep = 0;
 		redraw();
 	}
 	
