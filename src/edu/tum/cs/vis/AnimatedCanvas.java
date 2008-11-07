@@ -15,6 +15,11 @@ public class AnimatedCanvas extends Canvas {
 			animationStepForward();
 		if(keyCode == LEFT)
 			animationStepBackward();
+		if(keyCode == 36) // home
+			animationReset();
+		if(keyCode == 35) // end
+			animationEnd();
+		//System.out.println("key : " + keyCode);
 	}
 	
 	public void animationStepForward() {
@@ -31,6 +36,11 @@ public class AnimatedCanvas extends Canvas {
 	
 	public void animationReset() {
 		animationStep = 0;
+		redraw();
+	}
+	
+	public void animationEnd() {
+		animationStep = maxAnimationStep;
 		redraw();
 	}
 	

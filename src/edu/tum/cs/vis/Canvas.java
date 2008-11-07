@@ -1,17 +1,23 @@
 package edu.tum.cs.vis;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
+import java.awt.Label;
+import java.awt.SystemColor;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Vector;
 
 import processing.core.PApplet;
 import processing.core.PFont;
-import processing.xml.XMLElement;
 import edu.tum.cs.tools.Vector3f;
 
 
@@ -20,70 +26,31 @@ public class Canvas extends PApplet implements MouseListener,
 
 	static final long serialVersionUID = 0;
 
-	////////////////////////////////////////////////////////////////////////////////
-	// DISPLAY PROPERTIES (ROTATION, ZOOM, ...)
-
-	// init values for the display and mouse interaction
-	float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f,
-			rightMouseY = -1.0f, centerMouseY = -1.0f;
-	float xRotDisplay = 24.4f, yRotDisplay = -14.8f, xShiftDisplay = 96.0f,
-			zShiftDisplay = -315.5f, zoomDisplay = 2.12f;
+	/**
+	 * dimensions of the display
+	 */
+	protected int width = 800, height = 600; 
 	
+	// init values for the display and mouse interaction
+	protected float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f, rightMouseY = -1.0f, centerMouseY = -1.0f;
+	protected float xRotDisplay = -106.25027f, yRotDisplay = 0.020062504f;
+	protected float xShiftDisplay = 103f, zShiftDisplay = 162f;
+	protected float zoomDisplay = 0.13f;
+	
+	/*
+	float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f,
+	rightMouseY = -1.0f, centerMouseY = -1.0f;
+	float xRotDisplay = 24.4f, yRotDisplay = -14.8f, xShiftDisplay = 96.0f,
+	zShiftDisplay = -315.5f, zoomDisplay = 2.12f;
+	*/
+	
+	protected float sceneSize = 4000;	
 	protected Vector3f eye, eyeTarget, eyeUp;
 
 	public static final boolean useCamera = false;
 
-	////////////////////////////////////////////////////////////////////////////////
-	// BUFFERS
-
-	HashMap<String, float[]> boxPositions = new HashMap<String, float[]>();
-	HashMap<String, float[]> boxDimensions = new HashMap<String, float[]>();
-	HashMap<String, String> boxTypes = new HashMap<String, String>();
-
-	HashMap<String, float[]> spherePositions = new HashMap<String, float[]>();
-	HashMap<String, float[]> sphereDimensions = new HashMap<String, float[]>();
-
-	ArrayList<float[]> meshpoints = new ArrayList<float[]>();
-	ArrayList<int[]> meshtriangles = new ArrayList<int[]>();
-
-	ArrayList<String> activeObjects = new ArrayList<String>();
-	ArrayList<String> activeObjectClasses = new ArrayList<String>();
-
-	ArrayList<float[]> ellipses = new ArrayList<float[]>(); // ellipses, e.g. for clusters
-	ArrayList<float[]> trajectories = new ArrayList<float[]>(); // lists of points to be drawn as a trajectory
-	ArrayList<int[]> jointPositionsWithPoseTime = new ArrayList<int[]>(); //contains vectors of 2 elements: 
-	// [0] is the point whose trajectory will be drawn for each action
-	// [1] is the time moment at which the human will be drawn for each action
-
 	Vector<Drawable> items = new Vector<Drawable>();
 
-	// TODO: change this mechanism
-	ArrayList<int[]> colors = new ArrayList<int[]>(12); // the colors used in the vis. HumanTrajVis 
-
-	////////////////////////////////////////////////////////////////////////////////
-	// INDICES
-
-	int jointPositionsIndex = 0; // index for the array list jointTrajectoriesData
-	int actionIndex = 0; // index for the array lists actionData and trajectoryData
-
-	int bodyPartToBeTracked = -1; // indicate which part of the pose (FIR, BEC etc) shall be tracked w/ trajectory
-
-	int trajectoryStart = 0; // start and end index of a trajectory to be drawn
-	int trajectoryEnd = 0;
-
-	int episodeToBeVisualized; // episode chosen to be visualized
-
-	////////////////////////////////////////////////////////////////////////////////
-	// FLAGS
-
-	boolean currentlyDrawingTrajectory = false;
-	boolean playForward = false; // true for play and false for rewind
-	boolean stepwisePlayback = false;
-	boolean isHumanPoseVis; // true for the visualization HumanPose, false for the visualization JointTrajectories
-	boolean entityDrawnInLastFrame = false; // is true after a entity was drawn and false after a trajectory was drawn.
-
-	protected int width = 800, height = 600; 
-	
 	public void setWidth(int width) {
 		this.width = width;
 	}
@@ -92,16 +59,24 @@ public class Canvas extends PApplet implements MouseListener,
 		this.height = height;
 	}
 	
+	public void setSceneSize(float size) {
+		this.sceneSize = size;
+		this.zoomDisplay = 400 / sceneSize;
+	}
+	
+	public Canvas() {
+		eye = new Vector3f(0.0f,-50f,0f);
+		eyeUp = new Vector3f(0,0,1);
+		eyeTarget = new Vector3f(0,0,0);
+	}
+	
 	public void setup() {
 
 		size(width, height, P3D);
 		lights();
 		
-		eye = new Vector3f(0.0f,-50f,0f);
-		eyeUp = new Vector3f(0,0,1);
-		eyeTarget = new Vector3f(0,0,0);
-		xShiftDisplay = 0;
-		zShiftDisplay = 0;
+		//xShiftDisplay = sceneSize/2;
+		//zShiftDisplay = sceneSize/2;
 
 		PFont font = createFont("Verdana", 11);
 		textFont(font);
@@ -109,7 +84,6 @@ public class Canvas extends PApplet implements MouseListener,
 		ellipseMode(RADIUS);
 		frameRate(20);
 
-		setColors();
 		background(255, 255, 255);
 
 		noLoop();
@@ -120,7 +94,7 @@ public class Canvas extends PApplet implements MouseListener,
 
 		background(60, 60, 60);
 		cursor(CROSS);
-
+		
 		if(!useCamera) {
 			pushMatrix();
 			translate(width / 4.0f, height / 1.5f, -400.0f);
@@ -128,34 +102,25 @@ public class Canvas extends PApplet implements MouseListener,
 			lights();
 			pushMatrix();	
 			
-			rotateZ(-PI / 2);
+			rotateZ(PI / 2);
 			rotateY(-PI / 2);
 			translate(0.0f, zShiftDisplay, xShiftDisplay);
 	
 			rotateZ(radians(xRotDisplay));
-			rotateY(radians(yRotDisplay));
+			rotateX(radians(yRotDisplay));
+			
+			scale(zoomDisplay);
+			
+			//System.out.println("zoom: " + zoomDisplay + " zShift: " + zShiftDisplay + " xShift: " + xShiftDisplay + " xRot: " + xRotDisplay + " yRot: " + yRotDisplay);
 		}
+		else
+			setCamera();
 
-		scale(zoomDisplay);
-
-		// draw the meshes
-		drawMeshes();
-
-		// draw the cupboards (boxes)
-		drawBoxes();
-
-		// draw the knobs (spheres)
-		drawSpheres();
-
-		// draw places
-		drawEllipses();
-
-		//drawTable();
-		
+		//scale(1000);
 		drawItems();
 
 		if(useCamera)
-			setCamera();
+			;//setCamera();
 		else {
 			popMatrix();
 	
@@ -166,6 +131,7 @@ public class Canvas extends PApplet implements MouseListener,
 	protected void setCamera() {
 		//beginCamera();
 		camera(eye.x, eye.y, eye.z, eyeTarget.x, eyeTarget.y, eyeTarget.z, eyeUp.x, eyeUp.y, eyeUp.z);
+		//camera(eye.x, eye.y, eye.z, eyeTarget.x, eyeTarget.y, eyeTarget.z, eye.x+eyeUp.x, eye.y+eyeUp.y, eye.z+eyeUp.z);
 		//endCamera();
 		
 		System.out.println("eye: " + eye + " -> " + eyeTarget + "  up: " + eyeUp);
@@ -175,449 +141,11 @@ public class Canvas extends PApplet implements MouseListener,
 		for(Drawable d : items)
 			d.draw(this);		
 	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	// PRIMITIVE DRAWING FUNCTIONS (POINTS, BOXES, TRAJECTORIES,...)
-	// 
-
-	public void drawEllipses() {
-
-		hint(ENABLE_ACCURATE_TEXTURES);
-		pushMatrix();
-		translate(0, 0, -10f);
-		for (int i = 0; i < this.ellipses.size(); i++) {
-			noStroke();
-			fill(Integer.valueOf(0xFF000000)
-					+ Integer
-							.valueOf(round(254 * 254 * this.ellipses.get(i)[4])));
-			ellipse(100 * Float.valueOf(this.ellipses.get(i)[0]), 100 * Float
-					.valueOf(this.ellipses.get(i)[1]), 200 * Float
-					.valueOf(this.ellipses.get(i)[2]), 200 * Float
-					.valueOf(this.ellipses.get(i)[3]));
-		}
-
-		popMatrix();
-
+	
+	public void add(Drawable d) {
+		this.items.add(d);
 	}
 
-	public void drawTrajectories(int index_begin, int index_end) {
-
-		pushMatrix();
-		translate(0, 0, -10f);
-
-		if (trajectories.size() != 0)
-			for (int i = index_begin; i < index_end - 1; i++) {
-
-				float x1 = this.trajectories.get(i)[1];
-				float y1 = this.trajectories.get(i)[2];
-				float z1 = this.trajectories.get(i)[3];
-
-				float x2 = this.trajectories.get(i + 1)[1];
-				float y2 = this.trajectories.get(i + 1)[2];
-				float z2 = this.trajectories.get(i + 1)[3];
-
-				strokeWeight(3);
-				stroke(Integer.valueOf(0xFF000000)
-						+ Integer.valueOf(round(254 * 254 * this.trajectories
-								.get(i)[4])));
-
-				// debug: draw trajectories as sequences of points instead of lines 
-				//		    stroke(200,150, 0);
-				//		    fill(200,150, 0);
-				//		    
-				//		    pushMatrix();
-				//			    translate(100*x1, 100*y1, 100*z1);
-				//			    ellipse(0,0, 1f, 1f);
-				//		    popMatrix();
-
-				line(100 * x1, 100 * y1, 100 * z1, 100 * x2, 100 * y2, 100 * z2);
-			}
-
-		popMatrix();
-	}
-
-	public void drawBoxes() {
-
-		// check if whole object classes wait to be drawn
-		// if so, add the resp. objects to activeobjects
-
-		for (String objclass : activeObjectClasses) {
-			for (String elem : boxPositions.keySet()) {
-				if (boxTypes.get(elem).equalsIgnoreCase(objclass)) {
-					activeObjects.add(elem);
-				}
-			}
-		}
-
-		for (String elem : boxPositions.keySet()) {
-
-			float[] boxpos = boxPositions.get(elem);
-			float[] boxdim = boxDimensions.get(elem);
-
-			if ((boxpos != null) && (boxdim != null)) {
-
-				pushMatrix();
-
-				scale(100);
-				noStroke();
-
-				if (activeObjects.contains(elem)) {
-					fill(180, 0, 0);
-				}
-				else {
-					int graylevel = 160 + 5 * (boxTypes.get(elem).hashCode() % 10);
-					fill(graylevel);
-				}
-
-				translate(boxpos[0], boxpos[1], -boxpos[2]);
-				box(boxdim[0], boxdim[1], boxdim[2]);
-				popMatrix();
-			}
-		}
-	}
-
-	public void drawSpheres() {
-
-		for (String objclass : activeObjectClasses) {
-			for (String elem : spherePositions.keySet()) {
-				if (boxTypes.get(elem).equalsIgnoreCase(objclass)) {
-					activeObjects.add(elem);
-				}
-			}
-		}
-
-		for (String elem : spherePositions.keySet()) {
-
-			float[] spherepos = spherePositions.get(elem);
-			float[] spheredim = sphereDimensions.get(elem);
-
-			if ((spherepos != null) && (spheredim != null)) {
-
-				pushMatrix();
-
-				scale(100);
-				noStroke();
-
-				if (activeObjects.contains(elem)) {
-					fill(180, 0, 0, 200);
-				}
-				else {
-					int graylevel = 160 + 5 * (boxTypes.get(elem).hashCode() % 10);
-					fill(graylevel);
-				}
-
-				translate(spherepos[0], spherepos[1], -spherepos[2]);
-
-				sphere(spheredim[0]);
-
-				popMatrix();
-			}
-		}
-	}
-
-	public void drawTable() {
-
-		pushMatrix();
-		scale(100);
-		noStroke();
-		fill(160);
-
-		final float width_x = 0.8046f;
-		final float length_y = 1.1976f;
-
-		final float min_x = 2.7976f;
-		final float min_y = 1.4044f;
-		final float min_z = 0.74177f;
-
-		// draw table top
-		translate(0, 0, -min_z + 0.01f);
-		rect(min_x, min_y, width_x, length_y);
-
-		// draw legs
-		float x1 = min_x + width_x / 4;
-		float y1 = min_y + length_y / 8;
-		translate(x1, y1, min_z / 2);
-		box(0.05f, 0.05f, min_z);
-		translate(0, 6 * length_y / 8, 0);
-		box(0.05f, 0.05f, min_z);
-		translate(2 * width_x / 4, 0, 0);
-		box(0.05f, 0.05f, min_z);
-		translate(0, -(6 * length_y / 8), 0);
-		box(0.05f, 0.05f, min_z);
-
-		popMatrix();
-	}
-
-	public void drawMeshes() {
-
-		pushMatrix();
-		scale(100);
-		strokeWeight(0.2f);
-		stroke(90, 90, 90);
-		noFill();
-
-		beginShape(TRIANGLES);
-
-		for (int i = 0; i < meshtriangles.size(); i++) {
-
-			int p0 = meshtriangles.get(i)[0];
-			int p1 = meshtriangles.get(i)[1];
-			int p2 = meshtriangles.get(i)[2];
-
-			vertex(meshpoints.get(p0)[0], meshpoints.get(p0)[1], meshpoints
-					.get(p0)[2]);
-			vertex(meshpoints.get(p1)[0], meshpoints.get(p1)[1], meshpoints
-					.get(p1)[2]);
-			vertex(meshpoints.get(p2)[0], meshpoints.get(p2)[1], meshpoints
-					.get(p2)[2]);
-
-		}
-		endShape();
-		popMatrix();
-	}
-
-	public void drawPlate(String goal, float ent_x, float ent_y, float ent_z) {
-
-		pushMatrix();
-		if (goal.equals("GRIP"))
-			fill(255, 0, 0);
-		else
-			fill(0, 255, 0);
-
-		translate(0, 0, -100 * ent_z);
-		ellipse(100 * ent_x, 100 * ent_y, 10f, 10f);
-		popMatrix();
-	}
-
-	public void drawCup(String goal, float ent_x, float ent_y, float ent_z) {
-		pushMatrix();
-		if (goal.equals("GRIP"))
-			fill(255, 0, 0);
-		else
-			fill(0, 255, 0);
-
-		translate(0, 0, -100 * ent_z);
-		rect(100 * ent_x, 100 * ent_y, 10f, 10f);
-		popMatrix();
-
-	}
-
-	public void add(Drawable item) {
-		items.add(item);
-	}
-
-	public void addEllipseData(float x, float y, float width, float height,
-			int color) {
-
-		float[] newEllipse = new float[5];
-		newEllipse[0] = x;
-		newEllipse[1] = y;
-		newEllipse[2] = width;
-		newEllipse[3] = height;
-		newEllipse[4] = color;
-		ellipses.add(newEllipse);
-	}
-
-	public void addObject(String name, int color) {
-
-		// interface to the visualization panel: 
-		// put the box for the current object into the list of active objects
-
-		activeObjects.add(name);
-
-	}
-
-	public void addObjectClass(String name, int color) {
-
-		// interface to the visualization panel: 
-		// put all boxes of the desired type into the list of active objects
-		activeObjectClasses.add(name);
-
-	}
-
-	public void clearActiveObj() {
-		this.activeObjects.clear();
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	// READ MESHES AND THE GREY KITCHEN AS BACKGROUND
-	// 
-
-	public void readBoxData(XMLElement semMap) {
-
-		// clear the buffers
-		boxPositions.clear();
-		boxDimensions.clear();
-
-		for (int i = 0; i < semMap.getChildCount(); i++) {
-
-			XMLElement cupb = semMap.getChild(i);
-
-			float[][] front = new float[4][3];
-			float[][] back = new float[4][3];
-
-			for (int j = 0; j < cupb.getChildCount(); j++) {
-				XMLElement part = cupb.getChild(j);
-
-				if ((part.getName().equalsIgnoreCase("face"))
-						&& (part.getStringAttribute("SIDE")
-								.equalsIgnoreCase("front"))) {
-
-					String[] coords0 = split(part.getChild(0).getContent(), " ");
-					String[] coords1 = split(part.getChild(1).getContent(), " ");
-					String[] coords2 = split(part.getChild(2).getContent(), " ");
-					String[] coords3 = split(part.getChild(3).getContent(), " ");
-
-					front[0][0] = Float.valueOf(coords0[0]);
-					front[0][1] = Float.valueOf(coords0[1]);
-					front[0][2] = Float.valueOf(coords0[2]);
-					front[1][0] = Float.valueOf(coords1[0]);
-					front[1][1] = Float.valueOf(coords1[1]);
-					front[1][2] = Float.valueOf(coords1[2]);
-					front[2][0] = Float.valueOf(coords2[0]);
-					front[2][1] = Float.valueOf(coords2[1]);
-					front[2][2] = Float.valueOf(coords2[2]);
-					front[3][0] = Float.valueOf(coords3[0]);
-					front[3][1] = Float.valueOf(coords3[1]);
-					front[3][2] = Float.valueOf(coords3[2]);
-
-				}
-				else if ((part.getName().equalsIgnoreCase("face"))
-						&& (part.getStringAttribute("SIDE")
-								.equalsIgnoreCase("back"))) {
-
-					String[] coords0 = split(part.getChild(0).getContent(), " ");
-					String[] coords1 = split(part.getChild(1).getContent(), " ");
-					String[] coords2 = split(part.getChild(2).getContent(), " ");
-					String[] coords3 = split(part.getChild(3).getContent(), " ");
-
-					back[0][0] = Float.valueOf(coords0[0]);
-					back[0][1] = Float.valueOf(coords0[1]);
-					back[0][2] = Float.valueOf(coords0[2]);
-					back[1][0] = Float.valueOf(coords1[0]);
-					back[1][1] = Float.valueOf(coords1[1]);
-					back[1][2] = Float.valueOf(coords1[2]);
-					back[2][0] = Float.valueOf(coords2[0]);
-					back[2][1] = Float.valueOf(coords2[1]);
-					back[2][2] = Float.valueOf(coords2[2]);
-					back[3][0] = Float.valueOf(coords3[0]);
-					back[3][1] = Float.valueOf(coords3[1]);
-					back[3][2] = Float.valueOf(coords3[2]);
-
-				}
-
-			}
-
-			// calculate the box positions and dimensions
-
-			float maxX = max(max(max(front[0][0], front[1][0]), max(
-					front[2][0], front[3][0])), max(
-					max(back[0][0], back[1][0]), max(back[2][0], back[3][0])));
-			float maxY = max(max(max(front[0][1], front[1][1]), max(
-					front[2][1], front[3][1])), max(
-					max(back[0][1], back[1][1]), max(back[2][1], back[3][1])));
-			float maxZ = max(max(max(front[0][2], front[1][2]), max(
-					front[2][2], front[3][2])), max(
-					max(back[0][2], back[1][2]), max(back[2][2], back[3][2])));
-
-			float minX = min(min(min(front[0][0], front[1][0]), min(
-					front[2][0], front[3][0])), min(
-					min(back[0][0], back[1][0]), min(back[2][0], back[3][0])));
-			float minY = min(min(min(front[0][1], front[1][1]), min(
-					front[2][1], front[3][1])), min(
-					min(back[0][1], back[1][1]), min(back[2][1], back[3][1])));
-			float minZ = min(min(min(front[0][2], front[1][2]), min(
-					front[2][2], front[3][2])), min(
-					min(back[0][2], back[1][2]), min(back[2][2], back[3][2])));
-
-			float[] boxDim = new float[3];
-			boxDim[0] = maxX - minX;
-			boxDim[1] = maxY - minY;
-			boxDim[2] = maxZ - minZ;
-			boxDimensions.put(cupb.getStringAttribute("name"), boxDim);
-
-			float[] boxPos = new float[3];
-			boxPos[0] = minX + boxDim[0] / 2;
-			boxPos[1] = minY + boxDim[1] / 2;
-			boxPos[2] = minZ + boxDim[2] / 2;
-			boxPositions.put(cupb.getStringAttribute("name"), boxPos);
-
-			boxTypes.put(cupb.getStringAttribute("name"), cupb
-					.getStringAttribute("type"));
-
-		}
-	}
-
-	public void readMeshData(String file) {
-
-		BufferedReader reader = createReader(file);
-		try {
-
-			String line;
-			boolean pointFlag = false, triangleFlag = false;
-
-			// offset needed when reading multiple meshes to a single array
-			int ptOffset = meshpoints.size();
-
-			while (true) {
-
-				line = reader.readLine();
-				if (line == null) {
-					break;
-				}
-
-				// read point data
-				if (pointFlag
-						&& (line
-								.matches("\\-?[\\d]*\\.?[\\d]*e?\\-?[\\d]* \\-?[\\d]*\\.?[\\d]*e?\\-?[\\d]* \\-?[\\d]*\\.?[\\d]*e?\\-?[\\d]*"))) {
-					String[] coords = line.split(" ");
-					if (coords.length == 3) {
-
-						this.meshpoints.add(new float[] {
-								Float.valueOf(coords[0]),
-								Float.valueOf(coords[1]),
-								-Float.valueOf(coords[2]) });
-					}
-					continue;
-				}
-
-				// read triangle data
-				if (triangleFlag && (line.matches("3 [\\d]* [\\d]* [\\d]*"))) {
-					String[] pts = line.split(" ");
-					if (pts.length == 4) {
-
-						this.meshtriangles.add(new int[] {
-								Integer.valueOf(pts[1]) + ptOffset,
-								Integer.valueOf(pts[2]) + ptOffset,
-								Integer.valueOf(pts[3]) + ptOffset });
-
-					}
-					continue;
-				}
-
-				if (line.matches("POINTS.*")) {
-					pointFlag = true;
-					triangleFlag = false;
-					continue;
-				}
-
-				if (line.matches("POLYGONS.*")) {
-					pointFlag = false;
-					triangleFlag = true;
-					continue;
-				}
-			}
-
-		}
-		catch (IOException e) {
-		}
-	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -662,13 +190,18 @@ public class Canvas extends PApplet implements MouseListener,
 	public void mouseDragged(MouseEvent e) {
 
 		if (leftMouseX != -1.0f) { // change rotation
-			float dx = (e.getX() - leftMouseX) * 0.05f;
-			float dy = (e.getY() - leftMouseY) * 0.05f;
+			float dx = (e.getX() - leftMouseX) * 0.02f;
+			float dy = (e.getY() - leftMouseY) * 0.02f;
 			
-			yRotDisplay -= (e.getY() - leftMouseY) * 0.05;
+			yRotDisplay += (e.getY() - leftMouseY) * 0.03;
 			xRotDisplay += (e.getX() - leftMouseX) * 0.05;
 			leftMouseX = e.getX();
 			leftMouseY = e.getY();
+			
+			// translate eye, so that the origin is its target
+			Vector3f negTarget = new Vector3f(eyeTarget);
+			negTarget.negate();
+			eye.add(negTarget);
 			
 			// rotation around vertical axis
 			eye.rotate(dx, eyeUp);
@@ -681,13 +214,16 @@ public class Canvas extends PApplet implements MouseListener,
 			eye.rotate(dy, horDir);
 			eyeUp.rotate(dy, horDir);
 			eyeUp.normalize();
+			
+			// reverse translation
+			eye.add(eyeTarget);
 		}
 		else if (rightMouseX != -1.0f) { // change translation
-			float dx = (e.getX() - rightMouseX) * 0.05f;
-			float dy = (e.getY() - rightMouseY) * 0.05f;
+			float dx = (e.getX() - rightMouseX) * sceneSize / 1000;
+			float dy = (e.getY() - rightMouseY) * sceneSize / 1000;
 			
-			xShiftDisplay += (e.getY() - rightMouseY) * 0.5;
-			zShiftDisplay += (e.getX() - rightMouseX) * 0.5;
+			xShiftDisplay += -(e.getY() - rightMouseY) * 0.5;
+			zShiftDisplay += -(e.getX() - rightMouseX) * 0.5;
 			rightMouseX = e.getX();
 			rightMouseY = e.getY();
 			
@@ -704,8 +240,8 @@ public class Canvas extends PApplet implements MouseListener,
 			vertDir.normalize();
 			vertDir.scale(dy);
 			vertDir.negate();
-			System.out.println("hor move: " + horDir);
-			System.out.println("vert mode: " + vertDir);
+			//System.out.println("hor move: " + horDir);
+			//System.out.println("vert mode: " + vertDir);
 			
 			eye.add(horDir);
 			eye.add(vertDir);
@@ -713,9 +249,9 @@ public class Canvas extends PApplet implements MouseListener,
 			eyeTarget.add(vertDir);
 		}
 		else if (centerMouseY != -1.0f) { // zoom
-			float dy = (e.getY() - centerMouseY) * 0.005f;			
+			float dy = (e.getY() - centerMouseY) * sceneSize / 1000;			
 			
-			zoomDisplay += (e.getY() - centerMouseY) * 0.02;
+			zoomDisplay += -(e.getY() - centerMouseY) * sceneSize;
 			if (zoomDisplay < 0.01) {
 				zoomDisplay = 0.01f;
 			}
@@ -724,53 +260,337 @@ public class Canvas extends PApplet implements MouseListener,
 			Vector3f dir = new Vector3f(eyeTarget);
 			dir.subtract(eye);
 			dir.normalize();
-			dir.scale(dy);
-			
-			eye.x += dir.x;
-			eye.y += dir.y;
-			eye.z += dir.z;
+			dir.scale(dy);			
+			eye.add(dir);
 		}
 
 		redraw();
 	}
 
-	// ////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	// HELPER FUNCTIONS
-	// 
 
-	public int[] makeColor(int r, int g, int b) {
-		int[] color = new int[3];
-		color[0] = r;
-		color[1] = g;
-		color[2] = b;
-		return color;
+	/**
+	 * runs this applet as a main application (copied from PApplet.main)
+	 * @param args
+	 */
+	public void runMain() {
+		// Disable abyssmally slow Sun renderer on OS X 10.5.
+		if(platform == MACOSX) {
+			// Only run this on OS X otherwise it can cause a permissions error.
+			// http://dev.processing.org/bugs/show_bug.cgi?id=976
+			System.setProperty("apple.awt.graphics.UseQuartz", "true");
+		}
+
+		/*if(args.length < 1) {
+			System.err.println("Usage: PApplet <appletname>");
+			System.err.println("For additional options, "
+					+ "see the javadoc for PApplet");
+			System.exit(1);
+		}*/
+
+		try {
+			boolean external = false;
+			int location[] = null;
+			int editorLocation[] = null;
+
+			String name = null;
+			boolean present = false;
+			Color backgroundColor = Color.black; //BLACK;
+			Color stopColor = Color.gray; //GRAY;
+			GraphicsDevice displayDevice = null;
+			boolean hideStop = false;
+
+			String param = null, value = null;
+
+			// try to get the user folder. if running under java web start,
+			// this may cause a security exception if the code is not signed.
+			// http://processing.org/discourse/yabb_beta/YaBB.cgi?board=Integrate;action=display;num=1159386274
+			String folder = null;
+			try {
+				folder = System.getProperty("user.dir");
+			}
+			catch (Exception e) {
+			}
+
+			/*
+			int argIndex = 0;
+			while(argIndex < args.length) {
+				int equals = args[argIndex].indexOf('=');
+				if(equals != -1) {
+					param = args[argIndex].substring(0, equals);
+					value = args[argIndex].substring(equals + 1);
+
+					if(param.equals(ARGS_EDITOR_LOCATION)) {
+						external = true;
+						editorLocation = parseInt(split(value, ','));
+
+					}
+					else if(param.equals(ARGS_DISPLAY)) {
+						int deviceIndex = Integer.parseInt(value) - 1;
+
+						//DisplayMode dm = device.getDisplayMode();
+						//if ((dm.getWidth() == 1024) && (dm.getHeight() == 768)) {
+
+						GraphicsEnvironment environment = GraphicsEnvironment
+								.getLocalGraphicsEnvironment();
+						GraphicsDevice devices[] = environment
+								.getScreenDevices();
+						if((deviceIndex >= 0) && (deviceIndex < devices.length)) {
+							displayDevice = devices[deviceIndex];
+						}
+						else {
+							System.err.println("Display " + value
+									+ " does not exist, "
+									+ "using the default display instead.");
+						}
+
+					}
+					else if(param.equals(ARGS_BGCOLOR)) {
+						if(value.charAt(0) == '#')
+							value = value.substring(1);
+						backgroundColor = new Color(Integer.parseInt(value, 16));
+
+					}
+					else if(param.equals(ARGS_STOP_COLOR)) {
+						if(value.charAt(0) == '#')
+							value = value.substring(1);
+						stopColor = new Color(Integer.parseInt(value, 16));
+
+					}
+					else if(param.equals(ARGS_SKETCH_FOLDER)) {
+						folder = value;
+
+					}
+					else if(param.equals(ARGS_LOCATION)) {
+						location = parseInt(split(value, ','));
+					}
+
+				}
+				else {
+					if(args[argIndex].equals(ARGS_PRESENT)) {
+						present = true;
+
+					}
+					else if(args[argIndex].equals(ARGS_HIDE_STOP)) {
+						hideStop = true;
+
+					}
+					else if(args[argIndex].equals(ARGS_EXTERNAL)) {
+						external = true;
+
+					}
+					else {
+						name = args[argIndex];
+						break;
+					}
+				}
+				argIndex++;
+			}*/
+
+			// Set this property before getting into any GUI init code
+			//System.setProperty("com.apple.mrj.application.apple.menu.about.name", name);
+			// This )*)(*@#$ Apple crap don't work no matter where you put it
+			// (static method of the class, at the top of main, wherever)
+
+			if(displayDevice == null) {
+				GraphicsEnvironment environment = GraphicsEnvironment
+						.getLocalGraphicsEnvironment();
+				displayDevice = environment.getDefaultScreenDevice();
+			}
+
+			Frame frame = new Frame(displayDevice.getDefaultConfiguration());
+			/*
+			Frame frame = null;
+			if (displayDevice != null) {
+			  frame = new Frame(displayDevice.getDefaultConfiguration());
+			} else {
+			  frame = new Frame();
+			}
+			 */
+			//Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+			// remove the grow box by default
+			// users who want it back can call frame.setResizable(true)
+			frame.setResizable(false);
+
+			// Set the trimmings around the image
+			//!!!Image image = Toolkit.getDefaultToolkit().createImage(ICON_IMAGE);
+			//frame.setIconImage(image);
+			frame.setTitle(name);
+
+			//	    Class c = Class.forName(name);
+			//Class<?> c = Thread.currentThread().getContextClassLoader().loadClass(name);
+			//PApplet applet = (PApplet) c.newInstance();
+			PApplet applet = this;
+
+			// these are needed before init/start
+			applet.frame = frame;
+			applet.sketchPath = folder;
+			//applet.args = PApplet.subset(args, 1);
+			//!!!applet.external = external;
+
+			// For 0149, moving this code (up to the pack() method) before init().
+			// For OpenGL (and perhaps other renderers in the future), a peer is
+			// needed before a GLDrawable can be created. So pack() needs to be
+			// called on the Frame before applet.init(), which itself calls size(),
+			// and launches the Thread that will kick off setup().
+			// http://dev.processing.org/bugs/show_bug.cgi?id=891
+			// http://dev.processing.org/bugs/show_bug.cgi?id=908
+			if(present) {
+				frame.setUndecorated(true);
+				frame.setBackground(backgroundColor);
+				displayDevice.setFullScreenWindow(frame);
+			}
+			frame.setLayout(null);
+			frame.add(applet);
+			frame.pack();
+
+			applet.init();
+
+			// Wait until the applet has figured out its width.
+			// In a static mode app, this will be after setup() has completed,
+			// and the empty draw() has set "finished" to true.
+			// TODO make sure this won't hang if the applet has an exception.
+			while(applet.defaultSize && !applet.finished) {
+				//System.out.println("default size");
+				try {
+					Thread.sleep(5);
+
+				}
+				catch (InterruptedException e) {
+					//System.out.println("interrupt");
+				}
+			}
+			//println("not default size " + applet.width + " " + applet.height);
+			//println("  (g width/height is " + applet.g.width + "x" + applet.g.height + ")");
+
+			if(present) {
+				//	        frame.setUndecorated(true);
+				//	        frame.setBackground(backgroundColor);
+				//	        displayDevice.setFullScreenWindow(frame);
+
+				//	        frame.add(applet);
+				Dimension fullscreen = frame.getSize();
+				applet.setBounds((fullscreen.width - applet.width) / 2,
+						(fullscreen.height - applet.height) / 2, applet.width,
+						applet.height);
+
+				if(!hideStop) {
+					Label label = new Label("stop");
+					label.setForeground(stopColor);
+					label.addMouseListener(new MouseAdapter() {
+						public void mousePressed(MouseEvent e) {
+							System.exit(0);
+						}
+					});
+					frame.add(label);
+
+					Dimension labelSize = label.getPreferredSize();
+					// sometimes shows up truncated on mac
+					//System.out.println("label width is " + labelSize.width);
+					labelSize = new Dimension(100, labelSize.height);
+					label.setSize(labelSize);
+					label.setLocation(20, fullscreen.height - labelSize.height
+							- 20);
+				}
+
+				// not always running externally when in present mode
+				if(external) {
+					applet.setupExternalMessages();
+				}
+
+			}
+			else { // if not presenting
+				// can't do pack earlier cuz present mode don't like it
+				// (can't go full screen with a frame after calling pack)
+				//	        frame.pack();  // get insets. get more.
+				Insets insets = frame.getInsets();
+
+				int windowW = Math.max(applet.width, MIN_WINDOW_WIDTH)
+						+ insets.left + insets.right;
+				int windowH = Math.max(applet.height, MIN_WINDOW_HEIGHT)
+						+ insets.top + insets.bottom;
+
+				frame.setSize(windowW, windowH);
+
+				if(location != null) {
+					// a specific location was received from PdeRuntime
+					// (applet has been run more than once, user placed window)
+					frame.setLocation(location[0], location[1]);
+
+				}
+				else if(external) {
+					int locationX = editorLocation[0] - 20;
+					int locationY = editorLocation[1];
+
+					if(locationX - windowW > 10) {
+						// if it fits to the left of the window
+						frame.setLocation(locationX - windowW, locationY);
+
+					}
+					else { // doesn't fit
+						// if it fits inside the editor window,
+						// offset slightly from upper lefthand corner
+						// so that it's plunked inside the text area
+						locationX = editorLocation[0] + 66;
+						locationY = editorLocation[1] + 66;
+
+						if((locationX + windowW > applet.screen.width - 33)
+								|| (locationY + windowH > applet.screen.height - 33)) {
+							// otherwise center on screen
+							locationX = (applet.screen.width - windowW) / 2;
+							locationY = (applet.screen.height - windowH) / 2;
+						}
+						frame.setLocation(locationX, locationY);
+					}
+				}
+				else { // just center on screen
+					frame.setLocation((applet.screen.width - applet.width) / 2,
+							(applet.screen.height - applet.height) / 2);
+				}
+
+				//	        frame.setLayout(null);
+				//	        frame.add(applet);
+
+				if(backgroundColor == Color.black) { //BLACK) {
+					// this means no bg color unless specified
+					backgroundColor = SystemColor.control;
+				}
+				frame.setBackground(backgroundColor);
+
+				int usableWindowH = windowH - insets.top - insets.bottom;
+				applet.setBounds((windowW - applet.width) / 2, insets.top
+						+ (usableWindowH - applet.height) / 2, applet.width,
+						applet.height);
+
+				if(external) {
+					applet.setupExternalMessages();
+
+				}
+				else { // !external
+					frame.addWindowListener(new WindowAdapter() {
+						public void windowClosing(WindowEvent e) {
+							System.exit(0);
+						}
+					});
+				}
+
+				// handle frame resizing events
+				applet.setupFrameResizeListener();
+
+				// all set for rockin
+				if(applet.displayable()) {
+					frame.setVisible(true);
+				}
+			}
+
+			//System.out.println("showing frame");
+			//System.out.println("applet requesting focus");
+			applet.requestFocus(); // ask for keydowns
+			//System.out.println("exiting main()");
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
 	}
-
-	//fills the array colors with two colors for each action, one for the trajectory and one for the human pose
-	public void setColors() {
-
-		colors.add(makeColor(0, 0, 255));
-		colors.add(makeColor(30, 144, 255));
-
-		colors.add(makeColor(0, 255, 255));
-		colors.add(makeColor(180, 255, 255));
-
-		colors.add(makeColor(255, 215, 0));
-		colors.add(makeColor(238, 221, 130));
-
-		colors.add(makeColor(250, 128, 114));
-		colors.add(makeColor(255, 160, 122));
-
-		colors.add(makeColor(255, 105, 180));
-		colors.add(makeColor(255, 228, 225));
-
-		colors.add(makeColor(186, 85, 211));
-		colors.add(makeColor(221, 160, 221));
-	}
-
-	//final Timer timer = new Timer(1, new ActionListener() {
-
 }

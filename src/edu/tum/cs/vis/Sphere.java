@@ -13,7 +13,7 @@ public class Sphere implements Drawable {
 		this.color = color;
 	}
 	
-	public void draw(Canvas c) {
+	public void draw(Canvas c) {		
 		c.pushMatrix();
 		c.fill(color);
 		c.color(color);

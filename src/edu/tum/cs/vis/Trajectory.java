@@ -10,15 +10,21 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	public Vector<Point> points;
 	public float pointSize = 40.0f, sphereSize = 120.0f;
 	public int pointColor = 0xffcbcbcb, sphereColor = 0xffffff00; 
-	public float minx = Float.MAX_VALUE, miny = Float.MAX_VALUE, minz = Float.MAX_VALUE, maxx = Float.MIN_VALUE, maxy = Float.MIN_VALUE, maxz = Float.MIN_VALUE;
-	public float range = 0;
+	public float minx, miny, minz, maxx, maxy, maxz;
+	public float range;
 	
 	public Trajectory() {
 		points = new Vector<Point>();
+		resetStats();
 	}
 	
-	public void addPoint(float x, float y, float z) {
-		points.add(new Point(x, y, z, pointColor, pointSize));
+	protected void resetStats() {
+		minx = Float.MAX_VALUE; miny = Float.MAX_VALUE; minz = Float.MAX_VALUE; 
+		maxx = Float.MIN_VALUE; maxy = Float.MIN_VALUE; maxz = Float.MIN_VALUE;
+		range = 0;
+	}
+	
+	protected void updateStats(float x, float y, float z) {
 		minx = Math.min(x, minx);
 		miny = Math.min(y, miny);
 		minz = Math.min(z, minz);
@@ -31,10 +37,24 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		range = Math.max(Math.max(xrange, yrange), zrange);
 	}
 	
+	public void addPoint(float x, float y, float z) {
+		points.add(new Point(x, y, z, pointColor, pointSize));
+		updateStats(x,y,z);
+	}
+	
+	public float getMaxAbsCoord() {
+		float x = Math.max(Math.abs(minx), Math.abs(maxx));
+		float y = Math.max(Math.abs(miny), Math.abs(maxy));
+		float z = Math.max(Math.abs(minz), Math.abs(maxz));
+		float xy = Math.max(x, y);
+		return Math.max(xy, z);
+	}
+	
 	public void draw(Canvas c, int step) {
+		c.pushMatrix();
 		pointSize = range / 150;
 		sphereSize = pointSize * 2;
-		System.out.println(pointSize);
+		//System.out.println(pointSize);
 		Point prev = null;
 		int s = 0;
 		for(Point p : points) {
@@ -54,6 +74,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, sphereColor).draw(c);
 		
 		//c.eyeTarget.set(prev.v);
+		c.popMatrix();
 	}
 	
 	public int getNumSteps() {
@@ -131,8 +152,31 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		System.out.println("max diff: " + max_diff + " @ " + max_diff_value);
 		
 	}
+	
+	/**
+	 * centers the trajectory around the mean position
+	 */
+	public void center() {
+		// determine mean point
+		float x = 0, y = 0, z = 0;
+		for(Point p : points) {
+			x += p.v.x;
+			y += p.v.y;
+			z += p.v.z;
+		}
+		x /= points.size();
+		y /= points.size();
+		z /= points.size();
+		Vector3f mean = new Vector3f(x, y, z);
+		// subtract mean from all points and update stats
+		resetStats();
+		for(Point p : points) { 
+			p.v.sub(mean);
+			updateStats(p.v.x, p.v.y, p.v.z);
+		}
+	}
 
 	public int getMaxStep() {
-		return getNumSteps();
+		return getNumSteps()-1;
 	}
 }
