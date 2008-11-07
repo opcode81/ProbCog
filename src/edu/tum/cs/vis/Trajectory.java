@@ -3,6 +3,7 @@ package edu.tum.cs.vis;
 import java.util.PriorityQueue;
 import java.util.Vector;
 
+import edu.tum.cs.tools.Hashmap2List;
 import edu.tum.cs.tools.Vector3f;
 
 public class Trajectory implements Drawable, DrawableAnimated {
@@ -10,11 +11,14 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	public Vector<Point> points;
 	public double minDistance = Double.MAX_VALUE;
 	public float pointSize = 0.0f, sphereSize = 120.0f;
-	public int pointColor = 0xffcbcbcb, sphereColor = 0xffffff00; 
+	public int pointColor = 0xffcbcbcb, sphereColor = 0x99ffff00; 
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
 	
+	protected Hashmap2List<Integer, Drawable> animationEffects;
+	
 	public Trajectory() {
+		animationEffects = new Hashmap2List<Integer, Drawable>();
 		points = new Vector<Point>();
 		resetStats();
 	}
@@ -65,9 +69,10 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				break;
 			p.draw(c);
 			if(prev != null) { // draw line connecting previous point with current point
-				c.stroke(255,255,255);
+				//c.stroke(255,255,255);
 				//System.out.printf("%f %f %f -> %f %f %f\n",prev.x, prev.y, prev.z, p.x, p.y, p.z);
-				c.line(prev.v.x, prev.v.y, prev.v.z, p.v.x, p.v.y, p.v.z);
+				//c.line(prev.v.x, prev.v.y, prev.v.z, p.v.x, p.v.y, p.v.z);
+				c.drawLine(prev.v, p.v, 0xffffffff);
 			}
 			prev = p;
 		}
@@ -75,6 +80,15 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		// draw sphere for current pos
 		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, sphereColor).draw(c);
 		
+		// draw animation effects if any
+		Vector<Drawable> effects = animationEffects.get(step);
+		if(effects != null) {
+			System.out.println("drawing effects for step " + step);
+			for(Drawable d : effects)
+				d.draw(c);
+		}
+		
+		// set eye to target last drawn point		
 		c.eyeTarget.set(prev.v);
 		c.popMatrix();
 	}
@@ -84,7 +98,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	}
 	
 	public void draw(Canvas c) {
-		draw(c, getNumSteps()-1);
+		draw(c, this.getMaxStep());
 	}
 	
 	public double getMinDistance(){
@@ -103,13 +117,19 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		return minDistance;
 	}
 
-	public void segment() {
+	/**
+	 * merges points that are close to each other
+	 */
+	public void mergePoints() {
+		System.out.println("Merging points...");
+		float proximity_threshold = 20;		
+		float direction_threshold = 40; // in degrees
+		
 		int i = 0;
 		java.util.PriorityQueue<Double> min_distances = new PriorityQueue<Double>();
 		for(Point p : points) {
-			
-			// check previous points for proximity			
-			if(i >= 3) {				 
+			if(i >= 3) {		
+				// check previous points for proximity
 				double min_distance = Double.MAX_VALUE;
 				int min_distance_point_idx = -1;
 				for(int j = i-3; j >= 0; j--) {
@@ -123,7 +143,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				min_distances.add(min_distance);
 				
 				// merge if distance to closest previous point is small enough
-				if(min_distance < 20) {
+				if(min_distance < proximity_threshold) {
 					Point p2 = points.get(min_distance_point_idx);
 					
 					// ... and directions are similar
@@ -137,11 +157,19 @@ public class Trajectory implements Drawable, DrawableAnimated {
 						dir2.subtract(points.get(min_distance_point_idx-1).v);
 						double angle = dir1.angle(dir2);
 						//System.out.println("angle = " + angle * 180/Math.PI);
-						dirSimilar = angle < Math.PI*40/180;
+						dirSimilar = angle < Math.PI*direction_threshold/180;
 					}
 					
 					if(dirSimilar) { // merge p and p2
-						p.copyPos(p2);
+						// animation events
+						PointPair pp = new PointPair(new Point(p.v, 0xffff00ff, pointSize), new Point(p2.v, 0xffff00ff, pointSize), 0xffff0000);
+						animationEffects.put(i, pp);
+						animationEffects.put(min_distance_point_idx, pp);
+						
+						// actual merge
+						Vector3f newPos = new Vector3f((p.v.x+p2.v.x) / 2, (p.v.y+p2.v.y) / 2, (p.v.z+p2.v.z) / 2);
+						p.v = newPos;
+						p2.v = newPos;
 						p.color = 0xffff0000;
 						p2.color = 0xffff0000;
 					}
@@ -277,5 +305,25 @@ public class Trajectory implements Drawable, DrawableAnimated {
 
 	public int getMaxStep() {
 		return getNumSteps()-1;
+	}
+	
+	public class PointPair implements Drawable {
+
+		protected Point p1, p2;
+		protected int linecolor;
+		
+		public PointPair(Point p1, Point p2, int linecolor) {
+			this.p1 = p2;
+			this.p2 = p2;
+			this.linecolor = linecolor;
+		}
+		
+		public void draw(Canvas c) {
+			p1.size = pointSize;
+			p2.size = pointSize;
+			p1.draw(c);
+			p2.draw(c);
+			c.drawLine(p1.v, p2.v, linecolor);
+		}		
 	}
 }

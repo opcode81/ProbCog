@@ -14,9 +14,14 @@ public class Point implements Drawable {
 		this.size = size;
 	}
 	
+	public Point(Vector3f v, int color, float size) {
+		this(v.x, v.y, v.z, color, size);
+	}
+	
 	public Point(Point p) {
 		copyPos(p);
 		color = p.color;
+		size = p.size;
 	}
 	
 	public void draw(Canvas c) {
