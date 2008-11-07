@@ -8,7 +8,8 @@ import edu.tum.cs.tools.Vector3f;
 public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
-	public float pointSize = 40.0f, sphereSize = 120.0f;
+	public double minDistance = Double.MAX_VALUE;
+	public float pointSize = 0.0f, sphereSize = 120.0f;
 	public int pointColor = 0xffcbcbcb, sphereColor = 0xffffff00; 
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
@@ -58,7 +59,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		Point prev = null;
 		int s = 0;
 		for(Point p : points) {
-			p.size = pointSize;
+			if(p.size == 0.0f)
+				p.size = pointSize;
 			if(s++ > step)
 				break;
 			p.draw(c);
@@ -73,7 +75,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		// draw sphere for current pos
 		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, sphereColor).draw(c);
 		
-		//c.eyeTarget.set(prev.v);
+		c.eyeTarget.set(prev.v);
 		c.popMatrix();
 	}
 	
@@ -83,6 +85,22 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	
 	public void draw(Canvas c) {
 		draw(c, getNumSteps()-1);
+	}
+	
+	public double getMinDistance(){
+		// minimum distance between two adjacent points
+		double distance = 0;
+		int i = 0;
+		for (Point p: points){
+			if(i >0){
+				distance = p.v.distance(points.get(i-1).v);
+				if (distance < minDistance)
+					minDistance = distance;
+			}
+			i++;
+		}
+		System.out.println(minDistance);
+		return minDistance;
 	}
 
 	public void segment() {
@@ -118,7 +136,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 						Vector3f dir2 = new Vector3f(p2.v);
 						dir2.subtract(points.get(min_distance_point_idx-1).v);
 						double angle = dir1.angle(dir2);
-						System.out.println("angle = " + angle * 180/Math.PI);
+						//System.out.println("angle = " + angle * 180/Math.PI);
 						dirSimilar = angle < Math.PI*40/180;
 					}
 					
@@ -153,6 +171,42 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		
 	}
 	
+	public void findOscillations(){
+		int i = 0;
+		int j = 0;
+		double thresh = 7000 * getMinDistance();
+		//double thresh = 150;
+		int num = 0;
+		int minnum = 5;
+		Vector<Point> vec = new Vector<Point>();
+		for(Point p : points){
+			if(i>1){
+				num = 0;
+				j = i;
+				vec.clear();
+				while(j > 0 && p.v.distance(points.get(j).v) < thresh){
+					vec.add(points.get(j));
+					j--;
+					num++;
+				}
+				if(num > minnum){
+					Point medPoint = new Point(0,0,0,pointColor,pointSize); 
+					for(Point medP : vec){
+						medPoint.v.add(medP.v);
+					}
+					medPoint.v.scale(1/(float)num);
+					float medSize = (float)Math.log(num) * range/150;
+					for(Point oscP : vec){
+						oscP.copyPos(medPoint);
+						oscP.color = 0xff0000ff;
+						oscP.size = medSize;
+					}
+				}
+			}
+			i++;
+		}
+	}
+	
 	/**
 	 * centers the trajectory around the mean position
 	 */
@@ -173,6 +227,51 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		for(Point p : points) { 
 			p.v.sub(mean);
 			updateStats(p.v.x, p.v.y, p.v.z);
+		}
+	}
+	public void getTransitionPoints(){
+		int i = 0;
+		double threshDist = 2.0f;
+		double threshAngle = Math.PI * 50/180;
+		for(Point p : points){
+			if(i < points.size() - 2 && i > 2){
+				for (int j = i+1; j < points.size()-2; j++){
+					Point p2 = points.get(j);
+					if (p.v.distance(p2.v) == 0){
+						Point succP1 = points.get(i+1);
+						Point succP2 = points.get(j+1);
+						if(p.v.distance(succP1.v) != 0 && p.v.distance(succP2.v) != 0){
+							Vector3f dir1 = new Vector3f(p.v);
+							dir1.subtract(succP1.v);
+							Vector3f dir2 = new Vector3f(p.v);
+							dir2.subtract(succP2.v);
+							double angle = dir1.angle(dir2);
+							double zeroAngle = succP1.v.angle(succP2.v);
+							if (succP1.v.distance(succP2.v) > threshDist && angle > threshAngle){
+								System.out.println(">>>>>>> Got a transition point");
+								p.size = 150;
+								p.color = 0xff00ff00;
+							}
+						}			
+						succP1 = points.get(i-1);
+						succP2 = points.get(j-1);
+						if(p.v.distance(succP1.v) != 0 && p.v.distance(succP2.v) != 0){
+							Vector3f dir1 = new Vector3f(p.v);
+							dir1.subtract(succP1.v);
+							Vector3f dir2 = new Vector3f(p.v);
+							dir2.subtract(succP2.v);
+							double angle = dir1.angle(dir2);
+							double zeroAngle = succP1.v.angle(succP2.v);
+							if (succP1.v.distance(succP2.v) > threshDist && angle > threshAngle){
+								System.out.println(">>>>>>> Got a transition point");
+								p.size = 150;
+								p.color = 0xff00ff00;
+							}
+						}
+					}
+				}
+			}
+			i++;	
 		}
 	}
 
