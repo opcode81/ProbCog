@@ -59,8 +59,10 @@ public class TrajectoryApplet extends AnimatedCanvas {
 	}
 
 	public void init(Trajectory traj) {
-		traj.center();
-		//traj.segment();
+		//traj.center();
+		traj.findOscillations();
+		traj.segment();
+		
 
 		// add coordinate system
 		float sceneSize = traj.getMaxAbsCoord();

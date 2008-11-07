@@ -47,7 +47,7 @@ public class Canvas extends PApplet implements MouseListener,
 	protected float sceneSize = 4000;	
 	protected Vector3f eye, eyeTarget, eyeUp;
 
-	public static final boolean useCamera = false;
+	public static final boolean useCamera = true;
 
 	Vector<Drawable> items = new Vector<Drawable>();
 
