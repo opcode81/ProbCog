@@ -142,6 +142,15 @@ public class Canvas extends PApplet implements MouseListener,
 			d.draw(this);		
 	}
 	
+	public void drawLine(Vector3f p1, Vector3f p2, int color) {
+		drawLine(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, color);
+	}
+	
+	public void drawLine(float x1, float y1, float z1, float x2, float y2, float z2, int color) {
+		stroke(color);
+		line(x1,y1,z1,x2,y2,z2);
+	}
+	
 	public void add(Drawable d) {
 		this.items.add(d);
 	}
