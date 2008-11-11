@@ -31,23 +31,19 @@ public class Canvas extends PApplet implements MouseListener,
 	 */
 	protected int width = 800, height = 600; 
 	
-	// init values for the display and mouse interaction
+	// controls the view mode
+	protected boolean useCamera;
+	
 	protected float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f, rightMouseY = -1.0f, centerMouseY = -1.0f;
+	
+	// parameters for non-camera-based viewing	
 	protected float xRotDisplay = -106.25027f, yRotDisplay = 0.020062504f;
 	protected float xShiftDisplay = 103f, zShiftDisplay = 162f;
 	protected float zoomDisplay = 0.13f;
 	
-	/*
-	float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f,
-	rightMouseY = -1.0f, centerMouseY = -1.0f;
-	float xRotDisplay = 24.4f, yRotDisplay = -14.8f, xShiftDisplay = 96.0f,
-	zShiftDisplay = -315.5f, zoomDisplay = 2.12f;
-	*/
-	
+	// parameters for camera-based viewing
 	protected float sceneSize = 4000;	
-	protected Vector3f eye, eyeTarget, eyeUp;
-
-	public static final boolean useCamera = true;
+	protected Vector3f eye, eyeTarget, eyeUp;	
 
 	Vector<Drawable> items = new Vector<Drawable>();
 
@@ -65,6 +61,7 @@ public class Canvas extends PApplet implements MouseListener,
 	}
 	
 	public Canvas() {
+		useCamera = false;
 		eye = new Vector3f(0.0f,-50f,0f);
 		eyeUp = new Vector3f(0,0,1);
 		eyeTarget = new Vector3f(0,0,0);
@@ -160,7 +157,7 @@ public class Canvas extends PApplet implements MouseListener,
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// 
-	// EVENT HANDLER
+	// EVENT HANDLERS
 	// 
 
 	public void mousePressed(MouseEvent e) {
@@ -260,7 +257,7 @@ public class Canvas extends PApplet implements MouseListener,
 		else if (centerMouseY != -1.0f) { // zoom
 			float dy = (e.getY() - centerMouseY) * sceneSize / 1000;			
 			
-			zoomDisplay += -(e.getY() - centerMouseY) * sceneSize;
+			zoomDisplay += -(e.getY() - centerMouseY) * 10 / sceneSize;
 			if (zoomDisplay < 0.01) {
 				zoomDisplay = 0.01f;
 			}
@@ -289,13 +286,6 @@ public class Canvas extends PApplet implements MouseListener,
 			System.setProperty("apple.awt.graphics.UseQuartz", "true");
 		}
 
-		/*if(args.length < 1) {
-			System.err.println("Usage: PApplet <appletname>");
-			System.err.println("For additional options, "
-					+ "see the javadoc for PApplet");
-			System.exit(1);
-		}*/
-
 		try {
 			boolean external = false;
 			int location[] = null;
@@ -320,81 +310,6 @@ public class Canvas extends PApplet implements MouseListener,
 			catch (Exception e) {
 			}
 
-			/*
-			int argIndex = 0;
-			while(argIndex < args.length) {
-				int equals = args[argIndex].indexOf('=');
-				if(equals != -1) {
-					param = args[argIndex].substring(0, equals);
-					value = args[argIndex].substring(equals + 1);
-
-					if(param.equals(ARGS_EDITOR_LOCATION)) {
-						external = true;
-						editorLocation = parseInt(split(value, ','));
-
-					}
-					else if(param.equals(ARGS_DISPLAY)) {
-						int deviceIndex = Integer.parseInt(value) - 1;
-
-						//DisplayMode dm = device.getDisplayMode();
-						//if ((dm.getWidth() == 1024) && (dm.getHeight() == 768)) {
-
-						GraphicsEnvironment environment = GraphicsEnvironment
-								.getLocalGraphicsEnvironment();
-						GraphicsDevice devices[] = environment
-								.getScreenDevices();
-						if((deviceIndex >= 0) && (deviceIndex < devices.length)) {
-							displayDevice = devices[deviceIndex];
-						}
-						else {
-							System.err.println("Display " + value
-									+ " does not exist, "
-									+ "using the default display instead.");
-						}
-
-					}
-					else if(param.equals(ARGS_BGCOLOR)) {
-						if(value.charAt(0) == '#')
-							value = value.substring(1);
-						backgroundColor = new Color(Integer.parseInt(value, 16));
-
-					}
-					else if(param.equals(ARGS_STOP_COLOR)) {
-						if(value.charAt(0) == '#')
-							value = value.substring(1);
-						stopColor = new Color(Integer.parseInt(value, 16));
-
-					}
-					else if(param.equals(ARGS_SKETCH_FOLDER)) {
-						folder = value;
-
-					}
-					else if(param.equals(ARGS_LOCATION)) {
-						location = parseInt(split(value, ','));
-					}
-
-				}
-				else {
-					if(args[argIndex].equals(ARGS_PRESENT)) {
-						present = true;
-
-					}
-					else if(args[argIndex].equals(ARGS_HIDE_STOP)) {
-						hideStop = true;
-
-					}
-					else if(args[argIndex].equals(ARGS_EXTERNAL)) {
-						external = true;
-
-					}
-					else {
-						name = args[argIndex];
-						break;
-					}
-				}
-				argIndex++;
-			}*/
-
 			// Set this property before getting into any GUI init code
 			//System.setProperty("com.apple.mrj.application.apple.menu.about.name", name);
 			// This )*)(*@#$ Apple crap don't work no matter where you put it
@@ -407,14 +322,7 @@ public class Canvas extends PApplet implements MouseListener,
 			}
 
 			Frame frame = new Frame(displayDevice.getDefaultConfiguration());
-			/*
-			Frame frame = null;
-			if (displayDevice != null) {
-			  frame = new Frame(displayDevice.getDefaultConfiguration());
-			} else {
-			  frame = new Frame();
-			}
-			 */
+
 			//Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 			// remove the grow box by default
 			// users who want it back can call frame.setResizable(true)
