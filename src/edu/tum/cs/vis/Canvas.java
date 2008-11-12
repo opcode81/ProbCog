@@ -37,14 +37,18 @@ public class Canvas extends PApplet implements MouseListener,
 	protected float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f, rightMouseY = -1.0f, centerMouseY = -1.0f;
 	
 	// parameters for non-camera-based viewing	
-	protected float xRotDisplay = -106.25027f, yRotDisplay = 0.020062504f;
-	protected float xShiftDisplay = 103f, zShiftDisplay = 162f;
-	protected float zoomDisplay = 0.13f;
+	protected float xRotDisplay, yRotDisplay;
+	protected float xShiftDisplay, zShiftDisplay;
+	protected float zoomDisplay;
 	
-	// parameters for camera-based viewing
-	protected float sceneSize = 4000;	
-	protected Vector3f eye, eyeTarget, eyeUp;	
+	// parameters for camera-based viewing		
+	protected Vector3f eye, eyeTarget, eyeUp;
+	
+	protected float sceneSize = 4000;
 
+	/**
+	 * the collection of drawable items to be painted onto this canvas
+	 */
 	Vector<Drawable> items = new Vector<Drawable>();
 
 	public void setWidth(int width) {
@@ -65,15 +69,23 @@ public class Canvas extends PApplet implements MouseListener,
 		eye = new Vector3f(0.0f,-50f,0f);
 		eyeUp = new Vector3f(0,0,1);
 		eyeTarget = new Vector3f(0,0,0);
+		setStandardViewParams();
+	}
+
+	/**
+	 * set standard parameters for non-camera-based view
+	 */
+	public void setStandardViewParams() {
+		xRotDisplay = -106.25027f;
+		yRotDisplay = 0.020062504f;
+		xShiftDisplay = 103f;
+		zShiftDisplay = 162f;
+		setSceneSize(this.sceneSize);
 	}
 	
 	public void setup() {
-
 		size(width, height, P3D);
 		lights();
-		
-		//xShiftDisplay = sceneSize/2;
-		//zShiftDisplay = sceneSize/2;
 
 		PFont font = createFont("Verdana", 11);
 		textFont(font);
@@ -93,11 +105,12 @@ public class Canvas extends PApplet implements MouseListener,
 		cursor(CROSS);
 		
 		if(!useCamera) {
+			camera();
+			
 			pushMatrix();
 			translate(width / 4.0f, height / 1.5f, -400.0f);
 	
 			lights();
-			pushMatrix();	
 			
 			rotateZ(PI / 2);
 			rotateY(-PI / 2);
@@ -113,16 +126,10 @@ public class Canvas extends PApplet implements MouseListener,
 		else
 			setCamera();
 
-		//scale(1000);
 		drawItems();
 
-		if(useCamera)
-			;//setCamera();
-		else {
+		if(!useCamera)
 			popMatrix();
-	
-			popMatrix();
-		}
 	}
 	
 	protected void setCamera() {
@@ -131,7 +138,7 @@ public class Canvas extends PApplet implements MouseListener,
 		//camera(eye.x, eye.y, eye.z, eyeTarget.x, eyeTarget.y, eyeTarget.z, eye.x+eyeUp.x, eye.y+eyeUp.y, eye.z+eyeUp.z);
 		//endCamera();
 		
-		System.out.println("eye: " + eye + " -> " + eyeTarget + "  up: " + eyeUp);
+		//System.out.println("eye: " + eye + " -> " + eyeTarget + "  up: " + eyeUp);
 	}
 	
 	public void drawItems() {
@@ -159,6 +166,18 @@ public class Canvas extends PApplet implements MouseListener,
 	// 
 	// EVENT HANDLERS
 	// 
+	
+	@Override
+	public void keyPressed() {
+		switch(keyCode) {
+		case java.awt.event.KeyEvent.VK_C:
+			useCamera = !useCamera;
+			setStandardViewParams();
+			redraw();
+			System.out.println("Turned camera " + (useCamera ? "on" : "off"));
+			break;
+		}
+	}
 
 	public void mousePressed(MouseEvent e) {
 
@@ -255,7 +274,7 @@ public class Canvas extends PApplet implements MouseListener,
 			eyeTarget.add(vertDir);
 		}
 		else if (centerMouseY != -1.0f) { // zoom
-			float dy = (e.getY() - centerMouseY) * sceneSize / 1000;			
+			float dy = -(e.getY() - centerMouseY) * sceneSize / 1000;			
 			
 			zoomDisplay += -(e.getY() - centerMouseY) * 10 / sceneSize;
 			if (zoomDisplay < 0.01) {
