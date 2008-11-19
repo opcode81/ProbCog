@@ -88,6 +88,12 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				d.draw(c);
 		}
 		
+		// draw frame number
+		c.fill(0xffffffff);
+		c.textMode(Canvas.SCREEN);
+		c.textAlign(Canvas.LEFT);
+		c.text(String.format("%d/%d", 1+step, 1+this.getMaxStep()), 5, 5+11);
+		
 		// set eye to target last drawn point		
 		c.eyeTarget.set(prev.v);
 		c.popMatrix();

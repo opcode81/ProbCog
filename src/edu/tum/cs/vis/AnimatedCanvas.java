@@ -11,15 +11,27 @@ public class AnimatedCanvas extends Canvas {
 
 	@Override
 	public void keyPressed() {
-		if(keyCode == RIGHT)
+		super.keyPressed();
+		switch(keyCode) {
+		case RIGHT:
 			animationStepForward();
-		if(keyCode == LEFT)
+			break;
+		case LEFT:
 			animationStepBackward();
-		if(keyCode == 36) // home
+			break;			
+		case java.awt.event.KeyEvent.VK_HOME:
 			animationReset();
-		if(keyCode == 35) // end
+			break;
+		case java.awt.event.KeyEvent.VK_END:
 			animationEnd();
-		//System.out.println("key : " + keyCode);
+			break;
+		case java.awt.event.KeyEvent.VK_PAGE_UP:
+			animationSkip(10);
+			break;
+		case java.awt.event.KeyEvent.VK_PAGE_DOWN:
+			animationSkip(-10);
+			break;
+		}
 	}
 	
 	public void animationStepForward() {
@@ -41,6 +53,18 @@ public class AnimatedCanvas extends Canvas {
 	
 	public void animationEnd() {
 		animationStep = maxAnimationStep;
+		redraw();
+	}
+
+	/**
+	 * skips a number of steps forward or backward
+	 * @param steps
+	 */
+	public void animationSkip(int steps) {
+		if(animationStep > maxAnimationStep)
+			animationStep = maxAnimationStep;
+		if(animationStep < 0)
+			animationStep = 0;
 		redraw();
 	}
 	

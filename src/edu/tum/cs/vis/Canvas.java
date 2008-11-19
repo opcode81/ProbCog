@@ -21,9 +21,7 @@ import processing.core.PFont;
 import edu.tum.cs.tools.Vector3f;
 
 
-public class Canvas extends PApplet implements MouseListener,
-		MouseMotionListener {
-
+public class Canvas extends PApplet implements MouseListener, MouseMotionListener {
 	static final long serialVersionUID = 0;
 
 	/**
@@ -31,19 +29,29 @@ public class Canvas extends PApplet implements MouseListener,
 	 */
 	protected int width = 800, height = 600; 
 	
-	// controls the view mode
+	/** 
+	 * controls the view mode
+	 */
 	protected boolean useCamera;
-	
+
+	/**
+	 * mouse tracking
+	 */
 	protected float leftMouseX = -1.0f, leftMouseY = -1.0f, rightMouseX = -1.0f, rightMouseY = -1.0f, centerMouseY = -1.0f;
 	
-	// parameters for non-camera-based viewing	
-	protected float xRotDisplay, yRotDisplay;
-	protected float xShiftDisplay, zShiftDisplay;
-	protected float zoomDisplay;
+	/** 
+	 * parameters for non-camera-based viewing 
+	 */	
+	protected float xRotDisplay, yRotDisplay, xShiftDisplay, zShiftDisplay, zoomDisplay;
 	
-	// parameters for camera-based viewing		
+	/**
+	 * parameters for camera-based viewing
+	 */ 		
 	protected Vector3f eye, eyeTarget, eyeUp;
 	
+	/**
+	 * size of the scene (diameter), used for scaling of the view
+	 */
 	protected float sceneSize = 4000;
 
 	/**
@@ -93,8 +101,6 @@ public class Canvas extends PApplet implements MouseListener,
 		ellipseMode(RADIUS);
 		frameRate(20);
 
-		background(255, 255, 255);
-
 		noLoop();
 		draw();
 	}
@@ -128,6 +134,25 @@ public class Canvas extends PApplet implements MouseListener,
 
 		drawItems();
 
+		// draw camera vectors
+		boolean debugCamera = false;
+		if(debugCamera) {
+			float coordlength = sceneSize / 8;
+			Vector3f up = new Vector3f(eyeUp);
+			up.scale(coordlength);
+			up.add(eyeTarget);
+			this.drawLine(eyeTarget, up, 0xff0000ff);
+			Vector3f dir = new Vector3f(eyeTarget);
+			dir.subtract(eye);
+			Vector3f third = new Vector3f();
+			third.cross(dir, up);
+			third.normalize();
+			third.scale(coordlength);
+			third.add(eyeTarget);
+			this.drawLine(eyeTarget, third, 0xff00ff00);
+			this.drawLine(eye, eyeTarget, 0xffff0000);
+		}
+			
 		if(!useCamera)
 			popMatrix();
 	}
@@ -147,7 +172,9 @@ public class Canvas extends PApplet implements MouseListener,
 	}
 	
 	public void drawLine(Vector3f p1, Vector3f p2, int color) {
+		//pushMatrix();
 		drawLine(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, color);
+		//popMatrix();
 	}
 	
 	public void drawLine(float x1, float y1, float z1, float x2, float y2, float z2, int color) {
@@ -172,7 +199,7 @@ public class Canvas extends PApplet implements MouseListener,
 		switch(keyCode) {
 		case java.awt.event.KeyEvent.VK_C:
 			useCamera = !useCamera;
-			setStandardViewParams();
+			//setStandardViewParams();
 			redraw();
 			System.out.println("Turned camera " + (useCamera ? "on" : "off"));
 			break;
@@ -215,78 +242,90 @@ public class Canvas extends PApplet implements MouseListener,
 	public void mouseDragged(MouseEvent e) {
 
 		if (leftMouseX != -1.0f) { // change rotation
-			float dx = (e.getX() - leftMouseX) * 0.02f;
-			float dy = (e.getY() - leftMouseY) * 0.02f;
+			if(!useCamera) {
+				yRotDisplay += (e.getY() - leftMouseY) * 0.03;
+				xRotDisplay += (e.getX() - leftMouseX) * 0.05;
+			}
+			else {
+				float dx = (e.getX() - leftMouseX) * 0.02f;
+				float dy = (e.getY() - leftMouseY) * 0.02f;
+				
+				// translate eye, so that the origin is its target
+				Vector3f negTarget = new Vector3f(eyeTarget);
+				negTarget.negate();
+				eye.add(negTarget);
+				
+				// rotation around vertical axis
+				eye.rotate(dx, eyeUp);
+	
+				// rotation around horizontal axis
+				Vector3f dir = new Vector3f(eyeTarget);
+				dir.subtract(eye);
+				Vector3f horDir = new Vector3f();
+				horDir.cross(eyeUp, dir);			
+				eye.rotate(dy, horDir);
+				eyeUp.rotate(dy, horDir);
+				eyeUp.normalize();
+				
+				// reverse translation
+				eye.add(eyeTarget);
+			}
 			
-			yRotDisplay += (e.getY() - leftMouseY) * 0.03;
-			xRotDisplay += (e.getX() - leftMouseX) * 0.05;
 			leftMouseX = e.getX();
 			leftMouseY = e.getY();
-			
-			// translate eye, so that the origin is its target
-			Vector3f negTarget = new Vector3f(eyeTarget);
-			negTarget.negate();
-			eye.add(negTarget);
-			
-			// rotation around vertical axis
-			eye.rotate(dx, eyeUp);
-
-			// rotation around horizontal axis
-			Vector3f dir = new Vector3f(eyeTarget);
-			dir.subtract(eye);
-			Vector3f horDir = new Vector3f();
-			horDir.cross(eyeUp, dir);			
-			eye.rotate(dy, horDir);
-			eyeUp.rotate(dy, horDir);
-			eyeUp.normalize();
-			
-			// reverse translation
-			eye.add(eyeTarget);
 		}
 		else if (rightMouseX != -1.0f) { // change translation
-			float dx = (e.getX() - rightMouseX) * sceneSize / 1000;
-			float dy = (e.getY() - rightMouseY) * sceneSize / 1000;
+			if(!useCamera) {
+				xShiftDisplay += -(e.getY() - rightMouseY) * 0.5;
+				zShiftDisplay += -(e.getX() - rightMouseX) * 0.5;
+			}
+			else {
+				float dx = (e.getX() - rightMouseX) * sceneSize / 1000;
+				float dy = (e.getY() - rightMouseY) * sceneSize / 1000;
+				
+				// horizontal translation
+				Vector3f dir = new Vector3f(eyeTarget);
+				dir.subtract(eye);
+				Vector3f horDir = new Vector3f();
+				horDir.cross(eyeUp, dir);
+				horDir.normalize();
+				horDir.scale(dx);
+				
+				// vertical translation
+				Vector3f vertDir = new Vector3f(eyeUp);
+				vertDir.normalize();
+				vertDir.scale(dy);
+				vertDir.negate();
+				//System.out.println("hor move: " + horDir);
+				//System.out.println("vert mode: " + vertDir);
+				
+				eye.add(horDir);
+				eye.add(vertDir);
+				eyeTarget.add(horDir);
+				eyeTarget.add(vertDir);
+			}
 			
-			xShiftDisplay += -(e.getY() - rightMouseY) * 0.5;
-			zShiftDisplay += -(e.getX() - rightMouseX) * 0.5;
 			rightMouseX = e.getX();
 			rightMouseY = e.getY();
-			
-			// horizontal translation
-			Vector3f dir = new Vector3f(eyeTarget);
-			dir.subtract(eye);
-			Vector3f horDir = new Vector3f();
-			horDir.cross(eyeUp, dir);
-			horDir.normalize();
-			horDir.scale(dx);
-			
-			// vertical translation
-			Vector3f vertDir = new Vector3f(eyeUp);
-			vertDir.normalize();
-			vertDir.scale(dy);
-			vertDir.negate();
-			//System.out.println("hor move: " + horDir);
-			//System.out.println("vert mode: " + vertDir);
-			
-			eye.add(horDir);
-			eye.add(vertDir);
-			eyeTarget.add(horDir);
-			eyeTarget.add(vertDir);
 		}
-		else if (centerMouseY != -1.0f) { // zoom
-			float dy = -(e.getY() - centerMouseY) * sceneSize / 1000;			
-			
-			zoomDisplay += -(e.getY() - centerMouseY) * 10 / sceneSize;
-			if (zoomDisplay < 0.01) {
-				zoomDisplay = 0.01f;
+		else if (centerMouseY != -1.0f) { // zoom			
+			if(!useCamera) {
+				zoomDisplay += -(e.getY() - centerMouseY) * 10 / sceneSize;
+				if (zoomDisplay < 0.01) {
+					zoomDisplay = 0.01f;
+				}
 			}
-			centerMouseY = e.getY();
+			else {
+				float dy = -(e.getY() - centerMouseY) * sceneSize / 1000;			
+				
+				Vector3f dir = new Vector3f(eyeTarget);
+				dir.subtract(eye);
+				dir.normalize();
+				dir.scale(dy);			
+				eye.add(dir);
+			}
 			
-			Vector3f dir = new Vector3f(eyeTarget);
-			dir.subtract(eye);
-			dir.normalize();
-			dir.scale(dy);			
-			eye.add(dir);
+			centerMouseY = e.getY();
 		}
 
 		redraw();
