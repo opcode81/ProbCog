@@ -10,6 +10,10 @@ import edu.tum.cs.tools.Vector3f;
 
 public class TrajectoryApplet extends AnimatedCanvas {
 	private static final long serialVersionUID = 1L;
+	/**
+	 * whether the trajectory should be translated to be centered around the mean coordinate
+	 */
+	public boolean centerTrajectory = false;
 
 	public TrajectoryApplet() {		
 	}
@@ -48,18 +52,40 @@ public class TrajectoryApplet extends AnimatedCanvas {
 	}
 	
 	public void readTrajectory(java.io.File matlabAsciiFile) throws NumberFormatException, IOException {
+		readTrajectory(matlabAsciiFile, 0);
+	}
+	
+	/**
+	 * 
+	 * @param matlabAsciiFile
+	 * @param startLine  0-based line index indicating the first line to consider
+	 * @throws NumberFormatException
+	 * @throws IOException
+	 */
+	public void readTrajectory(java.io.File matlabAsciiFile, int startLine) throws NumberFormatException, IOException {
 		Trajectory traj = new Trajectory();
 		BufferedReader r = new BufferedReader(new FileReader(matlabAsciiFile));
 		String line;
+		int iLine = 0;
 		while((line = r.readLine()) != null) {
+			if(iLine++ < startLine)
+				continue;
 			String[] parts = line.trim().split("\\s+");
-			traj.addPoint(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
+			float x = Float.parseFloat(parts[0]);
+			float y = Float.parseFloat(parts[1]);
+			float z;
+			if(parts.length == 3)
+				z = Float.parseFloat(parts[2]);
+			else 
+				z = 0;
+			traj.addPoint(x, y, z);
 		}
 		init(traj);
 	}
 
 	public void init(Trajectory traj) {
-		traj.center();
+		if(centerTrajectory)
+			traj.center();
 		//traj.findOscillations();
 		//traj.mergePoints();
 		//traj.getTransitionPoints();		
