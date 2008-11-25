@@ -78,8 +78,8 @@ Prerequisites:
 		<h4>Add. params</h4>
 		additional parameters to pass to the inference method<br>
 		For the Alchemy system, you can simply supply additional command line parameters to pass on to Alchemy's <i>infer</i>.<br>
-		For the internal engine, you can specify a comma-separated list of assignments of parameters of the <i>infer</i> method you are calling (refer to MLN.py for valid options.) For example, to obtain detailed debug information for MC-SAT, you could specify &quot;debug=True, debugLevel=2&quot; with exact inference, setting <i>debug</i>
-		to <i>True</i> will print the entire distribution over possible worlds.
+		For the internal engine, you can specify a comma-separated list of assignments of parameters of the <i>infer</i> method you are calling (refer to MLN.py for valid options.) For example, with exact inference, setting <i>debug</i>
+		to <i>True</i> (i.e. writing &quot;debug=True&quot; into the input field) will print the entire distribution over possible worlds. For MC-SAT, you could specify &quot;debug=True, debugLevel=30&quot; to get a detailed log of what the algorithm does (changing debugLevel will affect the depth of the analysis).
 	</li>
 </ul>
 
