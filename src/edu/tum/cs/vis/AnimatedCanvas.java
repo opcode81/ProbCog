@@ -6,7 +6,8 @@ public class AnimatedCanvas extends Canvas {
 
 	private static final long serialVersionUID = 1L;
 	
-	protected int animationStep = 0, maxAnimationStep = 0;
+	protected int animationStep = 0;
+	//maxAnimationStep = 0;
 	protected Vector<DrawableAnimated> animatedItems = new Vector<DrawableAnimated>();
 
 	@Override
@@ -34,8 +35,16 @@ public class AnimatedCanvas extends Canvas {
 		}
 	}
 	
+	public int getMaxAnimationStep() {
+		int max = 0;
+		for(DrawableAnimated item : animatedItems) {
+			max = Math.max(max, item.getMaxStep());
+		}
+		return max;
+	}
+	
 	public void animationStepForward() {
-		if(animationStep < maxAnimationStep)
+		if(animationStep < getMaxAnimationStep())
 			animationStep++;
 		redraw();
 	}
@@ -52,7 +61,7 @@ public class AnimatedCanvas extends Canvas {
 	}
 	
 	public void animationEnd() {
-		animationStep = maxAnimationStep;
+		animationStep = getMaxAnimationStep();
 		redraw();
 	}
 
@@ -61,8 +70,10 @@ public class AnimatedCanvas extends Canvas {
 	 * @param steps
 	 */
 	public void animationSkip(int steps) {
-		if(animationStep > maxAnimationStep)
-			animationStep = maxAnimationStep;
+		animationStep += steps;
+		int maxStep = getMaxAnimationStep();
+		if(animationStep > maxStep)
+			animationStep = maxStep;
 		if(animationStep < 0)
 			animationStep = 0;
 		redraw();
@@ -78,7 +89,11 @@ public class AnimatedCanvas extends Canvas {
 	}
 	
 	public void addAnimated(DrawableAnimated item) {
-		maxAnimationStep = Math.max(maxAnimationStep, item.getMaxStep());
+		//maxAnimationStep = Math.max(maxAnimationStep, item.getMaxStep());
 		animatedItems.add(item);
+	}
+	
+	public int getAnimationStep() {
+		return this.animationStep;
 	}
 }
