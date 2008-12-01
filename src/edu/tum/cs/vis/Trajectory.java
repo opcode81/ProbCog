@@ -1,5 +1,10 @@
 package edu.tum.cs.vis;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.PriorityQueue;
 import java.util.Vector;
 
@@ -14,6 +19,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	public int pointColor = 0xffcbcbcb, sphereColor = 0x99ffff00; 
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
+	public int lineColor = 0xffffffff;
 	
 	protected Hashmap2List<Integer, Drawable> animationEffects;
 	
@@ -72,7 +78,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				//c.stroke(255,255,255);
 				//System.out.printf("%f %f %f -> %f %f %f\n",prev.x, prev.y, prev.z, p.x, p.y, p.z);
 				//c.line(prev.v.x, prev.v.y, prev.v.z, p.v.x, p.v.y, p.v.z);
-				c.drawLine(prev.v, p.v, 0xffffffff);
+				c.drawLine(prev.v, p.v, lineColor);
 			}
 			prev = p;
 		}
@@ -105,6 +111,52 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	
 	public void draw(Canvas c) {
 		draw(c, this.getMaxStep());
+	}
+	
+	/**
+	 * saves the point sequence to a Matlab-style ASCII file
+	 * @param f
+	 * @throws FileNotFoundException 
+	 */
+	public void saveAsc(java.io.File f) throws FileNotFoundException {
+		PrintStream s = new PrintStream(f);
+		for(Point p : this.points) {
+			s.print(p.v.x);
+			s.print(' ');
+			s.print(p.v.y);
+			s.print(' ');
+			s.print(p.v.z);
+			s.print('\n');
+		}
+	}
+	
+	public void readAsc(java.io.File matlabAsciiFile) throws NumberFormatException, IOException {
+		readAsc(matlabAsciiFile, 0);
+	}
+	
+	/**
+	 * @param matlabAsciiFile
+	 * @param startLine  0-based line index indicating the first line to consider
+	 * @throws NumberFormatException
+	 * @throws IOException
+	 */
+	public void readAsc(java.io.File matlabAsciiFile, int startLine) throws NumberFormatException, IOException {
+		BufferedReader r = new BufferedReader(new FileReader(matlabAsciiFile));
+		String line;
+		int iLine = 0;
+		while((line = r.readLine()) != null) {
+			if(iLine++ < startLine)
+				continue;
+			String[] parts = line.trim().split("\\s+");
+			float x = Float.parseFloat(parts[0]);
+			float y = Float.parseFloat(parts[1]);
+			float z;
+			if(parts.length == 3)
+				z = Float.parseFloat(parts[2]);
+			else 
+				z = 0;
+			this.addPoint(x, y, z);
+		}
 	}
 	
 	public double getMinDistance(){
