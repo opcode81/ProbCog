@@ -20,6 +20,9 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
 	public int lineColor = 0xffffffff;
+	public AnimationMode animationMode = AnimationMode.BuildUp;
+	
+	public enum AnimationMode { BuildUp, AllAtOnce };
 	
 	protected Hashmap2List<Integer, Drawable> animationEffects;
 	
@@ -71,7 +74,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		for(Point p : points) {
 			if(p.size == 0.0f)
 				p.size = pointSize;
-			if(s++ > step)
+			if(s++ > step && animationMode == AnimationMode.BuildUp)
 				break;
 			p.draw(c);
 			if(prev != null) { // draw line connecting previous point with current point
@@ -84,7 +87,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 		
 		// draw sphere for current pos
-		new Sphere(prev.v.x, prev.v.y, prev.v.z, sphereSize, sphereColor).draw(c);
+		Point currentPos = points.get(step);
+		new Sphere(currentPos.v.x, currentPos.v.y, currentPos.v.z, sphereSize, sphereColor).draw(c);
 		
 		// draw animation effects if any
 		Vector<Drawable> effects = animationEffects.get(step);
@@ -101,7 +105,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		c.text(String.format("%d/%d", 1+step, 1+this.getMaxStep()), 5, 5+11);
 		
 		// set eye to target last drawn point		
-		c.eyeTarget.set(prev.v);
+		c.eyeTarget.set(currentPos.v);
 		c.popMatrix();
 	}
 	
