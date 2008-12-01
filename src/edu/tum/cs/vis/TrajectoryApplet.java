@@ -91,6 +91,20 @@ public class TrajectoryApplet extends AnimatedCanvas {
 		redraw();
 	}
 	
+	public void keyPressed() {
+		if(this.keyCode == java.awt.event.KeyEvent.VK_A) {
+			for(DrawableAnimated i : this.animatedItems) {
+				if(i instanceof Trajectory) {
+					Trajectory traj = (Trajectory) i;
+					traj.animationMode = traj.animationMode == Trajectory.AnimationMode.BuildUp ? Trajectory.AnimationMode.AllAtOnce : Trajectory.AnimationMode.BuildUp;
+					System.out.println("TrajectoryApplet: Switching animation mode");
+				}
+			}
+			redraw();
+		}
+		super.keyPressed();
+	}
+	
 	public static void main(String[] args) {
 		try {
 			//Canvas applet = new TrajectoryApplet("STT_DETAILED_ABSTRACT_EXP_ISOMAP3D_INTERVAL");
