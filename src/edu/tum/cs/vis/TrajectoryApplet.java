@@ -1,7 +1,5 @@
 package edu.tum.cs.vis;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.ResultSet;
 
@@ -64,22 +62,7 @@ public class TrajectoryApplet extends AnimatedCanvas {
 	 */
 	public void readTrajectory(java.io.File matlabAsciiFile, int startLine) throws NumberFormatException, IOException {
 		Trajectory traj = new Trajectory();
-		BufferedReader r = new BufferedReader(new FileReader(matlabAsciiFile));
-		String line;
-		int iLine = 0;
-		while((line = r.readLine()) != null) {
-			if(iLine++ < startLine)
-				continue;
-			String[] parts = line.trim().split("\\s+");
-			float x = Float.parseFloat(parts[0]);
-			float y = Float.parseFloat(parts[1]);
-			float z;
-			if(parts.length == 3)
-				z = Float.parseFloat(parts[2]);
-			else 
-				z = 0;
-			traj.addPoint(x, y, z);
-		}
+		traj.readAsc(matlabAsciiFile, startLine);
 		init(traj);
 	}
 
