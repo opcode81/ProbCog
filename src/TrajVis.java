@@ -7,6 +7,7 @@ import javax.swing.JFrame;
 
 import de.tum.in.fipm.kipm.gui.visualisation.JointTrajectoriesIsomap;
 import de.tum.in.fipm.kipm.gui.visualisation.items.BodyPoseSequence;
+import edu.tum.cs.vis.Trajectory;
 
 
 public class TrajVis {
@@ -18,39 +19,62 @@ public class TrajVis {
 	 */
 	public static void main(String[] args) throws NumberFormatException, IOException {
 		boolean center = false;
-		Vector<String> files = new Vector<String>();
+		Vector<String> humanFiles = new Vector<String>();
+		Vector<String> embedFiles = new Vector<String>();
+		boolean error = false;
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-c")) {
 				center = true;
 			}
+			else if(args[i].equals("-h")) {
+				humanFiles.add(args[++i]);
+			}
+			else if(args[i].equals("-e")) {
+				embedFiles.add(args[++i]);
+			}
 			else
-				files.add(args[i]);
+				error = true;
 		}
 		
-		if(files.size() < 2) {
-			System.out.println("usage: TrajVis <joint trajectories ascii file> <2d/3d embedding ascii file> [additional joints files]");
-			System.out.println("  options: -c   center around mean coordinate");
+		if(error) {
+			System.out.println("usage: TrajVis [options]");
+			System.out.println("  options: ");
+			System.out.println("           -h <human data>     human joint data");
+			System.out.println("           -e <embedded data>  low-dimensional (2D/3D) embedding");
+			System.out.println("           -c   			   center embeddings around mean");
+			System.out.println("\n      -h and -e can be passed multiple times");
 			return;
 		}
 		
 		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk");
 		
-		String jointsFile = files.get(0); // "/usr/wiss/jain/work/code/GP/sttFlorianJoints.asc";
-		String embeddingFile = files.get(1); // "/usr/wiss/jain/work/code/GP/sttFlorianJointsLatent.asc";
-		
-		m.kitchen.readTrajectoryData(new File(jointsFile));
-		for(int i = 2; i < files.size(); i++) {
-			File f = new File(files.get(i));
-			BodyPoseSequence bps = new BodyPoseSequence();
-			bps.readData(f);
-			m.kitchen.addAnimated(bps);
+		if(!humanFiles.isEmpty()) {
+			int[] colors = new int[]{0xffff00ff, 0xffffff00, 0xff00ffff};
+			m.kitchen.readTrajectoryData(new File(humanFiles.get(0)));
+			m.kitchen.bodyPoseSeq.setColor(colors[0]);
+			for(int i = 1; i < humanFiles.size(); i++) {
+				File f = new File(humanFiles.get(i));
+				BodyPoseSequence bps = new BodyPoseSequence();
+				bps.setColor(colors[i]);
+				bps.readData(f);
+				m.kitchen.addAnimated(bps);
+			}
 		}
 		//m.kitchen.setWidth(800);
 		//m.kitchen.setHeight(400);
 		
 		m.isomap.centerTrajectory = center;
-		m.isomap.readTrajectory(new File(embeddingFile));
+		m.isomap.readTrajectory(new File(embedFiles.get(0)));
+		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
+		for(int i = 1; i < embedFiles.size(); i++) {
+			Trajectory traj = new Trajectory();
+			traj.readAsc(new File(embedFiles.get(i)));
+			traj.lineColor = colors[i % colors.length];
+			if(center)
+				traj.center();
+			m.isomap.addAnimated(traj);
+		}
 		//m.isomap.setWidth(800);
 		//m.isomap.setHeight(400);
 			
