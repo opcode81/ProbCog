@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.PriorityQueue;
-import java.util.Vector;
+import java.util.*;
 
 import edu.tum.cs.tools.Hashmap2List;
 import edu.tum.cs.tools.Vector3f;
@@ -14,11 +14,13 @@ import edu.tum.cs.tools.Vector3f;
 public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
+	public HashMap<Point,Set<Point>> mergeSet = new HashMap<Point,Set<Point>>();
 	public double minDistance = Double.MAX_VALUE;
 	public float pointSize = 0.0f, sphereSize = 120.0f;
 	public int pointColor = 0xffcbcbcb, sphereColor = 0x99ffff00; 
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
+	public double minDis;
 	public int lineColor = 0xffffffff;
 	public AnimationMode animationMode = AnimationMode.BuildUp;
 	
@@ -175,8 +177,35 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			}
 			i++;
 		}
-		System.out.println(minDistance);
 		return minDistance;
+	}
+	
+	public void merge(Point p1, Point p2){
+		Set<Point> s1 = mergeSet.get(p1);
+		Set<Point> s2 = mergeSet.get(p2);
+		Set<Point> s;
+		if(s1 != null && s2 != null){
+			s1.addAll(s2);
+			for(Point p : s2){
+				mergeSet.put(p,s1);
+			}
+			s = s1;
+		}
+		else {
+			if(s1 != null){
+				s = s1;
+			}
+			if(s2 != null){
+				s = s2;
+			}
+			else{
+				s = new HashSet<Point>();
+			}
+		}
+		s.add(p1);
+		s.add(p2);
+		mergeSet.put(p1,s);
+		mergeSet.put(p2,s);
 	}
 
 	/**
@@ -184,8 +213,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	 */
 	public void mergePoints() {
 		System.out.println("Merging points...");
-		float proximity_threshold = 20;		
-		float direction_threshold = 40; // in degrees
+		float proximity_threshold = range/50;		
+		float direction_threshold = 60; // in degrees
 		
 		int i = 0;
 		java.util.PriorityQueue<Double> min_distances = new PriorityQueue<Double>();
@@ -197,7 +226,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				for(int j = i-3; j >= 0; j--) {
 					Point p2 = points.get(j);
 					double dist = p.v.distance(p2.v);
-					if(dist < min_distance) {
+					if(dist != 0.0 && dist < min_distance) {
 						min_distance = dist;
 						min_distance_point_idx = j;
 					}
@@ -229,11 +258,17 @@ public class Trajectory implements Drawable, DrawableAnimated {
 						animationEffects.put(min_distance_point_idx, pp);
 						
 						// actual merge
+						// any point that is equal to point p or p2 is merged
+						merge(p,p2);
 						Vector3f newPos = new Vector3f((p.v.x+p2.v.x) / 2, (p.v.y+p2.v.y) / 2, (p.v.z+p2.v.z) / 2);
-						p.v = newPos;
-						p2.v = newPos;
-						p.color = 0xffff0000;
-						p2.color = 0xffff0000;
+						for (Point p3 : points){
+							if(p3.v.distance(p.v) == 0 || p3.v.distance(p2.v) == 0){
+								p3.v = newPos;
+								p3.color = 0xffff0000;
+								merge(p,p3);
+							}
+						}
+						
 					}
 				}					
 			}
@@ -260,12 +295,184 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		System.out.println("max diff: " + max_diff + " @ " + max_diff_value);
 		
 	}
+	/**
+	 * starts from already merged points and tries to merge their successors
+	 */
+	public void mergeLines(){
+		System.out.println("Merging lines...");
+		double thresh = range/30.0;
+		double dirthresh = 60;
+		System.out.println(thresh);
+		//how many points should be considered
+		int fut = 2;
+		int past = 2;
+		for(int k = 0; k < 20; k++){
+			HashSet<Set<Point>> setOfSets = new HashSet<Set<Point>>(mergeSet.values());
+			for(Set<Point> s : setOfSets){
+				HashSet<Point> curSet = new HashSet<Point>(s);
+				for(Point p1 : s){
+					curSet.remove(p1);
+					for(Point p2 : curSet){
+						for (int l = 1; l <= fut; l++){
+							if(points.indexOf(p1)+l < points.size() && points.indexOf(p2)+l < points.size()){
+								Point p1Post1 = points.get(points.indexOf(p1)+l);
+								Point p2Post1 = points.get(points.indexOf(p2)+l);
+								Vector3f dir11 = new Vector3f(p1Post1.v);
+								dir11.subtract(p1.v);
+								Vector3f dir21 = new Vector3f(p2Post1.v);
+								dir21.subtract(p2.v);
+								double angle11 = dir11.angle(dir21);
+								if (angle11 < dirthresh*Math.PI/180 && p1Post1.v.distance(p2Post1.v) < thresh){
+									// actual merge
+									//merge(p1Post1,p2Post1);
+									Vector3f newPos = new Vector3f((p1Post1.v.x+p2Post1.v.x) / 2, (p1Post1.v.y+p2Post1.v.y) / 2, (p1Post1.v.z+p2Post1.v.z) / 2);
+									for(Point p : points){
+										if (p.v.distance(p1Post1.v) == 0 || p.v.distance(p2Post1.v) == 0){
+											p.v = newPos;
+											p.color = 0xffff0000;
+										}
+									}
+								}
+							}
+						}
+						for (int l = 1; l <= past; l++){
+							if(points.indexOf(p1)-l > 0 && points.indexOf(p2)-l > 0){
+								Point p1Post1 = points.get(points.indexOf(p1)-l);
+								Point p2Post1 = points.get(points.indexOf(p2)-l);
+								Vector3f dir11 = new Vector3f(p1Post1.v);
+								dir11.subtract(p1.v);
+								Vector3f dir21 = new Vector3f(p2Post1.v);
+								dir21.subtract(p2.v);
+								double angle11 = dir11.angle(dir21);
+								if (angle11 < dirthresh*Math.PI/180 && p1Post1.v.distance(p2Post1.v) < thresh){
+								// actual merge
+								//merge(p1Post1, p2Post1);
+								Vector3f newPos = new Vector3f((p1Post1.v.x+p2Post1.v.x) / 2, (p1Post1.v.y+p2Post1.v.y) / 2, (p1Post1.v.z+p2Post1.v.z) / 2);
+								p1Post1.v = newPos;
+								p2Post1.v = newPos;
+								p1Post1.color = 0xffff0000;
+								p2Post1.color = 0xffff0000;
+								}
+							}
+						}
+					}
+				}
+			}
+			updateMerge();
+		}
+	}
+	
+	public void updateMerge(){
+		int i = 0;
+		for(Point p : points){
+			for(int j = i+1; j < points.size(); j++){
+				if (p.v.distance(points.get(j).v) == 0)
+					merge(p,points.get(j));
+			}
+			i++;
+		}
+	}
+	
+	public void cleanUp(){
+		int size = points.size();
+		int i = 0;
+		while(i < size - 1){
+			Point p = points.get(i);
+			int j = i+1;
+			while(j < size){
+				Point p2 = points.get(j);
+				if (p.v.distance(p2.v) == 0.0){
+					System.out.println("removing "+ j);
+					points.removeElement(p2);
+					size--;
+				}
+				else
+					j++;
+			}
+			i++;
+		}
+	}
+	
+	/**
+	 * Detects straight lines in the isomap and smoothes them
+	 */
+	public void smoothLines(){
+		int i = 0;
+		for(Point p : points){
+			Vector<Point> succ = new Vector<Point>();
+			Vector<Point> line = new Vector<Point>();
+			for(int j = i+2; j < points.size(); j++){
+				Point pEnd = points.get(j);
+				Vector3f dir = new Vector3f(pEnd.v);
+				dir.subtract(p.v);
+				double dist = 0.0;
+				line.clear();
+				for(int k = i+1; k < j; k++){
+					Point p2 = points.get(k);
+					double a = dir.x*p2.v.x + dir.y*p2.v.y + dir.z*p2.v.z;
+					double lambda = (a - (dir.x*p.v.x + dir.y*p.v.y + dir.z*p.v.z))/(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
+					Point l = new Point(p);
+					l.v.x += lambda * dir.x;
+					l.v.y += lambda * dir.y;
+					l.v.z += lambda * dir.z;
+					line.addElement(l);
+					dist += l.v.distance(p2.v);
+				}
+				if (dist / (j-i) < 200){
+					succ = line;
+				}
+				else {
+					if(j - i > 5){
+						System.out.println("Smoothing line");
+						//System.out.println("Size of succ: "+ succ.size());
+						int n = 0;
+						for(int k = i+1; k < j-1; k++){
+							points.get(k).v = succ.get(n).v;
+							points.get(k).color = 0xffff0000;
+							n++;
+						}
+						i = j;
+					}
+					else
+						i++;
+					break;
+				}
+			}
+		}
+	}
+	
+	public void findskippedPoints(){
+		int i = 0;
+		for(Point p : points){
+			if (i < points.size() - 2){
+				for(int j = i; j < points.size() -2; j++){
+					Point p2 = points.get(j);
+					if (p.v.distance(p2.v) == 0){
+						Point p1n = points.get(i+1);
+						Point p21n = points.get(j+1);
+						Point p22n = points.get(j+2);
+						if (p1n.v.distance(p22n.v) == 0){
+							Vector3f newPos = new Vector3f((p21n.v.x+p22n.v.x) / 2, (p21n.v.y+p22n.v.y) / 2, (p21n.v.z+p22n.v.z) / 2);
+							for (Point p3 : points){
+								if(p3.v.distance(p22n.v) == 0 || p3.v.distance(p21n.v) == 0){
+									p3.v = newPos;
+									p3.color = 0xffff0000;
+								}
+							}
+						}
+					}
+				}	
+			}	
+			i++;
+		}
+	}
 	
 	public void findOscillations(){
 		int i = 0;
 		int j = 0;
-		double thresh = 7000 * getMinDistance();
+		double thresh = range/50.0;
 		//double thresh = 150;
+		System.out.println(thresh);
 		int num = 0;
 		int minnum = 5;
 		Vector<Point> vec = new Vector<Point>();
@@ -287,6 +494,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 					medPoint.v.scale(1/(float)num);
 					float medSize = (float)Math.log(num) * range/150;
 					for(Point oscP : vec){
+						if (oscP != vec.get(0))
+							merge(oscP,vec.get(0));
 						oscP.copyPos(medPoint);
 						oscP.color = 0xff0000ff;
 						oscP.size = medSize;
@@ -319,49 +528,202 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			updateStats(p.v.x, p.v.y, p.v.z);
 		}
 	}
-	public void getTransitionPoints(){
+	/**
+	 * looks for small repeats in the trajectory, i.e. small oscillations
+	 * with only 2 points (z-y-z)
+	 */
+	public void mergeRepeats(){
 		int i = 0;
-		double threshDist = 2.0f;
-		double threshAngle = Math.PI * 50/180;
 		for(Point p : points){
-			if(i < points.size() - 2 && i > 2){
-				for (int j = i+1; j < points.size()-2; j++){
-					Point p2 = points.get(j);
-					if (p.v.distance(p2.v) == 0){
-						Point succP1 = points.get(i+1);
-						Point succP2 = points.get(j+1);
-						if(p.v.distance(succP1.v) != 0 && p.v.distance(succP2.v) != 0){
-							Vector3f dir1 = new Vector3f(p.v);
-							dir1.subtract(succP1.v);
-							Vector3f dir2 = new Vector3f(p.v);
-							dir2.subtract(succP2.v);
-							double angle = dir1.angle(dir2);
-							double zeroAngle = succP1.v.angle(succP2.v);
-							if (succP1.v.distance(succP2.v) > threshDist && angle > threshAngle){
-								System.out.println(">>>>>>> Got a transition point");
-								p.size = 150;
-								p.color = 0xff00ff00;
+			int j = 1;
+			int num = 0;
+			while(i+j < points.size() && num < 3){
+				Point p2 = points.get(i+j);
+				Point prep2 = points.get(i+j-1);
+				if(p2.v.distance(prep2.v) > 0.1){
+					num++;
+					if (p2.v.distance(p.v) < 0.1){
+						merge(p,prep2);
+						Vector3f newPos = new Vector3f((p.v.x+prep2.v.x) / 2, (p.v.y+prep2.v.y) / 2, (p.v.z+prep2.v.z) / 2);
+						for (Point p3 : points){
+							if(p3.v.distance(p.v) == 0 || p3.v.distance(prep2.v) == 0){
+								p3.v = newPos;
+								p3.color = 0xffff0000;
 							}
-						}			
-						succP1 = points.get(i-1);
-						succP2 = points.get(j-1);
-						if(p.v.distance(succP1.v) != 0 && p.v.distance(succP2.v) != 0){
-							Vector3f dir1 = new Vector3f(p.v);
+						}
+					}
+				}
+				j++;
+			}
+			i++;
+		}
+	}
+	
+	public void getTransitionPoints(){
+		double threshDist = 0.0f;
+		double threshAngle = Math.PI * 00/180;
+		HashSet<Set<Point>> setOfSets = new HashSet<Set<Point>>(mergeSet.values());
+		for(Set<Point> s : setOfSets){
+			HashSet<Point> curSet = new HashSet<Point>(s);
+			for(Point p1 : s){
+				curSet.remove(p1);
+				for(Point p2 : curSet){
+					// the first part is for searching forwards
+					if(points.indexOf(p1)+1 < points.size() && points.indexOf(p2)+1 < points.size()){
+						Point succP1 = points.get(points.indexOf(p1)+1);
+						Point succP2 = points.get(points.indexOf(p2)+1);
+						// look only for real successor not merged points
+						if(p1.v.distance(succP1.v) != 0 && p2.v.distance(succP2.v) != 0){
+							Vector3f dir1 = new Vector3f(p1.v);
 							dir1.subtract(succP1.v);
-							Vector3f dir2 = new Vector3f(p.v);
+							Vector3f dir2 = new Vector3f(p2.v);
 							dir2.subtract(succP2.v);
 							double angle = dir1.angle(dir2);
-							double zeroAngle = succP1.v.angle(succP2.v);
-							if (succP1.v.distance(succP2.v) > threshDist && angle > threshAngle){
-								System.out.println(">>>>>>> Got a transition point");
-								p.size = 150;
-								p.color = 0xff00ff00;
+							// check for distance and angle threshold
+							if (succP1.v.distance(succP2.v) > threshDist && angle >= threshAngle){
+								// check, whether the direction of the trajectory is the same!
+								int k = 1;
+								Point pre1 = new Point(p1);
+								Point pre2 = new Point(p2);
+								while(points.indexOf(p1)-k > 0){
+									pre1 = points.get(points.indexOf(p1)-k);
+									if (pre1.v.distance(p1.v) > 0.1){
+										k = 1;
+										break;
+									}
+									else
+										k++;
+								}
+								while(points.indexOf(p2)-k > 0){
+									pre2 = points.get(points.indexOf(p2)-k);
+									if (pre2.v.distance(p2.v) > 0.1){
+										break;
+									}
+									else
+										k++;
+								}
+								if(pre1.v.distance(pre2.v) > 0.1)
+									continue;
+								// however: we do not want to find fake transition points in lines
+								// where there was just a 'oversight' by the merging algo
+								int l = 1;
+								int fut1 = 0;
+								int fut2 = 0;
+								Set<Point> succ1 = new HashSet<Point>();
+								Set<Point> succ2 = new HashSet<Point>();
+								while(points.indexOf(p1)+l < points.size() && points.indexOf(p2)+l < points.size()){
+									if(fut1 < 4){
+										Point p11 = points.get(points.indexOf(p1)+l);
+										Point p12 = points.get(points.indexOf(p1)+l-1);
+										succ1.add(p11);
+										if(p11.v.distance(p12.v) >= range/200 && !mergeSet.get(p1).contains(p11)){
+											fut1++;
+										}
+									}
+									if(fut2 < 4){
+										Point p21 = points.get(points.indexOf(p2)+l);
+										Point p22 = points.get(points.indexOf(p2)+l-1);
+										succ2.add(p21);
+										if(p21.v.distance(p22.v) >= range/200 && !mergeSet.get(p1).contains(p21)){
+											fut2++;
+										}
+									}
+									l++;
+								}
+								boolean realTransition = true;
+								for(Point pSucc1 : succ1){
+									for(Point pSucc2 : succ2){
+										if(pSucc1.v.distance(pSucc2.v) <= range/200)
+											realTransition = false;
+									}
+								}
+								if(realTransition){
+									System.out.println(">>>>>>> Got a transition point");
+									p1.size = range/75;
+									p1.color = 0xff00ff00;
+								}
+							}
+						}
+					}
+					// Now the same for the past!
+					if(points.indexOf(p1)-1 > 0 && points.indexOf(p2)-1 > 0){
+						Point preP1 = points.get(points.indexOf(p1)-1);
+						Point preP2 = points.get(points.indexOf(p2)-1);
+						// look only for real predecessor not merged points
+						if(p1.v.distance(preP1.v) != 0 && p2.v.distance(preP2.v) != 0){
+							Vector3f dir1 = new Vector3f(p1.v);
+							dir1.subtract(preP1.v);
+							Vector3f dir2 = new Vector3f(p2.v);
+							dir2.subtract(preP2.v);
+							double angle = dir1.angle(dir2);
+							// check for distance and angle threshold
+							if (preP1.v.distance(preP2.v) > threshDist && angle >= threshAngle){
+								// check, whether the direction of the trajectory is the same!
+								int k = 1;
+								Point succ1 = new Point(p1);
+								Point succ2 = new Point(p2);
+								while(points.indexOf(p1)+k < points.size()){
+									succ1 = points.get(points.indexOf(p1)+k);
+									if (succ1.v.distance(p1.v) > 0.1){
+										k = 1;
+										break;
+									}
+									else
+										k++;
+								}
+								while(points.indexOf(p2)+k < points.size()){
+									succ2 = points.get(points.indexOf(p2)+k);
+									if (succ2.v.distance(p2.v) > 0.1){
+										break;
+									}
+									else
+										k++;
+								}
+								if(succ1.v.distance(succ2.v) > 0.1)
+									continue;
+								// however: we do not want to find fake transition points in lines
+								// where there was just a 'oversight' by the merging algo
+								int l = 1;
+								int fut1 = 0;
+								int fut2 = 0;
+								Set<Point> prec1 = new HashSet<Point>();
+								Set<Point> prec2 = new HashSet<Point>();
+								while(points.indexOf(p1)-l > 0 && points.indexOf(p2)-l > 0){
+									if(fut1 < 4){
+										Point p11 = points.get(points.indexOf(p1)-l);
+										Point p12 = points.get(points.indexOf(p1)-l+1);
+										prec1.add(p11);
+										if(p11.v.distance(p12.v) >= range/200 && !mergeSet.get(p1).contains(p11)){
+											fut1++;
+										}
+									}
+									if(fut2 < 4){
+										Point p21 = points.get(points.indexOf(p2)-l);
+										Point p22 = points.get(points.indexOf(p2)-l+1);
+										prec2.add(p21);
+										if(p21.v.distance(p22.v) >= range/200 && !mergeSet.get(p1).contains(p21)){
+											fut2++;
+										}
+									}
+									l++;
+								}
+								boolean realTransition = true;
+								for(Point pSucc1 : prec1){
+									for(Point pSucc2 : prec2){
+										if(pSucc1.v.distance(pSucc2.v) <= range/200)
+											realTransition = false;
+									}
+								}
+								if(realTransition){
+									System.out.println(">>>>>>> Got a transition point");
+									p1.size = range/75;
+									p1.color = 0xff00ff00;
+								}
 							}
 						}
 					}
 				}
 			}
-			i++;	
 		}
 	}
 
