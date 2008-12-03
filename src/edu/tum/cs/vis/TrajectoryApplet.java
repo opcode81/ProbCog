@@ -69,9 +69,19 @@ public class TrajectoryApplet extends AnimatedCanvas {
 	public void init(Trajectory traj) {
 		if(centerTrajectory)
 			traj.center();
-		//traj.findOscillations();
-		//traj.mergePoints();
-		//traj.getTransitionPoints();		
+		
+		//traj.smoothLines();
+	
+		traj.mergePoints();
+		traj.mergeLines();
+
+		traj.findOscillations();
+		traj.mergeRepeats();
+		//traj.cleanUp();
+		//traj.findskippedPoints();
+		
+		
+		traj.getTransitionPoints();		
 
 		// add coordinate system
 		float sceneSize = traj.getMaxAbsCoord();
@@ -85,7 +95,7 @@ public class TrajectoryApplet extends AnimatedCanvas {
 		useCamera = false;
 		this.eye = new Vector3f(sceneSize, sceneSize, sceneSize/2);
 		this.eyeUp = new Vector3f(sceneSize, sceneSize, -sceneSize);
-		//this.eyeUp = new Vector3f(0,0,1);
+		this.eyeUp = new Vector3f(0,0,1);
 		this.eyeUp.normalize();
 		
 		redraw();
