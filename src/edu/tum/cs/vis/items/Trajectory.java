@@ -1,15 +1,17 @@
-package edu.tum.cs.vis;
+package edu.tum.cs.vis.items;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.PriorityQueue;
 import java.util.*;
 
 import edu.tum.cs.tools.Hashmap2List;
 import edu.tum.cs.tools.Vector3f;
+import edu.tum.cs.vis.Canvas;
+import edu.tum.cs.vis.Drawable;
+import edu.tum.cs.vis.DrawableAnimated;
 
 public class Trajectory implements Drawable, DrawableAnimated {
 
@@ -88,27 +90,24 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			prev = p;
 		}
 		
-		// draw sphere for current pos
+		// stuff for current pos
 		Point currentPos = points.get(step);
-		new Sphere(currentPos.v.x, currentPos.v.y, currentPos.v.z, sphereSize, sphereColor).draw(c);
-		
-		// draw animation effects if any
-		Vector<Drawable> effects = animationEffects.get(step);
-		if(effects != null) {
-			System.out.println("drawing effects for step " + step);
-			for(Drawable d : effects)
-				d.draw(c);
+		if(currentPos != null) {
+			// draw sphere around it
+			new Sphere(currentPos.v.x, currentPos.v.y, currentPos.v.z, sphereSize, sphereColor).draw(c);
+			
+			// draw animation effects if any
+			Vector<Drawable> effects = animationEffects.get(step);
+			if(effects != null) {
+				System.out.println("drawing effects for step " + step);
+				for(Drawable d : effects)
+					d.draw(c);
+			}
+			
+			// focus eye on it	
+			c.setEyeTarget(currentPos.v);
+			c.popMatrix();
 		}
-		
-		// draw frame number
-		c.fill(0xffffffff);
-		c.textMode(Canvas.SCREEN);
-		c.textAlign(Canvas.LEFT);
-		c.text(String.format("%d/%d", 1+step, 1+this.getMaxStep()), 5, 5+11);
-		
-		// set eye to target last drawn point		
-		c.eyeTarget.set(currentPos.v);
-		c.popMatrix();
 	}
 	
 	public int getNumSteps() {
