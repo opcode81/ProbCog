@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 
 import edu.tum.cs.tools.MySQLConnection;
 import edu.tum.cs.tools.Vector3f;
+import edu.tum.cs.vis.items.FrameDisplay;
+import edu.tum.cs.vis.items.Trajectory;
 
 public class TrajectoryApplet extends AnimatedCanvas {
 	private static final long serialVersionUID = 1L;
@@ -97,6 +99,8 @@ public class TrajectoryApplet extends AnimatedCanvas {
 		this.eyeUp = new Vector3f(sceneSize, sceneSize, -sceneSize);
 		this.eyeUp = new Vector3f(0,0,1);
 		this.eyeUp.normalize();
+		
+		add(new FrameDisplay(this, 5, 5+11, LEFT));
 		
 		redraw();
 	}

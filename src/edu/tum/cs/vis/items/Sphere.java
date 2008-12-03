@@ -1,4 +1,7 @@
-package edu.tum.cs.vis;
+package edu.tum.cs.vis.items;
+
+import edu.tum.cs.vis.Canvas;
+import edu.tum.cs.vis.Drawable;
 
 public class Sphere implements Drawable {
 

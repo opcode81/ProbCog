@@ -91,6 +91,10 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 		setSceneSize(this.sceneSize);
 	}
 	
+	public void setEyeTarget(Vector3f v) {
+		this.eyeTarget.set(v);
+	}
+	
 	public void setup() {
 		size(width, height, P3D);
 		lights();

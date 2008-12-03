@@ -1,6 +1,8 @@
-package edu.tum.cs.vis;
+package edu.tum.cs.vis.items;
 
 import edu.tum.cs.tools.Vector3f;
+import edu.tum.cs.vis.Canvas;
+import edu.tum.cs.vis.Drawable;
 
 public class Point implements Drawable {
 
