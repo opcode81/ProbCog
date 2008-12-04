@@ -35,7 +35,7 @@ public class AnimatedCanvas extends Canvas {
 		}
 	}
 	
-	public int getMaxAnimationStep() {
+	public synchronized int getMaxAnimationStep() {
 		int max = 0;
 		for(DrawableAnimated item : animatedItems) {
 			max = Math.max(max, item.getMaxStep());
@@ -80,7 +80,7 @@ public class AnimatedCanvas extends Canvas {
 	}
 	
 	@Override
-	public void drawItems() {
+	public synchronized void drawItems() {
 		super.drawItems();
 		
 		for(DrawableAnimated d : animatedItems) {
@@ -88,7 +88,7 @@ public class AnimatedCanvas extends Canvas {
 		}
 	}
 	
-	public void addAnimated(DrawableAnimated item) {
+	public synchronized void addAnimated(DrawableAnimated item) {
 		//maxAnimationStep = Math.max(maxAnimationStep, item.getMaxStep());
 		animatedItems.add(item);
 	}
