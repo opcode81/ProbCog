@@ -15,6 +15,7 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Vector;
+import javax.vecmath.Matrix4f;
 
 import processing.core.PApplet;
 import processing.core.PFont;
@@ -190,6 +191,13 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 		this.items.add(d);
 	}
 
+	public void rotateAxis(double theta, Vector3f rotAxis){
+		Matrix4f mat = Vector3f.getRotationMatrix(theta,rotAxis);
+		applyMatrix(mat.m00, mat.m01, mat.m02, mat.m03,
+					mat.m10, mat.m11, mat.m12, mat.m13,
+					mat.m20, mat.m21, mat.m22, mat.m23,
+					mat.m30, mat.m31, mat.m32, mat.m33);
+	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////
