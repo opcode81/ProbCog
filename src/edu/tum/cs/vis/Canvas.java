@@ -170,7 +170,7 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 		//System.out.println("eye: " + eye + " -> " + eyeTarget + "  up: " + eyeUp);
 	}
 	
-	public void drawItems() {
+	public synchronized void drawItems() {
 		for(Drawable d : items)
 			d.draw(this);		
 	}
@@ -186,7 +186,7 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 		line(x1,y1,z1,x2,y2,z2);
 	}
 	
-	public void add(Drawable d) {
+	public synchronized void add(Drawable d) {
 		this.items.add(d);
 	}
 
