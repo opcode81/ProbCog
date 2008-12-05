@@ -7,11 +7,57 @@ import edu.tum.cs.tools.Vector3f;
 
 public class Cylinder implements Drawable {
 
+	protected int cylinder_detail=0;
+	protected float[] cylinderX,cylinderZ;
+	protected float h, r, r2;
+	protected Vector3f v1, v2;
+	
 	public Cylinder(Vector3f v1, Vector3f v2, float r){
+		this(v1,v2,r,r);
+	}
+	
+	public Cylinder(Vector3f v1, Vector3f v2, float r, float r2){
 		h = (float)v1.distance(v2);
 		this.v1 = v1;
 		this.v2 = v2;
 		this.r = r;
+		this.r2 = r2;
+		cylinderDetail(30);
+	}
+	
+	public void draw(Canvas c) { 
+		c.pushMatrix();
+		c.noStroke();		
+		c.translate(v1.x, v1.y, v1.z);
+		Vector3f dir = new Vector3f(v2);
+		dir.subtract(v1);
+		Vector3f cp = new Vector3f();
+		Vector3f yAxis = new Vector3f(0,1,0);
+		cp.cross(dir, yAxis);
+		if(cp.distance(new Vector3f(0,0,0)) != 0){
+			double theta = dir.angle(yAxis);
+			c.rotateAxis(theta,cp);
+		}		
+		c.translate(0,h/2,0);
+		cylinder(c,r,r2,h,true,true);
+		c.popMatrix();
+	}
+/*
+	public Cylinder(Vector3f v1, Vector3f v2, float r){
+		this(v1,v2,r,r);
+	}
+	
+	public Cylinder(Vector3f v1, Vector3f v2, float r, float r2){
+		h = (float)v1.distance(v2);
+		this.v1 = v1;
+		this.v2 = v2;
+		this.r = r;
+		this.r2 = r2;
+	}
+	
+	public void setNewCoords(Vector3f v1New, Vector3f v2New){
+		this.v1 = v1New;
+		this.v2 = v2New;
 	}
 	
 	public void draw(Canvas c) { 
@@ -29,14 +75,10 @@ public class Cylinder implements Drawable {
 			c.rotateAxis(theta,cp);
 		}		
 		c.translate(0,h/2,0);
-		cylinder(c,r,r,h,true,true);
+		cylinder(c,r,r2,h,true,true);
 		c.popMatrix();
 	}
-	
-	protected int cylinder_detail=0;
-	protected float[] cylinderX,cylinderZ;
-	protected float h, r;
-	protected Vector3f v1, v2;
+*/	
 
 	void cylinderDetail(int res) {
 	  if (res<3) res=3; // force a minimum res
