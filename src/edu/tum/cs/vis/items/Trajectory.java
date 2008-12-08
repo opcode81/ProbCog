@@ -60,6 +60,18 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		updateStats(x,y,z);
 	}
 	
+	public void setLabels(java.io.File ascFile) throws NumberFormatException, IOException {
+		int[] colors = new int[] {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xffff00ff, 0xff00ffff, 0xffff8800, 0xffff0088, 0xff88ff00, 0xff00ff88, 0xff8800ff, 0xff0088ff};
+		BufferedReader r = new BufferedReader(new FileReader(ascFile));
+		String line;
+		int iLine = 0;
+		while((line = r.readLine()) != null) {
+			int l = Integer.parseInt(line);
+			this.points.get(iLine).color = colors[l];
+			iLine++;
+		}
+	}
+	
 	public float getMaxAbsCoord() {
 		float x = Math.max(Math.abs(minx), Math.abs(maxx));
 		float y = Math.max(Math.abs(miny), Math.abs(maxy));
