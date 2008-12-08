@@ -80,54 +80,55 @@ public class Cylinder implements Drawable {
 	}
 */	
 
-	void cylinderDetail(int res) {
-	  if (res<3) res=3; // force a minimum res
-	  if (res != cylinder_detail) {
-	    float delta = (float)Math.PI*2/res;//g.SINCOS_LENGTH/res;
-	    cylinderX = new float[res];
-	    cylinderZ = new float[res];
-	    // calc unit circle in current resolution in XZ plane
-	    for (int i = 0; i < res; i++) {
-	      cylinderX[i] = (float)Math.cos(i*delta);//g.cosLUT[(int) (i*delta) % g.SINCOS_LENGTH];
-	      cylinderZ[i] = (float)Math.sin(i*delta);//g.sinLUT[(int) (i*delta) % g.SINCOS_LENGTH];
-	    }
-	    cylinder_detail = res;
-	  }
-	}
-	
-	void cylinder(Canvas c, float r1, float r2, float h, boolean topCap, boolean bottomCap) {
-		  if (cylinder_detail == 0) {
-		    cylinderDetail(30);
-		  }
-		  h*=0.5;
-		  if (topCap) {
-		    c.beginShape(Canvas.TRIANGLE_STRIP);
-		    for (int i = 0; i < cylinder_detail; i++) {
-		      c.vertex(0,-h,0);
-		      c.vertex(cylinderX[i]*r1, -h, cylinderZ[i]*r1);
-		    }
-		    c.vertex(0,-h,0);
-		    c.vertex(cylinderX[0]*r1, -h, cylinderZ[0]*r1);
-		    c.endShape();
-		  }
-		  c.beginShape(Canvas.TRIANGLE_STRIP);
-		  for (int i = 0; i < cylinder_detail; i++) {
-		    c.vertex(cylinderX[i]*r1, -h, cylinderZ[i]*r1);
-		    c.vertex(cylinderX[i]*r2, h, cylinderZ[i]*r2);
-		  }
-		  c.vertex(cylinderX[0]*r1, -h, cylinderZ[0]*r1);
-		  c.vertex(cylinderX[0]*r2, h, cylinderZ[0]*r2);
-		  c.endShape();
-		  if (bottomCap) {
-		    c.beginShape(Canvas.TRIANGLE_STRIP);
-		    for (int i = 0; i < cylinder_detail; i++) {
-		      c.vertex(0,h,0);
-		      c.vertex(cylinderX[i]*r2, h, cylinderZ[i]*r2);
-		    }
-		    c.vertex(0,h,0);
-		    c.vertex(cylinderX[0]*r2, h, cylinderZ[0]*r2);
-		    c.endShape();
-		  }
+	protected void cylinderDetail(int res) {
+		if(res < 3)
+			res = 3; // force minimum res
+		if(res != cylinder_detail) {
+			float delta = (float) Math.PI * 2 / res;//g.SINCOS_LENGTH/res;
+			cylinderX = new float[res];
+			cylinderZ = new float[res];
+			// calc unit circle in current resolution in XZ plane
+			for(int i = 0; i < res; i++) {
+				cylinderX[i] = (float) Math.cos(i * delta);//g.cosLUT[(int) (i*delta) % g.SINCOS_LENGTH];
+				cylinderZ[i] = (float) Math.sin(i * delta);//g.sinLUT[(int) (i*delta) % g.SINCOS_LENGTH];
+			}
+			cylinder_detail = res;
 		}
+	}
+
+	protected void cylinder(Canvas c, float r1, float r2, float h, boolean topCap, boolean bottomCap) {
+		if(cylinder_detail == 0) {
+			cylinderDetail(30);
+		}
+		h *= 0.5;
+		if(topCap) {
+			c.beginShape(Canvas.TRIANGLE_STRIP);
+			for(int i = 0; i < cylinder_detail; i++) {
+				c.vertex(0, -h, 0);
+				c.vertex(cylinderX[i] * r1, -h, cylinderZ[i] * r1);
+			}
+			c.vertex(0, -h, 0);
+			c.vertex(cylinderX[0] * r1, -h, cylinderZ[0] * r1);
+			c.endShape();
+		}
+		c.beginShape(Canvas.TRIANGLE_STRIP);
+		for(int i = 0; i < cylinder_detail; i++) {
+			c.vertex(cylinderX[i] * r1, -h, cylinderZ[i] * r1);
+			c.vertex(cylinderX[i] * r2, h, cylinderZ[i] * r2);
+		}
+		c.vertex(cylinderX[0] * r1, -h, cylinderZ[0] * r1);
+		c.vertex(cylinderX[0] * r2, h, cylinderZ[0] * r2);
+		c.endShape();
+		if(bottomCap) {
+			c.beginShape(Canvas.TRIANGLE_STRIP);
+			for(int i = 0; i < cylinder_detail; i++) {
+				c.vertex(0, h, 0);
+				c.vertex(cylinderX[i] * r2, h, cylinderZ[i] * r2);
+			}
+			c.vertex(0, h, 0);
+			c.vertex(cylinderX[0] * r2, h, cylinderZ[0] * r2);
+			c.endShape();
+		}
+	}
 
 }
