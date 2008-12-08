@@ -51,8 +51,8 @@ public class TrajectoryApplet extends AnimatedCanvas {
 		readTrajectory(matlabAsciiFile);
 	}
 	
-	public void readTrajectory(java.io.File matlabAsciiFile) throws NumberFormatException, IOException {
-		readTrajectory(matlabAsciiFile, 0);
+	public Trajectory readTrajectory(java.io.File matlabAsciiFile) throws NumberFormatException, IOException {
+		return readTrajectory(matlabAsciiFile, 0);
 	}
 	
 	/**
@@ -62,10 +62,11 @@ public class TrajectoryApplet extends AnimatedCanvas {
 	 * @throws NumberFormatException
 	 * @throws IOException
 	 */
-	public void readTrajectory(java.io.File matlabAsciiFile, int startLine) throws NumberFormatException, IOException {
+	public Trajectory readTrajectory(java.io.File matlabAsciiFile, int startLine) throws NumberFormatException, IOException {
 		Trajectory traj = new Trajectory();
 		traj.readAsc(matlabAsciiFile, startLine);
 		init(traj);
+		return traj;
 	}
 
 	public void init(Trajectory traj) {
