@@ -7,7 +7,7 @@ import javax.swing.JFrame;
 
 import de.tum.in.fipm.kipm.gui.visualisation.JointTrajectoriesIsomap;
 import de.tum.in.fipm.kipm.gui.visualisation.items.BodyPoseSequence;
-import edu.tum.cs.vis.Trajectory;
+import edu.tum.cs.vis.items.Trajectory;
 
 
 public class TrajVis {
@@ -21,6 +21,7 @@ public class TrajVis {
 		boolean center = false;
 		Vector<String> humanFiles = new Vector<String>();
 		Vector<String> embedFiles = new Vector<String>();
+		Vector<String> labelFiles = new Vector<String>();
 		boolean error = false;
 		
 		for(int i = 0; i < args.length; i++) {
@@ -33,8 +34,13 @@ public class TrajVis {
 			else if(args[i].equals("-e")) {
 				embedFiles.add(args[++i]);
 			}
-			else
+			else if(args[i].equals("-l")) {
+				labelFiles.add(args[++i]);
+			}
+			else {
+				System.err.println("Error: unknown parameter " + args[i]);
 				error = true;
+			}
 		}
 		
 		if(error) {
@@ -42,8 +48,9 @@ public class TrajVis {
 			System.out.println("  options: ");
 			System.out.println("           -h <human data>     human joint data");
 			System.out.println("           -e <embedded data>  low-dimensional (2D/3D) embedding");
+			System.out.println("           -l <embedded data>  point labels");
 			System.out.println("           -c   			   center embeddings around mean");
-			System.out.println("\n      -h and -e can be passed multiple times");
+			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
 			return;
 		}
 		
@@ -65,14 +72,18 @@ public class TrajVis {
 		//m.kitchen.setHeight(400);
 		
 		m.isomap.centerTrajectory = center;
-		m.isomap.readTrajectory(new File(embedFiles.get(0)));
+		Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
+		if(labelFiles.size() > 0)
+			traj.setLabels(new File(labelFiles.get(0)));
 		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
 		for(int i = 1; i < embedFiles.size(); i++) {
-			Trajectory traj = new Trajectory();
+			traj = new Trajectory();
 			traj.readAsc(new File(embedFiles.get(i)));
 			traj.lineColor = colors[i % colors.length];
 			if(center)
 				traj.center();
+			if(i < labelFiles.size())
+				traj.setLabels(new File(labelFiles.get(i)));
 			m.isomap.addAnimated(traj);
 		}
 		//m.isomap.setWidth(800);
