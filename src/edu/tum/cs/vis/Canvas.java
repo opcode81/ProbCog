@@ -60,12 +60,28 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 	 */
 	Vector<Drawable> items = new Vector<Drawable>();
 
+	/**
+	 * sets the width of the window (must set before the canvas is initialized using setup)
+	 * @param width
+	 */
 	public void setWidth(int width) {
 		this.width = width;
 	}
 	
+	/**
+	 * sets the height of the window (must set before the canvas is initialized using setup)
+	 * @param width
+	 */
 	public void setHeight(int height) {
 		this.height = height;
+	}
+	
+	public int getHeight() {
+		return height;
+	}
+	
+	public int getWidth() {
+		return width;
 	}
 	
 	public void setSceneSize(float size) {
@@ -216,6 +232,16 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 			System.out.println("Turned camera " + (useCamera ? "on" : "off"));
 			break;
 		}
+		switch(key) {
+		case '+':
+			zoom(-2);
+			redraw();
+			break;
+		case '-':
+			zoom(2);
+			redraw();
+			break;
+		}		
 	}
 
 	public void mousePressed(MouseEvent e) {
@@ -320,27 +346,30 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 			rightMouseX = e.getX();
 			rightMouseY = e.getY();
 		}
-		else if (centerMouseY != -1.0f) { // zoom			
-			if(!useCamera) {
-				zoomDisplay += -(e.getY() - centerMouseY) * 10 / sceneSize;
-				if (zoomDisplay < 0.01) {
-					zoomDisplay = 0.01f;
-				}
-			}
-			else {
-				float dy = -(e.getY() - centerMouseY) * sceneSize / 1000;			
-				
-				Vector3f dir = new Vector3f(eyeTarget);
-				dir.subtract(eye);
-				dir.normalize();
-				dir.scale(dy);			
-				eye.add(dir);
-			}
-			
+		else if (centerMouseY != -1.0f) { // zoom
+			zoom(e.getY() - (int)centerMouseY);
 			centerMouseY = e.getY();
 		}
 
 		redraw();
+	}
+	
+	public void zoom(int delta) {
+		if(!useCamera) {				
+			zoomDisplay += -(delta) * 10 / sceneSize;
+			if (zoomDisplay < 0.01) {
+				zoomDisplay = 0.01f;
+			}
+		}
+		else {
+			float dy = -(delta) * sceneSize / 1000;			
+			
+			Vector3f dir = new Vector3f(eyeTarget);
+			dir.subtract(eye);
+			dir.normalize();
+			dir.scale(dy);			
+			eye.add(dir);
+		}	
 	}
 
 
