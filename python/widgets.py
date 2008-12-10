@@ -504,7 +504,7 @@ class FilePick(Frame):
         if self.user_onChange != None:
             self.user_onChange(filename)
 
-    def __init__(self, master, file_mask, default_file, user_onChange = None, font = None, dirs = (".", )):
+    def __init__(self, master, file_mask, default_file, user_onChange = None, font = None, dirs = (".", ), allowNone = False):
         ''' file_mask: file mask or list of file masks '''
         self.master = master
         self.user_onChange = user_onChange
@@ -516,17 +516,22 @@ class FilePick(Frame):
             self.file_extension = file_mask[file_mask.rfind('.'):]
         # read filenames
         self.files = []
+        if allowNone:
+            self.files.append("")
         if type(file_mask) != list:
             file_mask = [file_mask]
         for fm in file_mask:
             for dir in dirs:
-                for filename in os.listdir(dir):
-                    if fnmatch(filename, fm):
-                        if dir != ".":
-                            path = os.path.join(dir, filename)
-                        else:
-                            path = filename
-                        self.files.append(path)
+                try: 
+                    for filename in os.listdir(dir):
+                        if fnmatch(filename, fm):
+                            if dir != ".":
+                                path = os.path.join(dir, filename)
+                            else:
+                                path = filename
+                            self.files.append(path)
+                except:
+                    pass
         self.files.sort()
         if len(self.files) == 0: self.files.append("(no %s files found)" % file_mask)
         # create list
