@@ -65,8 +65,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		BufferedReader r = new BufferedReader(new FileReader(ascFile));
 		String line;
 		int iLine = 0;
-		while((line = r.readLine()) != null) {
-			int l = Integer.parseInt(line);
+		while((line = r.readLine()) != null) {			
+			int l = (int)Math.rint(Double.parseDouble(line));
 			this.points.get(iLine).color = colors[l];
 			iLine++;
 		}
@@ -82,6 +82,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 	
 	public void draw(Canvas c, int step) {
 		c.pushMatrix();
+		
 		pointSize = range / 150;
 		sphereSize = pointSize * 2;
 		//System.out.println(pointSize);
@@ -103,8 +104,9 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 		
 		// stuff for current pos
-		Point currentPos = points.get(step);
-		if(currentPos != null) {
+		if(step < points.size()) {
+			Point currentPos = points.get(step);
+			
 			// draw sphere around it
 			new Sphere(currentPos.v.x, currentPos.v.y, currentPos.v.z, sphereSize, sphereColor).draw(c);
 			
@@ -117,9 +119,10 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			}
 			
 			// focus eye on it	
-			c.setEyeTarget(currentPos.v);
-			c.popMatrix();
+			c.setEyeTarget(currentPos.v);			
 		}
+		
+		c.popMatrix();
 	}
 	
 	public int getNumSteps() {
