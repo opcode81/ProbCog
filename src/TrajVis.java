@@ -54,7 +54,7 @@ public class TrajVis {
 			return;
 		}
 		
-		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk");
+		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk", 800, 400, 400);
 		
 		if(!humanFiles.isEmpty()) {
 			int[] colors = new int[]{0xffff00ff, 0xffffff00, 0xff00ffff};
@@ -68,8 +68,6 @@ public class TrajVis {
 				m.kitchen.addAnimated(bps);
 			}
 		}
-		//m.kitchen.setWidth(800);
-		//m.kitchen.setHeight(400);
 		
 		m.isomap.centerTrajectory = center;
 		Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
@@ -85,12 +83,12 @@ public class TrajVis {
 			if(i < labelFiles.size())
 				traj.setLabels(new File(labelFiles.get(i)));
 			m.isomap.addAnimated(traj);
-		}
-		//m.isomap.setWidth(800);
+		}		
 		//m.isomap.setHeight(400);
 			
 		JFrame frame = new JFrame();
-		frame.setSize(new Dimension(820, 1055));
+		Dimension size = m.getPreferredSize();
+		frame.setSize(new Dimension(size.width + 10, size.height + 30));
 		frame.add(m);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);			
