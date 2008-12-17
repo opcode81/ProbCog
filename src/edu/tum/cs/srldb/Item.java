@@ -19,6 +19,8 @@ public abstract class Item {
 	protected static int GUID = 1;
 	protected int id;
 	protected Database database;
+	/** whether this object is immutable (e.g. because it has been committed to a database) */
+	protected boolean immutable = false;
 	
 	public Item(Database database) {
 		this.attribs = new HashMap<String, String>();
@@ -27,6 +29,7 @@ public abstract class Item {
 	}
 	
 	public void addAttribsFromResultSet(ResultSet rs, boolean callNext) throws Exception {
+		checkMutable();
 		boolean erroneous = false;
 		try {			
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -56,6 +59,7 @@ public abstract class Item {
 	 * @throws DDException 
 	 */
 	public void addAttribute(String attribute, String value) throws DDException {
+		checkMutable();
 		DDAttribute attrib = database.getDataDictionary().getAttribute(attribute);
 		if(attrib != null) {
 			Domain domain = attrib.getDomain();
@@ -70,9 +74,15 @@ public abstract class Item {
 	 * @param attributes a map of (key, value) pairs 
 	 */
 	public void addAttributes(Map<String,String> attributes) throws DDException {
+		checkMutable();
 		for(Entry<String,String> entry : attributes.entrySet()) {
 			addAttribute(entry.getKey(), entry.getValue());
 		}
+	}
+	
+	protected void checkMutable() throws DDException {
+		if(immutable) 
+			throw new DDException("This object can no longer be modified, probably because it has already been committed.");
 	}
 	
 	/**

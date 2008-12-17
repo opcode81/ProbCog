@@ -90,7 +90,7 @@ public class BN2SRLDB {
 		// generate samples and add as objects
 		for(int i = 0; i < numSamples; i++) {
 			HashMap<String,String> sample = bn.getSample(generator);
-			Object obj = new Object(db);
+			Object obj = new Object(db, "object");
 			if(booleanConversion != null) {				
 				for(String attrName : booleanConversion) {
 					String value = sample.get(attrName);

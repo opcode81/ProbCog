@@ -7,7 +7,13 @@ import kdl.prox3.dbmgr.DataTypeEnum;
 public class DDAttribute implements Cloneable {
 	protected String name;
 	protected Domain domain;
+	/**
+	 * whether this attribute is scheduled for clustering
+	 */
 	protected boolean doClustering;
+	/**
+	 * whether this attribute is actually discarded/unused
+	 */
 	protected boolean discarded;
 	/**
 	 * the item that owns this attribute (usually a DDObject)
@@ -29,6 +35,14 @@ public class DDAttribute implements Cloneable {
 	
 	public DDAttribute(String name, Domain domain, boolean doClustering) {
 		this(name, domain);
+		this.doClustering = doClustering;
+	}
+	
+	/**
+	 * @param doClustering whether this attribute should be scheduled for clustering, 
+	 * replacing all its values in instances with the respective clustering result
+	 */
+	public void setClustering(boolean doClustering) {
 		this.doClustering = doClustering;
 	}
 	
