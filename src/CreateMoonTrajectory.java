@@ -5,8 +5,9 @@ import java.util.Random;
 
 import edu.tum.cs.vis.AnimatedCanvas;
 import edu.tum.cs.vis.CoordinateSystem;
-import edu.tum.cs.vis.Point;
-import edu.tum.cs.vis.Trajectory;
+import edu.tum.cs.vis.items.FrameDisplay;
+import edu.tum.cs.vis.items.Point;
+import edu.tum.cs.vis.items.Trajectory;
 
 
 public class CreateMoonTrajectory {
@@ -22,6 +23,7 @@ public class CreateMoonTrajectory {
 		AnimatedCanvas c = new AnimatedCanvas();
 		c.add(new CoordinateSystem((float)radius));
 		c.addAnimated(traj);
+		c.add(new FrameDisplay(c, 5, 5+11, AnimatedCanvas.LEFT, null));
 		c.setSceneSize((float)radius);
 		c.runMain();
 		traj.saveAsc(new File("moons.asc"));
