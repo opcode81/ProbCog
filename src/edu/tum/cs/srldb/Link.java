@@ -73,6 +73,8 @@ public class Link extends Item {
 	 * @param db
 	 */
 	public void addTo(Database db) {
+		if(db == this.database) // this is a commit
+			immutable = true;
 		db.addLink(this);
 	}
 	

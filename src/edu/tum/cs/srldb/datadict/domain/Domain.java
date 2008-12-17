@@ -23,7 +23,7 @@ public abstract class Domain<T> {
 		StringBuffer buf = new StringBuffer("{");
 		int i = 0;
 		for(String value : getValues()) {
-			if(i > 0) buf.append(", ");
+			if(i++ > 0) buf.append(", ");
 			buf.append(value);
 		}
 		buf.append("}");

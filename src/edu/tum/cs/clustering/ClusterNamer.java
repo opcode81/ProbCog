@@ -1,4 +1,4 @@
-package edu.tum.cs.bayesnets.learning;
+package edu.tum.cs.clustering;
 import weka.clusterers.*;
 import weka.core.*;
 import java.util.*;
@@ -10,14 +10,52 @@ import java.math.*;
  * @author Dominik Jain
  */
 public interface ClusterNamer<Cl extends Clusterer> {
-	public String[] getNames(Cl clusterer);
+	public String[] getNames(Cl clusterer) throws Exception;
 	
 	/**
-	 * a default cluster namer, which simply returns the string "~E +/- S" for each cluster, where
+	 * the most basic cluster namer, which simply adds a prefix to each cluster index
+	 * @author jain
+	 */
+	public static class SimplePrefix implements ClusterNamer<Clusterer> {
+		protected String prefix;
+		
+		public SimplePrefix(String prefix) {
+			this.prefix = prefix;
+		}
+		
+		public String[] getNames(Clusterer clusterer) throws Exception {
+			int n = clusterer.numberOfClusters();
+			String[] names = new String[n];
+			for(Integer i = 0; i < n; i++)
+				names[i] = prefix + i.toString();
+			return names;
+		}
+	}
+	
+	/**
+	 * a basic cluster namer that simply returns a fixed list of predetermined names
+	 * @author jain
+	 */
+	public static class Fixed implements ClusterNamer<Clusterer> {
+		protected String[] names;
+		
+		public Fixed(String[] names) {
+			this.names = names;
+		}
+		
+		public String[] getNames(Clusterer clusterer) throws Exception {
+			if(clusterer.numberOfClusters() != names.length)
+				throw new Exception("Number of clusters does not match number of names.");
+			return names;
+		}
+	}
+	
+	/**
+	 * a K-Means cluster namer which simply returns the string "~E +/- S" for each cluster, where
 	 * E is the expected value and S the standard deviation of the cluster. 
 	 * @author Dominik Jain
 	 */
-	public static class Default implements ClusterNamer<SimpleKMeans> {
+	public static class MeanStdDev implements ClusterNamer<SimpleKMeans> {
 		public String[] getNames(SimpleKMeans clusterer) {
 			int numClusters = clusterer.getNumClusters();
 			String[] ret = new String[numClusters];
@@ -30,7 +68,7 @@ public interface ClusterNamer<Cl extends Clusterer> {
 	}
 	
 	/**
-	 * a default cluster namer, which returns the range of values (i.e. an interval), formatted
+	 * a K-Means cluster namer, which returns the range of values (i.e. an interval), formatted
 	 * in a string, for each
 	 * cluster by calculating the intersections of the Gaussian distributions 
 	 * @author Dominik Jain

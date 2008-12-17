@@ -30,7 +30,7 @@ public class AtomicMLNTest {
 			while(rs.next()) {
 		
 				// get object
-				Object obj = new Object(database);
+				Object obj = new Object(database, "object");
 				obj.addAttribsFromResultSet(rs, false);
 			
 			}

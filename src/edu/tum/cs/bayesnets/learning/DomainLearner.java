@@ -2,6 +2,7 @@ package edu.tum.cs.bayesnets.learning;
 
 import edu.ksu.cis.bnj.ver3.core.*;
 import edu.tum.cs.bayesnets.core.*;
+import edu.tum.cs.clustering.ClusterNamer;
 
 import java.sql.*;
 import java.util.*;

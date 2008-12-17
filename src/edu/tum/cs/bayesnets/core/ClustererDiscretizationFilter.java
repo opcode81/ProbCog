@@ -3,7 +3,7 @@
  */
 package edu.tum.cs.bayesnets.core;
 
-import edu.tum.cs.bayesnets.learning.ClusterNamer;
+import edu.tum.cs.clustering.ClusterNamer;
 import weka.clusterers.Clusterer;
 import weka.core.Instance;
 

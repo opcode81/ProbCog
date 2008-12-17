@@ -5,7 +5,7 @@ package edu.tum.cs.bayesnets.core;
 
 import weka.clusterers.Clusterer;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.bayesnets.learning.ClusterNamer;
+import edu.tum.cs.clustering.ClusterNamer;
 
 /**
  * An instance of class <code>Discretized</code> represents a domain that

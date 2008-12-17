@@ -11,16 +11,18 @@ import kdl.prox3.dbmgr.DataTypeEnum;
 public class Object extends Item implements IRelationArgument {
 	
 	protected HashMap<String, Link> links;
-	protected String objTypeName = null;
+	protected String objTypeName;
 	protected String constantName = null;
 	
 	/**
-	 * creates an object for the given database
+	 * creates an object for the given database; 
+	 * Since a type name is not provided but is determined from the actual class name, 
+	 * this constructor cannot be used directly  
 	 * @param database  the database the object is to be part of (upon commit)
 	 */
-	public Object(Database database) {
-		super(database);
-		links = null;			
+	protected Object(Database database) {
+		this(database, null);
+		objTypeName = getClass().getSimpleName();
 	}
 	
 	/**
@@ -29,7 +31,8 @@ public class Object extends Item implements IRelationArgument {
 	 * @param objTypeName  the type name
 	 */
 	public Object(Database database, String objTypeName) {
-		this(database);
+		super(database);
+		links = null;
 		this.objTypeName = objTypeName;
 	}
 	
@@ -43,8 +46,10 @@ public class Object extends Item implements IRelationArgument {
 	 * @param linkName  the name of the link/relation
 	 * @param otherObj  the object to link to
 	 * @return a reference to the newly created link object
+	 * @throws DDException 
 	 */
-	public Link link(String linkName, Object otherObj) {
+	public Link link(String linkName, Object otherObj) throws DDException {
+		checkMutable();
 		Link link = new Link(database, linkName, this, otherObj);
 		if(links == null)
 			links = new HashMap<String, Link>();
@@ -57,8 +62,10 @@ public class Object extends Item implements IRelationArgument {
 	 * @param linkName  the name of the link/relation
 	 * @param otherObjects  the objects to link to 
 	 * @return a reference to the newly created link object
+	 * @throws DDException 
 	 */
-	public Link link(String linkName, Object[] otherObjects) {
+	public Link link(String linkName, Object[] otherObjects) throws DDException {
+		checkMutable();
 		Object[] objs = new Object[1+otherObjects.length];
 		objs[0] = this;
 		for(int i = 0; i < otherObjects.length; i++)
@@ -111,20 +118,26 @@ public class Object extends Item implements IRelationArgument {
 	 * @return the object type name; class name by default (unless overridden during construction)
 	 */
 	public String objType() {
-		if(objTypeName == null)
-			return getClass().getSimpleName();
 		return objTypeName;
 	}
 	
 	/** 
-	 * adds the object and all attached links to the database
+	 * adds the object and all attached links to the database this object is associated with
 	 */
 	public void commit() {
 		addTo(this.database);
 	}
-	
+
+	/**
+	 * adds the object and all attached links to the given database
+	 * @param db
+	 */
 	public void addTo(Database db) {
+		if(db == this.database) // this is a commit
+			immutable = true;
+		// add object		
 		db.addObject(this);
+		// add links
 		if(links != null) {
 			for(Link link : links.values()) {
 				link.addTo(db);	
