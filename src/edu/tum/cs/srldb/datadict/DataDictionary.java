@@ -4,6 +4,8 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.Map.Entry;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.ConstantArgument;
@@ -257,7 +259,7 @@ public class DataDictionary {
 	public void onCommitLink(Link l) throws DDException {}
 	
 	/**
-	 * outputs the basic MLN for this database, which contains domain definitions and predicate declarations   
+	 * outputs the basic MLN for this data dictionary, which contains domain definitions and predicate declarations   
 	 * @param out the stream to write to
 	 */
 	public void writeBasicMLN(PrintStream out) {
@@ -280,7 +282,7 @@ public class DataDictionary {
 				// check if the domain is empty
 				String[] values = domain.getValues();
 				if(values.length == 0) {
-					System.err.println("Warning: domain " + domain.getName() + " is empty and was discarded");
+					System.err.println("Warning: Domain " + domain.getName() + " is empty!");
 					continue;
 				}
 				// print the domain name
@@ -324,4 +326,110 @@ public class DataDictionary {
 			rel.MLNprintUnitClauses(idNamer, out);
 		}
 	}	
+
+	/**
+	 * outputs the basic BLN for this data dictionary, which contains domain definitions and predicate declarations   
+	 * @param out the stream to write to
+	 */
+	public void writeBasicBLN(PrintStream out) {
+		out.println("// Bayesian Logic Network\n\n");
+		IdentifierNamer idNamer = new IdentifierNamer(this);
+		// types
+		out.println("// ***************\n// types\n// ***************\n");		
+		for(DDObject ddo : this.getObjects()) 
+			out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", ddo.getDomainName()));
+		for(DDAttribute dda : this.getAttributes())
+			if(!dda.isDiscarded() && !dda.isBoolean())
+				out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", dda.getDomain().getName()));
+		// domains
+		out.println("\n// ***************\n// domains\n// ***************\n");
+		HashSet<String> printedDomains = new HashSet<String>(); // the names of domains that have already been printed
+		// - check all attributes for finite domains
+		for(DDAttribute attrib : this.getAttributes()) {
+			if(attrib.isDiscarded())
+				continue;
+			Domain<?> domain = attrib.getDomain();
+			if(domain == null || attrib.isBoolean() || !domain.isFinite())
+				continue;			
+			// we have a finite domain -> output this domain if it hasn't already been printed
+			String name = domain.getName();
+			if(!printedDomains.contains(name)) {
+				// check if the domain is empty
+				String[] values = domain.getValues();
+				if(values.length == 0) {
+					System.err.println("Warning: Domain " + domain.getName() + " is empty!");
+					continue;
+				}
+				// print the domain name
+				String domIdentifier = idNamer.getLongIdentifier("domain", domain.getName());
+				out.print("guaranteed " + domIdentifier + " ");
+				// print the values (must start with upper-case letter)				
+				for(int i = 0; i < values.length; i++) {
+					if(i > 0)
+						out.print(", ");
+					out.print(Database.stdAttribStringValue(values[i]));				
+				}
+				out.println(";");
+				printedDomains.add(name);
+			}			
+		}
+		// predicate declarations
+		out.println("\n\n// *************************\n// predicate declarations\n// *************************\n");
+		for(DDObject obj : this.getObjects()) {
+			obj.BLNprintPredicateDeclarations(idNamer, out);			
+		}
+		out.println("// Relations");
+		for(DDRelation rel : this.getRelations()) {
+			rel.BLNprintPredicateDeclarations(idNamer, out);
+		}
+	}	
+
+	
+	public static class BLNStructure {
+		public BeliefNetworkEx bn;
+		protected HashMap<java.lang.Object,BeliefNode> dd2node;
+		
+		public BLNStructure(BeliefNetworkEx bn, HashMap<java.lang.Object,BeliefNode> dd2node) {
+			this.bn = bn;
+			this.dd2node = dd2node;			
+		}
+		
+		public BeliefNode getNode(DDAttribute attr) {
+			return dd2node.get(attr);
+		}
+		
+		public BeliefNode getNode(DDRelation rel) {
+			return dd2node.get(rel);
+		}
+		
+		public void connect(java.lang.Object ddAttributeOrRelation_Parent, java.lang.Object ddAttributeOrRelation_Child) {
+			bn.bn.connect(dd2node.get(ddAttributeOrRelation_Parent), dd2node.get(ddAttributeOrRelation_Child));
+		}
+	}
+	
+	public BLNStructure createBasicBLNStructure() {
+		BeliefNetworkEx bn = new BeliefNetworkEx();
+		HashMap<java.lang.Object, BeliefNode> dd2node = new HashMap<java.lang.Object, BeliefNode>();
+		IdentifierNamer namer = new IdentifierNamer(this);
+		// attribute nodes
+		for(DDAttribute attr : this.getAttributes()) {
+			if(attr.isDiscarded())
+				continue;
+			String nodeName = String.format("%s(%s)", attr.getName(), namer.getShortIdentifier("object", attr.getOwner().getName()));
+			dd2node.put(attr, bn.addNode(nodeName));
+		}
+		// relation nodes
+		for(edu.tum.cs.srldb.datadict.DDRelation rel : this.getRelations()) {
+			StringBuffer nodeName = new StringBuffer(rel.getName() + "(");
+			IDDRelationArgument[] relargs = rel.getArguments();
+			for(int i = 0; i < relargs.length; i++) {
+				if(i > 0)
+					nodeName.append(',');
+				nodeName.append(namer.getShortIdentifier(rel.getName(), relargs[i].getDomainName()));
+			}
+			nodeName.append(')');
+			dd2node.put(rel, bn.addNode(nodeName.toString()));
+		}
+		return new BLNStructure(bn, dd2node);
+	}
 }
