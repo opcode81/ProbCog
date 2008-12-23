@@ -63,16 +63,18 @@ public class Link extends Item {
 	
 	/**
 	 * adds this link to the database given at construction
+	 * @throws DDException 
 	 */
-	public void commit() {
+	public void commit() throws DDException {
 		addTo(this.database);
 	}
 	
 	/**
 	 * adds this link to the given database
 	 * @param db
+	 * @throws DDException 
 	 */
-	public void addTo(Database db) {
+	public void addTo(Database db) throws DDException {
 		if(db == this.database) // this is a commit
 			immutable = true;
 		db.addLink(this);
