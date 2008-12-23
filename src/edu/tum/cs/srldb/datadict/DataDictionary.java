@@ -328,11 +328,11 @@ public class DataDictionary {
 	}	
 
 	/**
-	 * outputs the basic BLN for this data dictionary, which contains domain definitions and predicate declarations   
+	 * outputs the basic BLOG model for this data dictionary, which contains domain definitions and predicate declarations   
 	 * @param out the stream to write to
 	 */
-	public void writeBasicBLN(PrintStream out) {
-		out.println("// Bayesian Logic Network\n\n");
+	public void writeBasicBLOGModel(PrintStream out) {
+		out.println("// BLOG Model\n\n");
 		IdentifierNamer idNamer = new IdentifierNamer(this);
 		// types
 		out.println("// ***************\n// types\n// ***************\n");		

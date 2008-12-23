@@ -99,8 +99,8 @@ public class PointCloudClassification {
 		//bs.bn.show();
 		
 		// BLN
-		PrintStream bln = new PrintStream(new File("pcc.bln"));
-		dd.writeBasicBLN(bln);
+		PrintStream bln = new PrintStream(new File("pcc.abl"));
+		dd.writeBasicBLOGModel(bln);
 		
 		// read test data
 		db.clear();
