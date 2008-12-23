@@ -22,7 +22,9 @@ public class TrajVis {
 		Vector<String> humanFiles = new Vector<String>();
 		Vector<String> embedFiles = new Vector<String>();
 		Vector<String> labelFiles = new Vector<String>();
-		boolean error = false;
+		boolean drawMesh = true;
+		boolean wire = false;
+		boolean error = false;		
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-c")) {
@@ -37,6 +39,12 @@ public class TrajVis {
 			else if(args[i].equals("-l")) {
 				labelFiles.add(args[++i]);
 			}
+			else if(args[i].equals("-nomesh")) {
+				drawMesh = false;
+			}
+			else if(args[i].equals("-wire")) {
+				wire = true;
+			}
 			else {
 				System.err.println("Error: unknown parameter " + args[i]);
 				error = true;
@@ -50,19 +58,25 @@ public class TrajVis {
 			System.out.println("           -e <embedded data>  low-dimensional (2D/3D) embedding");
 			System.out.println("           -l <embedded data>  point labels");
 			System.out.println("           -c   			   center embeddings around mean");
+			System.out.println("           -nomesh			   do not draw kitchen mesh");	
+			System.out.println("           -wire               draw human pose using lines only");	
 			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
 			return;
 		}
 		
 		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk", 800, 400, 400);
 		
+		m.kitchen.setDrawMeshes(drawMesh);		
+		
 		if(!humanFiles.isEmpty()) {
 			int[] colors = new int[]{0xffff00ff, 0xffffff00, 0xff00ffff};
 			m.kitchen.readTrajectoryData(new File(humanFiles.get(0)));
 			m.kitchen.bodyPoseSeq.setColor(colors[0]);
+			m.kitchen.bodyPoseSeq.setMode(wire);
 			for(int i = 1; i < humanFiles.size(); i++) {
 				File f = new File(humanFiles.get(i));
 				BodyPoseSequence bps = new BodyPoseSequence();
+				bps.setMode(wire);
 				bps.setColor(colors[i]);
 				bps.readData(f);
 				m.kitchen.addAnimated(bps);
