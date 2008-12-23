@@ -107,8 +107,8 @@ public class MLN_Passes {
 			data.database.check();
 			
 			System.out.print("Writing MLN...");
-			data.database.outputMLNDatabase(new PrintStream(new File("test.db")));
-			data.database.outputBasicMLN(new PrintStream(new File("test.mln")));
+			data.database.writeMLNDatabase(new PrintStream(new File("test.db")));
+			data.database.writeBasicMLN(new PrintStream(new File("test.mln")));
 			//data.database.outputMLNDatabase(new PrintStream(new File("mln/actions_situations/" + (allData ? "fipm_full.db" : "fipm.db"))));
 			//data.database.outputMLNBasis(new PrintStream(new File("mln/actions_situations/actsit-empty.mln")));
 			System.out.println(" done!");

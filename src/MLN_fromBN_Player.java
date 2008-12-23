@@ -21,9 +21,9 @@ public class MLN_fromBN_Player {
 			// write mln
 			String dir = "mln/bn_players/";
 			PrintStream outMLN = new PrintStream(new File(dir + "sampled_bn.mln"));
-			db.outputBasicMLN(outMLN);
+			db.writeBasicMLN(outMLN);
 			bn2db.writeMLNFormulas(outMLN);
-			db.outputMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));
+			db.writeMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));
 			
 			bn2db.relearnBN();
 			bn.saveXMLBIF(dir + "sampled_bn.bif.xml");

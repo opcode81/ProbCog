@@ -20,8 +20,8 @@ public class MLN_fromBN_Sprinkler {
 			
 			// write mln
 			String dir = "mln/sampled_bn/";
-			db.outputBasicMLN(new PrintStream(new File(dir + "sampled_bn.mln")));
-			db.outputMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));
+			db.writeBasicMLN(new PrintStream(new File(dir + "sampled_bn.mln")));
+			db.writeMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));
 			
 			bn2db.relearnBN();
 			bn.saveXMLBIF(dir + "sampled_bn.bif.xml");

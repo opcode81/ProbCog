@@ -97,7 +97,7 @@ public class Database implements Cloneable {
 		attribute.setDomain(ac.newDomain);
 	}
 	
-	public void outputMLNDatabase(PrintStream out) throws Exception {
+	public void writeMLNDatabase(PrintStream out) throws Exception {
 		out.println("// *** mln database ***\n");
 		// links
 		out.println("// links");
@@ -111,7 +111,7 @@ public class Database implements Cloneable {
 		}
 	}
 	
-	public void outputBLOGDatabase(PrintStream out) {
+	public void writeBLOGDatabase(PrintStream out) {
 		for(Object obj : objects) {
 			for(Entry<String, String> entry : obj.getAttributes().entrySet()) {
 				out.printf("%s(%s) = %s;\n", entry.getKey(), obj.getConstantName(), this.upperCaseString(entry.getValue())); 
@@ -128,79 +128,19 @@ public class Database implements Cloneable {
 	}
 	
 	/**
-	 * outputs the basic MLN for this database, which contains domain definitions, predicate declarations and rules of mutual exclusion   
+	 * outputs the basic MLN for this database, which contains domain definitions and predicate declarations   
 	 * @param out the stream to write to
 	 */
-	public void outputBasicMLN(PrintStream out) {
-		out.println("// Markov Logic Network\n\n");
-		IdentifierNamer idNamer = new IdentifierNamer(datadict);
-		// domains
-		out.println("// ***************\n// domains\n// ***************\n");
-		HashSet<String> printedDomains = new HashSet<String>(); // the names of domains that have already been printed
-		// - check all attributes for finite domains
-		for(DDAttribute attrib : datadict.getAttributes()) {
-			if(attrib.isDiscarded())
-				continue;
-			Domain domain = attrib.getDomain();
-			if(domain == null || attrib.isBoolean() || !domain.isFinite()) // boolean domains aren't handled because a boolean attribute value is not specified as a constant but rather using negation of the entire predicate
-				continue;
-			// we have a finite domain -> output this domain if it hasn't already been printed
-			String name = domain.getName();
-			if(!printedDomains.contains(name)) {
-				// check if the domain is empty
-				String[] values = domain.getValues();
-				if(values.length == 0) {
-					System.err.println("Warning: domain " + domain.getName() + " is empty and was discarded");
-					continue;
-				}
-				// print the domain name
-				String domIdentifier = idNamer.getLongIdentifier("domain", domain.getName());
-				out.print(domIdentifier + " = {");
-				// print the values (must start with upper-case letter)				
-				for(int i = 0; i < values.length; i++) {
-					if(i > 0)
-						out.print(", ");
-					out.print(stdAttribStringValue(values[i]));				
-				}
-				out.println("}");
-				printedDomains.add(name);
-			}			
-		}
-		// predicate declarations
-		out.println("\n\n// *************************\n// predicate declarations\n// *************************\n");
-		for(DDObject obj : datadict.getObjects()) {
-			obj.MLNprintPredicateDeclarations(idNamer, out);			
-		}
-		out.println("// Relations");
-		for(DDRelation rel : datadict.getRelations()) {
-			rel.MLNprintPredicateDeclarations(idNamer, out);
-		}	
-		// rules
-		out.println("\n\n// ******************\n// rules\n// ******************\n");
-		/*
-		for(DDObject obj : datadict.getObjects()) {
-			obj.MLNprintRules(idNamer, out);
-		}		
-		out.println("\n// mutual exclusiveness and exhaustiveness: relations");
-		for(DDRelation rel : datadict.getRelations()) {
-			rel.MLNprintRules(idNamer, out);
-		}*/
-		// unit clauses
-		out.println("\n// unit clauses");
-		for(DDObject obj : datadict.getObjects()) {
-			obj.MLNprintUnitClauses(idNamer, out);
-		}
-		for(DDRelation rel : datadict.getRelations()) {
-			rel.MLNprintUnitClauses(idNamer, out);
-		}
-	}	
+	public void writeBasicMLN(PrintStream out) {
+		datadict.writeBasicMLN(out);
+	}
 	
 	/**
 	 * outputs the data contained in this database to an XML database file for use with Proximity
 	 * @param out the stream to write to
 	 * @throws Exception
 	 */
-	public void outputProximityDatabase(java.io.PrintStream out) throws Exception {
+	public void writeProximityDatabase(java.io.PrintStream out) throws Exception {
 		out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 		out.println("<!DOCTYPE PROX3DB SYSTEM \"prox3db.dtd\">");
 		out.println("<PROX3DB>");

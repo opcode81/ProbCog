@@ -109,8 +109,8 @@ public class MLN_Passes3 {
 			System.out.print("Writing MLN...");
 			//data.database.outputMLNDatabase(new PrintStream(new File("test.db")));
 			//data.database.outputMLNBasis(new PrintStream(new File("test.mln")));
-			data.database.outputMLNDatabase(new PrintStream(new File("mln/passes3-numeric/" + (allData ? "fipm_full.db" : "fipm.db"))));
-			data.database.outputBasicMLN(new PrintStream(new File("mln/passes3-numeric/actsit-empty.mln")));
+			data.database.writeMLNDatabase(new PrintStream(new File("mln/passes3-numeric/" + (allData ? "fipm_full.db" : "fipm.db"))));
+			data.database.writeBasicMLN(new PrintStream(new File("mln/passes3-numeric/actsit-empty.mln")));
 			System.out.println(" done!");
 		}
 		catch(Exception e) {

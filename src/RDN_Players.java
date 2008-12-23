@@ -16,7 +16,7 @@ public class RDN_Players {
 			
 			System.out.println("writing Proximity database...");
 			PrintStream out = new PrintStream(new File("proximity/fipm.proxdb.xml"));
-			data.database.outputProximityDatabase(out);
+			data.database.writeProximityDatabase(out);
 			
 			System.out.println("done!");
 		}

@@ -46,11 +46,11 @@ public class genDB {
 			db.check();
 			PrintStream outDB = new PrintStream(new java.io.File(args[2]));
 			if(args[0].equals("-m"))
-				db.outputMLNDatabase(outDB);
+				db.writeMLNDatabase(outDB);
 			else if(args[0].equals("-b"))
-				db.outputBLOGDatabase(outDB);
+				db.writeBLOGDatabase(outDB);
 			else if(args[0].equals("-bm"))
-				db.outputBasicMLN(outDB);
+				db.writeBasicMLN(outDB);
 			System.out.println("done!");
 		}
 		catch(Exception e) {

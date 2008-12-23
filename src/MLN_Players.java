@@ -18,8 +18,8 @@ public class MLN_Players {
 				iter.next().print();
 			}*/		
 			PrintStream out = new PrintStream(new File("mln/players_teams_games/fipm.db"));
-			data.database.outputMLNDatabase(out);
-			data.database.outputBasicMLN(new PrintStream(new File("mln/players_teams_games/fipm-empty.mln")));
+			data.database.writeMLNDatabase(out);
+			data.database.writeBasicMLN(new PrintStream(new File("mln/players_teams_games/fipm-empty.mln")));
 			
 			System.out.println("done!");
 		}

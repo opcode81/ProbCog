@@ -39,7 +39,7 @@ public class AtomicMLNTest {
 			System.out.println("writing MLN database...");
 			
 			PrintStream out = new PrintStream(new File("mln/atomic_events/data.db"));
-			database.outputMLNDatabase(out);
+			database.writeMLNDatabase(out);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
