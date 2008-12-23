@@ -10,26 +10,22 @@ public class DDRelation extends DDItem {
 	protected IDDRelationArgument[] arguments;
 	protected boolean[] singleVal;
 	
-	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2) throws Exception {
+	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2) throws DDException {
 		this(name, arg1, arg2, false, false);
 	}
 
-	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2, boolean singleValue1, boolean singleValue2) throws Exception {
+	public DDRelation(String name, IDDRelationArgument arg1, IDDRelationArgument arg2, boolean singleValue1, boolean singleValue2) throws DDException {
 		this(name, new IDDRelationArgument[]{arg1, arg2}, new boolean[]{singleValue1, singleValue2});
 	}
 	
-	public DDRelation(String name, IDDRelationArgument[] arguments) throws Exception {
+	public DDRelation(String name, IDDRelationArgument[] arguments) throws DDException{
 		this(name, arguments, null);
 	}
 
-	public DDRelation(String name, IDDRelationArgument[] arguments, boolean[] singleVal) throws Exception {
+	public DDRelation(String name, IDDRelationArgument[] arguments, boolean[] singleVal) throws DDException {
 		super(name);
-		if(singleVal == null)
-			singleVal = new boolean[arguments.length];
-		if(arguments.length != singleVal.length)
-			throw new Exception("single value array dimension differs from object array dimension");
 		this.arguments = arguments;
-		this.singleVal = singleVal;
+		setFunctional(singleVal);				
 	}
 	
 	@Override
@@ -42,12 +38,14 @@ public class DDRelation extends DDItem {
 	}
 	
 	public void MLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
-		// get the relation's argument domains in a comma-separated list of domain names eclosed in brackets 
+		// get the relation's argument domains in a comma-separated list of domain names enclosed in brackets 
 		StringBuffer params = new StringBuffer();
 		for(int i = 0; i < arguments.length; i++) {
 			if(i > 0) 
 				params.append(", ");				
 			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(arguments[i].getDomainName())));
+			if(singleVal[i])
+				params.append("!");
 		}
 		// output the main predicate declaration
 		out.println(Database.stdPredicateName(getName()) + "(" + params + ")");
@@ -57,6 +55,7 @@ public class DDRelation extends DDItem {
 		}
 	}
 
+	@Deprecated
 	public void MLNprintRules(IdentifierNamer idNamer, PrintStream out) {
 		MLNprintRule(idNamer, getName(), this.singleVal, out);
 		for(DDAttribute attr : attributes.values()) {
@@ -65,6 +64,7 @@ public class DDRelation extends DDItem {
 		}
 	}
 	
+	@Deprecated
 	protected void MLNprintRule(IdentifierNamer idNamer, String predicate, boolean[] singleVal, PrintStream out) {
 		StringBuffer params = new StringBuffer("(");
 		int single = 0;
@@ -96,5 +96,18 @@ public class DDRelation extends DDItem {
 		else
 			;//throw new DDException("this type of attribute cannot be used for relations; use DDRelationAttribute");
 		super.addAttribute(attrib);
+	}
+	
+	/**
+	 * sets the functionality of this relation, i.e. which arguments are functionally determined by the others
+	 * @param singleVal  an array of booleans with one entry per argument of the relation, where each true value indicates that the corresponding argument can take on exactly one value given the others; may be null to indicate that the relation is not functional
+	 * @throws DDException
+	 */
+	public void setFunctional(boolean[] singleVal) throws DDException {		
+		if(singleVal == null)
+			singleVal = new boolean[arguments.length];
+		this.singleVal = singleVal;
+		if(arguments.length != this.singleVal.length)
+			throw new DDException("Single value array dimension differs from object array dimension");
 	}
 }

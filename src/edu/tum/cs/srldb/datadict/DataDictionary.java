@@ -195,7 +195,7 @@ public class DataDictionary {
 	public void checkObject(Object obj) throws DDException {
 		DDObject ddobj = getObject(obj.objType());
 		if(ddobj == null)
-			throw new DDException("unknown object type " + obj.objType() + "; not in data dictionary!");
+			throw new DDException("Unknown object type " + obj.objType() + "; not in data dictionary!");
 		checkItemAttributes(obj, ddobj);
 	}
 	
@@ -203,7 +203,7 @@ public class DataDictionary {
 		// check existence of corresponding link type in data dictionary
 		DDRelation ddlink = getRelation(link.getName());
 		if(ddlink == null)
-			throw new DDException("unknown relation " + link.getName() + "; not in data dictionary!");
+			throw new DDException("Unknown relation " + link.getName() + "; not in data dictionary!");
 		// check number of arguments
 		if(link.getArguments().length != ddlink.getArguments().length)
 			throw new DDException("The link " + link.toString() + " has the wrong number of parameters!");
@@ -241,14 +241,17 @@ public class DataDictionary {
 		for(Entry<String,String> attr : item.getAttributes().entrySet()) {
 			String attribName = attr.getKey();
 			if(!allowedAttributes.contains(attribName))
-				throw new DDException("undefined attribute " + attribName + " for item type " + ddItem.getName());
+				throw new DDException("Undefined attribute " + attribName + " for item type " + ddItem.getName());
 			if(getAttribute(attribName).isDiscarded())
 				continue;
 			Domain domain = ddItem.getAttributes().get(attribName).getDomain();
 			String value = attr.getValue();
 			if(!domain.containsString(value))
-				throw new DDException("invalid value " + value + " for attribute " + attribName + " of item " + ddItem.getName() + "; not in domain " + domain.getName()); 
+				throw new DDException("Invalid value " + value + " for attribute " + attribName + " of item " + ddItem.getName() + "; not in domain " + domain.getName()); 
 		}		
 	}
 
+	public void onCommitObject(Object o) throws DDException {}
+	
+	public void onCommitLink(Link l) throws DDException {}
 }

@@ -1,9 +1,7 @@
 package edu.tum.cs.srldb.datadict;
 
-import java.util.Set;
 import java.util.Map.Entry;
 
-import edu.tum.cs.srldb.ConstantArgument;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.IRelationArgument;
 import edu.tum.cs.srldb.Item;
@@ -18,12 +16,38 @@ public class AutomaticDataDictionary extends DataDictionary {
 		super();		
 	}
 	
-	public void checkObject(Object obj) throws DDException {
-		DDObject ddobj = getObject(obj.objType());
-		checkItemAttributes(obj, ddobj);
+	@Override
+	public void onCommitObject(Object o) throws DDException {
+		// add the object type to the data dictionary if it isn't contained yet
+		DDObject ddo = this.getObject(o.objType());
+		if(ddo == null) 
+			addObject(ddo = new DDObject(o.objType()));
+		// process the attributes
+		onCommitItemAttributes(o, ddo);
+	}	
+	
+	protected void onCommitItemAttributes(Item item, DDItem ddi) throws DDException {
+		// add all attributes that aren't contained yet as attributes with automatic domains
+		// and extend all automatic attribute domains
+		for(Entry<String,String> e : item.getAttributes().entrySet()) {
+			String attrName = e.getKey();
+			DDAttribute dda = this.getAttribute(attrName);
+			if(dda == null) {
+				AutomaticDomain dom = new AutomaticDomain("dom" + Database.upperCaseString(attrName));
+				addAttribute(dda = new DDAttribute(attrName, dom));
+				ddi.addAttribute(dda);
+				dom.addValue(e.getValue());
+			}
+			else {				
+				Domain<?> dom = dda.getDomain();
+				if(dom instanceof AutomaticDomain)
+					((AutomaticDomain)dom).addValue(e.getValue());
+			}
+		}		
 	}
-
-	public void checkLink(Link link) throws DDException, Exception {
+	
+	@Override
+	public void onCommitLink(Link link) throws DDException {
 		DDRelation ddlink = getRelation(link.getName());
 		if(ddlink == null) { // this relation is not yet in the data dictionary
 			// get a data dictionary definition for each argument
@@ -54,7 +78,7 @@ public class AutomaticDataDictionary extends DataDictionary {
 			this.addRelation(ddlink);
 		}
 		// check the link's attributes (and extend their domains if necessary)
-		checkItemAttributes(link, ddlink);
+		onCommitItemAttributes(link, ddlink);
 		// check for constant arguments (and extend the corresponding domains if necessary)
 		int i = 0;
 		for(IDDRelationArgument argtype : ddlink.getArguments()) {
@@ -68,56 +92,10 @@ public class AutomaticDataDictionary extends DataDictionary {
 						((AutomaticDomain)dom).addValue(value);
 					}
 					else
-						throw new DDException("argument " + (i+1) + " of " + link.toString() + " is invalid; not in domain " + dom.getName());
+						throw new DDException("Argument " + (i+1) + " of " + link.toString() + " is invalid; not in domain " + dom.getName());
 				}
 			}
 			i++;
 		}
-	}
-
-	/**
-	 * gets the data dictionary definition for the object with the given name, creates it if it isn't found
-	 * @param name
-	 */
-	public DDObject getObject(String name) throws DDException {
-		DDObject ddobj = super.getObject(name);
-		if(ddobj == null) {			 
-			this.addObject(ddobj = new DDObject(name));
-		}
-		return ddobj;
-	}
-	
-	protected void checkItemAttributes(Item item, DDItem ddItem) throws DDException {
-		Set<String> existingAttributes = ddItem.getAttributes().keySet();
-		for(Entry<String,String> attr : item.getAttributes().entrySet()) {
-			String attribName = attr.getKey();
-			String value = attr.getValue();
-			if(!existingAttributes.contains(attribName)) {
-				AutomaticDomain dom =  new AutomaticDomain("dom" + Database.upperCaseString(attribName));
-				dom.addValue(value);
-				DDAttribute ddattr = new DDAttribute(attribName, dom);
-				ddItem.addAttribute(ddattr);
-				//addAttribute(ddattr);
-			}
-			if(getAttribute(attribName).isDiscarded())
-				continue;
-			Domain domain = ddItem.getAttributes().get(attribName).getDomain();			
-			if(!domain.containsString(value)) {
-				if(domain instanceof AutomaticDomain)
-					((AutomaticDomain)domain).addValue(value);
-				else
-					throw new DDException("invalid value " + value + " for attribute " + attribName + " of item " + ddItem.getName() + "; not in domain " + domain.getName());
-			}
-		}		
-	}
-		
-	public DDAttribute getAttribute(String name) throws DDException {
-		DDAttribute ddattr = super.getAttribute(name);
-		if(ddattr != null)
-			return ddattr;
-		AutomaticDomain dom =  new AutomaticDomain("dom" + Database.upperCaseString(name));
-		ddattr = new DDAttribute(name, dom);
-		this.addAttribute(ddattr);
-		return ddattr;
 	}
 }
