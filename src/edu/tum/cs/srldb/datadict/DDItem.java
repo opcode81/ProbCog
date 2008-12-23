@@ -53,10 +53,11 @@ public abstract class DDItem {
 		for(DDAttribute attr : attributes.values()) {
 			if(attr.isDiscarded() || attr.isBoolean())
 				continue;
+			String idCategory = attr.getName();
 			idNamer.resetCounts();
-			out.print(Database.stdPredicateName(attr.getName()) + "(" + idNamer.getCountedShortIdentifier("var", this.getName()));
+			out.print(Database.stdPredicateName(attr.getName()) + "(" + idNamer.getCountedShortIdentifier(idCategory, this.getName()));
 			out.print(", +");
-			out.println(idNamer.getCountedShortIdentifier("var", attr.getDomain().getName()) + ")");
+			out.println(idNamer.getCountedShortIdentifier(attr.getName(), attr.getDomain().getName()) + ")");
 		}
 	}
 	
@@ -85,6 +86,7 @@ public abstract class DDItem {
 			return;
 		}
 		out.print(", ");
-		out.println(idNamer.getLongIdentifier("domain", Database.stdDomainName(attr.getDomain().getName())) + ")");
+		out.print(idNamer.getLongIdentifier("domain", Database.stdDomainName(attr.getDomain().getName())));		
+		out.println("!)");
 	}
 }

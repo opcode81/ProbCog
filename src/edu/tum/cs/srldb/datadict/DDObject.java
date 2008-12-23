@@ -6,6 +6,9 @@ import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
 
 public class DDObject extends DDItem implements IDDRelationArgument {
+	/**
+	 * @param name the name of the class of objects that this data dictionary object represents
+	 */
 	public DDObject(String name) {
 		super(name);
 	}
@@ -23,6 +26,7 @@ public class DDObject extends DDItem implements IDDRelationArgument {
 		out.println();
 	}
 	
+	@Deprecated
 	public void MLNprintRules(IdentifierNamer idNamer, PrintStream out) {	
 		out.println("// mutual exclusiveness and exhaustiveness: " + getName() + " attributes");
 		for(DDAttribute attr : attributes.values()) {
