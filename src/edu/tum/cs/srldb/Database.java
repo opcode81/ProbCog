@@ -9,7 +9,6 @@ import java.util.Map.Entry;
 
 import edu.tum.cs.clustering.BasicClusterer;
 import edu.tum.cs.clustering.ClusterNamer;
-import edu.tum.cs.clustering.HierarchicalClusterer;
 import edu.tum.cs.clustering.SimpleClusterer;
 import edu.tum.cs.srldb.datadict.AutomaticDataDictionary;
 import edu.tum.cs.srldb.datadict.DDAttribute;
@@ -53,9 +52,8 @@ public class Database implements Cloneable {
 	 * @throws DDException if problems with data dictionary conformity are discovered 
 	 * @throws Exception if there are no instances of the attribute, i.e. the attribute is undefines for all objects 
 	 */
-	public static void clusterAttribute(DDAttribute attribute, Collection<Object> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws DDException, Exception {
-		String attrName = attribute.getName();
-		System.out.println("  " + attrName);
+	public static AttributeClustering clusterAttribute(DDAttribute attribute, Collection<Object> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws DDException, Exception {
+		String attrName = attribute.getName();		
 		// create clusterer and collect instances
 		int instances = 0;
 		for(Object obj : objects) {
@@ -73,19 +71,30 @@ public class Database implements Cloneable {
 		if(instances < clusterNames.length) {
 			System.err.println("Warning: attribute " + attrName + " was discarded because there are too few instances for clustering");
 			attribute.discard();
+			return null;
 		}
 		if(instances == 0) 
-			throw new Exception("no instances could be clustered for attribute " + attrName);
+			throw new Exception("The domain is empty; No instances could be clustered for attribute " + attrName);
 		// apply cluster assignment to attribute values
+		AttributeClustering ac = new AttributeClustering();
+		ac.clusterer = clusterer;
+		ac.newDomain = new OrderedStringDomain(attribute.getDomain().getName(), clusterNames);
+		applyClustering(attribute, objects, ac);
+		return ac;
+	}
+	
+	public static void applyClustering(DDAttribute attribute, Collection<Object> objects, AttributeClustering ac) throws NumberFormatException, Exception {
+		// apply cluster assignment to attribute values
+		String attrName = attribute.getName();
 		for(Object obj : objects) {
-			String value = obj.attribs.get(attribute.getName()); 
+			String value = obj.attribs.get(attrName); 
 			if(value != null) {
-				int i = clusterer.classify(Double.parseDouble(value));
-				obj.attribs.put(attrName, clusterNames[i]);
+				int i = ac.clusterer.classify(Double.parseDouble(value));
+				obj.attribs.put(attrName, ac.newDomain.getValues()[i]);
 			}
 		}
 		// redefine attribute domain
-		attribute.setDomain(new OrderedStringDomain(attribute.getName(), clusterNames));
+		attribute.setDomain(ac.newDomain);
 	}
 	
 	public void outputMLNDatabase(PrintStream out) throws Exception {
@@ -145,7 +154,8 @@ public class Database implements Cloneable {
 					continue;
 				}
 				// print the domain name
-				out.print(idNamer.getLongIdentifier("domain", domain.getName()) + " = {");
+				String domIdentifier = idNamer.getLongIdentifier("domain", domain.getName());
+				out.print(domIdentifier + " = {");
 				// print the values (must start with upper-case letter)				
 				for(int i = 0; i < values.length; i++) {
 					if(i > 0)
@@ -167,13 +177,14 @@ public class Database implements Cloneable {
 		}	
 		// rules
 		out.println("\n\n// ******************\n// rules\n// ******************\n");
+		/*
 		for(DDObject obj : datadict.getObjects()) {
 			obj.MLNprintRules(idNamer, out);
-		}
+		}		
 		out.println("\n// mutual exclusiveness and exhaustiveness: relations");
 		for(DDRelation rel : datadict.getRelations()) {
 			rel.MLNprintRules(idNamer, out);
-		}
+		}*/
 		// unit clauses
 		out.println("\n// unit clauses");
 		for(DDObject obj : datadict.getObjects()) {
@@ -315,34 +326,57 @@ public class Database implements Cloneable {
 		datadict.check();
 	}
 	
+	public static class AttributeClustering {
+		public BasicClusterer<?> clusterer;
+		public Domain<?> newDomain;
+	}
+	
 	/**
 	 * performs clustering on the attributes for which it was specified in the data dictionary
 	 * @throws DDException
 	 * @throws Exception
-	 */
-	public void doClustering() throws DDException, Exception {
-		for(DDAttribute attrib : this.datadict.getAttributes()) {
-			if(attrib.requiresClustering()) {
+	 */	
+	public HashMap<DDAttribute, AttributeClustering> doClustering(HashMap<DDAttribute, AttributeClustering> clusterers) throws DDException, Exception {
+		System.out.println("clustering...");
+		if(clusterers == null)
+			clusterers = new HashMap<DDAttribute, AttributeClustering>();
+		for(DDAttribute attrib : this.datadict.getAttributes()) {			
+			if(attrib.requiresClustering()) {				
+				System.out.println("  " + attrib.getName());
+				AttributeClustering ac;
+				ac = clusterers.get(attrib);
+				if(ac != null) {
+					applyClustering(attrib, objects, ac);
+					continue;
+				}
 				Domain<?> domain = attrib.getDomain();
 				// if the domain was specified by a user as an ordered list of strings, use K-Means
 				// with the corresponding number of clusters, naming the clusters using the strings 
 				// (using the strings in ascending order of cluster centroid)
 				if(domain instanceof OrderedStringDomain) {
 					SimpleClusterer c = new SimpleClusterer();
-					c.setNumClusters(domain.getValues().length);
-					clusterAttribute(attrib, objects, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
+					((SimpleClusterer)c).setNumClusters(domain.getValues().length);
+					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
 				}
 				// if the domain was generated automatically (no user input), use hierarchical 
 				// clustering to determine a suitable number of clusters and use default
 				// names (attribute name followed by index)
 				else if(domain instanceof AutomaticDomain) {
-					HierarchicalClusterer c = new HierarchicalClusterer();
-					clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));
+					SimpleClusterer c = new SimpleClusterer();					
+					((SimpleClusterer)c).setNumClusters(4);
+					//HierarchicalClusterer c = new HierarchicalClusterer();
+					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));
 				}
-				else 
-					throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");				 
+				else
+					throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");
+				clusterers.put(attrib, ac);
 			}
 		}			
+		return clusterers;
+	}
+	
+	public HashMap<DDAttribute, AttributeClustering> doClustering() throws DDException, Exception {
+		return doClustering(null);
 	}
 
 	public Database clone() {
@@ -360,12 +394,14 @@ public class Database implements Cloneable {
 		return objects;	
 	}
 	
-	public void addObject(Object obj) {
-		objects.add(obj);
+	public void addObject(Object obj) throws DDException {		
+		if(objects.add(obj))
+			this.datadict.onCommitObject(obj);
 	}
 
-	public void addLink(Link l) {
-		links.add(l);
+	public void addLink(Link l) throws DDException {
+		if(links.add(l))
+			this.datadict.onCommitLink(l);
 	}
 	
 	public DataDictionary getDataDictionary() {
@@ -388,5 +424,13 @@ public class Database implements Cloneable {
 		public String toString() {
 			return counters.toString();
 		}
+	}
+	
+	/**
+	 * empties this database
+	 */
+	public void clear() {
+		this.objects.clear();
+		this.links.clear();
 	}
 }
