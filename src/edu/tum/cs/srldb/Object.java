@@ -123,16 +123,18 @@ public class Object extends Item implements IRelationArgument {
 	
 	/** 
 	 * adds the object and all attached links to the database this object is associated with
+	 * @throws DDException 
 	 */
-	public void commit() {
+	public void commit() throws DDException {
 		addTo(this.database);
 	}
 
 	/**
 	 * adds the object and all attached links to the given database
 	 * @param db
+	 * @throws DDException 
 	 */
-	public void addTo(Database db) {
+	public void addTo(Database db) throws DDException {
 		if(db == this.database) // this is a commit
 			immutable = true;
 		// add object		
@@ -140,6 +142,11 @@ public class Object extends Item implements IRelationArgument {
 		// add links
 		if(links != null) {
 			for(Link link : links.values()) {
+				// add linked objects
+				for(IRelationArgument arg : link.arguments)
+					if(arg instanceof Object && arg != this)
+						((Object)arg).addTo(db);						
+				// add link itself
 				link.addTo(db);	
 			}			
 		}		
