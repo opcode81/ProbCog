@@ -1,10 +1,12 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Vector;
 
 import edu.tum.cs.analysis.pointcloud.DataReader;
 import edu.tum.cs.srldb.Database;
+import edu.tum.cs.srldb.Database.AttributeClustering;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDObject;
 import edu.tum.cs.srldb.datadict.DataDictionary.BLNStructure;
@@ -38,7 +40,7 @@ public class PointCloudClassification {
 		
 		// read training data from XML files
 		Vector<File> xmls = new Vector<File>();
-		System.out.println("reading XML data...");
+		System.out.println("reading XML training data...");
 		getXMLFiles(new File("data/training"), xmls);		
 		for(File xml : xmls) {
 			System.out.println("  " + xml.getPath());
@@ -59,7 +61,7 @@ public class PointCloudClassification {
  			if(attr != null)
  				attr.setClustering(true);
 		}
-		db.doClustering();
+		HashMap<DDAttribute, AttributeClustering> clusteringMap = db.doClustering();
 		
 		// set relation properties, i.e. make belongsTo functional
 		dd.getRelation("belongsTo").setFunctional(new boolean[]{false, true});
@@ -99,5 +101,22 @@ public class PointCloudClassification {
 		// BLN
 		PrintStream bln = new PrintStream(new File("pcc.bln"));
 		dd.writeBasicBLN(bln);
+		
+		// read test data
+		db.clear();
+		xmls.clear();
+		System.out.println("reading XML test data...");
+		getXMLFiles(new File("data/test"), xmls);		
+		for(File xml : xmls) {
+			System.out.println("  " + xml.getPath());
+			dr.readXML(xml);
+		}
+		
+		// cluster it using the same clusterers
+		db.doClustering(clusteringMap);
+		
+		// write it
+		db.writeMLNDatabase(new PrintStream(new File("test.db")));
+		db.writeBLOGDatabase(new PrintStream(new File("test.blogdb")));		
 	}
 }
