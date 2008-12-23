@@ -55,6 +55,22 @@ public class DDRelation extends DDItem {
 		}
 	}
 
+	public void BLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
+		// get the relation's argument domains in a comma-separated list of domain names enclosed in brackets 
+		StringBuffer params = new StringBuffer();
+		for(int i = 0; i < arguments.length; i++) {
+			if(i > 0) 
+				params.append(", ");				
+			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(arguments[i].getDomainName())));
+		}
+		// output the main predicate declaration
+		out.println("random boolean " + Database.stdPredicateName(getName()) + "(" + params + ")");
+		// output additional declarations for each attribute of the relation
+		for(DDAttribute attr : attributes.values()) {
+			BLNprintAttributePredicateDeclaration(attr, params.toString(), idNamer, out);
+		}
+	}
+
 	@Deprecated
 	public void MLNprintRules(IdentifierNamer idNamer, PrintStream out) {
 		MLNprintRule(idNamer, getName(), this.singleVal, out);

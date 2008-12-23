@@ -26,6 +26,15 @@ public class DDObject extends DDItem implements IDDRelationArgument {
 		out.println();
 	}
 	
+	public void BLNprintPredicateDeclarations(IdentifierNamer idNamer, PrintStream out) {
+		out.println("// " + this.getName());
+		String objectDomain = idNamer.getLongIdentifier("domain", Database.stdDomainName(this.getName()));
+		for(DDAttribute attr : attributes.values()) {
+			BLNprintAttributePredicateDeclaration(attr, objectDomain, idNamer, out);
+		}
+		out.println();
+	}
+	
 	@Deprecated
 	public void MLNprintRules(IdentifierNamer idNamer, PrintStream out) {	
 		out.println("// mutual exclusiveness and exhaustiveness: " + getName() + " attributes");

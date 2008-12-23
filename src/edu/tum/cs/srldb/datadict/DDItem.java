@@ -89,4 +89,15 @@ public abstract class DDItem {
 		out.print(idNamer.getLongIdentifier("domain", Database.stdDomainName(attr.getDomain().getName())));		
 		out.println("!)");
 	}
+
+	protected void BLNprintAttributePredicateDeclaration(DDAttribute attr, String objectOfAttribute, IdentifierNamer idNamer, PrintStream out) {
+		if(attr.isDiscarded())
+			return;
+		out.print("random ");
+		if(attr.isBoolean())
+			out.print("boolean");
+		else
+			out.print(idNamer.getLongIdentifier("domain", Database.stdDomainName(attr.getDomain().getName())));
+		out.println(" " + Database.stdPredicateName(attr.getName()) + "(" + objectOfAttribute + ");");
+	}
 }
