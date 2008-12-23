@@ -1,20 +1,26 @@
 package edu.tum.cs.srldb;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary;
+import edu.tum.cs.tools.Map2D;
 
+/**
+ * helper class to name identifiers such that within one category, each identifier is unique 
+ * @author jain
+ *
+ */
 public class IdentifierNamer {
-	protected HashMap<String, String> identifiers;
-	protected HashMap<String, Integer> counts;
+	protected Map2D<String, String, String> identifiers;
+	protected Map2D<String, String, Integer> counts;
 	protected HashSet<String> reservedWords;
 	
 	public IdentifierNamer(DataDictionary dd) {
-		identifiers = new HashMap<String, String>();
-		counts = new HashMap<String, Integer>();
+		identifiers = new Map2D<String, String, String>();
+		counts = new Map2D<String, String, Integer>();
 		reservedWords = new HashSet<String>();
 		// init reserved words: identifiers shouldn't coincide with predicate names
 		for(DDAttribute attrib : dd.getAttributes()) {
@@ -25,8 +31,13 @@ public class IdentifierNamer {
 		}
 	}
 	
-	public boolean isAvailable(String id) {
-		return !identifiers.containsValue(id) && !reservedWords.contains(id);
+	protected boolean isAvailable(String context, String id) {
+		if(reservedWords.contains(id))
+			return false;
+		Map<String, String> submap = identifiers.getSubmap(context);
+		if(submap == null)
+			return true;
+		return !submap.containsValue(id);
 	}
 	
 	public String getShortIdentifier(String category, String name) {
@@ -46,15 +57,14 @@ public class IdentifierNamer {
 	}
 	
 	public String getIdentifier(String category, String name, boolean shortName, boolean counted) {
-		String key = category + "___" + name;
-		String id = identifiers.get(key);
+		String id = identifiers.get(category, name);
 		if(id != null) {
 			if(!counted)
 				return id;
-			Integer count = counts.get(key);
+			Integer count = counts.get(category, name);
 			if(count == null) {
 				count = new Integer(0);
-				counts.put(key, count);
+				counts.put(count);
 			}
 			count++;
 			if(count == 1)
@@ -65,14 +75,14 @@ public class IdentifierNamer {
 		String idProposal = name;
 		for(int i = shortName ? 1 : name.length(); true; i++) {
 			idProposal = i > name.length() ? idProposal + "_" : name.substring(0, i);
-			if(isAvailable(idProposal)) {
-				identifiers.put(key, idProposal);
+			if(isAvailable(category, idProposal)) {
+				identifiers.put(category, name, idProposal);
 				return idProposal;
 			}				
 		}
 	}
 	
 	public void resetCounts() {
-		counts = new HashMap<String, Integer>();
+		counts = new Map2D<String, String, Integer>();
 	}
 }
