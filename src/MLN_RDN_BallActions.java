@@ -339,8 +339,8 @@ public class MLN_RDN_BallActions {
 					System.out.print("Writing MLN...");
 					//data.database.outputMLNDatabase(new PrintStream(new File("test.db")));
 					//data.database.outputMLNBasis(new PrintStream(new File("test.mln")));
-					data.database.outputMLNDatabase(new PrintStream(new File("mln/ball_actions/" + "fipm" + (allData ? "_full" : "") + (implicitSits ? "-implsits" : "") + ".db")));
-					data.database.outputBasicMLN(new PrintStream(new File("mln/ball_actions/actsit-empty" + (implicitSits ? "-implsits" : "") + ".mln")));
+					data.database.writeMLNDatabase(new PrintStream(new File("mln/ball_actions/" + "fipm" + (allData ? "_full" : "") + (implicitSits ? "-implsits" : "") + ".db")));
+					data.database.writeBasicMLN(new PrintStream(new File("mln/ball_actions/actsit-empty" + (implicitSits ? "-implsits" : "") + ".mln")));
 					data.database.getDataDictionary().outputAttributeList(new PrintStream(new File("mln/ball_actions/attributes" + (implicitSits ? "-implsits" : "") + ".txt")));
 					//data.datadict.outputAttributeLists(new PrintStream(new File("mln/ball_actions/attributes_all" + (implicitSits ? "-implsits" : "") + ".txt")));
 				}
@@ -366,16 +366,16 @@ public class MLN_RDN_BallActions {
 					
 					reducedDB.check();
 					
-					reducedDB.outputMLNDatabase(new PrintStream(new File("mln/ball_actions-reduced/" + "fipm" + (allData ? "_full" : "") + "-passes" + (implicitSits ? "-implsits" : "") + (doReducedDBMultiplePlayers ? "-multplayers" : "") + ".db")));
-					reducedDB.outputBasicMLN(new PrintStream(new File("mln/ball_actions-reduced/actsit-passes-empty" + (implicitSits ? "-implsits" : "") + (doReducedDBMultiplePlayers ? "-multplayers" : "") + ".mln")));
+					reducedDB.writeMLNDatabase(new PrintStream(new File("mln/ball_actions-reduced/" + "fipm" + (allData ? "_full" : "") + "-passes" + (implicitSits ? "-implsits" : "") + (doReducedDBMultiplePlayers ? "-multplayers" : "") + ".db")));
+					reducedDB.writeBasicMLN(new PrintStream(new File("mln/ball_actions-reduced/actsit-passes-empty" + (implicitSits ? "-implsits" : "") + (doReducedDBMultiplePlayers ? "-multplayers" : "") + ".mln")));
 					
 					System.out.println("\nCounters:\n" + cnt.toString());
 				}
 			}
 			if(doRDN) {
 				System.out.println("Writing Proximity database");
-				data.database.outputProximityDatabase(new PrintStream(new File("proximity/ball_actions/fipm.proxdb.xml")));
-				data.database.outputBasicMLN(new PrintStream(new File("proximity/ball_actions/fipm.mln")));
+				data.database.writeProximityDatabase(new PrintStream(new File("proximity/ball_actions/fipm.proxdb.xml")));
+				data.database.writeBasicMLN(new PrintStream(new File("proximity/ball_actions/fipm.mln")));
 				data.database.getDataDictionary().outputAttributeLists(new PrintStream(new File("proximity/ball_actions/attributes.txt")));
 			}
 			if(doBN) {

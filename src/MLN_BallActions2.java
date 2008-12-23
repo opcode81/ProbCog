@@ -205,12 +205,12 @@ public class MLN_BallActions2 {
 			int i = 0;			
 			for(Database db : databases) {				
 				db.check();				
-				db.outputMLNDatabase(new PrintStream(new File("mln/ball_actions2/train/ex" + (i++) + ".db")));
+				db.writeMLNDatabase(new PrintStream(new File("mln/ball_actions2/train/ex" + (i++) + ".db")));
 			}
 			
 			System.out.println("Writing MLN...");
 			//data.database.outputMLNBasis(new PrintStream(new File("test.mln")));
-			data.database.outputBasicMLN(new PrintStream(new File("mln/ball_actions2/actsit-empty.mln")));
+			data.database.writeBasicMLN(new PrintStream(new File("mln/ball_actions2/actsit-empty.mln")));
 			System.out.println("done!");
 		}
 		catch(Exception e) {

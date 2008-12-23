@@ -76,11 +76,11 @@ public class MLN_fromBN_PassDest {
 			// write mlns and dbs
 			String dir = "mln/bn_pass_dest/";
 			PrintStream outMLN = new PrintStream(new File(dir + "sampled_bn.mln"));
-			db.outputBasicMLN(outMLN);
+			db.writeBasicMLN(outMLN);
 			bn2db.writeMLNFormulas(outMLN);
-			db.outputMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));			
-			relDB.outputMLNDatabase(new PrintStream(new File(dir + "sampled_bn-relations" + (relDBSinglePlayers ? "-singleplayers" : "") + ".db")));
-			relDB.outputBasicMLN(new PrintStream(new File(dir + "sampled_bn-relations-empty.mln")));
+			db.writeMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));			
+			relDB.writeMLNDatabase(new PrintStream(new File(dir + "sampled_bn-relations" + (relDBSinglePlayers ? "-singleplayers" : "") + ".db")));
+			relDB.writeBasicMLN(new PrintStream(new File(dir + "sampled_bn-relations-empty.mln")));
 			
 			bn2db.relearnBN();
 			bn.saveXMLBIF(dir + "sampled_bn.bif.xml");

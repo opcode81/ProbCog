@@ -69,11 +69,11 @@ public class PointCloudClassification {
 		dd.getRelation("belongsTo").setFunctional(new boolean[]{false, true});
 
 		// write database
-		db.outputMLNDatabase(new PrintStream(new File("train.db")));
+		db.writeMLNDatabase(new PrintStream(new File("train.db")));
 		
 		// basic MLN
 		PrintStream mln = new PrintStream(new File("pcc.mln"));
-		db.outputBasicMLN(mln);
+		db.writeBasicMLN(mln);
 		
 		// BLN structure
 		BeliefNetworkEx bn = new BeliefNetworkEx();

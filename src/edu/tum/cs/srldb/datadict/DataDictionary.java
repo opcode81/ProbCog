@@ -9,6 +9,7 @@ import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.ConstantArgument;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.IRelationArgument;
+import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Item;
 import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
@@ -254,4 +255,73 @@ public class DataDictionary {
 	public void onCommitObject(Object o) throws DDException {}
 	
 	public void onCommitLink(Link l) throws DDException {}
+	
+	/**
+	 * outputs the basic MLN for this database, which contains domain definitions and predicate declarations   
+	 * @param out the stream to write to
+	 */
+	public void writeBasicMLN(PrintStream out) {
+		DataDictionary datadict = this;
+		out.println("// Markov Logic Network\n\n");
+		IdentifierNamer idNamer = new IdentifierNamer(datadict);
+		// domains
+		out.println("// ***************\n// domains\n// ***************\n");
+		HashSet<String> printedDomains = new HashSet<String>(); // the names of domains that have already been printed
+		// - check all attributes for finite domains
+		for(DDAttribute attrib : datadict.getAttributes()) {
+			if(attrib.isDiscarded())
+				continue;
+			Domain domain = attrib.getDomain();
+			if(domain == null || attrib.isBoolean() || !domain.isFinite()) // boolean domains aren't handled because a boolean attribute value is not specified as a constant but rather using negation of the entire predicate
+				continue;
+			// we have a finite domain -> output this domain if it hasn't already been printed
+			String name = domain.getName();
+			if(!printedDomains.contains(name)) {
+				// check if the domain is empty
+				String[] values = domain.getValues();
+				if(values.length == 0) {
+					System.err.println("Warning: domain " + domain.getName() + " is empty and was discarded");
+					continue;
+				}
+				// print the domain name
+				String domIdentifier = idNamer.getLongIdentifier("domain", domain.getName());
+				out.print(domIdentifier + " = {");
+				// print the values (must start with upper-case letter)				
+				for(int i = 0; i < values.length; i++) {
+					if(i > 0)
+						out.print(", ");
+					out.print(Database.stdAttribStringValue(values[i]));				
+				}
+				out.println("}");
+				printedDomains.add(name);
+			}			
+		}
+		// predicate declarations
+		out.println("\n\n// *************************\n// predicate declarations\n// *************************\n");
+		for(DDObject obj : datadict.getObjects()) {
+			obj.MLNprintPredicateDeclarations(idNamer, out);			
+		}
+		out.println("// Relations");
+		for(DDRelation rel : datadict.getRelations()) {
+			rel.MLNprintPredicateDeclarations(idNamer, out);
+		}	
+		// rules
+		out.println("\n\n// ******************\n// rules\n// ******************\n");
+		/*
+		for(DDObject obj : datadict.getObjects()) {
+			obj.MLNprintRules(idNamer, out);
+		}		
+		out.println("\n// mutual exclusiveness and exhaustiveness: relations");
+		for(DDRelation rel : datadict.getRelations()) {
+			rel.MLNprintRules(idNamer, out);
+		}*/
+		// unit clauses
+		out.println("\n// unit clauses");
+		for(DDObject obj : datadict.getObjects()) {
+			obj.MLNprintUnitClauses(idNamer, out);
+		}
+		for(DDRelation rel : datadict.getRelations()) {
+			rel.MLNprintUnitClauses(idNamer, out);
+		}
+	}	
 }

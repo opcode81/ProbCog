@@ -36,8 +36,8 @@ public class MLN_fromBN_PassDestSimple {
 			
 			// write mln
 			String dir = "mln/bn_pass_dest_simple/";
-			db.outputBasicMLN(new PrintStream(new File(dir + "sampled_bn-empty.mln")));
-			db.outputMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));			
+			db.writeBasicMLN(new PrintStream(new File(dir + "sampled_bn-empty.mln")));
+			db.writeMLNDatabase(new PrintStream(new File(dir + "sampled_bn.db")));			
 			
 			bn2db.relearnBN();
 			bn.saveXMLBIF(dir + "sampled_bn.bif.xml");
