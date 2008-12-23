@@ -27,8 +27,9 @@ public class ClustererDiscretizationFilter implements DiscretizationFilter {
 	 * @param <C>
 	 * @param clusterer
 	 * @param namer
+	 * @throws Exception 
 	 */
-	public <C extends Clusterer> ClustererDiscretizationFilter(C clusterer, ClusterNamer<? super C> namer) {
+	public <C extends Clusterer> ClustererDiscretizationFilter(C clusterer, ClusterNamer<? super C> namer) throws Exception {
 		this.clusterer = clusterer;
 		outputValues = namer.getNames(clusterer);
 	}
