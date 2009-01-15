@@ -59,6 +59,7 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 	 * the collection of drawable items to be painted onto this canvas
 	 */
 	Vector<Drawable> items = new Vector<Drawable>();
+	Vector<Drawable> items2D = new Vector<Drawable>();
 
 	/**
 	 * sets the width of the window (must set before the canvas is initialized using setup)
@@ -176,6 +177,9 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 			
 		if(!useCamera)
 			popMatrix();
+		
+		for(Drawable d : items2D)
+			d.draw(this);
 	}
 	
 	protected void setCamera() {
@@ -205,6 +209,10 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 	
 	public synchronized void add(Drawable d) {
 		this.items.add(d);
+	}
+	
+	public synchronized void add2D(Drawable d) {
+		this.items2D.add(d);
 	}
 
 	public void rotateAxis(double theta, Vector3f rotAxis){
