@@ -7,6 +7,7 @@ import edu.tum.cs.tools.MySQLConnection;
 import edu.tum.cs.tools.Vector3f;
 import edu.tum.cs.vis.items.FrameDisplay;
 import edu.tum.cs.vis.items.Trajectory;
+import edu.tum.cs.vis.items.Legend;
 
 public class TrajectoryApplet extends AnimatedCanvas {
 	private static final long serialVersionUID = 1L;
@@ -29,7 +30,8 @@ public class TrajectoryApplet extends AnimatedCanvas {
 		String password = "UEY9KbNb";
 
 		// construct 3D trajectory
-		Trajectory traj = new Trajectory();		
+		Trajectory traj = new Trajectory();
+		Legend leg = new Legend();
 		try {
 			MySQLConnection conn = new MySQLConnection(host, user, password, db);
 			ResultSet rs = conn.select("select x,y,z from " + table + " where episode_nr=0 and occurrence_nr=1 order by instance_nr");

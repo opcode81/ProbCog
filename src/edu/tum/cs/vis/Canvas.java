@@ -116,7 +116,7 @@ public class Canvas extends PApplet implements MouseListener, MouseMotionListene
 		size(width, height, P3D);
 		lights();
 
-		PFont font = createFont("Verdana", 11);
+		PFont font = createFont("serif", 11);
 		textFont(font);
 
 		ellipseMode(RADIUS);
