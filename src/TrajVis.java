@@ -8,6 +8,7 @@ import javax.swing.JFrame;
 import de.tum.in.fipm.kipm.gui.visualisation.JointTrajectoriesIsomap;
 import de.tum.in.fipm.kipm.gui.visualisation.items.BodyPoseSequence;
 import edu.tum.cs.vis.items.Trajectory;
+import edu.tum.cs.vis.items.Legend;
 
 
 public class TrajVis {
@@ -22,6 +23,7 @@ public class TrajVis {
 		Vector<String> humanFiles = new Vector<String>();
 		Vector<String> embedFiles = new Vector<String>();
 		Vector<String> labelFiles = new Vector<String>();
+		Vector<String> labelMapFiles = new Vector<String>();
 		boolean drawMesh = true;
 		boolean wire = false;
 		boolean error = false;		
@@ -38,6 +40,9 @@ public class TrajVis {
 			}
 			else if(args[i].equals("-l")) {
 				labelFiles.add(args[++i]);
+			}
+			else if(args[i].equals("-lm")) {
+				labelMapFiles.add(args[++i]);
 			}
 			else if(args[i].equals("-nomesh")) {
 				drawMesh = false;
@@ -57,6 +62,7 @@ public class TrajVis {
 			System.out.println("           -h <human data>     human joint data");
 			System.out.println("           -e <embedded data>  low-dimensional (2D/3D) embedding");
 			System.out.println("           -l <embedded data>  point labels");
+			System.out.println("           -lm <embedded data>  label mapping");
 			System.out.println("           -c   			   center embeddings around mean");
 			System.out.println("           -nomesh			   do not draw kitchen mesh");	
 			System.out.println("           -wire               draw human pose using lines only");	
@@ -87,6 +93,11 @@ public class TrajVis {
 		Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
 		if(labelFiles.size() > 0)
 			traj.setLabels(new File(labelFiles.get(0)));
+		Legend leg = new Legend();
+		if(labelMapFiles.size() > 0){
+			leg.loadLabels(new File(labelMapFiles.get(0)));
+			m.kitchen.add(leg);
+		}
 		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
 		for(int i = 1; i < embedFiles.size(); i++) {
 			traj = new Trajectory();
@@ -105,6 +116,6 @@ public class TrajVis {
 		frame.setSize(new Dimension(size.width + 10, size.height + 30));
 		frame.add(m);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setVisible(true);			
+		frame.setVisible(true);		
 	}
 }

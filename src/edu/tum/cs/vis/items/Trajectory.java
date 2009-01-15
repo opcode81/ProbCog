@@ -12,6 +12,7 @@ import edu.tum.cs.tools.Vector3f;
 import edu.tum.cs.vis.Canvas;
 import edu.tum.cs.vis.Drawable;
 import edu.tum.cs.vis.DrawableAnimated;
+import edu.tum.cs.vis.items.Legend;
 
 public class Trajectory implements Drawable, DrawableAnimated {
 
@@ -326,6 +327,8 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				HashSet<Point> curSet = new HashSet<Point>(s);
 				for(Point p1 : s){
 					curSet.remove(p1);
+					// merge Points that have the same distance from starting
+					// point and that are already close to each other
 					for(Point p2 : curSet){
 						for (int l = 1; l <= fut; l++){
 							if(points.indexOf(p1)+l < points.size() && points.indexOf(p2)+l < points.size()){
@@ -349,6 +352,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 								}
 							}
 						}
+						// same for prior points						
 						for (int l = 1; l <= past; l++){
 							if(points.indexOf(p1)-l > 0 && points.indexOf(p2)-l > 0){
 								Point p1Post1 = points.get(points.indexOf(p1)-l);
@@ -376,32 +380,15 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 	}
 	
+	/**
+	 * updates the mergeSet of the trajectory
+	 */
 	public void updateMerge(){
 		int i = 0;
 		for(Point p : points){
 			for(int j = i+1; j < points.size(); j++){
 				if (p.v.distance(points.get(j).v) == 0)
 					merge(p,points.get(j));
-			}
-			i++;
-		}
-	}
-	
-	public void cleanUp(){
-		int size = points.size();
-		int i = 0;
-		while(i < size - 1){
-			Point p = points.get(i);
-			int j = i+1;
-			while(j < size){
-				Point p2 = points.get(j);
-				if (p.v.distance(p2.v) == 0.0){
-					System.out.println("removing "+ j);
-					points.removeElement(p2);
-					size--;
-				}
-				else
-					j++;
 			}
 			i++;
 		}
@@ -455,32 +442,6 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		}
 	}
 	
-	public void findskippedPoints(){
-		int i = 0;
-		for(Point p : points){
-			if (i < points.size() - 2){
-				for(int j = i; j < points.size() -2; j++){
-					Point p2 = points.get(j);
-					if (p.v.distance(p2.v) == 0){
-						Point p1n = points.get(i+1);
-						Point p21n = points.get(j+1);
-						Point p22n = points.get(j+2);
-						if (p1n.v.distance(p22n.v) == 0){
-							Vector3f newPos = new Vector3f((p21n.v.x+p22n.v.x) / 2, (p21n.v.y+p22n.v.y) / 2, (p21n.v.z+p22n.v.z) / 2);
-							for (Point p3 : points){
-								if(p3.v.distance(p22n.v) == 0 || p3.v.distance(p21n.v) == 0){
-									p3.v = newPos;
-									p3.color = 0xffff0000;
-								}
-							}
-						}
-					}
-				}	
-			}	
-			i++;
-		}
-	}
-	
 	public void findOscillations(){
 		int i = 0;
 		int j = 0;
@@ -495,12 +456,14 @@ public class Trajectory implements Drawable, DrawableAnimated {
 				num = 0;
 				j = i;
 				vec.clear();
+				// appends very close preceding points
 				while(j > 0 && p.v.distance(points.get(j).v) < thresh){
 					vec.add(points.get(j));
 					j--;
 					num++;
 				}
 				if(num > minnum){
+					// visualize oscillations and actual merge
 					Point medPoint = new Point(0,0,0,pointColor,pointSize); 
 					for(Point medP : vec){
 						medPoint.v.add(medP.v);
@@ -618,8 +581,9 @@ public class Trajectory implements Drawable, DrawableAnimated {
 								}
 								if(pre1.v.distance(pre2.v) > 0.1)
 									continue;
-								// however: we do not want to find fake transition points in lines
-								// where there was just a 'oversight' by the merging algo
+								// however: we do not want to find 'fake' transition points in lines
+								// where there was just a 'oversight' by the merging algorithm,
+								// therefore we look whether the trajectories meet again soon
 								int l = 1;
 								int fut1 = 0;
 								int fut2 = 0;
@@ -659,7 +623,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 							}
 						}
 					}
-					// Now the same for the past!
+					// Same for the past!
 					if(points.indexOf(p1)-1 > 0 && points.indexOf(p2)-1 > 0){
 						Point preP1 = points.get(points.indexOf(p1)-1);
 						Point preP2 = points.get(points.indexOf(p2)-1);
@@ -695,8 +659,6 @@ public class Trajectory implements Drawable, DrawableAnimated {
 								}
 								if(succ1.v.distance(succ2.v) > 0.1)
 									continue;
-								// however: we do not want to find fake transition points in lines
-								// where there was just a 'oversight' by the merging algo
 								int l = 1;
 								int fut1 = 0;
 								int fut2 = 0;
