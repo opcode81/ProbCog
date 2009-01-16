@@ -18,40 +18,14 @@ public class Legend implements Drawable {
 	public void draw(Canvas c) {
 		// TODO Auto-generated method stub
 		//c.textFont(locFont, 11); 
-		/*int legPosX = 0,legPosY = 0;
+		int legPosX = 0,legPosY = 0;
 		int i = 0;
 		for (String str : stringLeg){
 			c.fill(colors[i]);
+			c.rect(legPosX + 2, legPosY + 13*(i+2) + 6 , 5,5);
 			c.text(str,legPosX + 10,legPosY + 13*(i+3));
 			i += 1;
-		}*/
-		c.noStroke();
-		c.fill (255, 255, 255);
-		
-		
-		 c.textMode(c.SCREEN);
-		 c.textAlign(c.LEFT);
-		 
-		c.rect(35, 10, 10, 10);
-		String a = " - cup";
-		c.text(a, 55, 10, 100, 100);
-		
-		c.ellipse(40, 35, 10, 10);
-		String p = " - plate";
-		c.text(p, 55 , 30, 100, 100);
-		
-		c.fill(255, 0, 0);
-		c.ellipse(40, 55, 7, 4);
-		c.fill (255, 255, 255);
-		String g = " - the object is gripped";
-		c.text(g, 55, 50, 1000, 100);
-		
-		c.fill (0, 255, 0);
-		c.ellipse(40, 75, 7, 4);
-		c.fill(255, 255, 255);
-		String d = " - the object is dropped";
-		c.text(d, 55, 70, 1000, 100);
-		
+		}
 		//c.textFont(globFont,11);
 	}
 	
