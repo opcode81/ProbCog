@@ -96,7 +96,7 @@ public class TrajVis {
 		Legend leg = new Legend();
 		if(labelMapFiles.size() > 0){
 			leg.loadLabels(new File(labelMapFiles.get(0)));
-			m.kitchen.add(leg);
+			m.isomap.add2D(leg);
 		}
 		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
 		for(int i = 1; i < embedFiles.size(); i++) {
