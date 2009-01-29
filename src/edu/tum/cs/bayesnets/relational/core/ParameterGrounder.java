@@ -34,7 +34,8 @@ public class ParameterGrounder {
 			return generateGroundings(db, rbn.getSignature(function).argTypes);
 		}
 		catch(Exception e) {
-			throw new Exception(e.getMessage() + " (while grounding '" + function + "')");
+			System.err.println("Warning: " + e.getMessage() + " (while grounding '" + function + "')");
+			return new Vector<String[]>();
 		}
 	}
 	
