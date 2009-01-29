@@ -5,16 +5,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map.Entry;
+import java.util.Vector;
 
 import edu.tum.cs.clustering.BasicClusterer;
 import edu.tum.cs.clustering.ClusterNamer;
+import edu.tum.cs.clustering.EMClusterer;
 import edu.tum.cs.clustering.SimpleClusterer;
 import edu.tum.cs.srldb.datadict.AutomaticDataDictionary;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
-import edu.tum.cs.srldb.datadict.DDObject;
-import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
@@ -90,7 +89,12 @@ public class Database implements Cloneable {
 			String value = obj.attribs.get(attrName); 
 			if(value != null) {
 				int i = ac.clusterer.classify(Double.parseDouble(value));
-				obj.attribs.put(attrName, ac.newDomain.getValues()[i]);
+				String svalue = ac.newDomain.getValues()[i];
+				obj.attribs.put(attrName, svalue);
+				/*if(attrName.equals("radDistRatio")) {
+					Object o = ((Object)obj.getLink("isEllipseOf").getArguments()[1]);					
+					System.out.printf("    %s  %-10s  %s -> %s\n", o.getConstantName(), o.getString("objectT"), value, svalue);
+				}*/
 			}
 		}
 		// redefine attribute domain
@@ -111,19 +115,12 @@ public class Database implements Cloneable {
 		}
 	}
 	
-	public void writeBLOGDatabase(PrintStream out) {
+	public void writeBLOGDatabase(PrintStream out) throws DDException {
 		for(Object obj : objects) {
-			for(Entry<String, String> entry : obj.getAttributes().entrySet()) {
-				out.printf("%s(%s) = %s;\n", entry.getKey(), obj.getConstantName(), this.upperCaseString(entry.getValue())); 
-			}
+			obj.BLOGprintFacts(out);
 		}
 		for(Link link : links) {
-			out.printf("%s = True;\n", link.getLogicalAtom());
-			// attributes
-			String linkObjects = link.getLinkParams();
-			for(Entry<String, String> entry : link.getAttributes().entrySet()) {
-				out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, this.upperCaseString(entry.getValue())); 
-			}
+			link.BLOGprintFacts(out);
 		}
 	}
 	
@@ -280,7 +277,9 @@ public class Database implements Cloneable {
 		System.out.println("clustering...");
 		if(clusterers == null)
 			clusterers = new HashMap<DDAttribute, AttributeClustering>();
-		for(DDAttribute attrib : this.datadict.getAttributes()) {			
+		for(DDAttribute attrib : this.datadict.getAttributes()) {	
+			if(attrib.isDiscarded())
+				continue;
 			if(attrib.requiresClustering()) {				
 				System.out.println("  " + attrib.getName());
 				AttributeClustering ac;
@@ -298,17 +297,23 @@ public class Database implements Cloneable {
 					((SimpleClusterer)c).setNumClusters(domain.getValues().length);
 					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
 				}
-				// if the domain was generated automatically (no user input), use hierarchical 
-				// clustering to determine a suitable number of clusters and use default
-				// names (attribute name followed by index)
+				// if the domain was generated automatically (no user input), either use EM 
+				// clustering to determine a suitable number of clusters or, if the number is given,
+				// K-means, and use default names (attribute name followed by index)
 				else if(domain instanceof AutomaticDomain) {
-					SimpleClusterer c = new SimpleClusterer();					
-					((SimpleClusterer)c).setNumClusters(4);
-					//HierarchicalClusterer c = new HierarchicalClusterer();
-					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));
+					BasicClusterer<?> c;
+					Integer numClusters = attrib.getNumClusters();
+					if(numClusters == null)
+						c = new EMClusterer();
+					else {
+						c = new SimpleClusterer();
+						((SimpleClusterer)c).setNumClusters(numClusters);
+					}
+					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));					
 				}
 				else
 					throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");
+				System.out.println("    " + ac.newDomain);
 				clusterers.put(attrib, ac);
 			}
 		}			
@@ -328,6 +333,21 @@ public class Database implements Cloneable {
 	
 	public Collection<Link> getLinks() {
 		return links;
+	}
+	
+	/**
+	 * returns all links in which the given object appears
+	 * @param o
+	 * @return
+	 */
+	public Vector<Link> getLinks(Object o) {
+		Vector<Link> v = new Vector<Link>();
+		for(Link l : this.links) {
+			for(int i = 0; i < l.arguments.length; i++)
+				if(l.arguments[i] == o)
+					v.add(l);
+		}
+		return v;
 	}
 	
 	public Collection<Object> getObjects() {

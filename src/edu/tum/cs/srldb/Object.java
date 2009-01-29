@@ -2,6 +2,7 @@ package edu.tum.cs.srldb;
 import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
+import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
@@ -110,6 +111,15 @@ public class Object extends Item implements IRelationArgument {
 		// otherwise use a predicate with two parameters: object name and value
 		else {			
 			out.println(predicate + "(" + getConstantName() + ", " + Database.stdAttribStringValue(strValue) + ")");
+		}
+	}
+	
+	public void BLOGprintFacts(PrintStream out) throws DDException {
+		for(Entry<String, String> entry : getAttributes().entrySet()) {
+			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(entry.getKey()); 
+			if(ddAttrib.isDiscarded())
+				continue;
+			out.printf("%s(%s) = %s;\n", entry.getKey(), getConstantName(), Database.upperCaseString(entry.getValue())); 
 		}
 	}
 	
