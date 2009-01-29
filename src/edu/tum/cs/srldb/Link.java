@@ -1,12 +1,14 @@
 package edu.tum.cs.srldb;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 
-public class Link extends Item {
+public class Link extends Item implements Serializable {
+	private static final long serialVersionUID = 1L;
 	protected String linkName;
 	protected IRelationArgument[] arguments;
 		

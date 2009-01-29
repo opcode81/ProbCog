@@ -1,6 +1,12 @@
 package edu.tum.cs.srldb;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,8 +25,12 @@ import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
 
-public class Database implements Cloneable {
+public class Database implements Cloneable, Serializable {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	protected HashSet<Link> links;
 	protected HashSet<Object> objects;	
 	protected DataDictionary datadict;
@@ -130,6 +140,31 @@ public class Database implements Cloneable {
 	 */
 	public void writeBasicMLN(PrintStream out) {
 		datadict.writeBasicMLN(out);
+	}
+	
+	/**
+	 * writes this database object to a file
+	 * @param s
+	 * @throws IOException
+	 */
+	public void writeSRLDB(FileOutputStream s) throws IOException {
+		ObjectOutputStream objstream = new ObjectOutputStream(s);
+	    objstream.writeObject(this);
+	    objstream.close();
+	}
+	
+	/**
+	 * reads a previously stored database object from a file
+	 * @param s
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	public static Database fromFile(FileInputStream s) throws IOException, ClassNotFoundException {
+		ObjectInputStream objstream = new ObjectInputStream(s);
+	    java.lang.Object object = objstream.readObject();
+	    objstream.close();
+	    return (Database)object;
 	}
 	
 	/**

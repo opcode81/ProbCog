@@ -9,8 +9,9 @@ import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
-public class Object extends Item implements IRelationArgument {
+public class Object extends Item implements IRelationArgument, java.io.Serializable {
 	
+	private static final long serialVersionUID = 1L;
 	protected HashMap<String, Link> links;
 	protected String objTypeName;
 	protected String constantName = null;

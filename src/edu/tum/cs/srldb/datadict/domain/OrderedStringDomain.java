@@ -1,5 +1,7 @@
 package edu.tum.cs.srldb.datadict.domain;
 
+import java.io.Serializable;
+
 import kdl.prox3.dbmgr.DataTypeEnum;
 
 /**
@@ -7,8 +9,9 @@ import kdl.prox3.dbmgr.DataTypeEnum;
  * @author Dominik Jain
  *
  */
-public class OrderedStringDomain extends Domain<String> {
+public class OrderedStringDomain extends Domain<String> implements Serializable {
 
+	private static final long serialVersionUID = 1L;
 	protected String[] values;
 	
 	public OrderedStringDomain(String name, String[] values) {

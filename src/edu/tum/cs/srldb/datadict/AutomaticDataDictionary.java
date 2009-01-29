@@ -12,6 +12,8 @@ import edu.tum.cs.srldb.datadict.domain.Domain;
 
 public class AutomaticDataDictionary extends DataDictionary {
 
+	private static final long serialVersionUID = 1L;
+
 	public AutomaticDataDictionary() {
 		super();		
 	}

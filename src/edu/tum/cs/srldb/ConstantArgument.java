@@ -1,7 +1,10 @@
 package edu.tum.cs.srldb;
 
-public class ConstantArgument implements IRelationArgument {
+import java.io.Serializable;
 
+public class ConstantArgument implements IRelationArgument, Serializable {
+
+	private static final long serialVersionUID = 1L;
 	protected String constantName;
 	
 	public ConstantArgument(String constant) {
