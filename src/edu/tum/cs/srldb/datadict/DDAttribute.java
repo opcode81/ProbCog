@@ -11,6 +11,7 @@ public class DDAttribute implements Cloneable {
 	 * whether this attribute is scheduled for clustering
 	 */
 	protected boolean doClustering;
+	protected Integer numClusters;
 	/**
 	 * whether this attribute is actually discarded/unused
 	 */
@@ -24,6 +25,7 @@ public class DDAttribute implements Cloneable {
 		this.name = name;
 		this.domain = null;
 		this.doClustering = false;
+		this.numClusters = null;
 		this.discarded = false;
 		this.owner = null;
 	}
@@ -46,6 +48,11 @@ public class DDAttribute implements Cloneable {
 		this.doClustering = doClustering;
 	}
 	
+	public void setClustering(Integer numClusters) {
+		this.doClustering = true;
+		this.numClusters = numClusters;
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -56,6 +63,10 @@ public class DDAttribute implements Cloneable {
 	
 	public boolean requiresClustering() {
 		return doClustering;
+	}
+	
+	public Integer getNumClusters() {
+		return numClusters;
 	}
 	
 	public Domain getDomain() {

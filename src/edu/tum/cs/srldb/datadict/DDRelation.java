@@ -64,11 +64,23 @@ public class DDRelation extends DDItem {
 			params.append(idNamer.getLongIdentifier("domain", Database.stdDomainName(arguments[i].getDomainName())));
 		}
 		// output the main predicate declaration
-		out.println("random boolean " + Database.stdPredicateName(getName()) + "(" + params + ")");
+		String predName = Database.stdPredicateName(getName());
+		out.println("random boolean " + predName + "(" + params + ");");
 		// output additional declarations for each attribute of the relation
 		for(DDAttribute attr : attributes.values()) {
 			BLNprintAttributePredicateDeclaration(attr, params.toString(), idNamer, out);
 		}
+		// output relation keys, if any
+		for(int i = 0; i < this.singleVal.length; i++)
+			if(singleVal[i]) {
+				out.print("RelationKey " + predName + "(");
+				for(int j = 0; j < this.singleVal.length; j++) {
+					if(j > 0)
+						out.print(", ");
+					out.print(j == i ? "_" : String.format("a%d", j));
+				}
+				out.println(");");
+			}
 	}
 
 	@Deprecated

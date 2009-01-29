@@ -1,4 +1,7 @@
 package edu.tum.cs.srldb;
+import java.io.PrintStream;
+import java.util.Map.Entry;
+
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
@@ -54,6 +57,23 @@ public class Link extends Item {
 			}
 			else
 				throw new DDException("Non-boolean attributes of links not handled for MLNs");
+		}
+	}
+	
+	/**
+	 * prints facts on this link object (for BLOG databases)
+	 * @param out
+	 * @throws DDException
+	 */
+	public void BLOGprintFacts(PrintStream out) throws DDException {
+		out.printf("%s = True;\n", getLogicalAtom());
+		// attributes
+		String linkObjects = getLinkParams();
+		for(Entry<String, String> entry : getAttributes().entrySet()) {
+			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(entry.getKey()); 
+			if(ddAttrib.isDiscarded())
+				continue;
+			out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, Database.upperCaseString(entry.getValue())); 
 		}
 	}
 	

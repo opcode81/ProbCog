@@ -332,7 +332,7 @@ public class DataDictionary {
 	 * @param out the stream to write to
 	 */
 	public void writeBasicBLOGModel(PrintStream out) {
-		out.println("// BLOG Model\n\n");
+		out.println("// Advanced BLOG (ABL) Model\n\n");
 		IdentifierNamer idNamer = new IdentifierNamer(this);
 		// types
 		out.println("// ***************\n// types\n// ***************\n");		
