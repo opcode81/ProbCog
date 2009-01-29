@@ -1,9 +1,15 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import sun.awt.SunHints.Value;
+
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
+import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.relational.core.ABL;
@@ -24,7 +30,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx};
 	
 	/**
 	 * @param args
@@ -45,6 +51,7 @@ public class BLNinfer {
 			boolean debug = false;
 			boolean saveInstance = false;
 			boolean skipFailedSteps = false;
+			boolean removeDeterministicCPTEntries = false;
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -60,6 +67,8 @@ public class BLNinfer {
 					dbFile = args[++i];				
 				else if(args[i].equals("-s"))
 					showBN = true;				
+				else if(args[i].equals("-nodetcpt"))
+					removeDeterministicCPTEntries = true;				
 				else if(args[i].equals("-si"))
 					saveInstance = true;				
 				else if(args[i].equals("-skipFailedSteps"))
@@ -74,6 +83,8 @@ public class BLNinfer {
 					maxTrials = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
 					algo = Algorithm.LikelihoodWeighting;
+				else if(args[i].equals("-lwu"))
+					algo = Algorithm.LWU;
 				else if(args[i].equals("-epis"))
 					algo = Algorithm.EPIS;
 				else if(args[i].equals("-csp"))
@@ -104,7 +115,8 @@ public class BLNinfer {
 									 "    -maxSteps #      the maximum number of steps to take\n" +
 									 "    -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
 									 "    -skipFailedSteps failed steps (> max trials) should just be skipped\n" +
-							         "    -lw              algorithm: likelihood weighting (default)\n" +
+									 "    -lw              algorithm: likelihood weighting (default)\n" +
+									 "    -lwu             algorithm: likelihood weighting with uncertain evidence (default)\n" +
 							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -exp             algorithm: Experimental\n" +
 							         "    -satis           algorithm: SAT-IS\n" +
@@ -116,6 +128,7 @@ public class BLNinfer {
 							         "    -debug           debug mode with additional outputs\n" + 
 							         "    -s           	   show ground network in editor\n" +
 							         "    -si              save ground network instance in BIF format (.instance.xml)\n" +
+							         "    -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
@@ -137,8 +150,22 @@ public class BLNinfer {
 			if(!q.equals(""))
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
 
-			// instantiate ground model
+			// load relational model
 			ABL blog = new ABL(blogFile, bifFile);
+			
+			// (on request) remove deterministic dependencies in CPTs
+			if(removeDeterministicCPTEntries) {
+				final double lowProb = 0.001; 
+				for(BeliefNode node : blog.bn.getNodes()) {
+					CPF cpf = node.getCPF();					
+					for(int i = 0; i < cpf.size(); i++)
+						if(cpf.getDouble(i) == 0.0)
+							cpf.put(i, new ValueDouble(lowProb));
+					cpf.normalizeByDomain();
+				}
+			}
+			
+			// instantiate ground model
 			AbstractGroundBLN gbln;
 			if(!usePython) {
 				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, blnFile);
@@ -175,6 +202,8 @@ public class BLNinfer {
 			switch(algo) {
 			case LikelihoodWeighting: 
 				sampler = new LikelihoodWeighting(gbln); break;
+			case LWU: 
+				sampler = new BNSampler(gbln, LikelihoodWeightingWithUncertainEvidence.class); break;
 			case CSP: 
 				sampler = new CSPSampler(gbln); break;
 			case GibbsSampling:	
