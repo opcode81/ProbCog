@@ -19,6 +19,7 @@ import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
 import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
+import edu.tum.cs.bayesnets.relational.core.DecisionNode;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.
@@ -145,6 +146,18 @@ public class BeliefNetworkEx {
 		bn.addBeliefNode(node);
 		addAttributeMapping(node.getName(), node.getName());
 	}
+	
+	/**
+	 * adds a decision node (boolean) to the network 
+	 * @param name	label of the node
+	 */
+	public BeliefNode addDecisionNode(String name) {
+		BeliefNode node = new BeliefNode(name, new Discrete(new String[]{"True", "False"}));
+		node.setType(BeliefNode.NODE_DECISION);
+		bn.addBeliefNode(node);
+		return node;
+	}
+
 	
 	/**
 	 * adds a node with the given name and the standard discrete domain {True, False} to the network
@@ -864,8 +877,12 @@ success:while (!successful) {
 			if (evidence == null || evidence.length != 2)
 				throw new IllegalArgumentException("Evidences not in the correct format: "+Arrays.toString(evidence)+"!");
 			int nodeIdx = getNodeIndex(evidence[0]);
-			if (nodeIdx < 0)
-				throw new IllegalArgumentException("Variable with the name "+evidence[0]+" not found!");
+			if (nodeIdx < 0) {
+				String error = "Variable with the name "+evidence[0]+" not found in model but mentioned in evidence!";
+				System.err.println("Warning: " + error);
+				continue;
+				//throw new IllegalArgumentException(error);
+			}
 			if (evidenceDomainIndices[nodeIdx] > 0)
 				logger.warn("Evidence "+evidence[0]+" set twice!");
 			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
@@ -879,8 +896,9 @@ success:while (!successful) {
 					} catch (Exception e) {
 						throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+"!");
 					}
-				} else {
-					throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+"!");
+				} 
+				else {
+					throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+" of node " + nodes[nodeIdx].getName());
 				}
 			}
 			evidenceDomainIndices[nodeIdx]=domainIdx;
