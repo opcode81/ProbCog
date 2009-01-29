@@ -50,7 +50,7 @@ public abstract class AbstractGroundBLN {
 		this.databaseFile = databaseFile;
 		System.out.println("reading evidence...");
 		Database db = new Database(bln.rbn);
-		db.readBLOGDB(databaseFile);
+		db.readBLOGDB(databaseFile, true);
 		init(bln, db);
 	}
 	
@@ -84,7 +84,7 @@ public abstract class AbstractGroundBLN {
 			if(!(extNode instanceof RelationalNode)) 
 				continue;
 			RelationalNode relNode = (RelationalNode)extNode;			
-			if(relNode.isConstant || relNode.isAuxiliary) // nodes that do not correspond to ground atoms can be ignored
+			if(relNode.isConstant || relNode.isAuxiliary || relNode.isBuiltInPred()) // nodes that do not correspond to ground atoms can be ignored
 				continue;
 			// keep track of handled functions and add to the list of functions
 			String f = relNode.getFunctionName();
@@ -142,7 +142,10 @@ public abstract class AbstractGroundBLN {
 		BeliefNode ret = null;
 		
 		// consider all the relational nodes that could be used to instantiate the variable
-		for(RelationalNode relNode : functionTemplates.get(functionName)) {
+		Vector<RelationalNode> templates = functionTemplates.get(functionName);
+		if(templates == null)
+			throw new Exception("No templates from which " + RelationalNode.formatName(functionName, params) + " could be constructed.");
+		for(RelationalNode relNode : templates) {
 			
 			// if the node is subject to preconditions (decision node parents), check if they are met
 			boolean preconditionsMet = true;
