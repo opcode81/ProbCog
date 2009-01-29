@@ -87,7 +87,7 @@ public class Database {
 			if(ignoreUndefinedFunctions)
 				return;
 			else
-				throw new Exception(String.format("Error: node %s appears in the training data but it is not declared in the model.", var.functionName));
+				throw new Exception(String.format("Error: node %s appears in the data but it is not declared in the model.", var.functionName));
 		}
 		else {
 			if(sig.argTypes.length != var.params.length) 
@@ -278,6 +278,8 @@ public class Database {
 	 */
 	public void setClosedWorldPred(String predName) throws Exception {
 		Signature sig = this.rbn.getSignature(predName);
+		if(sig == null)
+			throw new Exception("Cannot determine signature of " + predName);
 		String[] params = new String[sig.argTypes.length];
 		setClosedWorldPred(sig, 0, params);
 	}
@@ -287,12 +289,14 @@ public class Database {
 			String varName = RelationalNode.formatName(sig.functionName, params);
 			if(!this.contains(varName)) {				
 				Variable var = new Variable(sig.functionName, params.clone(), "False");
-				System.out.println("CW: " + var);
 				this.addVariable(var);
 			}
 			return;
 		}
-		for(String value : this.getDomain(sig.argTypes[i])) {
+		Set<String> dom = this.getDomain(sig.argTypes[i]);
+		if(dom == null)
+			return;
+		for(String value : dom) {
 			params[i] = value;
 			setClosedWorldPred(sig, i+1, params);
 		}
