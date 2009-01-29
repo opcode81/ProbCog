@@ -16,7 +16,9 @@ import edu.tum.cs.srldb.Item;
 import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
 
-public class DataDictionary {
+public class DataDictionary implements java.io.Serializable {
+
+	private static final long serialVersionUID = 1L;
 	protected HashMap<String, DDObject> objects;
 	protected HashMap<String, DDRelation> relations;
 	protected HashMap<String, DDAttribute> attributes;

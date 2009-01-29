@@ -1,11 +1,14 @@
 package edu.tum.cs.srldb.datadict;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
 
-public class DDObject extends DDItem implements IDDRelationArgument {
+public class DDObject extends DDItem implements IDDRelationArgument, Serializable {
+	private static final long serialVersionUID = 1L;
+
 	/**
 	 * @param name the name of the class of objects that this data dictionary object represents
 	 */

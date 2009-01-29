@@ -1,8 +1,10 @@
 package edu.tum.cs.srldb.datadict.domain;
 
+import java.io.Serializable;
+
 import kdl.prox3.dbmgr.DataTypeEnum;
 
-public abstract class Domain<T> {
+public abstract class Domain<T> implements Serializable {
 	protected String name;
 	
 	public Domain(String name) {

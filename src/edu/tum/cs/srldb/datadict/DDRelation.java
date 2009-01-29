@@ -1,12 +1,14 @@
 package edu.tum.cs.srldb.datadict;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
 
-public class DDRelation extends DDItem {
+public class DDRelation extends DDItem implements Serializable {
 
+	private static final long serialVersionUID = 1L;
 	protected IDDRelationArgument[] arguments;
 	protected boolean[] singleVal;
 	

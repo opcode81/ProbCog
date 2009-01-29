@@ -9,6 +9,7 @@ import edu.tum.cs.srldb.datadict.domain.*;
  *
  */
 public class DDRelationAttribute extends DDAttribute {
+	private static final long serialVersionUID = 1L;
 	public boolean[] singleVal;
 	
 	/**

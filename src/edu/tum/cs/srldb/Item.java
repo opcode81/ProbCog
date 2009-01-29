@@ -1,4 +1,5 @@
 package edu.tum.cs.srldb;
+import java.io.Serializable;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -14,7 +15,7 @@ import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 
-public abstract class Item {
+public abstract class Item implements Serializable {
 	protected HashMap<String,String> attribs;
 	protected static int GUID = 1;
 	protected int id;

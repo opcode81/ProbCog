@@ -1,6 +1,7 @@
 package edu.tum.cs.srldb.datadict.domain;
 
 public class BooleanDomain extends OrderedStringDomain {
+	private static final long serialVersionUID = 1L;
 	protected static BooleanDomain singleton = null;
 	
 	public static BooleanDomain getInstance() {

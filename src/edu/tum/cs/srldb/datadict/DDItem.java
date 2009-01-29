@@ -1,15 +1,15 @@
 package edu.tum.cs.srldb.datadict;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.IdentifierNamer;
 
-public abstract class DDItem {
+public abstract class DDItem implements Serializable {
 	protected String name;
 	protected HashMap<String, DDAttribute> attributes;
 	

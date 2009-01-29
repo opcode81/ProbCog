@@ -1,10 +1,13 @@
 package edu.tum.cs.srldb.datadict;
 
+import java.io.Serializable;
+
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
-public class DDAttribute implements Cloneable {
+public class DDAttribute implements Cloneable, Serializable {
+	private static final long serialVersionUID = 1L;
 	protected String name;
 	protected Domain domain;
 	/**

@@ -1,5 +1,6 @@
 package edu.tum.cs.srldb.datadict.domain;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -11,8 +12,9 @@ import kdl.prox3.dbmgr.DataTypeEnum;
  * that value is included in the domain. 
  * @author Dominik Jain
  */
-public class AutomaticDomain extends Domain<String> {
+public class AutomaticDomain extends Domain<String> implements Serializable {
 
+	private static final long serialVersionUID = 1L;
 	protected HashSet<String> values;
 	
 	public AutomaticDomain(String name) {
