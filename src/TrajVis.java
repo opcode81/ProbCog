@@ -59,13 +59,13 @@ public class TrajVis {
 		if(error) {
 			System.out.println("usage: TrajVis [options]");
 			System.out.println("  options: ");
-			System.out.println("           -h <human data>     human joint data");
-			System.out.println("           -e <embedded data>  low-dimensional (2D/3D) embedding");
-			System.out.println("           -l <embedded data>  point labels");
-			System.out.println("           -lm <embedded data>  label mapping");
-			System.out.println("           -c   			   center embeddings around mean");
-			System.out.println("           -nomesh			   do not draw kitchen mesh");	
-			System.out.println("           -wire               draw human pose using lines only");	
+			System.out.println("           -h <human data>          human joint data");
+			System.out.println("           -e <embedded data>       low-dimensional (2D/3D) embedding");
+			System.out.println("           -l <label indices file>  point labels");
+			System.out.println("           -lm <label names file>   label mapping");
+			System.out.println("           -c   			        center embeddings around mean");
+			System.out.println("           -nomesh			        do not draw kitchen mesh");	
+			System.out.println("           -wire                    draw human pose using lines only");	
 			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
 			return;
 		}
@@ -91,13 +91,15 @@ public class TrajVis {
 		
 		m.isomap.centerTrajectory = center;
 		Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
+		
 		if(labelFiles.size() > 0)
-			traj.setLabels(new File(labelFiles.get(0)));
-		Legend leg = new Legend();
-		if(labelMapFiles.size() > 0){
-			leg.loadLabels(new File(labelMapFiles.get(0)));
+			traj.setLabels(new File(labelFiles.get(0)));		
+		
+		if(labelMapFiles.size() > 0) {
+			Legend leg = new Legend(new File(labelMapFiles.get(0)), 5, 39);
 			m.isomap.add2D(leg);
 		}
+		
 		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
 		for(int i = 1; i < embedFiles.size(); i++) {
 			traj = new Trajectory();
