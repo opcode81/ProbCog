@@ -1,5 +1,8 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +19,6 @@ import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDObject;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary.BLNStructure;
-import edu.tum.cs.srldb.Object;
 
 public class PointCloudClassification {
 	
@@ -35,9 +37,7 @@ public class PointCloudClassification {
         }		
 	}
 	
-	public static void main(String[] args) throws FileNotFoundException, Exception {
-		String zolidata = "zoli3"; // zoli2 
-		String ulidata = "uli3"; // uli
+	public static void readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
 		String dataset = zolidata+ulidata;
 		String dbdir = dataset;
 		new File(dbdir).mkdir();
@@ -94,11 +94,12 @@ public class PointCloudClassification {
 		db.check();	
 
 		// write training databases
-		db.writeMLNDatabase(new PrintStream(new File("train.db")));
-		db.writeBLOGDatabase(new PrintStream(new File("train.blogdb")));
+		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/train.db")));
+		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/train.blogdb")));
+		db.writeSRLDB(new FileOutputStream(new File(dbdir + "/train.srldb")));
 		
 		// MLN
-		PrintStream mln = new PrintStream(new File("pcc.mln"));
+		PrintStream mln = new PrintStream(new File(dbdir + "/pcc.mln"));
 		db.writeBasicMLN(mln);
 		DDObject ddo = dd.getObject("object");
 		mln.println("\n// formulas");
@@ -154,11 +155,11 @@ public class PointCloudClassification {
 			bs.bn.bn.connect(par2, relNode);
 		}		
 		// save
-		bs.bn.savePMML("pcc_rel3.pmml");
+		bs.bn.savePMML(dbdir + "/pcc_rel3.pmml");
 		//bs.bn.show();
 		
 		// BLN
-		PrintStream bln = new PrintStream(new File("pcc.abl"));
+		PrintStream bln = new PrintStream(new File(dbdir + "/pcc.abl"));
 		dd.writeBasicBLOGModel(bln);
 		
 		// read test data
@@ -177,8 +178,9 @@ public class PointCloudClassification {
 		
 		// write complete test databases
 		System.out.println("writing test data...");
-		db.writeMLNDatabase(new PrintStream(new File("test.db")));
-		db.writeBLOGDatabase(new PrintStream(new File("test.blogdb")));
+		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/test.db")));
+		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/test.blogdb")));
+		db.writeSRLDB(new FileOutputStream(dbdir + "/test.srldb"));
 		
 		// write individual test databases without the class attribute
 		db.getDataDictionary().getAttribute("objectT").discard();
@@ -220,5 +222,14 @@ public class PointCloudClassification {
 		}
 		
 		System.out.println("done.");
+	}
+	
+	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+	}
+	
+	public static void main(String[] args) throws FileNotFoundException, Exception {
+		//readData("zoli3", "uli3");
+		learnDecTree("zoli3uli3");
 	}
 }
