@@ -25,8 +25,9 @@ public class Discretized extends Discrete {
 	/**
 	 * Construct a <code>Discretized</code> instance with a clusterer for discretization.
 	 * @param clusterer	the clusterer used for discretization.
+	 * @throws Exception 
 	 */
-	public <C extends Clusterer> Discretized(C clusterer, ClusterNamer<? super C> namer) {
+	public <C extends Clusterer> Discretized(C clusterer, ClusterNamer<? super C> namer) throws Exception {
 		setDiscretizationFilter(new ClustererDiscretizationFilter(clusterer, namer));
 	}
 
