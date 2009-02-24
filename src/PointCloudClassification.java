@@ -4,9 +4,20 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
+import java.util.Map.*;
+
+import weka.classifiers.trees.J48;
+import weka.classifiers.trees.j48.Rule;
+import weka.classifiers.trees.j48.Rule.Condition;
+import weka.core.Attribute;
+import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
+import edu.tum.cs.srldb.datadict.domain.Domain;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.analysis.pointcloud.DataReader;
@@ -20,6 +31,7 @@ import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.DDObject;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary.BLNStructure;
+import edu.tum.cs.srldb.datadict.DDException;
 
 public class PointCloudClassification {
 	
@@ -238,15 +250,56 @@ public class PointCloudClassification {
 		}
 	}
 	
-	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException {
+	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException, DDException, Exception {
 		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
+		//the vector of attributes
+		FastVector fvAttribs = new FastVector();
+		HashMap<String,Attribute> mapAttrs = new HashMap<String,Attribute>();
+		for(DDAttribute attribute : dd.getObject("object").getAttributes().values()){
+			if(attribute.isDiscarded()){
+				continue;
+			}
+			FastVector attValues = new FastVector();
+			Domain dom = attribute.getDomain();
+			for(String s : dom.getValues())
+				attValues.addElement(s);
+			Attribute attr = new Attribute(attribute.getName(), attValues);				
+			fvAttribs.addElement(attr);
+			mapAttrs.put(attribute.getName(), attr);
+		}
+
+		// learn decision tree
+		Instances instances = new Instances("name",fvAttribs,10000);
+		//for each object add an instance
+		for(Object o : db.getObjects()){
+			if (o.hasAttribute("objectT")){
+				Instance instance = new Instance(fvAttribs.size());
+				for(Entry<String,String> e : o.getAttributes().entrySet()) {
+					if (!dd.getAttribute(e.getKey()).isDiscarded()){
+						instance.setValue(mapAttrs.get(e.getKey()), e.getValue());
+					}		
+				}
+				instances.add(instance);
+			}		
+		}
+		
+		//learn a J48 decision tree from the instances
+		instances.setClass(mapAttrs.get("objectT"));
+		J48 j48 = new J48();
+		//j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
+		j48.buildClassifier(instances);
+		System.out.println(j48.toString());
+		ObjectOutputStream objstream = new ObjectOutputStream(new FileOutputStream(dbdir + "/pcc.j48"));
+		objstream.writeObject(j48);
+		objstream.close();
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, Exception {
-		String zolidata = "zoli4", ulidata = "uli4";
+		String zolidata = "zoli6", ulidata = "uli6";
 		String dbdir = zolidata + ulidata;
 		readData(zolidata, ulidata);
-		//learnDecTree(zolidata + ulidata);
+		learnDecTree(zolidata + ulidata);
 		
 		/*Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
 		writeIndividualTestDatabases(db, dbdir);*/
