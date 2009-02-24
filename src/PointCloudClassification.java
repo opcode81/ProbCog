@@ -50,7 +50,7 @@ public class PointCloudClassification {
         }		
 	}
 	
-	public static void readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
+	public static Database readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
 		String dataset = zolidata+ulidata;
 		String dbdir = dataset;
 		new File(dbdir).mkdir();
@@ -106,80 +106,16 @@ public class PointCloudClassification {
 			isEllipseOf.setFunctional(new boolean[]{false, true});
 
 		// finalize
-		db.check();	
+		db.check();
+		Database ret = db;
 
 		// write training databases
 		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/train.db")));
 		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/train.blogdb")));
 		db.writeSRLDB(new FileOutputStream(new File(dbdir + "/train.srldb")));
 		
-		// MLN
-		PrintStream mln = new PrintStream(new File(dbdir + "/pcc.mln"));
-		db.writeBasicMLN(mln);
-		DDObject ddo = dd.getObject("object");
-		mln.println("\n// formulas");
-		for(DDAttribute dda : ddo.getAttributes().values())
-			if(!dda.isDiscarded())
-				mln.printf("objectT(o,+t) ^ %s(o,+v)\n", dda.getName());		
-		mln.printf("belongsTo(c,o) ^ objectT(o,+ot) ^ componentT(c,+ct)\n");
-		String[] componentRel = new String[]{"depth", "level", "below"};
-		for(String rel : componentRel) 
-			mln.printf("%s(c,c2) ^ componentT(c,+ct) ^ componentT(c2,+ct2) ^ belongsTo(c,o) ^ objectT(o,+ot)\n", rel);
-		mln.printf("isEllipseOf(e,o) ^ objectT(o,+ot) ^ xOrientation(e,+xo) ^ yOrientation(e,+yo) ^ radDistRatio(e,+r)\n");
-		
-		// BLN structure
-		BLNStructure bs = dd.createBasicBLNStructure();		
-		for(DDAttribute attr : dd.getAttributes()) {
-			if(attr.isDiscarded())
-				continue;
-			if(attr.getOwner().getName().equals("ellipse"))
-				continue;
-			if(attr.getName().equals("objectT") || attr.getName().equals("componentT"))
-				continue;
-			String classAttr = attr.getOwner().getName() + "T";			
-			bs.connect(dd.getAttribute(classAttr), attr);
-		}
-		// dependencies of the belongsTo relation
-		DDAttribute componentT = dd.getAttribute("componentT"); 
-		DDAttribute objectT = dd.getAttribute("objectT");
-		DDRelation belongsTo = dd.getRelation("belongsTo");
-		bs.connect(componentT, belongsTo);
-		bs.connect(objectT, belongsTo);
-		// dependencies of the isEllipseOf relation
-		if(isEllipseOf != null) {
-			DDRelation ddrel = isEllipseOf;
-			ddo = dd.getObject("ellipse");
-			for(DDAttribute attr : ddo.getAttributes().values())
-				bs.connect(attr, ddrel);
-			bs.connect(objectT, ddrel);
-		}
-		// relations depth, level and below
-		Vector<BeliefNode> par = new Vector<BeliefNode>();
-		par.add(bs.bn.addDecisionNode("!(c=c2)"));
-		par.add(bs.getNode(componentT));
-		par.add(bs.bn.addNode("#componentT(c2)"));
-		par.add(bs.getNode(belongsTo));
-		par.add(bs.getNode(objectT));
-		BeliefNode par2 = bs.bn.addDecisionNode("c=c2");
-		for(String rel : componentRel) {
-			String nodeName = String.format("%s(c,c2)", rel);
-			BeliefNode relNode = bs.bn.addNode(nodeName);
-			for(BeliefNode parent : par) 
-				bs.bn.bn.connect(parent, relNode);
-			relNode = bs.getNode(dd.getRelation(rel));
-			relNode.setName(nodeName);
-			bs.bn.bn.connect(par2, relNode);
-		}		
-		// save
-		bs.bn.savePMML(dbdir + "/pcc_rel3.pmml");
-		//bs.bn.show();
-		
-		// BLN
-		PrintStream bln = new PrintStream(new File(dbdir + "/pcc.abl"));
-		dd.writeBasicBLOGModel(bln);
-		
 		// read test data
-		db.clear();
+		db = new Database(ret.getDataDictionary());
 		xmls.clear();
 		System.out.println("reading XML test data...");
 		getXMLFiles(new File("data/test_" + zolidata), xmls);	
@@ -200,7 +136,94 @@ public class PointCloudClassification {
 
 		writeIndividualTestDatabases(db, dbdir);
 		
-		System.out.println("done.");
+		return ret;
+	}
+	
+	public static void writeBasicModels(Database db, String dbdir) throws DDException, FileNotFoundException {
+		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
+		
+		// MLN
+		System.out.println("writing MLN structure...");
+		PrintStream mln = new PrintStream(new File(dbdir + "/pcc.mln"));
+		db.writeBasicMLN(mln);
+		DDObject ddo = dd.getObject("object");
+		mln.println("\n// formulas");
+		for(DDAttribute dda : ddo.getAttributes().values())
+			if(!dda.isDiscarded())
+				mln.printf("objectT(o,+t) ^ %s(o,+v)\n", dda.getName());		
+		mln.printf("belongsTo(c,o) ^ objectT(o,+ot) ^ componentT(c,+ct)\n");
+		String[] componentRel = new String[]{"depth", "level", "below"};
+		for(String rel : componentRel) 
+			mln.printf("%s(c,c2) ^ componentT(c,+ct) ^ componentT(c2,+ct2) ^ belongsTo(c,o) ^ objectT(o,+ot)\n", rel);
+		mln.printf("isEllipseOf(e,o) ^ objectT(o,+ot) ^ xOrientation(e,+xo) ^ yOrientation(e,+yo) ^ radDistRatio(e,+r)\n");
+		
+		// BLN structure
+		System.out.println("writing BLN structures...");
+		BLNStructure bs = dd.createBasicBLNStructure();		
+		// naive Bayes: class -> attribute
+		for(DDAttribute attr : dd.getAttributes()) {
+			if(attr.isDiscarded())
+				continue;
+			if(attr.getOwner().getName().equals("ellipse"))
+				continue;
+			if(attr.getName().equals("objectT") || attr.getName().equals("componentT"))
+				continue;
+			String classAttr = attr.getOwner().getName() + "T";			
+			bs.connect(dd.getAttribute(classAttr), attr);
+		}
+		// dependencies of the belongsTo relation
+		DDAttribute componentT = dd.getAttribute("componentT"); 
+		DDAttribute objectT = dd.getAttribute("objectT");
+		DDRelation belongsTo = dd.getRelation("belongsTo");
+		bs.connect(componentT, belongsTo);
+		bs.connect(objectT, belongsTo);
+		// relations depth, level and below
+		Vector<BeliefNode> par = new Vector<BeliefNode>();
+		par.add(bs.bn.addDecisionNode("!(c=c2)"));
+		par.add(bs.getNode(componentT));
+		par.add(bs.bn.addNode("#componentT(c2)"));
+		par.add(bs.getNode(belongsTo));
+		par.add(bs.getNode(objectT));
+		BeliefNode par2 = bs.bn.addDecisionNode("c=c2");
+		for(String rel : componentRel) {
+			String nodeName = String.format("%s(c,c2)", rel);
+			BeliefNode relNode = bs.bn.addNode(nodeName);
+			for(BeliefNode parent : par) 
+				bs.bn.bn.connect(parent, relNode);
+			relNode = bs.getNode(dd.getRelation(rel));
+			relNode.setName(nodeName);
+			bs.bn.bn.connect(par2, relNode);
+		}		
+		// save the model structure with everything but ellipses
+		bs.bn.savePMML(dbdir + "/pcc_rel.pmml");
+		// dependencies of the isEllipseOf relation
+		DDRelation isEllipseOf = dd.getRelation("isEllipseOf");
+		if(isEllipseOf != null) {
+			DDRelation ddrel = isEllipseOf;
+			ddo = dd.getObject("ellipse");
+			for(DDAttribute attr : ddo.getAttributes().values())
+				bs.connect(attr, ddrel);
+			bs.connect(objectT, ddrel);
+		}
+		// save the full model structure
+		bs.bn.savePMML(dbdir + "/pcc_rel3.pmml");
+		//bs.bn.show();
+		// generate a model structure that considers only the relations but none of the attributes
+		for(DDAttribute attr : dd.getAttributes()) {
+			if(attr.isDiscarded())
+				continue;
+			if(attr.getOwner().getName().equals("ellipse"))
+				continue;
+			if(attr.getName().equals("objectT") || attr.getName().equals("componentT"))
+				continue;
+			String classAttr = attr.getOwner().getName() + "T";			
+			bs.disconnect(dd.getAttribute(classAttr), attr);
+		}
+		bs.bn.savePMML(dbdir + "/pcc_noattrs.pmml");		
+		
+		// BLN
+		PrintStream bln = new PrintStream(new File(dbdir + "/pcc.abl"));
+		dd.writeBasicBLOGModel(bln);
 	}
 	
 	public static void writeIndividualTestDatabases(Database db, String dbdir) throws DDException, IOException {
@@ -298,10 +321,12 @@ public class PointCloudClassification {
 	public static void main(String[] args) throws FileNotFoundException, Exception {
 		String zolidata = "zoli6", ulidata = "uli6";
 		String dbdir = zolidata + ulidata;
-		readData(zolidata, ulidata);
-		learnDecTree(zolidata + ulidata);
 		
-		/*Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
-		writeIndividualTestDatabases(db, dbdir);*/
+		//Database db = readData(zolidata, ulidata);
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+				
+		//writeIndividualTestDatabases(db, dbdir);
+		writeBasicModels(db, dbdir);
+		learnDecTree(zolidata + ulidata);
 	}
 }
