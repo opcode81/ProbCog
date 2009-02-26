@@ -407,6 +407,10 @@ public class DataDictionary implements java.io.Serializable {
 		public void connect(java.lang.Object ddAttributeOrRelation_Parent, java.lang.Object ddAttributeOrRelation_Child) {
 			bn.bn.connect(dd2node.get(ddAttributeOrRelation_Parent), dd2node.get(ddAttributeOrRelation_Child));
 		}
+		
+		public void disconnect(java.lang.Object ddAttributeOrRelation_Parent, java.lang.Object ddAttributeOrRelation_Child) {
+			bn.bn.disconnect(dd2node.get(ddAttributeOrRelation_Parent), dd2node.get(ddAttributeOrRelation_Child));
+		}
 	}
 	
 	public BLNStructure createBasicBLNStructure() {
