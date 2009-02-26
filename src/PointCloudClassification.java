@@ -3,22 +3,18 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
-import java.util.Map.*;
+import java.util.Map.Entry;
 
 import weka.classifiers.trees.J48;
-import weka.classifiers.trees.j48.Rule;
-import weka.classifiers.trees.j48.Rule.Condition;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
-import edu.tum.cs.srldb.datadict.domain.Domain;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.analysis.pointcloud.DataReader;
 import edu.tum.cs.srldb.Database;
@@ -31,7 +27,7 @@ import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.DDObject;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary.BLNStructure;
-import edu.tum.cs.srldb.datadict.DDException;
+import edu.tum.cs.srldb.datadict.domain.Domain;
 
 public class PointCloudClassification {
 	
@@ -50,7 +46,7 @@ public class PointCloudClassification {
         }		
 	}
 	
-	public static Database readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
+	public static void readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
 		String dataset = zolidata+ulidata;
 		String dbdir = dataset;
 		new File(dbdir).mkdir();
@@ -73,7 +69,7 @@ public class PointCloudClassification {
 		Vector<File> xmls = new Vector<File>();
 		System.out.println("reading XML training data...");
 		getXMLFiles(new File("data/training_" + zolidata), xmls);
-		getXMLFiles(new File("data/training_" + ulidata), xmls);
+		getXMLFiles(new File("data/" + ulidata), xmls);
 		for(File xml : xmls) {
 			System.out.println("  " + xml.getPath());
 			dr.readXML(xml);
@@ -107,19 +103,18 @@ public class PointCloudClassification {
 
 		// finalize
 		db.check();
-		Database ret = db;
 
 		// write training databases
 		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/train.db")));
 		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/train.blogdb")));
 		db.writeSRLDB(new FileOutputStream(new File(dbdir + "/train.srldb")));
 		
-		// read test data
-		db = new Database(ret.getDataDictionary());
+		// read test data		
+		dr.clear();
 		xmls.clear();
 		System.out.println("reading XML test data...");
 		getXMLFiles(new File("data/test_" + zolidata), xmls);	
-		getXMLFiles(new File("data/test_" + ulidata), xmls);
+		getXMLFiles(new File("data/" + ulidata), xmls);
 		for(File xml : xmls) {
 			System.out.println("  " + xml.getPath());
 			dr.readXML(xml);
@@ -133,13 +128,10 @@ public class PointCloudClassification {
 		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/test.db")));
 		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/test.blogdb")));
 		db.writeSRLDB(new FileOutputStream(dbdir + "/test.srldb"));
-
-		writeIndividualTestDatabases(db, dbdir);
-		
-		return ret;
 	}
 	
-	public static void writeBasicModels(Database db, String dbdir) throws DDException, FileNotFoundException {
+	public static void writeBasicModels(String dbdir) throws DDException, IOException, ClassNotFoundException {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
 		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
 		
 		// MLN
@@ -226,8 +218,10 @@ public class PointCloudClassification {
 		dd.writeBasicBLOGModel(bln);
 	}
 	
-	public static void writeIndividualTestDatabases(Database db, String dbdir) throws DDException, IOException {
+	public static void writeIndividualTestDatabases(String dbdir) throws DDException, IOException, ClassNotFoundException {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/test.srldb"));
 		// write individual test databases without the class attribute
+		System.out.println("writing individual test databases...");
 		db.getDataDictionary().getAttribute("objectT").discard();
 		for(Object o : db.getObjects()) {
 			if(o.hasAttribute("objectT")) {
@@ -268,6 +262,7 @@ public class PointCloudClassification {
 							}
 					}
 				}
+				System.out.println("  " + dbname);
 				objDB.writeSRLDB(new FileOutputStream(new File(dbname + ".srldb")));
 			}
 		}
@@ -319,14 +314,14 @@ public class PointCloudClassification {
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, Exception {
-		String zolidata = "zoli6", ulidata = "uli6";
+		String zolidata = "zoli4", ulidata = "uli4c";
 		String dbdir = zolidata + ulidata;
 		
-		//Database db = readData(zolidata, ulidata);
-		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
-				
-		//writeIndividualTestDatabases(db, dbdir);
-		writeBasicModels(db, dbdir);
-		learnDecTree(zolidata + ulidata);
+		readData(zolidata, ulidata);		
+		writeBasicModels(dbdir);
+		learnDecTree(dbdir);		
+		writeIndividualTestDatabases(dbdir);	
+		
+		System.out.println("done.");
 	}
 }
