@@ -46,12 +46,11 @@ public class PointCloudClassification {
         }		
 	}
 	
-	public static void readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
-		String dataset = zolidata+ulidata;
-		String dbdir = dataset;
-		new File(dbdir).mkdir();
+	public static void readData(String zolidata, String ulidata, String suffix) throws FileNotFoundException, Exception {
+		String dbdir = zolidata + ulidata + suffix;
+		new File(dbdir).mkdir();		
 		
-		DataReader dr = new DataReader();
+		DataReader dr = new DataReader(suffix);
 		dr.setRename("wideness", "widthFrac");
 		dr.setRename("longness", "lengthFrac");
 		dr.setRename("thickness", "thicknessFrac");
@@ -269,7 +268,7 @@ public class PointCloudClassification {
 	}
 	
 	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException, DDException, Exception {
-		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/test.srldb"));
 		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
 		//the vector of attributes
 		FastVector fvAttribs = new FastVector();
@@ -314,13 +313,19 @@ public class PointCloudClassification {
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, Exception {
-		String zolidata = "zoli4", ulidata = "uli4c";
-		String dbdir = zolidata + ulidata;
+		if(args.length != 3) {
+			System.err.println("usage: pcc <zolidata> <ulidata> <suffix>");
+			System.exit(1);
+		}
 		
-		readData(zolidata, ulidata);		
-		writeBasicModels(dbdir);
-		learnDecTree(dbdir);		
-		writeIndividualTestDatabases(dbdir);	
+		//String zolidata = "zoli4", ulidata = "uli4", suffix = "merged";
+		String zolidata = args[0], ulidata = args[1], suffix = args[2];
+		String dbdir = zolidata + ulidata + suffix;
+		
+		readData(zolidata, ulidata, suffix);		
+		writeBasicModels(dbdir);	
+		learnDecTree(dbdir);
+		writeIndividualTestDatabases(dbdir);
 		
 		System.out.println("done.");
 	}
