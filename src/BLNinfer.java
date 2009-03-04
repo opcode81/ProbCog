@@ -9,6 +9,7 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
+import edu.tum.cs.bayesnets.inference.EnumerationAsk;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
@@ -30,7 +31,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk};
 	
 	/**
 	 * @param args
@@ -103,6 +104,8 @@ public class BLNinfer {
 					algo = Algorithm.Experimental;
 				else if(args[i].equals("-satis"))
 					algo = Algorithm.SATIS;
+				else if(args[i].equals("-ea"))
+					algo = Algorithm.EnumerationAsk;
 				else if(args[i].equals("-satisex"))
 					algo = Algorithm.SATISEx;
 				else if(args[i].equals("-debug"))
@@ -124,6 +127,7 @@ public class BLNinfer {
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
+							         "    -ea              algorithm: Enumeration-Ask (exact)\n" +
 							         "    -py              use Python-based logic engine\n" +
 							         "    -debug           debug mode with additional outputs\n" + 
 							         "    -s           	   show ground network in editor\n" +
@@ -224,6 +228,8 @@ public class BLNinfer {
 				sampler = new SATIS((GroundBLN)gbln); break;
 			case SATISEx:
 				sampler = new SATISEx((GroundBLN)gbln); break;
+			case EnumerationAsk:
+				sampler = new BNSampler(gbln, EnumerationAsk.class); break;
 			default: 
 				throw new Exception("algorithm not handled");
 			}
