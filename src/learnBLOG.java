@@ -81,18 +81,17 @@ public class learnBLOG {
 					bn = new BLOGModel(bifFile);
 			}
 			
-			
+
+			// prepare it for learning
+			bn.prepareForLearning();
+
 			// read the training databases
 			System.out.println("Reading data...");
-			
 			Vector<Database> dbs = new Vector<Database>();
 			Pattern p = Pattern.compile( dbFile ); 
 			for (File file : new File( "." ).listFiles()) { 
 				if(p.matcher(file.getName()).matches()) {
 					
-					// prepare it for learning
-					bn.prepareForLearning();
-
 					
 					Database db = new Database(bn);
 					db.readBLOGDB(file.getName(), ignoreUndefPreds);
@@ -109,11 +108,13 @@ public class learnBLOG {
 			if(learnDomains) {
 				System.out.println("Learning domains...");
 				
+				DomainLearner domLearner = new DomainLearner(bn);
 				for(Database db : dbs) {
-					DomainLearner domLearner = new DomainLearner(bn);
+					
 					domLearner.learn(db);
-					domLearner.finish();
 				}
+
+				domLearner.finish();
 			}
 			System.out.println("Domains:");
 			for(Signature sig : bn.getSignatures()) {
