@@ -7,6 +7,10 @@ import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.bayesnets.relational.learning.CPTLearner;
 import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
+import java.util.regex.Pattern;
+import java.util.Vector;
+
+import javax.xml.crypto.Data;
 
 public class learnBLOG {	
 	
@@ -50,7 +54,7 @@ public class learnBLOG {
 					debug = true;					
 			}			
 			if(bifFile == null || dbFile == null || outFileBLOG == null || outFileNetwork == null) {
-				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
+				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db pattern>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
 							         "    -b      " + acronym + " file from which to read function signatures\n" +
 						             "    -s      show learned Bayesian network\n" +
 						             "    -d      learn domains\n" + 
@@ -76,21 +80,40 @@ public class learnBLOG {
 				else
 					bn = new BLOGModel(bifFile);
 			}
-			// prepare it for learning
-			bn.prepareForLearning();
-			// read the training database
+			
+			
+			// read the training databases
 			System.out.println("Reading data...");
-			Database db = new Database(bn);
-			db.readBLOGDB(dbFile, ignoreUndefPreds);		
+			
+			Vector<Database> dbs = new Vector<Database>();
+			Pattern p = Pattern.compile( dbFile ); 
+			for (File file : new File( "." ).listFiles()) { 
+				if(p.matcher(file.getName()).matches()) {
+					
+					// prepare it for learning
+					bn.prepareForLearning();
+
+					
+					Database db = new Database(bn);
+					db.readBLOGDB(file.getName(), ignoreUndefPreds);
+					dbs.add(db);
+				}
+			}
+			
 			// check domains for overlaps and merge if necessary
 			System.out.println("Checking domains...");
-			db.checkDomains(true);
+			for(Database db : dbs)
+				db.checkDomains(true);
+			
 			// learn domains
 			if(learnDomains) {
 				System.out.println("Learning domains...");
-				DomainLearner domLearner = new DomainLearner(bn);
-				domLearner.learn(db);
-				domLearner.finish();
+				
+				for(Database db : dbs) {
+					DomainLearner domLearner = new DomainLearner(bn);
+					domLearner.learn(db);
+					domLearner.finish();
+				}
 			}
 			System.out.println("Domains:");
 			for(Signature sig : bn.getSignatures()) {
@@ -102,7 +125,8 @@ public class learnBLOG {
 				System.out.println("Learning parameters...");
 				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
 				//cptLearner.setUniformDefault(true);
-				cptLearner.learnTyped(db, true, true);
+				for(Database db : dbs)
+					cptLearner.learnTyped(db, true, true);
 				if(!noNormalization)
 					cptLearner.finish();
 				// write learnt BLOG/ABL model
