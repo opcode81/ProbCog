@@ -88,13 +88,20 @@ public class learnBLOG {
 			// read the training databases
 			System.out.println("Reading data...");
 			Vector<Database> dbs = new Vector<Database>();
-			Pattern p = Pattern.compile( dbFile ); 
-			for (File file : new File( "." ).listFiles()) { 
+			String[] pathName = dbFile.split("/");
+			String dirName=".";
+			for(int p=0;p<pathName.length-1;p++) {
+				dirName+="/"+pathName[p];
+			}
+			
+			Pattern p = Pattern.compile( pathName[pathName.length-1] );
+			
+			for (File file : new File( dirName ).listFiles()) { 
 				if(p.matcher(file.getName()).matches()) {
 					
 					
 					Database db = new Database(bn);
-					db.readBLOGDB(file.getName(), ignoreUndefPreds);
+					db.readBLOGDB(dirName+"/"+file.getName(), ignoreUndefPreds);
 					dbs.add(db);
 				}
 			}
