@@ -514,7 +514,9 @@ class MLN:
         '''this is the method that creates the ground MRF'''
         self.gndFormulas = []
         self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
+        print "grounding formulas..."
         for idxFormula, formula in enumerate(self.formulas):
+            print "  %s" % strFormula(formula)
             #vars = formula.getVariables(self)
             #self._groundFormula(formula, vars, {}, idxFormula)
             for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
@@ -526,7 +528,10 @@ class MLN:
         for f in self.formulas:
             w = str(f.weight)
             w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
-            f.weight = eval(w)
+            try:
+                f.weight = eval(w)
+            except:
+                raise Exception("Evaluation error while trying to compute '%s'" % w)
     
     def domSize(self, domName):
         return len(self.domains[domName])
@@ -696,6 +701,7 @@ class MLN:
         return self.gibbsSampler.infer(what, given, verbose=verbose, **args)
 
     def inferMCSAT(self, what, given = None, verbose = True, **args):
+        self.printGroundFormulas(exp)
         if not hasattr(self, "mcsat"):
             self.mcsat = MCSAT(self, verbose = args.get("details", False))
         result = self.mcsat.infer(what, given, verbose=verbose, **args)
@@ -1890,11 +1896,10 @@ class MLN:
         for i, formula in enumerate(self.formulas):
             print "%f %s" % (sums[i]/totals[i], str(formula))
 
-    # prints all the ground formulas
-    def printGroundFormulas(self):
+    def printGroundFormulas(self, weight_transform = lambda x: x):
         for gf in self.gndFormulas:
-            print "%7.3f  %s" % (self.formulas[gf.idxFormula].weight, strFormula(gf))
-    
+            print "%7.3f  %s" % (weight_transform(self.formulas[gf.idxFormula].weight), strFormula(gf))
+
     def printGroundAtoms(self):
         l = self.gndAtoms.keys()
         l.sort()
@@ -2339,6 +2344,7 @@ class GibbsSampler(MCMCInference):
             for chain in chainGroup.chains:
                 chain.step(debug=debug)
                 if chain.converged and numSteps >= minSteps:
+                    #pass
                     converged += 1
             if verbose and details:
                 if numSteps % infoInterval == 0:
@@ -2396,7 +2402,12 @@ class MCSAT(MCMCInference):
                 # next clause index
                 idxClause += 1
     
-    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None):
+    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5):
+        '''
+        p: probability of a greedy (WalkSAT) move
+        initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
+        '''
+        self.p = p
         self.debug = debug
         self.debugLevel = debugLevel
         t_start = time.time()
@@ -2441,7 +2452,7 @@ class MCSAT(MCMCInference):
                 print "\ninitial state:"
                 mln.printState(chain.state)
         # do MCSAT sampling
-        if details: print "sampling... time elapsed: %s" % self._getElapsedTime()
+        if details: print "sampling (p=%f)... time elapsed: %s" % (self.p, self._getElapsedTime())
         if debug: print
         if infoInterval is None: infoInterval = {True:1, False:10}[debug]
         if resultsInterval is None: resultsInterval = {True:1, False:50}[debug]
@@ -2487,7 +2498,7 @@ class MCSAT(MCMCInference):
                             print "  to satisfy:", strFormula(gf)
         # (uniformly) sample a state that satisfies them
         t1 = time.time()
-        ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2)
+        ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2, p=self.p)
         t2 = time.time()
         ss.run()
         t3 = time.time()
@@ -2497,7 +2508,7 @@ class MCSAT(MCMCInference):
 
 class SampleSAT:
     # clauseIdxs: list of indices of clauses to satisfy
-    # p: probability of performing a random walk move
+    # p: probability of performing a greedy WalkSAT move
     # state: the state (array of booleans) to work with (is reinitialized randomly by this constructor)
     # NLConstraints: list of grounded non-logical constraints
     def __init__(self, mln, state, clauseIdxs, NLConstraints, inferObject, p = 0.5, debug = False):
