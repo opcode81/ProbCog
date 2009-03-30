@@ -26,7 +26,8 @@ public class TrajVis {
 		Vector<String> labelMapFiles = new Vector<String>();
 		boolean drawMesh = true;
 		boolean wire = false;
-		boolean error = false;		
+		boolean error = false;
+		boolean background = false;
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-c")) {
@@ -50,11 +51,16 @@ public class TrajVis {
 			else if(args[i].equals("-wire")) {
 				wire = true;
 			}
+			else if(args[i].equals("-bg")) {
+				background = true;
+			}
 			else {
 				System.err.println("Error: unknown parameter " + args[i]);
 				error = true;
 			}
 		}
+		if(humanFiles.isEmpty() || embedFiles.isEmpty())
+			error = true;
 		
 		if(error) {
 			System.out.println("usage: TrajVis [options]");
@@ -65,14 +71,17 @@ public class TrajVis {
 			System.out.println("           -lm <label names file>   label mapping");
 			System.out.println("           -c   			        center embeddings around mean");
 			System.out.println("           -nomesh			        do not draw kitchen mesh");	
-			System.out.println("           -wire                    draw human pose using lines only");	
+			System.out.println("           -wire                    draw human pose using lines only");
+			System.out.println("           -bg                    	draw kitchen background");
 			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
 			return;
 		}
 		
 		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk", 800, 400, 400);
 		
-		m.kitchen.setDrawMeshes(drawMesh);		
+		m.kitchen.setDrawMeshes(drawMesh);
+		if(background)
+			m.kitchen.drawBackground("/usr/wiss/tenorth/work/owl/gram_ias_human.pl");
 		
 		if(!humanFiles.isEmpty()) {
 			int[] colors = new int[]{0xffff00ff, 0xffffff00, 0xff00ffff};
