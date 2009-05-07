@@ -1,7 +1,6 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import sun.awt.SunHints.Value;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
@@ -14,7 +13,6 @@ import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.relational.core.ABL;
-import edu.tum.cs.bayesnets.relational.core.BLOGModel;
 import edu.tum.cs.bayesnets.relational.core.bln.*;
 import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.bayesnets.relational.inference.BNSampler;
@@ -114,7 +112,7 @@ public class BLNinfer {
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
 			if(bifFile == null || dbFile == null || blogFile == null || blnFile == null || query == null) {
-				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db>> <-q <comma-sep. queries>> [options]\n\n"+
+				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db pattern>> <-q <comma-sep. queries>> [options]\n\n"+
 									 "    -maxSteps #      the maximum number of steps to take\n" +
 									 "    -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
 									 "    -skipFailedSteps failed steps (> max trials) should just be skipped\n" +
@@ -180,7 +178,6 @@ public class BLNinfer {
 				gbln = new edu.tum.cs.bayesnets.relational.core.bln.py.GroundBLN(bln, dbFile);
 			}
 			if(cwPreds != null) {
-				System.out.println("extending evidence...");
 				for(String predName : cwPreds)
 					gbln.getDatabase().setClosedWorldPred(predName);
 			}
@@ -192,12 +189,7 @@ public class BLNinfer {
 				String baseName = bifFile.substring(0, bifFile.lastIndexOf('.'));
 				gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
 			}
-			
-			if(false) {
-				System.out.println("\ndomain:");
-				gbln.getDatabase().printDomain(System.out);
-				System.out.println();
-			}			
+
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
@@ -234,7 +226,6 @@ public class BLNinfer {
 				throw new Exception("algorithm not handled");
 			}
 			sampler.setDebugMode(debug);
-			System.out.println("algorithm: " + sampler.getAlgorithmName());
 			if(sampler instanceof BNSampler) {
 				((BNSampler)sampler).setMaxTrials(maxTrials);
 				((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
@@ -243,7 +234,6 @@ public class BLNinfer {
 			sw.stop();
 			for(InferenceResult res : results)
 				res.print();
-			System.out.println("total inference time: " + sw.getElapsedTimeSecs() + " seconds");
 		}
 		catch(Exception e) {
 			e.printStackTrace();

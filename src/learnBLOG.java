@@ -10,7 +10,6 @@ import edu.tum.cs.bayesnets.relational.learning.DomainLearner;
 import java.util.regex.Pattern;
 import java.util.Vector;
 
-import javax.xml.crypto.Data;
 
 public class learnBLOG {	
 	
@@ -145,6 +144,7 @@ public class learnBLOG {
 				// write parameters to Bayesian network template
 				System.out.println("Writing network output to " + outFileNetwork + "...");
 				bn.save(outFileNetwork);
+				bn.save(outFileNetwork+".net");
 			}
 			// write basic BLN 
 			if(basicBLN) {

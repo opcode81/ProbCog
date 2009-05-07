@@ -1,12 +1,8 @@
 package edu.tum.cs.srldb.fipm;
 import java.sql.Connection;
-import java.sql.DriverManager;
 
-import java.util.Iterator;
 import java.util.Vector;
 
-import de.tum.in.fipm.base.database.Queryengine;
-import de.tum.in.fipm.base.util.Settings;
 
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.Object;
@@ -18,9 +14,7 @@ import edu.tum.cs.srldb.datadict.DataDictionary;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
-import fipm.data.db.base.DBGameDataIO;
 import fipm.data.db.models.DBMotionReader;
-import de.tum.in.fipm.base.models.util.GameData;
 
 
 public class FIPMData {
@@ -82,61 +76,61 @@ public class FIPMData {
 	}
 	
 	public void fetch(String gameDBCond) throws Exception {
-		System.out.println("fetching data...");			
-
-		// load MySQL driver (TODO move to appropriate location)
-		Class.forName("com.mysql.jdbc.Driver").newInstance();
-
-		// initialize main query engine
-		Queryengine dbengine = Queryengine.getInstance();
-		if (!dbengine.check()) System.exit(1);
-		Settings.getStd().put("main_dbengine",dbengine);
-		
-		// get a list of all the games
-        DBGameDataIO gameIO = DBGameDataIO.getInstance();
-        Iterator<GameData> iGameData = null; //(Iterator<GameData>) gameIO.readAll(gameDBCond).iterator();
-        
-		// process all the listed game databases...	        		
-        database = new Database(datadict);
-        players = new Vector<Object>();
-        teams = new Vector<Object>();
-		for(int nGame = 0; iGameData.hasNext(); nGame++) {
-			GameData gameData = iGameData.next();
-			motionReader = DBMotionReader.getInstance(gameData);
-			
-			// connect to game database
-			String gameDB = gameData.getDatabase(); 
-			System.out.println(gameDB + " (" + gameData.getName() + ")");
-			Settings settings = Settings.getStd();
-			String connectString = "jdbc:mysql://" + settings.get("primary_host") + ":" + settings.get("primary_port") + "/" + gameDB + "?user=" + settings.get("primary_user") + "&password=" + settings.get("primary_password");
-			Connection connGame = DriverManager.getConnection(connectString);	
-			
-			// get game data
-			Game game = new Game(database, gameData);		
-			game.commit();
-			
-			// get team data
-			currentTeamPlayers = new Vector<Vector<Object>>();
-			for(int i = 0; i <= 1; i++) {				
-				Team team = new Team(connGame, game, i);
-				team.commit();
-				teams.add(team);
-				
-				// get the player data
-				Vector<Object> teamPlayers = new Vector<Object>();
-				for(int j = 0; j < 11; j++) {
-					int p = i*11+j;
-					Player player = new Player(connGame, team, p);
-					player.commit();
-					players.add(player);
-					teamPlayers.add(player);
-					game.addPlayer(p, player);					
-				}
-				currentTeamPlayers.add(teamPlayers);
-			}
-			
-			gameProc(connGame, nGame, game);
-		}
+//		System.out.println("fetching data...");			
+//
+//		// load MySQL driver (TODO move to appropriate location)
+//		Class.forName("com.mysql.jdbc.Driver").newInstance();
+//
+//		// initialize main query engine
+//		Queryengine dbengine = Queryengine.getInstance();
+//		if (!dbengine.check()) System.exit(1);
+//		Settings.getStd().put("main_dbengine",dbengine);
+//		
+//		// get a list of all the games
+//        DBGameDataIO gameIO = DBGameDataIO.getInstance();
+//        Iterator<GameData> iGameData = null; //(Iterator<GameData>) gameIO.readAll(gameDBCond).iterator();
+//        
+//		// process all the listed game databases...	        		
+//        database = new Database(datadict);
+//        players = new Vector<Object>();
+//        teams = new Vector<Object>();
+//		for(int nGame = 0; iGameData.hasNext(); nGame++) {
+//			GameData gameData = iGameData.next();
+//			motionReader = DBMotionReader.getInstance(gameData);
+//			
+//			// connect to game database
+//			String gameDB = gameData.getDatabase(); 
+//			System.out.println(gameDB + " (" + gameData.getName() + ")");
+//			Settings settings = Settings.getStd();
+//			String connectString = "jdbc:mysql://" + settings.get("primary_host") + ":" + settings.get("primary_port") + "/" + gameDB + "?user=" + settings.get("primary_user") + "&password=" + settings.get("primary_password");
+//			Connection connGame = DriverManager.getConnection(connectString);	
+//			
+//			// get game data
+//			Game game = new Game(database, gameData);		
+//			game.commit();
+//			
+//			// get team data
+//			currentTeamPlayers = new Vector<Vector<Object>>();
+//			for(int i = 0; i <= 1; i++) {				
+//				Team team = new Team(connGame, game, i);
+//				team.commit();
+//				teams.add(team);
+//				
+//				// get the player data
+//				Vector<Object> teamPlayers = new Vector<Object>();
+//				for(int j = 0; j < 11; j++) {
+//					int p = i*11+j;
+//					Player player = new Player(connGame, team, p);
+//					player.commit();
+//					players.add(player);
+//					teamPlayers.add(player);
+//					game.addPlayer(p, player);					
+//				}
+//				currentTeamPlayers.add(teamPlayers);
+//			}
+//			
+//			gameProc(connGame, nGame, game);
+//		}
 	}
 	
 	/**

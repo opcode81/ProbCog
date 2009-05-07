@@ -166,8 +166,6 @@ public class BLNinferMSNBC {
 			}
 			
 			
-//			 TODO: determine the list of evidence db files and iterate across this for all the following:
-			
 			// read the testing databases
 			System.out.println("Reading data...");
 			String[] pathName = dbFile.split("/");

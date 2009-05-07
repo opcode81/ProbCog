@@ -24,7 +24,7 @@ public class SmileInference extends Sampler {
 		bn.save("temp.net", IOPlugInLoader.getInstance().GetExportersByExt(".net"));
 		net = new smile.Network();
 		net.readFile("temp.net");
-		new java.io.File("temp.net").delete();
+	//	new java.io.File("temp.net").delete();
 	}
 
 	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
