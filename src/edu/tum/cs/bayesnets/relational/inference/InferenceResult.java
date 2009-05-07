@@ -23,8 +23,8 @@ public class InferenceResult {
 	}
 	
 	public void print() {
-		System.out.println(varName + ":");
+		System.err.println(varName + ":");
 		for(int i = 0; i < domainElements.length; i++)
-			System.out.println(String.format("  %.4f %s", probabilities[i], domainElements[i]));
+			System.err.println(String.format("  %.4f %s", probabilities[i], domainElements[i]));
 	}
 }

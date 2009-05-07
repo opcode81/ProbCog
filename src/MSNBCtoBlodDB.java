@@ -24,6 +24,7 @@ public class MSNBCtoBlodDB {
 	public static void readData(String datadir) throws FileNotFoundException, Exception {
 
 		FileWriter fw_blogdb = null;
+		FileWriter fw_lastCSV = null;
 		
 		Database db = new Database();
 		
@@ -68,6 +69,9 @@ public class MSNBCtoBlodDB {
 			int numTest=100;
 			String mode="train";
 			
+// TODO: write all csv file with the second-last and the last category
+			fw_lastCSV     = new FileWriter("data/"+datadir+"/"+mode+"/lastClass.csv" );
+			
 			while (( line = input.readLine()) != null) {
 				
 				Matcher matcher = Pattern.compile("^[[0-9]* ]+$").matcher(line.trim());
@@ -92,7 +96,7 @@ public class MSNBCtoBlodDB {
 				
 				fw_blogdb     = new FileWriter("data/"+datadir+"/"+mode+"/data" + episode + ".blogdb" );
 
-				
+				String prevLabel=null;
 				for(String page:pages) {
 					
 					
@@ -101,6 +105,20 @@ public class MSNBCtoBlodDB {
 					
 					currentPage = new edu.tum.cs.srldb.Object(db, "page", pageID);
 					currentPage.addAttribute("pageT", label);
+					
+					// write the last two pages to the csv file
+
+					if(pageCnt==pages.length-1) {
+						fw_lastCSV.write(label+",");
+						prevLabel=label;
+					} else if(pageCnt==pages.length) {
+						fw_lastCSV.write(label+",");
+						if(prevLabel!=null) { 
+							fw_lastCSV.write(((label.equals(prevLabel))?"1":"0")+"\n");
+							prevLabel=null;
+						}
+					}
+					
 					
 					if(pageCnt==1) {
 						currentPage.addAttribute("firstPage", "True");
@@ -120,6 +138,9 @@ public class MSNBCtoBlodDB {
 						fw_blogdb.write("precedes("+prevPage.getConstantName() + ","+pageID+")=True;\n");
 						uncommitedLinks.add(new Link(db, "precedes", prevPage, currentPage));
 					}
+					// clear() -> only direct neighborhood
+					//prevSegmInEpsiode.clear();
+					
 					prevSegmInEpsiode.add(currentPage);
 					
 					
@@ -191,6 +212,7 @@ public class MSNBCtoBlodDB {
 
 
 			}
+			fw_lastCSV.close();
 
 		}
 		catch ( IOException e ) { 

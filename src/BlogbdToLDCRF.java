@@ -110,12 +110,15 @@ public class BlogbdToLDCRF {
         			return; // TODO: inconsistent constraints detected, throw something
         		}
         	}
-        	
+       	
         	// write the vector including all the features to a file
         	PrintWriter outfile = new PrintWriter(new FileWriter(act+".csv"));
 
         	// data  ::  'seqID' -> ['pred'->'val']
 
+        	// matrix dimensions
+			outfile.print(data.get(out.get(0)).keySet().size()+","+out.size()+"\n");
+        	
         	// for all predicates
         	for(String p : data.get(out.get(0)).keySet()) {
         		
@@ -132,6 +135,7 @@ public class BlogbdToLDCRF {
         	
         	// write the label files
         	outfile = new PrintWriter(new FileWriter(act+".labels.csv"));
+        	outfile.print("1,"+out.size()+"\n");
         	for(String segm : out) {
         		outfile.print(segm+",");
         	}
