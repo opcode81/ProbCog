@@ -348,7 +348,10 @@ public class CPTLearner extends Learner {
 		int[] domainIndices = new int[nodes.length];
 		for(int k = 0; k < res.getRowCount(); k++) {
 			// for each row...
-			Vector row = res.getRow(k);
+			Vector<Object> row = new Vector<Object>();
+			for(Object r:res.getRow(k))
+					row.add(r);
+			
 			// - get the indices into the domains of each node
 			//   that correspond to the current row of data
 			//   (sorted in the same order as the nodes are ordered

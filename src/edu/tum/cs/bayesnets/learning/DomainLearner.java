@@ -390,7 +390,9 @@ public class DomainLearner extends Learner {
 
 		// gather data
 		for (int i = 0; i < res.getRowCount(); i++) {
-			Vector row = res.getRow(i);
+			Vector<Object> row = new Vector<Object>();
+			for(Object r:res.getRow(i))
+					row.add(r);
 			// for direct learning, add outcomes to the set of outcomes
 			for (int j = 0; j < numDirectDomains; j++) {
 				((HashSet<String>) directDomainData[j]).add((String) row
