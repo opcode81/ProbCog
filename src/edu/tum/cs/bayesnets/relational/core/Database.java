@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
+import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.tools.StringTool;
 
 
@@ -107,7 +108,8 @@ public class Database {
 		
 		// update lookup tables for keys
 		// (but only if value is true)
-		Collection<RelationKey> keys = this.rbn.getRelationKeys(var.functionName);
+		/*
+        Collection<RelationKey> keys = this.rbn.getRelationKeys(var.functionName);
 		if(keys != null) {
 			// add lookup entry if the variable value is true
 			if(!var.isTrue())
@@ -130,7 +132,7 @@ public class Database {
 				}
 				hm.put(sb.toString(), var.params);
 			}
-		}
+		}*/
 	}
 	
 
@@ -336,6 +338,13 @@ public class Database {
 				return functionName + "(" + RelationalNode.join(",", params) + ")";
 			else				
 				return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
+		}
+
+        public String getPredicate(MarkovLogicNetwork mln) {
+			if(mln.getSignature(functionName).isBoolean())
+				return functionName + "(" + RelationalNode.join(",", params) + ")";
+			else
+				return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";
 		}
 		
 		public boolean isTrue() {

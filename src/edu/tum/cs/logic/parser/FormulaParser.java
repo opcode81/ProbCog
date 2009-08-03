@@ -683,5 +683,5 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     int arg;
     JJCalls next;
   }
-
+  
 }

@@ -1,5 +1,6 @@
 package edu.tum.cs.logic.sat;
 
+import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.logic.ComplexFormula;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
@@ -47,4 +48,9 @@ public class Clause extends ComplexFormula {
 	public String toString() {
 		return StringTool.join(" v ", this.lits);
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }

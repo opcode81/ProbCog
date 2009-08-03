@@ -1,5 +1,6 @@
 package edu.tum.cs.logic;
 
+import edu.tum.cs.bayesnets.relational.core.Database;
 import java.util.Collection;
 
 public class Implication extends ComplexFormula {
@@ -26,4 +27,9 @@ public class Implication extends ComplexFormula {
 	public Formula toCNF() {		
 		return new Disjunction(new Negation(children[0]), children[1]).toCNF();
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        return (new Disjunction(new Negation(children[0]), children[1])).simplify(evidence);
+    }
 }

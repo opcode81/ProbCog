@@ -29,8 +29,8 @@ public class GroundLiteral extends Formula {
 	}
 
 	@Override
-	public void getGroundAtoms(Set<GroundAtom> ret) {
-		ret.add(gndAtom);		
+	public void getGroundAtoms(Set<GroundAtom> ret) {   
+            ret.add(gndAtom);              
 	}
 	
 	@Override
@@ -46,4 +46,26 @@ public class GroundLiteral extends Formula {
 	public void negate() {
 		isPositive = !isPositive;
 	}
+
+    /**
+     * this method checks whether an evidence is given for the current groundliteral
+     * @param evidence evidence of current scenario
+     * @return returns an instance of TrueFalse by given evidence or this groundatom
+     */
+    @Override
+    public Formula simplify(Database evidence) {
+        try {
+            // check whether evidence contains this groundliteral and return instance of TrueFalse
+            if (evidence.contains(gndAtom.toString())) {
+                if (evidence.getVariableValue(gndAtom.toString(), false).equals("True"))
+                    return TrueFalse.getInstance(isPositive == true);
+                else if (evidence.getVariableValue(gndAtom.toString(), false).equals("False"))
+                    return TrueFalse.getInstance(isPositive == false);
+            }
+        } catch (Exception ex) {
+            System.out.println("Groundliteral could not be simplified! " + this.toString());
+        }
+        // if evidence dosn't contains this literal, return literal
+        return this;
+    }
 }

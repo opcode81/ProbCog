@@ -50,4 +50,9 @@ public class Exist extends UngroundedFormula {
 	public Formula toCNF() {
 		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
