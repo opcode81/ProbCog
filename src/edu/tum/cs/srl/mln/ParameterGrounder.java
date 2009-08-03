@@ -1,5 +1,7 @@
-package edu.tum.cs.bayesnets.relational.core;
+package edu.tum.cs.srl.mln;
 
+import edu.tum.cs.bayesnets.relational.core.RelationalNode;
+import edu.tum.cs.bayesnets.relational.core.Signature;
 import java.util.Collection;
 import java.util.Set;
 import java.util.Vector;
@@ -27,19 +29,18 @@ public class ParameterGrounder {
 	
 	/**
 	 * generates all groundings of the given function using the domain elements specified in the given database
-	 * @param rbn		relational belief network defining the signature of the function
+	 * @param mln		relational belief network defining the signature of the function
 	 * @param function	the name of the function
 	 * @param db		
 	 * @return a collection of possible parameter bindings
 	 * @throws Exception
 	 */
-	public static Collection<String[]> generateGroundings(RelationalBeliefNetwork rbn, String function, Database db) throws Exception {
+	public static Collection<String[]> generateGroundings(MarkovLogicNetwork mln, String function, Database db) throws Exception {
 		try {
-			return generateGroundings(db, rbn.getSignature(function).argTypes);
+			return generateGroundings(db, mln.getSignature(function).argTypes);
 		}
 		catch(Exception e) {
-			System.err.println("Warning: " + e.getMessage() + " (while grounding '" + function + "')");
-			return new Vector<String[]>();
+			throw new Exception(e.getMessage() + " (while grounding '" + function + "')");
 		}
 	}
 	

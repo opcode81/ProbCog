@@ -31,4 +31,9 @@ public class Literal extends UngroundedFormula {
 	public Formula toCNF() {
 		return this;
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }

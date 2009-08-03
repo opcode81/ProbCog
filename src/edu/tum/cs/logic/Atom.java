@@ -14,12 +14,12 @@ public class Atom extends Formula {
 
 	public Collection<String> params;
 	public String predName;
-	
+
 	public Atom(String predName, Collection<String> params) {
 		this.predName = predName;
 		this.params = params;
 	}
-	
+
 	@Override
 	public String toString() {
 		return predName + "(" + StringTool.join(",", params) + ")";
@@ -27,9 +27,9 @@ public class Atom extends Formula {
 
 	@Override
 	public void getVariables(Database db, Map<String, String> ret) {
-		Signature sig = db.getSignature(predName);
+                Signature sig = db.getSignature(predName);
 		int i = 0;
-		for(String param : params) {			
+		for(String param : params) {
 			if(isVariable(param)) {
 				String type;
 				if(i < sig.argTypes.length)
@@ -37,11 +37,11 @@ public class Atom extends Formula {
 				else
 					type = sig.returnType;
 				ret.put(param, type);
-			}			
+			}
 			++i;
 		}
 	}
-	
+
 	public static boolean isVariable(String paramName) {
 		return Character.isLowerCase(paramName.charAt(0));
 	}
@@ -57,7 +57,7 @@ public class Atom extends Formula {
 			if(value == null)
 				value = param;
 			sb.append(value);
-		}	
+		}
 		sb.append(')');
 		String strGA = sb.toString();
 		GroundAtom ga = vars.get(strGA);
@@ -79,4 +79,9 @@ public class Atom extends Formula {
 	public Formula toCNF() {
 		return this;
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }

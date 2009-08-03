@@ -6,18 +6,18 @@ import edu.tum.cs.bayesnets.relational.core.Database;
 
 public class Equality extends UngroundedFormula {
 	public String left, right;
-	
+
 	public Equality(String left, String right) {
 		this.left = left;
 		this.right = right;
 	}
-	
+
 	public String toString() {
 		return left + "=" + right;
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {		
+	public void getVariables(Database db, Map<String, String> ret) {
 	}
 
 	@Override
@@ -33,4 +33,9 @@ public class Equality extends UngroundedFormula {
 	public Formula toCNF() {
 		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
 	}
+
+    @Override
+    public Formula simplify(Database evidence) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
