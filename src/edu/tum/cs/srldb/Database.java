@@ -403,6 +403,11 @@ public class Database implements Cloneable, Serializable {
 		return datadict;
 	}
 	
+
+	public void setDataDictionary(DataDictionary dd) {
+		this.datadict = dd;
+	}
+	
 	public static class Counters {
 		protected HashMap<String, Integer> counters;
 		public Counters() {
