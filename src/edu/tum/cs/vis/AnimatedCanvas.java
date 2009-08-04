@@ -96,4 +96,8 @@ public class AnimatedCanvas extends Canvas {
 	public int getAnimationStep() {
 		return this.animationStep;
 	}
+	
+	public Vector<DrawableAnimated> getAnimatedItems() {
+		return animatedItems;
+	}
 }
