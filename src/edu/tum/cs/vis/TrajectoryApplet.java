@@ -118,6 +118,16 @@ public class TrajectoryApplet extends AnimatedCanvas {
 			}
 			redraw();
 		}
+		else if(this.keyCode == java.awt.event.KeyEvent.VK_D) {
+			for(DrawableAnimated i : this.animatedItems) {
+				if(i instanceof Trajectory) {
+					Trajectory traj = (Trajectory) i;
+					traj.pointsAsSpheres ^= true;
+					System.out.println("TrajectoryApplet: Switching point drawing style");
+				}
+			}
+			redraw();
+		}
 		super.keyPressed();
 	}
 	
