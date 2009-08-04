@@ -14,6 +14,8 @@ import edu.tum.cs.srl.mln.Database;
 import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -25,8 +27,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Converts a MLN-file with a given evidence into a WCSP-File
- * @author msgpool
+ * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
+ * @author wylezich
  */
 public class WCSPConverter implements GroundingCallback {
 
@@ -48,7 +50,6 @@ public class WCSPConverter implements GroundingCallback {
     PrintStream ps;
     ArrayList<String> setwithnull;
     ArrayList<String> setwithvalue;
-    protected boolean generatelarge;
     long start = System.currentTimeMillis();
     int generatedFormulas = 0;
 
@@ -56,27 +57,36 @@ public class WCSPConverter implements GroundingCallback {
      * Constructor to instantiate a WCSP-Converter
      * @param mlnFileLoc filelocation of the MLN-File
      * @param dbFileLoc  filelocation of the evidence
-     * @param generatelarge boolean to set whether a complete WCSP-File has to be generated
      * @throws java.io.IOException
      */
-    public WCSPConverter(String mlnFileLoc, String dbFileLoc, boolean generatelarge) throws IOException {
+    public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws IOException {
 
         // instantiate MLN and MRF
         sb_result = new StringBuffer();
-        this.generatelarge = generatelarge;
         this.mln = new MarkovLogicNetwork(mlnFileLoc, false, this);
         deltaMin = mln.getdeltaMin();
         this.mrf = mln.groundMLN(dbFileLoc);
-
-        // save settings of szenario into a file
-        sb_settings = saveSzenarioSettings(new StringBuffer());
-        ps = new PrintStream("D:/settings.txt");
-        ps.print(sb_settings);
-        ps.flush();
-        ps.close();
+    }
+    
+    /**
+     * performs the conversion of the ground MRF to the WCSP file
+     * @param wcspFilename
+     * @param scenarioSettingsFilename (may be nul
+     * @throws FileNotFoundException l)
+     */
+    public void run(String wcspFilename, String scenarioSettingsFilename) throws FileNotFoundException {
+    	if(scenarioSettingsFilename != null) {
+	        // save settings of szenario into a file
+	        sb_settings = saveSzenarioSettings(new StringBuffer());
+	        ps = new PrintStream(scenarioSettingsFilename);
+	        ps.print(sb_settings);
+	        ps.flush();
+	        ps.close();
+    	}
 
         // save generated WCSP-File in a file
-        ps = new PrintStream("D:/szenario.wcsp");
+    	System.out.println("writing output to " + wcspFilename);
+        ps = new PrintStream(wcspFilename);
         ps.print(generateHead(new StringBuffer()));
         ps.print(sb_result);
         ps.flush();
@@ -409,10 +419,6 @@ public class WCSPConverter implements GroundingCallback {
     }
 
     
-    public static void main(String[] args) throws IOException {
-        WCSPConverter wcsp = new WCSPConverter("C:/raumplanung - neu.mln", "C:/test-12.db", false);
-    }
-    
     /**
      * this method is the callback-method of the ground_and_simplify method;
      * it generates a WCSP-Constraint for the given formula
@@ -420,7 +426,6 @@ public class WCSPConverter implements GroundingCallback {
      * @param weight the weight of the formula
      * @param db evidence of the scenario
      */
-    @Override
     public void onGroundedFormula(Formula f, double weight, Database db) {
         if (generatedFormulas++ < 1) { // set initial mappings of the WCSP-Converter
             this.wld = new PossibleWorld(mln.getWorldVariables());
@@ -433,7 +438,7 @@ public class WCSPConverter implements GroundingCallback {
 
         //debug
         if (generatedFormulas % 5000 == 0) {
-            System.out.println("Zeit fÃ¼r 5000 Formeln: " + ((System.currentTimeMillis() - start) / 1000.0) + " secs");
+            System.out.println("Zeit f�r 5000 Formeln: " + ((System.currentTimeMillis() - start) / 1000.0) + " secs");
             start = System.currentTimeMillis();
         }
 
