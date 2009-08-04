@@ -7,6 +7,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class EnumerationAsk extends Sampler {
 	int[] nodeOrder;
+	int numPruned;
 	
 	public EnumerationAsk(BeliefNetworkEx bn) {
 		super(bn);
@@ -15,13 +16,14 @@ public class EnumerationAsk extends Sampler {
 	
 	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
 		Stopwatch sw = new Stopwatch();
+		numPruned = 0;
 		createDistribution();
 		System.out.println("enumerating worlds...");
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
 		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0); 
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%d worlds enumerated)\n", sw.getElapsedTimeSecs(), dist.steps));
+		System.out.println(String.format("time taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPruned));
 		return dist;
 	}
 	
@@ -44,6 +46,7 @@ public class EnumerationAsk extends Sampler {
 			s.weight *= prob;
 			if(prob == 0.0) { // we have reached zero, so we can save us the trouble of further ramifications
 				//System.out.println("zero reached");
+				numPruned++;
 				return;
 			}			
 			enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1);
@@ -59,7 +62,8 @@ public class EnumerationAsk extends Sampler {
 				double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 				if(prob == 0.0) {
 					//System.out.println("zero reached");
-					return;
+					numPruned++;
+					continue;
 				}
 				s.weight = weight * prob;
 				enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1);
