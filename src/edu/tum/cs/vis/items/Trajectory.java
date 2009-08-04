@@ -14,18 +14,25 @@ import edu.tum.cs.vis.Drawable;
 import edu.tum.cs.vis.DrawableAnimated;
 import edu.tum.cs.vis.items.Legend;
 
+/**
+ * 2D or 3D Trajectory
+ * @author jain
+ *
+ */
 public class Trajectory implements Drawable, DrawableAnimated {
 
 	public Vector<Point> points;
 	public HashMap<Point,Set<Point>> mergeSet = new HashMap<Point,Set<Point>>();
 	public double minDistance = Double.MAX_VALUE;
-	public float pointSize = 0.0f, sphereSize = 120.0f;
+	public float pointSize = 0.0f, sphereSize = 120.0f;	
+	public boolean pointsAsSpheres = true;
 	public int pointColor = 0xffcbcbcb, sphereColor = 0x99ffff00; 
 	public float minx, miny, minz, maxx, maxy, maxz;
 	public float range;
 	public double minDis;
 	public int lineColor = 0xffffffff;
 	public AnimationMode animationMode = AnimationMode.BuildUp;
+	public int minStep = 0;
 	
 	public enum AnimationMode { BuildUp, AllAtOnce };
 	
@@ -89,12 +96,18 @@ public class Trajectory implements Drawable, DrawableAnimated {
 		//System.out.println(pointSize);
 		Point prev = null;
 		int s = 0;
+		c.sphereDetail(3);
 		for(Point p : points) {
+			if(s > step && animationMode == AnimationMode.BuildUp)
+				break;
+			if(s++ < minStep)
+				continue;
 			if(p.size == 0.0f)
 				p.size = pointSize;
-			if(s++ > step && animationMode == AnimationMode.BuildUp)
-				break;
-			p.draw(c);
+			if(pointsAsSpheres)
+				p.drawAsSphere(c);
+			else
+				p.draw(c);
 			if(prev != null) { // draw line connecting previous point with current point
 				//c.stroke(255,255,255);
 				//System.out.printf("%f %f %f -> %f %f %f\n",prev.x, prev.y, prev.z, p.x, p.y, p.z);
@@ -103,6 +116,7 @@ public class Trajectory implements Drawable, DrawableAnimated {
 			}
 			prev = p;
 		}
+		c.sphereDetail(30);
 		
 		// stuff for current pos
 		if(step < points.size()) {
