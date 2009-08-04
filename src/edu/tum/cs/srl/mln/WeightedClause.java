@@ -60,8 +60,7 @@ public class WeightedClause extends ComplexFormula {
     }
 
     /**
-     * Method is not supported yet.
-     * @return Should return the formula in CNF.
+     * @return returns the formula itself as a clause is trivially in CNF
      */
     @Override
     public Formula toCNF() {
@@ -77,7 +76,7 @@ public class WeightedClause extends ComplexFormula {
     }
 
     /**
-     * Methodm returns the weight of the clause
+     * Method returns the weight of the clause
      * @return double value of weight
      */
     public double getWeight() {
@@ -87,9 +86,8 @@ public class WeightedClause extends ComplexFormula {
     /**
      * Method is not supported yet.
      * @param evidence
-     * @return Should return formula
-     */
-   
+     * @return Should return a simplified formula that considers the evidence
+     */   
     @Override
     public Formula simplify(Database evidence) {
         throw new UnsupportedOperationException("Not supported yet.");

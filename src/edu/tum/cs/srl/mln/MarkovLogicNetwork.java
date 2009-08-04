@@ -62,6 +62,10 @@ public class MarkovLogicNetwork implements RelationalModel {
         this.gc = gc;
 
     }
+    
+    public MarkovLogicNetwork(String mlnFile) {
+    	this(mlnFile, false, null);
+    }
 
     /**
      * Method adds signature for an atom 
@@ -106,7 +110,7 @@ public class MarkovLogicNetwork implements RelationalModel {
 
     /**
      * Method that grounds MLN to a MarkovRandomField
-     * @param dbFileLoc filelocation of evidence for this szenario
+     * @param dbFileLoc file location of evidence for this scenario
      * @return returns a grounded MLN as a MarkovRandomField MRF
      */
     public MarkovRandomField groundMLN(String dbFileLoc) {
@@ -359,8 +363,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @return
      */
     public Collection<RelationKey> getRelationKeys(String relation) {
-        System.out.println("relation: " + relation);
-
-        throw new RuntimeException("Not supported yet.");
+    	// TODO     
+    	return null;
     }
 }
