@@ -26,6 +26,9 @@ public class Point implements Drawable {
 		size = p.size;
 	}
 	
+	/**
+	 * draws this point as a circle in the xy plane
+	 */
 	public void draw(Canvas c) {
 	    c.pushMatrix();
 		c.translate(0,0,v.z);
@@ -33,6 +36,16 @@ public class Point implements Drawable {
 	    c.fill(color);	    
 	    c.ellipse(v.x, v.y, size, size);
 	    c.popMatrix();
+	}
+	
+	public void drawAsSphere(Canvas c) {
+		c.pushMatrix();
+		c.fill(color);
+		c.color(color);
+		c.noStroke();
+		c.translate(v.x,v.y,v.z);
+		c.sphere(size);
+		c.popMatrix();
 	}
 	
 	@Override
