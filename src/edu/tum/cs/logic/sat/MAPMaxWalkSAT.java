@@ -62,6 +62,7 @@ public class MAPMaxWalkSAT {
     double minSum;
     protected final boolean saveBestState = true;
     protected int deltaCostCalcMethod = 1; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
+    protected int maxSteps = 1000;
 
     /**
      *  Constructor to instantiate an object of MAPMaxWalkSAT
@@ -144,6 +145,10 @@ public class MAPMaxWalkSAT {
         }
     }
 
+    public void setMaxSteps(int steps) {
+    	this.maxSteps = steps;
+    }
+    
     /**
      * Method adds a constraint into unsatisfiedConstraints (Vector<Constraint>)
      * @param c constraint which should be added
@@ -243,7 +248,7 @@ public class MAPMaxWalkSAT {
         unsatisfiedSum();
 
         // run of the algorithm until condition of termination is reached
-        while (step < 10000) {
+        while (step < maxSteps) {
             // calculation of the difference between actually found (unsSum) and globally found minimal unsatisfied sum (minSum) -> acually unused
             diffSum = unsSum - minSum;
             // if there is another new minimal unsatisfied value
