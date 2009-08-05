@@ -20,7 +20,7 @@ import java.util.Vector;
  * This class ia an extension of the MAPMaxWalkSAT-class in which some methods are fitted to our special facility management problem.
  * @author wernickr
  */
-public class MAPMaxWalkSATRoom extends MAPMaxWalkSAT {
+public class MaxWalkSATRoom extends MaxWalkSAT {
 
     Dimension screenSize;
     Stopwatch sw;
@@ -38,7 +38,7 @@ public class MAPMaxWalkSATRoom extends MAPMaxWalkSAT {
      * @param sw an externally instantiated and started Instance of type stopwatch
      * @throws java.lang.Exception
      */
-    public MAPMaxWalkSATRoom(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold, Stopwatch sw) throws Exception {
+    public MaxWalkSATRoom(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold, Stopwatch sw) throws Exception {
         super(kb, state, vars, evidence, threshold);
         this.sw = sw;
         // needed for our tool to display the solutions
@@ -129,12 +129,12 @@ public class MAPMaxWalkSATRoom extends MAPMaxWalkSAT {
         // read evidence + ground model
         MarkovRandomField mrf = mln.groundMLN(dbfile);
         // run algorithm
-        PossibleWorld state = new PossibleWorld(mln.getWorldVariables());
+        PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
         //state.print();
         WeightedClausalKB wckb = new WeightedClausalKB(mrf);
         Stopwatch sw = new Stopwatch();
         sw.start();
-        MAPMaxWalkSATRoom ss = new MAPMaxWalkSATRoom(wckb, state, mln.getWorldVariables(), mrf.getDb(), mln.getMaxWeight(), sw);
+        MaxWalkSATRoom ss = new MaxWalkSATRoom(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mln.getMaxWeight(), sw);
         ss.setMaxsteps(10000);
         ss.run();
         sw.stop();
@@ -198,9 +198,7 @@ public class MAPMaxWalkSATRoom extends MAPMaxWalkSAT {
                     minSum = unsSum;
                     minSteps = 0;
                     // optional: saves actual best state
-                    if (saveBestState) {
-                        bestState = state.getactState();
-                    }
+                    bestState = state.clone();
                     // count of step in which the new minimum was found is saved (lastMinStep)
                     lastMinStep = step;
                 }
@@ -228,13 +226,14 @@ public class MAPMaxWalkSATRoom extends MAPMaxWalkSAT {
         System.out.println("Methode: " + deltaCostCalcMethod);
         System.out.println("Steps: " + maxsteps);
         System.out.println("*********** Best State after " + lastMinStep + " Steps *************");
-        for (int c = 0; c < bestState.length; c++) {
+        boolean[] s = bestState.getState();
+        for (int c = 0; c < s.length; c++) {
             String temp = "";
-            if (!bestState[c]) {
+            if (!s[c]) {
                 temp = "!";
             }
             System.out.println(temp += vars.get(c).toString());
-            System.out.println(vars.get(c).toString() + " - > " + bestState[c]);
+            System.out.println(vars.get(c).toString() + " - > " + s[c]);
         }
         System.out.println("Unsatisfied Sum: " + minSum);
         //fr.close();
