@@ -9,7 +9,8 @@ import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
@@ -50,14 +51,14 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		// get the node and its associated counter
 		ExampleCounter counter = this.counters[node.index];
 		// get the main variable's name
-		String varName = RelationalNode.formatName(node.getFunctionName(), params);
+		String varName = Signature.formatVarName(node.getFunctionName(), params);
 		//System.out.println("counting " + varName);
 		
 		// obtain all groundings of the relevant variables
 		ParentGrounder pg = bn.getParentGrounder(node);
 		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
 		if(groundings == null) {
-			System.err.println("Variable " + RelationalNode.formatName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
+			System.err.println("Variable " + Signature.formatVarName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
 			return;
 		}
 
@@ -271,7 +272,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		if(i == params.length) {
 			
 			if(!closedWorld) {
-				String varName = RelationalNode.formatName(node.getFunctionName(), params);
+				String varName = Signature.formatVarName(node.getFunctionName(), params);
 				if(!db.contains(varName))
 					return;
 			}

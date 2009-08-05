@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.tools.StringTool;
 
 public class Exist extends UngroundedFormula {

@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 
 import java.util.Collection;
 import java.util.Vector;

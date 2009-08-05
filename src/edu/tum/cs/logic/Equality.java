@@ -2,7 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Map;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 
 public class Equality extends UngroundedFormula {
 	public String left, right;

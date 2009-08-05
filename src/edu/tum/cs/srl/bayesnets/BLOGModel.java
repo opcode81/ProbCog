@@ -17,6 +17,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.srl.Signature;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 	
@@ -131,7 +132,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			Vector<String[]> argGroundings = groundParams(sig); 
 			// create a new node for each grounding with the same domain and CPT as the template node
 			for(String[] args : argGroundings) {
-				String newName = RelationalNode.formatName(node.functionName, args);
+				String newName = Signature.formatVarName(node.functionName, args);
 				BeliefNode newNode = new BeliefNode(newName, node.node.getDomain());
 				gbn.addNode(newNode);
 				// link from all the parent nodes

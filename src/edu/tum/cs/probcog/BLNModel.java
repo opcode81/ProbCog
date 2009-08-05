@@ -6,10 +6,10 @@ import java.util.Vector;
 import java.util.Map.Entry;
 
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.ABL;
-import edu.tum.cs.srl.bayesnets.Database;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.srl.bayesnets.Signature;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;

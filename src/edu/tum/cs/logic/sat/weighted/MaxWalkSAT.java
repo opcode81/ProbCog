@@ -19,7 +19,7 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
-import edu.tum.cs.srl.bayesnets.Database.Variable;
+import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.mln.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;

@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 
 public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {

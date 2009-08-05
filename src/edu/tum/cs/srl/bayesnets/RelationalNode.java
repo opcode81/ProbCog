@@ -7,7 +7,9 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.mln.MLNWriter;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.tools.Pair;
 
 public class RelationalNode extends ExtendedNode {
@@ -37,10 +39,6 @@ public class RelationalNode extends ExtendedNode {
 				res.append(glue);
 		}
 		return res.toString();
-	}
-	
-	public static String formatName(String nodeName, String[] args) {
-		return String.format("%s(%s)", nodeName, join(",", args));
 	}
 	
 	/**
@@ -136,7 +134,7 @@ public class RelationalNode extends ExtendedNode {
 	public String getCleanName() {
 		if(isConstant)
 			return functionName;
-		return formatName(this.functionName, this.params);
+		return Signature.formatVarName(this.functionName, this.params);
 	}
 	
 	/**
@@ -244,7 +242,7 @@ public class RelationalNode extends ExtendedNode {
 	public String getVariableName(String[] actualParams) throws Exception {
 		if(actualParams.length != params.length)
 			throw new Exception(String.format("Invalid number of actual parameters suppplied for %s: expected %d, got %d", toString(), params.length, actualParams.length));
-		return formatName(getFunctionName(), actualParams);
+		return Signature.formatVarName(getFunctionName(), actualParams);
 	}
 	
 	public Vector<RelationalNode> getParents() {

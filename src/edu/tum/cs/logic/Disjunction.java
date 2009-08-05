@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.tools.StringTool;
 
 public class Disjunction extends ComplexFormula {

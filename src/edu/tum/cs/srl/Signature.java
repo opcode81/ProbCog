@@ -1,7 +1,9 @@
 /**
  * 
  */
-package edu.tum.cs.srl.bayesnets;
+package edu.tum.cs.srl;
+
+import edu.tum.cs.tools.StringTool;
 
 public class Signature {
 	public String returnType;
@@ -29,6 +31,10 @@ public class Signature {
 	
 	@Override
 	public String toString() {
-		return String.format("%s %s(%s)", returnType, functionName, RelationalNode.join(",", argTypes));
+		return String.format("%s %s(%s)", returnType, functionName, StringTool.join(",", argTypes));
+	}
+
+	public static String formatVarName(String functionName, String[] args) {
+		return String.format("%s(%s)", functionName, StringTool.join(",", args));
 	}
 }

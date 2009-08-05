@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.tools.FileUtil;
 
 /**

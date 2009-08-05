@@ -15,11 +15,12 @@ import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.logic.GroundAtom;
-import edu.tum.cs.mln.MLNWriter;
+import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
+import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.tools.CollectionFilter;
-import edu.tum.cs.tools.StringTool;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx implements RelationalModel {
 	/**
@@ -31,36 +32,6 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	protected Map<String, Signature> signatures;
 	protected HashMap<String, String[]> guaranteedDomElements;
-	
-	public class RelationKey {
-		/**
-		 * the name of the relation
-		 */
-		public String relation;
-		/**
-		 * list of indices of the parameters that make up a key
-		 */
-		public Vector<Integer> keyIndices;
-		/**
-		 * the original arguments with which the relation key was declared (i.e. list of parameters with "_" as entries for functionally determined arguments)
-		 */
-		protected String[] arguments;
-		
-		public RelationKey(String relation, String[] arguments) {
-			this.relation = relation;
-			this.arguments = arguments;
-			keyIndices = new Vector<Integer>();
-			for(int i = 0; i < arguments.length; i++) {
-				if(!arguments[i].equals("_")) {
-					keyIndices.add(i);
-				}
-			}
-		}
-		
-		public String toString() {
-			return relation + "(" + StringTool.join(",", arguments) + ")";
-		}
-	}
 	
 	/**
 	 * a mapping of function/relation names to RelationKey objects which signify argument groups that are keys of the relation (which may be used for a functional lookup)
@@ -425,9 +396,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					// write mutual exclusiveness and exhaustiveness definition
 					writer.writeMutexDecl(influenceRelation, rel.params, node.addParams);
 					// add a precondition that must be added to each CPT formula
-					converter.addPrecondition(RelationalNode.formatName(influenceRelation, rel.params));
+					converter.addPrecondition(Signature.formatVarName(influenceRelation, rel.params));
 					// write the formula connecting the influence predicate to the regular relation: if the relation does not hold, there is no influence 
-					out.println("!" + rel.getCleanName() + " => !" + RelationalNode.formatName(influenceRelation, rel.params) + ".");
+					out.println("!" + rel.getCleanName() + " => !" + Signature.formatVarName(influenceRelation, rel.params) + ".");
 				}
 				else if(node.aggregator.equals("OR")) { // noisy or
 					
@@ -567,7 +538,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					params[i++] = node.params[j];
 				for(int j = 0; j < node.addParams.length; j++)
 					params[i++] = node.addParams[j];
-				String fullName = RelationalNode.formatName(node.getFunctionName() + "_" + RelationalNode.join("", node.addParams), params);
+				String fullName = Signature.formatVarName(node.getFunctionName() + "_" + RelationalNode.join("", node.addParams), params);
 				BeliefNode fullyGroundedNode = this.addNode(fullName);
 				fullyGroundedNode.setDomain(node.node.getDomain());
 				// create the corresponding relational node and define a signature for it

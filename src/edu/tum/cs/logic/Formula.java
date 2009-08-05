@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 
 public abstract class Formula {	
 	public abstract void getVariables(Database db, Map<String,String> ret);

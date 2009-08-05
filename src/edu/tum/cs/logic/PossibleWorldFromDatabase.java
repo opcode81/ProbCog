@@ -1,8 +1,8 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
-import edu.tum.cs.srl.bayesnets.Signature;
 
 public class PossibleWorldFromDatabase implements IPossibleWorld {
 

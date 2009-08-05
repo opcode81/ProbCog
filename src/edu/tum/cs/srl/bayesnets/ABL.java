@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
 

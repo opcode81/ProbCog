@@ -16,10 +16,11 @@ import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.ParameterGrounder;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
-import edu.tum.cs.srl.bayesnets.ParameterGrounder;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
@@ -134,7 +135,7 @@ public abstract class AbstractGroundBLN {
 	 */
 	protected BeliefNode instantiateVariable(String functionName, String[] params) throws Exception {
 		// check if the variable was previously instantiated and return the node if so
-		String varName = RelationalNode.formatName(functionName, params);
+		String varName = Signature.formatVarName(functionName, params);
 		if(instantiatedVariables.contains(varName))
 			return groundBN.getNode(varName);
 		
@@ -144,7 +145,7 @@ public abstract class AbstractGroundBLN {
 		// consider all the relational nodes that could be used to instantiate the variable
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
 		if(templates == null)
-			throw new Exception("No templates from which " + RelationalNode.formatName(functionName, params) + " could be constructed.");
+			throw new Exception("No templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
 		for(RelationalNode relNode : templates) {
 			
 			// if the node is subject to preconditions (decision node parents), check if they are met

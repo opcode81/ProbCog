@@ -11,6 +11,7 @@ import edu.tum.cs.logic.PossibleWorldFromDatabase;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.srl.Database;
 
 public class DecisionNode extends ExtendedNode {
 	protected boolean isOperator;

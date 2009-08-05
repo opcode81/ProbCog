@@ -1,4 +1,4 @@
-package edu.tum.cs.srl.bayesnets;
+package edu.tum.cs.srl;
 
 import java.io.BufferedReader;
 import java.io.PrintStream;
@@ -12,8 +12,8 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.srl.RelationalModel;
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.srl.bayesnets.BLOGModel;
+import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.tools.StringTool;
 
 
@@ -286,7 +286,7 @@ public class Database {
 	
 	protected void setClosedWorldPred(Signature sig, int i, String[] params) throws Exception {
 		if(i == params.length) {
-			String varName = RelationalNode.formatName(sig.functionName, params);
+			String varName = Signature.formatVarName(sig.functionName, params);
 			if(!this.contains(varName)) {				
 				Variable var = new Variable(sig.functionName, params.clone(), "False");
 				this.addVariable(var);
