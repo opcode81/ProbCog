@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 /**
- * A knowledge base of weighted clauses processed by the MAPMaxWalkSAT algorithme
+ * A knowledge base of weighted clauses processed by the MAPMaxWalkSAT algorithm
  * @author wernickr
  */
 public class WeightedClausalKB implements Iterable<WeightedClause> {
@@ -42,7 +42,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     /**
      * Method adds a formula into the knowledge base and returns the formula in CNF
      * @param f Formula which should be inserted
-     * @param weight according weight (ddouble)
+     * @param weight according weight (double)
      * @return returns the formula in
      * @throws java.lang.Exception
      */

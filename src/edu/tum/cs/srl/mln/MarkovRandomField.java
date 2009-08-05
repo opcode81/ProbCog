@@ -8,6 +8,8 @@ package edu.tum.cs.srl.mln;
 import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.WorldVariables;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
@@ -20,10 +22,11 @@ import java.util.logging.Logger;
  * @author wernickr
  */
 public class MarkovRandomField {
-    Database db;
-    MarkovLogicNetwork mln;
-    String dbFile;
-    HashMap<Formula, Double> groundedFormulas;
+    protected Database db;
+    public MarkovLogicNetwork mln;
+    protected String dbFile;
+    protected HashMap<Formula, Double> groundedFormulas;
+    protected WorldVariables world;
     
     /**
      * Constructor of a MarkovRandomField
@@ -34,6 +37,7 @@ public class MarkovRandomField {
      */
     public MarkovRandomField(MarkovLogicNetwork mln, String dbFileLoc, boolean makelist, GroundingCallback gc){
         db = new Database(new File(dbFileLoc).toString(), mln);
+        this.world = new WorldVariables();
         this.mln = mln;
         this.dbFile = dbFileLoc;
         readDB();
@@ -41,6 +45,14 @@ public class MarkovRandomField {
         createBlocks();
         groundAndSimplify(makelist, gc);
     } 
+    
+    /**
+     * Method that returns worldVariables of the given MLN
+     * @return
+     */
+    public WorldVariables getWorldVariables() {
+        return world;
+    }
     
     /**
      * Method that parses a given evidence file
@@ -64,7 +76,7 @@ public class MarkovRandomField {
                 Collection<String[]> col = ParameterGrounder.generateGroundings(mln.getSignature(pre.functionName), db);
                 for (String[] grAtom : col) {
                     GroundAtom gnd = new GroundAtom(pre.functionName, grAtom);
-                    mln.world.add(gnd);
+                    world.add(gnd);
                 }
             }
         } catch (Exception ex) {
@@ -80,7 +92,7 @@ public class MarkovRandomField {
             String[] domains = mln.getSignature(key).argTypes;
             int index = mln.getPosinArray(mln.block.get(key), domains);
             Vector<GroundAtom> atoms = new Vector<GroundAtom>();
-            atoms = mln.world.getGAforBlock(key + "*");
+            atoms = world.getGAforBlock(key + "*");
             int c = 0;
             while (atoms != null && atoms.size() > 0) {
                 String partofAtom = "";
@@ -93,8 +105,8 @@ public class MarkovRandomField {
                             atomString = ")";
                         
                         partofAtom = partofAtom + "*" + atomString;
-                        mln.world.addBlock(mln.world.getGAforBlock(partofAtom));
-                        atoms.removeAll(mln.world.getGAforBlock(partofAtom));;
+                        world.addBlock(world.getGAforBlock(partofAtom));
+                        atoms.removeAll(world.getGAforBlock(partofAtom));;
                         break;
                     }
                     partofAtom = partofAtom + atomString.substring(0, atomString.indexOf(',') + 1);
@@ -111,7 +123,7 @@ public class MarkovRandomField {
     public void formulaGrounding(){
         for (Formula form : mln.formulas){
             try {
-                for (Formula gf : form.getAllGroundings(db, mln.world)) {
+                for (Formula gf : form.getAllGroundings(db, world)) {
                     groundedFormulas.put(gf, mln.formula2weight.get(form));
                 }
             } catch (Exception ex) {
@@ -129,7 +141,7 @@ public class MarkovRandomField {
         groundedFormulas = new HashMap<Formula, Double>();
         for (Formula form : mln.formulas) {
             try {
-                for (Formula gf : form.getAllSimplifiedGroundings(db, mln.world)) {
+                for (Formula gf : form.getAllSimplifiedGroundings(db, world)) {
                     if (makelist)
                         groundedFormulas.put(gf, mln.formula2weight.get(form));
                     if (gc != null)
