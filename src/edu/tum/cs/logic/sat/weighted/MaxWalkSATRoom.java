@@ -8,7 +8,6 @@ import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.srl.mln.WeightedClausalKB;
 import edu.tum.cs.tools.Stopwatch;
 import java.awt.Dimension;
 import java.awt.Toolkit;

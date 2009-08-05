@@ -1,4 +1,4 @@
-package edu.tum.cs.srl.mln;
+package edu.tum.cs.logic.sat.weighted;
 
 
 import edu.tum.cs.logic.Formula;
