@@ -2,7 +2,7 @@
  * Created on Aug 5, 2009
  *
  */
-package edu.tum.cs.mln.inference;
+package edu.tum.cs.srl.mln.inference;
 
 import java.util.Vector;
 import java.util.regex.Pattern;
