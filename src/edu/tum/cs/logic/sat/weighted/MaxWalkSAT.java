@@ -20,7 +20,7 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database.Variable;
-import edu.tum.cs.srl.mln.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.WeightedClausalKB;
@@ -92,7 +92,7 @@ public class MaxWalkSAT {
         // read evidence and set value of Groundatoms to related value in evidence
         this.evidence = new HashMap<Integer, Boolean>();
         for (Variable var : evidence.getEntries()) {
-            String strGndAtom = var.getPredicate(evidence.mln);
+            String strGndAtom = var.getPredicate(evidence.model);
             GroundAtom gndAtom = vars.get(strGndAtom);
             Block block = vars.getBlock(gndAtom.index);
             if (block != null && var.isTrue()) {

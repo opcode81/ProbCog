@@ -16,7 +16,10 @@ import edu.tum.cs.srl.bayesnets.BLOGModel;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.tools.StringTool;
 
-
+/**
+ * represents an evidence/training database for a relational model 
+ * @author jain
+ */
 public class Database {
 	
 	/**
@@ -25,14 +28,14 @@ public class Database {
 	protected HashMap<String, Variable> entries;
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
-	public RelationalModel rbn;
+	public RelationalModel model;
 	
 	/**
 	 * constructs an empty database for the given model
 	 * @param bn
 	 */
 	public Database(RelationalModel bn) {
-		this.rbn = bn;
+		this.model = bn;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
@@ -58,7 +61,7 @@ public class Database {
 		// otherwise, return the default value of false for boolean predicates or raise an exception for non-boolean functions 
 		if(closedWorld) {
 			String nodeName = varName.substring(0, varName.indexOf('('));
-			Signature sig = rbn.getSignature(nodeName);
+			Signature sig = model.getSignature(nodeName);
 			if(sig.isBoolean())
 				return "False";
 			else {
@@ -81,7 +84,7 @@ public class Database {
 	
 	public void addVariable(Variable var, boolean ignoreUndefinedFunctions) throws Exception {
 		// fill domains
-		Signature sig = rbn.getSignature(var.functionName);
+		Signature sig = model.getSignature(var.functionName);
 		if(sig == null) {
 			// if the predicate is not in the model, end here
 			if(ignoreUndefinedFunctions)
@@ -107,7 +110,7 @@ public class Database {
 		
 		// update lookup tables for keys
 		// (but only if value is true)
-        Collection<RelationKey> keys = this.rbn.getRelationKeys(var.functionName);
+        Collection<RelationKey> keys = this.model.getRelationKeys(var.functionName);
 		if(keys != null) {
 			// add lookup entry if the variable value is true
 			if(!var.isTrue())
@@ -229,7 +232,7 @@ public class Database {
 					if(dom2.contains(value)) { // replace all occurrences of the j-th domain by the i-th
 						if(verbose)
 							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap (both contain " + value + "). Merging...");
-						this.rbn.replaceType(domNames.get(j), domNames.get(i));
+						this.model.replaceType(domNames.get(j), domNames.get(i));
 						dom1.addAll(dom2);
 						doms.set(j, dom1);
 						break;
@@ -277,7 +280,7 @@ public class Database {
 	 * @throws Exception 
 	 */
 	public void setClosedWorldPred(String predName) throws Exception {
-		Signature sig = this.rbn.getSignature(predName);
+		Signature sig = this.model.getSignature(predName);
 		if(sig == null)
 			throw new Exception("Cannot determine signature of " + predName);
 		String[] params = new String[sig.argTypes.length];
@@ -344,7 +347,7 @@ public class Database {
 	}
 	
 	public Signature getSignature(String functionName) {
-		return rbn.getSignature(functionName);
+		return model.getSignature(functionName);
 	}
 	
 	public void printDomain(PrintStream out) {
@@ -357,4 +360,83 @@ public class Database {
 		for(Variable v : getEntries()) 
 			System.out.println(v.toString());		
 	}
+	
+    /**
+     * 
+     * @param databaseFilename
+     * @throws java.lang.Exception
+     */
+    public void readMLNDB(String databaseFilename) throws Exception {
+        readMLNDB(databaseFilename, false);
+    }
+
+
+    /**
+     * 
+     * */
+    public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
+        boolean verbose = true;
+
+        // read file content
+        if (verbose) System.out.println("  reading file contents...");
+        String dbContent = BLOGModel.readTextFile(databaseFilename);
+
+        // remove comments
+        if (verbose) System.out.println("  removing comments...");
+        Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+        Matcher matcher = comments.matcher(dbContent);
+        dbContent = matcher.replaceAll("");
+
+        // read lines
+        if (verbose) System.out.println("  reading items...");
+        Pattern re_entry = Pattern.compile("[!]?[a-z]+[\\w]*[(]{1}([a-z|A-Z|0-9]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z|0-9]+[\\w]*[!]?))*[)]{1}");
+        Pattern funcName = Pattern.compile("([!]?\\w+)(\\()(\\s*[A-Z|0-9]+[\\w+\\s*(,)]*\\s*)(\\))");
+        Pattern domName = Pattern.compile("[a-z]+\\w+");
+        Pattern domCont = Pattern.compile("\\{([\\s*[A-Z|0-9]+\\w*\\s*[,]?]+)\\}");
+        Pattern re_domDecl = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
+        BufferedReader br = new BufferedReader(new StringReader(dbContent));
+        String line;
+        Variable var;
+        int numVars = 0;
+        while ((line = br.readLine()) != null) {
+            line = line.trim();
+            // parse variable assignment
+            matcher = re_entry.matcher(line);
+            if (matcher.matches()) {
+                matcher = funcName.matcher(line);
+                matcher.find();
+                if (matcher.group(1).contains("!"))
+                    var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False");
+                else 
+                    var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True");
+			
+                addVariable(var, ignoreUndefinedNodes);
+                if (++numVars % 100 == 0 && verbose) System.out.println("    " + numVars + " vars read\r");
+                continue;
+            }
+
+            // parse domain decls
+            Matcher matcher1 = re_domDecl.matcher(line);
+            Matcher domNamemat = domName.matcher(line);
+            Matcher domConst = domCont.matcher(line);
+
+            if (matcher1.matches() && domNamemat.find() && domConst.find()) { // parse domain decls
+                String domNam = domNamemat.group(0);
+                String[] constants = domConst.group(1).trim().split("\\s*,\\s*");
+                for (String c : constants)
+                    fillDomain(domNam, c);
+                continue;
+            }
+            // something else
+            if (line.length() != 0) System.err.println("Line could not be read: " + line);
+        }
+    }
+
+    /**
+     * 
+     * @return
+     */
+    public HashMap<String, HashSet<String>> getDomains() {
+        return domains;
+    }
 }

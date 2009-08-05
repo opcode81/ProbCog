@@ -54,7 +54,7 @@ public class SampleSAT {
 		evidence.print();
 		this.evidence = new HashMap<Integer,Boolean>();
 		for(Variable var : evidence.getEntries()) {
-			String strGndAtom = var.getPredicate(evidence.rbn);
+			String strGndAtom = var.getPredicate(evidence.model);
 			GroundAtom gndAtom = vars.get(strGndAtom);			
 			Block block = vars.getBlock(gndAtom.index);
 			if(block != null) 

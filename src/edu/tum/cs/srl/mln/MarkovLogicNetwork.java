@@ -110,8 +110,9 @@ public class MarkovLogicNetwork implements RelationalModel {
      * Method that grounds MLN to a MarkovRandomField
      * @param dbFileLoc file location of evidence for this scenario
      * @return returns a grounded MLN as a MarkovRandomField MRF
+     * @throws Exception 
      */
-    public MarkovRandomField groundMLN(String dbFileLoc) {
+    public MarkovRandomField groundMLN(String dbFileLoc) throws Exception {
         MarkovRandomField mrf = new MarkovRandomField(this, dbFileLoc, makelist, gc);
         return mrf;
     }

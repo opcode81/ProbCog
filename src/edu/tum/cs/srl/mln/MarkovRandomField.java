@@ -8,6 +8,8 @@ package edu.tum.cs.srl.mln;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
 
 import java.io.File;
@@ -34,9 +36,11 @@ public class MarkovRandomField {
      * @param dbFileLoc filelocation of evidence 
      * @param makelist boolean to set, whether a list of grounded formulas should be generated
      * @param gc an optional callback method (called for each grounded formula)
+     * @throws Exception 
      */
-    public MarkovRandomField(MarkovLogicNetwork mln, String dbFileLoc, boolean makelist, GroundingCallback gc){
-        db = new Database(new File(dbFileLoc).toString(), mln);
+    public MarkovRandomField(MarkovLogicNetwork mln, String dbFileLoc, boolean makelist, GroundingCallback gc) throws Exception{
+        db = new Database(mln);
+        db.readMLNDB(new File(dbFileLoc).toString());
         this.world = new WorldVariables();
         this.mln = mln;
         this.dbFile = dbFileLoc;
