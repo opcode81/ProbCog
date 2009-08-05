@@ -10,8 +10,8 @@ import java.util.Vector;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
+import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
 import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.srl.mln.WeightedClausalKB;
 
 public class MaxWalkSAT extends InferenceAlgorithm {
 

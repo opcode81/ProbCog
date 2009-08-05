@@ -23,7 +23,6 @@ import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.srl.mln.WeightedClausalKB;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
@@ -41,7 +40,7 @@ public class MaxWalkSAT {
     protected Random rand;
     protected WorldVariables vars;
     protected HashMap<Integer, Boolean> evidence;
-    protected HashMap<edu.tum.cs.srl.mln.WeightedClause, Formula> clFormula;
+    protected HashMap<edu.tum.cs.logic.sat.weighted.WeightedClause, Formula> clFormula;
     protected HashMap<WeightedClause, Formula> cl2Formula;
     protected HashMap<Formula, Double> weightedFormulas;
     protected HashMap<Formula, Double> formula2weight;
@@ -125,7 +124,7 @@ public class MaxWalkSAT {
         }
 
         // instantiate constraints
-        for (edu.tum.cs.srl.mln.WeightedClause c : kb) {
+        for (edu.tum.cs.logic.sat.weighted.WeightedClause c : kb) {
             WeightedClause wcl = new WeightedClause(c.lits, c.hard);
             Formula f = clFormula.get(c);
             //mapping of weighted clauses to the formula they are part of

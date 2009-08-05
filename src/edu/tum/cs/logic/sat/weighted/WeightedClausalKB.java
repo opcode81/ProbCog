@@ -1,8 +1,10 @@
-package edu.tum.cs.srl.mln;
+package edu.tum.cs.logic.sat.weighted;
 
 import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.TrueFalse;
+import edu.tum.cs.srl.mln.MarkovRandomField;
+
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.HashMap;
