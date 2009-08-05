@@ -7,7 +7,6 @@ package edu.tum.cs.srl.mln;
 import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
 import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.logic.Formula;
-import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.RelationalModel;
 import java.io.BufferedReader;
@@ -38,7 +37,6 @@ public class MarkovLogicNetwork implements RelationalModel {
     HashMap<String, Signature> signatures;
     HashMap<String, String[]> decDomains;
     HashMap<String, String> block;
-    WorldVariables world;
     boolean makelist;
     GroundingCallback gc;
     double sumWeights = 0;
@@ -52,8 +50,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     public MarkovLogicNetwork(String mlnFileLoc, boolean makelist, GroundingCallback gc) {
         mlnFile = new File(mlnFileLoc);
         signatures = new HashMap<String, Signature>();
-        block = new HashMap<String, String>();
-        world = new WorldVariables();
+        block = new HashMap<String, String>();        
         decDomains = new HashMap<String, String[]>();
         formulas = new ArrayList<Formula>();
         formula2weight = new HashMap<Formula, Double>();
@@ -116,14 +113,6 @@ public class MarkovLogicNetwork implements RelationalModel {
     public MarkovRandomField groundMLN(String dbFileLoc) {
         MarkovRandomField mrf = new MarkovRandomField(this, dbFileLoc, makelist, gc);
         return mrf;
-    }
-
-    /**
-     * Method that returns worldVariables of the given MLN
-     * @return
-     */
-    public WorldVariables getWorldVariables() {
-        return world;
     }
 
     /**
