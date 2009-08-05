@@ -149,7 +149,7 @@ public class WCSPConverter implements GroundingCallback {
         func_dom = new HashMap<String, String>();               // Hashmap that maps variable to domain the variable uses
         vars_gnd = new HashMap<String, HashSet<GroundAtom>>();  // Hashmap that maps a variable to all groundatoms, that are set by this variable
 
-        WorldVariables ww = mln.getWorldVariables();
+        WorldVariables ww = mrf.getWorldVariables();
         for (int i = 0; i < ww.size(); i++) {
             // check whether groundatom is in a block
             if (ww.getBlock(ww.get(i).index) != null)
@@ -193,7 +193,7 @@ public class WCSPConverter implements GroundingCallback {
         } else { // if the variable doesn't exists, add a new variable and the required mappings
             vars.add(function);
             gnd_varidx.put(gnd, vars.indexOf(function));
-            func_dom.put(function, mln.getBlock().get(mln.getWorldVariables().get(gnd.index).predicate.toString()));
+            func_dom.put(function, mln.getBlock().get(mrf.getWorldVariables().get(gnd.index).predicate.toString()));
             HashSet<GroundAtom> temp = new HashSet<GroundAtom>();
             temp.add(gnd);
             vars_gnd.put(vars.get(vars.indexOf(function)), temp);
@@ -388,11 +388,11 @@ public class WCSPConverter implements GroundingCallback {
     private void setBlocks() {
         HashMap<String, Boolean> evidence = new HashMap<String, Boolean>();
         gndID_BlockID = new HashMap<Integer, Integer>();
-        int countAtoms = mln.getWorldVariables().size();
+        int countAtoms = mrf.getWorldVariables().size();
         for (Variable var : mrf.getDb().getEntries()) {
             String strGndAtom = var.getPredicate(mln);
-            GroundAtom gndAtom = mln.getWorldVariables().get(strGndAtom);
-            Block block = mln.getWorldVariables().getBlock(gndAtom.index);
+            GroundAtom gndAtom = mrf.getWorldVariables().get(strGndAtom);
+            Block block = mrf.getWorldVariables().getBlock(gndAtom.index);
             boolean set = false;
             if (block != null && var.isTrue()) {
                 countAtoms++;
@@ -428,7 +428,7 @@ public class WCSPConverter implements GroundingCallback {
      */
     public void onGroundedFormula(Formula f, double weight, Database db) {
         if (generatedFormulas++ < 1) { // set initial mappings of the WCSP-Converter
-            this.wld = new PossibleWorld(mln.getWorldVariables());
+            this.wld = new PossibleWorld(mrf.getWorldVariables());
             doms = db.getDomains();
             atom2var();
             simplyfyVars(vars, db);
