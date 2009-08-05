@@ -1,11 +1,11 @@
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.logic.PossibleWorld;
-import edu.tum.cs.logic.sat.MAPMaxWalkSAT;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.srl.mln.WeightedClausalKB;
+import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
+import edu.tum.cs.srl.mln.inference.InferenceResult;
+import edu.tum.cs.srl.mln.inference.MaxWalkSAT;
 import edu.tum.cs.tools.Stopwatch;
 
 /**
@@ -84,13 +84,11 @@ public class MLNinfer {
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
-	        WeightedClausalKB wckb = new WeightedClausalKB(mrf);
-	        PossibleWorld state = new PossibleWorld(mln.getWorldVariables());
-	        MAPMaxWalkSAT infer = new MAPMaxWalkSAT(wckb, state, mln.getWorldVariables(), mrf.getDb(), mln.getMaxWeight());
-	        infer.setMaxSteps(maxSteps);
-	        infer.run();
+			InferenceAlgorithm infer = new MaxWalkSAT(mrf);
+			Vector<InferenceResult> results = infer.infer(queries, maxSteps);
 	        sw.stop();
-			sw.stop();
+	        for(InferenceResult r : results)
+	        	r.print();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
