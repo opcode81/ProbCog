@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.srl.bayesnets.Database;
 
 public class TrueFalse extends Formula {
 	

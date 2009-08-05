@@ -1,7 +1,8 @@
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.bayesnets.relational.core.RelationalNode;
-import edu.tum.cs.bayesnets.relational.core.Signature;
+import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.Signature;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.Vector;

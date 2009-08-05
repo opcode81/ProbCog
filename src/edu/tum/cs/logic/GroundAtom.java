@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.srl.bayesnets.Database;
 import edu.tum.cs.tools.StringTool;
 
 public class GroundAtom extends Formula {

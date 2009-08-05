@@ -5,15 +5,15 @@ import java.util.ArrayList;
 import java.util.Vector;
 import java.util.Map.Entry;
 
-import edu.tum.cs.bayesnets.relational.core.ABL;
-import edu.tum.cs.bayesnets.relational.core.Database;
-import edu.tum.cs.bayesnets.relational.core.RelationalNode;
-import edu.tum.cs.bayesnets.relational.core.Signature;
-import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
-import edu.tum.cs.bayesnets.relational.core.bln.GroundBLN;
-import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
-import edu.tum.cs.bayesnets.relational.inference.Sampler;
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.Signature;
+import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
+import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
+import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
+import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.tools.Pair;
 
 public class BLNModel extends Model {
@@ -44,10 +44,10 @@ public class BLNModel extends Model {
 			throw new Exception("Specified inference method unhandled");
 		}
 		// run inference
-		Vector<edu.tum.cs.bayesnets.relational.inference.InferenceResult> results = sampler.infer(queries, getIntParameter("numSamples", 1000), 100);
+		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries, getIntParameter("numSamples", 1000), 100);
 		// store results
 		Vector<InferenceResult> ret = new Vector<InferenceResult>();
-		for(edu.tum.cs.bayesnets.relational.inference.InferenceResult res : results) {
+		for(edu.tum.cs.srl.bayesnets.inference.InferenceResult res : results) {
 			 Pair<String, String[]> var = RelationalNode.parse(res.varName);
 			 Signature sig = bln.rbn.getSignature(var.first);
 			 String[] params = var.second;

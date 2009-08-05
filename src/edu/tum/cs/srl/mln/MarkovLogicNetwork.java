@@ -4,11 +4,12 @@
  */
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
-import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.RelationalModel;
+import edu.tum.cs.srl.bayesnets.Signature;
+import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork.RelationKey;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;

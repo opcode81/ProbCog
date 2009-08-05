@@ -15,13 +15,13 @@ import edu.tum.cs.srl.mln.WeightedClausalKB;
 
 public class MaxWalkSAT extends InferenceAlgorithm {
 
-	protected edu.tum.cs.logic.sat.MaxWalkSAT sat;
+	protected edu.tum.cs.logic.sat.weighted.MaxWalkSAT sat;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws Exception {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
-        sat = new edu.tum.cs.logic.sat.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mrf.mln.getMaxWeight());
+        sat = new edu.tum.cs.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mrf.mln.getMaxWeight());
 	}
 	
 	@Override

@@ -1,6 +1,7 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.srl.bayesnets.Database;
+
 import java.util.Collection;
 
 public class Biimplication extends ComplexFormula {
