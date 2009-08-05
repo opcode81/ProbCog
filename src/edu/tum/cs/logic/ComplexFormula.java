@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
+import edu.tum.cs.srl.bayesnets.Database;
 
 public abstract class ComplexFormula extends Formula {
 	public Formula[] children;

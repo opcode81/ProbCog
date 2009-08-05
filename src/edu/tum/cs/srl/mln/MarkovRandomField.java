@@ -5,10 +5,10 @@
 
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.bayesnets.relational.core.Signature;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.srl.bayesnets.Signature;
 
 import java.io.File;
 import java.util.Collection;

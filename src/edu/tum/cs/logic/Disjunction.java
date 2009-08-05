@@ -1,6 +1,5 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -8,6 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import edu.tum.cs.srl.bayesnets.Database;
 import edu.tum.cs.tools.StringTool;
 
 public class Disjunction extends ComplexFormula {

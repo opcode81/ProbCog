@@ -1,4 +1,4 @@
-package edu.tum.cs.logic.sat;
+package edu.tum.cs.logic.sat.weighted;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;

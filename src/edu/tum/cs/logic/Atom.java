@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
-import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork;
-import edu.tum.cs.bayesnets.relational.core.Signature;
+import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
+import edu.tum.cs.srl.bayesnets.Signature;
 import edu.tum.cs.tools.StringTool;
 
 public class Atom extends Formula {

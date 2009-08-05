@@ -1,11 +1,11 @@
 package edu.tum.cs.logic.sat;
 
-import edu.tum.cs.bayesnets.relational.core.Database;
 import edu.tum.cs.logic.ComplexFormula;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.IPossibleWorld;
+import edu.tum.cs.srl.bayesnets.Database;
 import edu.tum.cs.tools.StringTool;
 
 public class Clause extends ComplexFormula {

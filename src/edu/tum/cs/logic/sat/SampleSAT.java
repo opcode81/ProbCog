@@ -7,16 +7,16 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
 
-import edu.tum.cs.bayesnets.relational.core.ABL;
-import edu.tum.cs.bayesnets.relational.core.Database;
-import edu.tum.cs.bayesnets.relational.core.Database.Variable;
-import edu.tum.cs.bayesnets.relational.core.bln.BayesianLogicNetwork;
-import edu.tum.cs.bayesnets.relational.core.bln.GroundBLN;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
+import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.bayesnets.Database.Variable;
+import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
+import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 

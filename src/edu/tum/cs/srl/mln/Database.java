@@ -1,6 +1,7 @@
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.bayesnets.relational.core.BLOGModel;
+import edu.tum.cs.srl.bayesnets.BLOGModel;
+
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.HashMap;
@@ -8,7 +9,7 @@ import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Database extends edu.tum.cs.bayesnets.relational.core.Database {
+public class Database extends edu.tum.cs.srl.bayesnets.Database {
 
     public MarkovLogicNetwork mln;
     

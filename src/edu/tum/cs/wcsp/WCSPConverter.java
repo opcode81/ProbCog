@@ -4,12 +4,12 @@
  */
 package edu.tum.cs.wcsp;
 
-import edu.tum.cs.bayesnets.relational.core.Database.Variable;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
+import edu.tum.cs.srl.bayesnets.Database.Variable;
 import edu.tum.cs.srl.mln.Database;
 import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;

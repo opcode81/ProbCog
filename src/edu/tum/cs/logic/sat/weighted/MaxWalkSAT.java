@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package edu.tum.cs.logic.sat;
+package edu.tum.cs.logic.sat.weighted;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -13,13 +13,13 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
 
-import edu.tum.cs.bayesnets.relational.core.Database.Variable;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
+import edu.tum.cs.srl.bayesnets.Database.Variable;
 import edu.tum.cs.srl.mln.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;

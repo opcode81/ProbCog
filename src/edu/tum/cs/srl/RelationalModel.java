@@ -3,8 +3,8 @@ package edu.tum.cs.srl;
 import java.util.Collection;
 import java.util.HashMap;
 
-import edu.tum.cs.bayesnets.relational.core.Signature;
-import edu.tum.cs.bayesnets.relational.core.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.srl.bayesnets.Signature;
+import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork.RelationKey;
 
 public interface RelationalModel {
 	public void replaceType(String oldType, String newType);
