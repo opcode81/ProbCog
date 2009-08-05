@@ -138,7 +138,7 @@ public class Database {
 		//System.out.println("doing lookup for " + this.key + " with " + StringTool.join(", ", keyValues));
 		HashMap<String, String[]> m = functionalDependencies.get(key);
 		if(m == null) return null;
-		return m.get(RelationalNode.join(",", keyValues));
+		return m.get(StringTool.join(",", keyValues));
 	}
 
 	public void readBLOGDB(String databaseFilename) throws Exception {
@@ -324,7 +324,7 @@ public class Database {
 		}
 		
 		public String getKeyString() {
-			return functionName + "(" + RelationalNode.join(",", params) + ")";
+			return functionName + "(" + StringTool.join(",", params) + ")";
 		}
 		
 		/**
