@@ -1,25 +1,44 @@
 package edu.tum.cs.bayesnets.core;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import edu.ksu.cis.bnj.ver3.core.*;
+import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
+import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.ForwardSampling;
 import edu.ksu.cis.bnj.ver3.inference.exact.Pearl;
 import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
-import edu.ksu.cis.bnj.ver3.streams.*;
+import edu.ksu.cis.bnj.ver3.streams.Exporter;
+import edu.ksu.cis.bnj.ver3.streams.Importer;
+import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
 import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
 import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
-import edu.tum.cs.bayesnets.relational.core.DecisionNode;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.

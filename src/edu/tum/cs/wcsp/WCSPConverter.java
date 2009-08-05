@@ -10,7 +10,7 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database.Variable;
-import edu.tum.cs.srl.mln.Database;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
@@ -57,9 +57,9 @@ public class WCSPConverter implements GroundingCallback {
      * Constructor to instantiate a WCSP-Converter
      * @param mlnFileLoc filelocation of the MLN-File
      * @param dbFileLoc  filelocation of the evidence
-     * @throws java.io.IOException
+     * @throws Exception 
      */
-    public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws IOException {
+    public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws Exception {
 
         // instantiate MLN and MRF
         sb_result = new StringBuffer();

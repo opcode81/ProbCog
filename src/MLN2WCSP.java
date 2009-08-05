@@ -13,9 +13,9 @@ public class MLN2WCSP {
 
 	/**
 	 * @param args
-	 * @throws IOException 
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		if(args.length < 3) {
 			System.out.println("usage: MLN2WCSP <MLN file> <evidence database file> <WCSP output file> [scenario output file]");
 			return;			

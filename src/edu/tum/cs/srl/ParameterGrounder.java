@@ -8,7 +8,7 @@ import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 
 /**
- * generates groundings (instantiations of the parameters) of a single relational node/predicate
+ * generates groundings (instantiations of the parameters) of a function/predicate given a database
  * @author jain
  *
  */
@@ -25,6 +25,13 @@ public class ParameterGrounder {
 		return generateGroundings(db, node.getSignature().argTypes);
 	}
 
+	/**
+	 * generates all groundings of the given function using the domain elements specified in the given database
+	 * @param node
+	 * @param db
+	 * @return a collection of possible parameter bindings
+	 * @throws Exception 
+	 */
 	public static Collection<String[]> generateGroundings(Signature sig, Database db) throws Exception {
 		return generateGroundings(db, sig.argTypes);	
 	}
@@ -37,9 +44,9 @@ public class ParameterGrounder {
 	 * @return a collection of possible parameter bindings
 	 * @throws Exception
 	 */
-	public static Collection<String[]> generateGroundings(RelationalBeliefNetwork rbn, String function, Database db) throws Exception {
+	public static Collection<String[]> generateGroundings(RelationalModel model, String function, Database db) throws Exception {
 		try {
-			return generateGroundings(db, rbn.getSignature(function).argTypes);
+			return generateGroundings(db, model.getSignature(function).argTypes);
 		}
 		catch(Exception e) {
 			System.err.println("Warning: " + e.getMessage() + " (while grounding '" + function + "')");
