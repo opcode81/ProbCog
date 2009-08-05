@@ -12,18 +12,18 @@ import edu.tum.cs.bayesnets.inference.EnumerationAsk;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
-import edu.tum.cs.bayesnets.relational.core.ABL;
-import edu.tum.cs.bayesnets.relational.core.bln.*;
-import edu.tum.cs.bayesnets.relational.core.bln.py.BayesianLogicNetworkPy;
-import edu.tum.cs.bayesnets.relational.inference.BNSampler;
-import edu.tum.cs.bayesnets.relational.inference.CSPSampler;
-import edu.tum.cs.bayesnets.relational.inference.GibbsSampling;
-import edu.tum.cs.bayesnets.relational.inference.InferenceResult;
-import edu.tum.cs.bayesnets.relational.inference.LiftedBackwardSampling;
-import edu.tum.cs.bayesnets.relational.inference.LikelihoodWeighting;
-import edu.tum.cs.bayesnets.relational.inference.SATIS;
-import edu.tum.cs.bayesnets.relational.inference.SATISEx;
-import edu.tum.cs.bayesnets.relational.inference.Sampler;
+import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.bln.*;
+import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
+import edu.tum.cs.srl.bayesnets.inference.BNSampler;
+import edu.tum.cs.srl.bayesnets.inference.CSPSampler;
+import edu.tum.cs.srl.bayesnets.inference.GibbsSampling;
+import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
+import edu.tum.cs.srl.bayesnets.inference.LiftedBackwardSampling;
+import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
+import edu.tum.cs.srl.bayesnets.inference.SATIS;
+import edu.tum.cs.srl.bayesnets.inference.SATISEx;
+import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
 
 
@@ -123,6 +123,7 @@ public class BLNinfer {
 							         "    -satis           algorithm: SAT-IS\n" +
 							         "    -satisex         algorithm: SAT-IS (extended with hard CPT constraints) \n" +
 							         "    -bs              algorithm: backward sampling\n" +
+							         "    -lbs             algorithm: lifted backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
 							         "    -ea              algorithm: Enumeration-Ask (exact)\n" +
@@ -175,7 +176,7 @@ public class BLNinfer {
 			}
 			else {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, blnFile);
-				gbln = new edu.tum.cs.bayesnets.relational.core.bln.py.GroundBLN(bln, dbFile);
+				gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, dbFile);
 			}
 			if(cwPreds != null) {
 				for(String predName : cwPreds)

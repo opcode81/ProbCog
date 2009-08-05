@@ -21,7 +21,7 @@ public class J48Reader {
 	
 	public static void main(String[] args){
 		try{
-			String path = "/usr/stud/waldhers/models/pointcloud/";
+			String path = "./";
 			//String dbdir = path + "zoli4uli4";
 			String dbdir = path + args[1];
 			J48 j48 = readJ48(dbdir);
@@ -36,6 +36,7 @@ public class J48Reader {
 				inst.setValue(inst.attribute(inst.classIndex()),d);
 				System.out.println("Object is classified as "+ inst.toString(inst.attribute(inst.classIndex())));
 				*/
+				//System.out.println(inst);
 				double dist[] = j48.distributionForInstance(inst);
 				int j = 0;
 				for (double d : dist){
@@ -52,7 +53,9 @@ public class J48Reader {
 	}
 	
 	public static J48 readJ48(String dbdir) throws IOException, ClassNotFoundException{
-		ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(dbdir + "/pcc.j48"));
+		String path = dbdir + "/pcc.j48";
+		//System.out.println("reading tree " + path);
+		ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(path));
 		J48 j48 = (J48) objstream.readObject();
 		objstream.close();
 		return j48;

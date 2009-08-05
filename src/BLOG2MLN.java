@@ -1,4 +1,4 @@
-import edu.tum.cs.bayesnets.relational.core.BLOGModel;
+import edu.tum.cs.srl.bayesnets.BLOGModel;
 
 
 public class BLOG2MLN {
