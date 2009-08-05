@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Database extends edu.tum.cs.srl.bayesnets.Database {
+public class Database extends edu.tum.cs.srl.Database {
 
     public MarkovLogicNetwork mln;
     

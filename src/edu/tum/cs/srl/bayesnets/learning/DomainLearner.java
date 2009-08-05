@@ -5,12 +5,12 @@ import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.srl.bayesnets.Signature;
 
 public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 	public DomainLearner(RelationalBeliefNetwork bn) {

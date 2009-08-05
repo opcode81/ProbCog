@@ -3,7 +3,7 @@ package edu.tum.cs.logic;
 import java.util.Map;
 import java.util.Set;
 
-import edu.tum.cs.srl.bayesnets.Database;
+import edu.tum.cs.srl.Database;
 
 public class GroundLiteral extends Formula {
 	public boolean isPositive;

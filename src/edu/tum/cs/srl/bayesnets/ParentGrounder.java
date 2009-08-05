@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork.RelationKey;
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.RelationKey;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.tools.StringTool;
 
 /**
@@ -39,7 +41,7 @@ public class ParentGrounder {
 				for(int k = 0; k < node.params.length; k++) buf[k] = "_";
 				int j = 0;
 				for(Integer k : key.keyIndices) buf[k] = keyValues[j++];
-				throw new Exception("Could not perform lookup for " + RelationalNode.formatName(node.getFunctionName(), buf));
+				throw new Exception("Could not perform lookup for " + Signature.formatVarName(node.getFunctionName(), buf));
 			}
 			// update the variable bindings
 			java.util.Iterator<Integer> iter = key.keyIndices.iterator();

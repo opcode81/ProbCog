@@ -1,4 +1,4 @@
-package edu.tum.cs.mln;
+package edu.tum.cs.srl.mln;
 
 import java.io.PrintStream;
 
