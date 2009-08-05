@@ -1,4 +1,4 @@
-package edu.tum.cs.mln.inference;
+package edu.tum.cs.srl.mln.inference;
 
 import edu.tum.cs.logic.GroundAtom;
 
