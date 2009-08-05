@@ -15,8 +15,9 @@ public class ParameterGrounder {
 	 * @param node
 	 * @param db
 	 * @return a collection of possible parameter bindings
-	 * @throws Exception
+	 * @throws Exception 
 	 */
+	@Deprecated
 	public static Collection<String[]> generateGroundings(RelationalNode node, Database db) throws Exception {
 		return generateGroundings(db, node.getSignature().argTypes);
 	}
