@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -11,11 +11,18 @@ public class PossibleWorld implements IPossibleWorld {
 
 	public PossibleWorld(WorldVariables worldVars) {
 		this.worldVars = worldVars;
-		state = new boolean[worldVars.size()];
+		this.state = new boolean[worldVars.size()];
+	}
+	
+	public PossibleWorld(WorldVariables worldVars, boolean[] state) {
+		if(state.length != worldVars.size())
+			throw new IllegalArgumentException("Size of state array does not much number of variables");
+		this.worldVars = worldVars;
+		this.state = state;
 	}
 
 	public boolean isTrue(GroundAtom ga) {
-                return state[ga.index];
+		return state[ga.index];
 	}
 
 	public void set(String gndAtom, boolean value) {
@@ -27,16 +34,24 @@ public class PossibleWorld implements IPossibleWorld {
 	}
 
 	public void set(int idxGndAtom, boolean value) {
-                state[idxGndAtom] = value;
+		state[idxGndAtom] = value;
 	}
 
 	public boolean get(int idxGndAtom) {
 		return state[idxGndAtom];
 	}
 
-    public boolean[] getactState(){
-        return state.clone();
-    }
+	public PossibleWorld clone() {
+		return new PossibleWorld(worldVars, state.clone());
+	}
+	
+	public boolean[] getState() {
+		return state;
+	}
+	
+	public WorldVariables getVariables() {
+		return worldVars;
+	}
 
     /**
      * this method sets the groundatoms of the given hashset in this possible world to true or false
@@ -65,24 +80,20 @@ public class PossibleWorld implements IPossibleWorld {
     }
 
 	public void print() {
-		System.out.println("WeltgrÃ¶ÃŸe: " + worldVars.size());
-                for(int i = 0; i < worldVars.size(); i++) {
-			System.out.println(worldVars.get(i).index + "   " + worldVars.get(i) + " " + worldVars.get(i).isTrue(this));
-		}
+		print(System.out);
 	}
 
-        public void printinStream(PrintWriter out) {
-		//System.out.println("WeltgrÃ¶ÃŸe: " + worldVars.size());
-                for(int i = 0; i < worldVars.size(); i++) {
+    public void print(PrintStream out) {
+		out.println("world size: " + worldVars.size());
+        for(int i = 0; i < worldVars.size(); i++) {
 			out.println(worldVars.get(i).index + "   " + worldVars.get(i) + " " + worldVars.get(i).isTrue(this));
 		}
 	}
 
     public void setState(boolean[] state){
-        if (state.length == this.state.length){
+        if (state.length == this.state.length)
             this.state = state;
-        } else {
-            throw new IllegalArgumentException("Worldsizes are not equal!");
-        }
+        else 
+            throw new IllegalArgumentException("Size of state array does not match number of variables!");        
     }
 }

@@ -13,7 +13,7 @@ import edu.tum.cs.tools.StringTool;
  * 
  * @author jain
  */
-public class WorldVariables {
+public class WorldVariables implements Iterable<GroundAtom> {
 	protected HashMap<String, GroundAtom> vars;
 	protected HashMap<Integer, Block> var2block;
 	protected HashMap<Integer, GroundAtom> varsByIndex;
@@ -135,5 +135,9 @@ public class WorldVariables {
 		public GroundAtom get(int index) {
 			return gndAtoms.get(index);
 		}
+	}
+
+	public Iterator<GroundAtom> iterator() {		
+		return this.vars.values().iterator();
 	}
 }
