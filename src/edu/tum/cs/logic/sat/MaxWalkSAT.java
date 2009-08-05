@@ -5,6 +5,14 @@
 
 package edu.tum.cs.logic.sat;
 
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Vector;
+import java.util.Map.Entry;
+
 import edu.tum.cs.bayesnets.relational.core.Database.Variable;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
@@ -18,21 +26,12 @@ import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.WeightedClausalKB;
 import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Vector;
 
 /**
  * Implementation of a stochastic weighted Maximum-a-posteriori WalkSAT algorithm
  * @author wernicke
  */
-public class MAPMaxWalkSAT {
+public class MaxWalkSAT {
 
     protected HashMap<Integer, Vector<Constraint>> bottlenecks;
     protected HashMap<Integer, Vector<Constraint>> GAOccurrences;
@@ -55,12 +54,11 @@ public class MAPMaxWalkSAT {
     protected double unsSumBeta;
     public int step;
     protected final boolean verbose = false;
-    protected boolean[] bestState;
+    protected PossibleWorld bestState;
     protected int greedymoves;
     protected int satmoves;
     protected int flips;
     double minSum;
-    protected final boolean saveBestState = true;
     protected int deltaCostCalcMethod = 1; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
     protected int maxSteps = 1000;
 
@@ -73,7 +71,7 @@ public class MAPMaxWalkSAT {
      * @param threshold maximum steps taken by the algorithm (a possible integer value)
      * @throws java.lang.Exception
      */
-    public MAPMaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold) throws Exception {
+    public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold) throws Exception {
 
         this.state = state;
         this.vars = vars;
@@ -119,7 +117,7 @@ public class MAPMaxWalkSAT {
             state.set(e.getKey(), e.getValue());
         }
 
-        //initial list of constrints which are flipable by the algorithm (not set in evidence)
+        //initial list of constraints which are flipable by the algorithm (not set in evidence)
         for (int c = 0; c < vars.size(); c++) {
             if (!this.evidence.containsKey(c)) {
                 validConstraints.add(c);
@@ -248,7 +246,8 @@ public class MAPMaxWalkSAT {
         unsatisfiedSum();
 
         // run of the algorithm until condition of termination is reached
-        while (step < maxSteps) {
+        bestState = state.clone();
+        while (step < maxSteps && unsatisfiedConstraints.size() > 0) {
             // calculation of the difference between actually found (unsSum) and globally found minimal unsatisfied sum (minSum) -> acually unused
             diffSum = unsSum - minSum;
             // if there is another new minimal unsatisfied value
@@ -257,10 +256,8 @@ public class MAPMaxWalkSAT {
                     // saves new minimum, resets the steps which shows how often the algorithm hits the minimum (minSteps)
                     minSum = unsSum;
                     minSteps = 0;
-                    // optional: saves actual best state
-                    if (saveBestState) {
-                        bestState = state.getactState();
-                    }
+                    // saves current best state
+                    bestState = state.clone();
                     // count of step in which the new minimum where found is saved (lastMinStep)
                     lastMinStep = step;
                 }
@@ -270,7 +267,7 @@ public class MAPMaxWalkSAT {
                 }
             }
 
-            // print state of progress everey xx steps (e.g. 500)
+            // print state of progress every xx steps (e.g. 500)
             if (step % 500 == 0) {
                 System.out.println("MAPWaxWalkSAT step " + step + ", Flips: " + flips + ", " + countUnsCon / unsatisfiedConstraints.size() * 100 + " % of hard constraints unsatisfied, sum: " + unsSum + ", minsteps: " + minSteps + ", minSum: " + minSum /*+ "diff: " + diffSum + " , " + (Math.pow(Math.E, ((double) (-diffSum) / ((new Double(step) / new Double(vars.size()))))))*/);
             }
@@ -294,32 +291,20 @@ public class MAPMaxWalkSAT {
     }
 
     /**
-     * Prints the best found state of the algorithm into a given file
+     * prints the best state found by the algorithm
      */
-    public void printBestState() {
-        File testFile;
-        int x = 0;
-        do {
-            // select filename and directory
-            testFile = new File("D:/results/testResult_" + x++ + ".txt");
-        } while (testFile.exists());
-
-        try {
-            PrintWriter fr = new PrintWriter(testFile);
-            for (int c = 0; c < bestState.length; c++) {
-                // for every variable prints out the value -> not => "!" in front of the groundatom
-                String temp = "";
-                if (!bestState[c]) {
-                    temp = "!";
-                }
-                // prints out every groundatom
-                fr.println(temp += vars.get(c).toString());
+    public void printBestState(PrintStream fr) {
+    	boolean[] s = bestState.getState();
+        for (int c = 0; c < s.length; c++) {
+            // for every variable prints out the value -> not => "!" in front of the groundatom
+            String temp = "";
+            if (!s[c]) {
+                temp = "!";
             }
-            fr.println("Unsatisfied Sum: " + minSum);
-            fr.close();
-        } catch (IOException ex) {
-            System.out.println("Sorry! File could not be written!");
+            // prints out every groundatom
+            fr.println(temp += vars.get(c).toString());
         }
+        fr.println("Unsatisfied Sum: " + minSum);
     }
 
     /**
@@ -614,8 +599,8 @@ public class MAPMaxWalkSAT {
     }
 
     /**
-     * Method randomly chooses a constrint among the unsatisfied constraints and returns it
-     * @return randonmy chosen unsatisfied constraint
+     * Method randomly chooses a constraint among the unsatisfied constraints and returns it
+     * @return randomly chosen unsatisfied constraint
      */
     protected Constraint randomlyChosen() {
         return unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
@@ -636,7 +621,7 @@ public class MAPMaxWalkSAT {
      * Method returns an actual state of the algorithm in form of a boolean[].
      * @return boolean[] (part of a possible world)
      */
-    public boolean[] getBestState() {
+    public PossibleWorld getBestState() {
         return bestState;
     }
 
@@ -844,18 +829,18 @@ public class MAPMaxWalkSAT {
         // read evidence + ground model
         MarkovRandomField mrf = mln.groundMLN(dbfile);
         // run algorithm
-        PossibleWorld state = new PossibleWorld(mln.getWorldVariables());
+        PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
         // state.print();
         WeightedClausalKB wckb = new WeightedClausalKB(mrf);
         Stopwatch sw = new Stopwatch();
         sw.start();
-        MAPMaxWalkSAT ss = new MAPMaxWalkSAT(wckb, state, mln.getWorldVariables(), mrf.getDb(), mln.getMaxWeight());
+        MaxWalkSAT ss = new MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mln.getMaxWeight());
         ss.run();
         sw.stop();
         System.out.println("Sum Weights: " + mln.getMaxWeight());
         System.out.println("********** Solution found: **********");
         System.out.println("Steps: " + ss.getStep());
-        ss.getBestState().toString();
+        //ss.getBestState().toString();
         /*System.out.println("SECOND RUN");
         ss.run();
         System.out.println("done");
