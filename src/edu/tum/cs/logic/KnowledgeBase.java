@@ -67,13 +67,21 @@ public class KnowledgeBase implements Iterable<Formula> {
 	public Vector<Formula> getFormulas() {
 		return formulas;
 	}
-	
-	public KnowledgeBase ground(Database db, WorldVariables worldVars) throws Exception {
+
+	/**
+	 * grounds this knowledge base (using a set of entities and the corresponding set of ground atoms)
+	 * @param db
+	 * @param worldVars the set of ground atoms
+	 * @param simplify whether to use the evidence in the database to simplify ground formulas
+	 * @return
+	 * @throws Exception
+	 */
+	public KnowledgeBase ground(Database db, WorldVariables worldVars, boolean simplify) throws Exception {
 		KnowledgeBase ret = new KnowledgeBase();
 		Integer formulaID = 0;
 		for(Formula f : formulas) {
 			int i = ret.formulas.size();
-			f.addAllGroundingsTo(ret.formulas, db, worldVars);
+			f.addAllGroundingsTo(ret.formulas, db, worldVars, simplify);
 			for(; i < ret.formulas.size(); i++) {
 				templateIDs.put(ret.formulas.get(i), formulaID);
 			}

@@ -35,7 +35,7 @@ public class Biimplication extends ComplexFormula {
     @Override
     public Formula simplify(Database evidence) {
         Formula c1 = new Disjunction(new Negation(children[0]), children[1]);
-	Formula c2 = new Disjunction(children[0], new Negation(children[1]));
-	return (new Conjunction(c1, c2).toCNF()).simplify(evidence);
+        Formula c2 = new Disjunction(children[0], new Negation(children[1]));
+        return (new Conjunction(c1, c2)).simplify(evidence);
     }
 }

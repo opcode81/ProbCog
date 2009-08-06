@@ -1,16 +1,14 @@
 package edu.tum.cs.logic;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.tools.StringTool;
 
-public class Atom extends Formula {
+public class Atom extends UngroundedFormula {
 
 	public Collection<String> params;
 	public String predName;
@@ -27,7 +25,7 @@ public class Atom extends Formula {
 
 	@Override
 	public void getVariables(Database db, Map<String, String> ret) {
-                Signature sig = db.getSignature(predName);
+        Signature sig = db.getSignature(predName);
 		int i = 0;
 		for(String param : params) {
 			if(isVariable(param)) {
@@ -67,21 +65,7 @@ public class Atom extends Formula {
 	}
 
 	@Override
-	public void getGroundAtoms(Set<GroundAtom> ret) {
-	}
-
-	@Override
-	public boolean isTrue(IPossibleWorld w) {
-		throw new RuntimeException("not supported");
-	}
-
-	@Override
 	public Formula toCNF() {
 		return this;
 	}
-
-    @Override
-    public Formula simplify(Database evidence) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
 }

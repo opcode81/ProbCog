@@ -51,30 +51,16 @@ public class Negation extends ComplexFormula {
     /**
      * this method simplifies the formula (atoms of this formuala that are given by the evidence are evaluated to TrueFalse)
      * @param evidence (evidence of the current szenario)
-     * @return  returns a Formula simplified by the evidence or an instance of TrueFalse
+     * @return  
      */
     @Override
     public Formula simplify(Database evidence) {
-        Formula f = this.children[0];
-        if (f instanceof ComplexFormula) {
-            Vector<Formula> negChildren = new Vector<Formula>();
-            // negate all children of the formula
-            for (Formula child : ((ComplexFormula) f).children)
-                negChildren.add(new Negation(child));
-            if (f instanceof Disjunction)   // if it's a disjunction, return a conjunction
-                return new Conjunction(negChildren).simplify(evidence);
-            else    // else it's a conjunction -> return a disjunction
-                return new Disjunction(negChildren).simplify(evidence);
-        } else {
-            if (f instanceof GroundLiteral) { // if it's a groundliteral, terurn the negated groundliteral
-                GroundLiteral l = (GroundLiteral) f;
-                return new GroundLiteral(!l.isPositive, l.gndAtom).simplify(evidence);
-            } else if (f instanceof TrueFalse) { // if it's a instance of TrueFalse, return the negated instance of TrueFalse
-                TrueFalse tf = (TrueFalse) f;
-                return TrueFalse.getInstance(!tf.isTrue());
-            }
-            System.out.println(children[0].toString());
-            throw new RuntimeException("Simplifiy of negation of " + children[0].getClass().getSimpleName() + " not handled.");
-        }
+    	// simplify the formula that is negated
+        Formula f = this.children[0].simplify(evidence);
+        // if it's now an instance of TrueFalse, return its opposite
+        if(f instanceof TrueFalse) 
+            return TrueFalse.getInstance(!((TrueFalse) f).isTrue());
+        // otherwise, return the negation of the simplified formula
+        return new Negation(f);
     }
 }
