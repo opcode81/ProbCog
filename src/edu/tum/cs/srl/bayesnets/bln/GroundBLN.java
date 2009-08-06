@@ -135,7 +135,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected void groundFormulaicNodes() throws Exception {
 		state = new PossibleWorld(worldVars);
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
-		gkb = bln.kb.ground(this.db, this.worldVars);
+		gkb = bln.kb.ground(this.db, this.worldVars, true);
 		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		int i = 0;
 		for(Formula gf : gkb) {
