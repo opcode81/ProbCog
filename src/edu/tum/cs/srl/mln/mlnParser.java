@@ -2,10 +2,8 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.tum.cs.logic.parser;
+package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.logic.GroundAtom;
-import edu.tum.cs.logic.KnowledgeBase;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,6 +15,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.parser.FormulaParser;
+import edu.tum.cs.logic.parser.ParseException;
 
 /**
  *
