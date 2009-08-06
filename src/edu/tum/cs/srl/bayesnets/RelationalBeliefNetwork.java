@@ -198,14 +198,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	/**
-	 * replace a type by a new type in all node signatures
+	 * replace a type by a new type in all function signatures
 	 * @param oldType
 	 * @param newType
 	 */
 	public void replaceType(String oldType, String newType) {
-		for(RelationalNode node : getRelationalNodes()) {
-			getSignature(node).replaceType(oldType, newType);
-		}
+		for(Signature sig : getSignatures()) 
+			sig.replaceType(oldType, newType);		
 	}
 	
 	/**

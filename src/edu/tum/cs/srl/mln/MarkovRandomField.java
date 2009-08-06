@@ -27,7 +27,7 @@ public class MarkovRandomField {
     protected Database db;
     public MarkovLogicNetwork mln;
     protected String dbFile;
-    protected HashMap<Formula, Double> groundedFormulas;
+    public HashMap<Formula, Double> groundedFormulas;
     protected WorldVariables world;
     
     /**
@@ -122,30 +122,14 @@ public class MarkovRandomField {
     
     /**
      * Method that creates grounding for all formulas
-     * saves the simplified formulas in a HashMap<Formula, weight>
-     */
-    public void formulaGrounding(){
-        for (Formula form : mln.formulas){
-            try {
-                for (Formula gf : form.getAllGroundings(db, world)) {
-                    groundedFormulas.put(gf, mln.formula2weight.get(form));
-                }
-            } catch (Exception ex) {
-                Logger.getLogger(MarkovRandomField.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-
-    /**
-     * Method that creates grounding for all formulas
      * @param makelist boolean (if true the grounded formula will be saved in a set)
      * @param gc callback method (if not null, the callback method is called for each grounded formula)
      */
-    public void groundAndSimplify(boolean makelist, GroundingCallback gc) {
+    protected void groundAndSimplify(boolean makelist, GroundingCallback gc) {
         groundedFormulas = new HashMap<Formula, Double>();
         for (Formula form : mln.formulas) {
             try {
-                for (Formula gf : form.getAllSimplifiedGroundings(db, world)) {
+                for (Formula gf : form.getAllGroundings(db, world, true)) {
                     if (makelist)
                         groundedFormulas.put(gf, mln.formula2weight.get(form));
                     if (gc != null)

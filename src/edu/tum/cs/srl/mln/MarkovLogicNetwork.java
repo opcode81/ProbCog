@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package edu.tum.cs.srl.mln;
 
 import edu.tum.cs.logic.Formula;
@@ -26,7 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Class to instantiate a Markov Logic Network from an existing MLN-File
+ * represents a Markov logic network
  * @author wernickr
  */
 public class MarkovLogicNetwork implements RelationalModel {
@@ -35,9 +31,15 @@ public class MarkovLogicNetwork implements RelationalModel {
     ArrayList<Formula> formulas;
     HashMap<Formula, Double> formula2weight;
     MLNFileParser parser;
+    /**
+     * maps a predicate name to its signature
+     */
     HashMap<String, Signature> signatures;
-    HashMap<String, String[]> decDomains;
-    HashMap<String, String> block;
+    /**
+     * maps domain/type names to a list of guaranteed domain elements
+     */
+    protected HashMap<String, String[]> decDomains;
+    protected HashMap<String, String> block;
     boolean makelist;
     GroundingCallback gc;
     double sumWeights = 0;
@@ -61,12 +63,16 @@ public class MarkovLogicNetwork implements RelationalModel {
 
     }
     
+    /**
+     * constructs an MLN from the given text file
+     * @param mlnFile
+     */
     public MarkovLogicNetwork(String mlnFile) {
     	this(mlnFile, false, null);
     }
 
     /**
-     * Method adds signature for an atom 
+     * adds a predicate signature to this model 
      * @param predicateName name of the predicate
      * @param sig signature of this predicate
      */
@@ -75,7 +81,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     }
 
     /**
-     * Method returns signature for a given predicate
+     * returns the signature for the given predicate
      * @param predName name of predicate (signature for this predicate will be returned)
      * @return
      */
@@ -92,10 +98,10 @@ public class MarkovLogicNetwork implements RelationalModel {
     }
 
     /**
-     * Method that retrurn the position of a colum in a given Array
+     * Method that return the position of a column in a given Array
      * @param column name of column (position of this column will be searched)
      * @param stringArray array to search for the given column
-     * @return returns an int that represents position of the column in the given array
+     * @return returns an integer that represents position of the column in the given array
      */
     public int getPosinArray(String column, String[] stringArray) {
         int c = -1;
@@ -331,14 +337,16 @@ public class MarkovLogicNetwork implements RelationalModel {
         return deltaMin;
     }
 
-    /**
-     * 
-     * @param oldType
-     * @param newType
-     */
-    public void replaceType(String oldType, String newType) {
-        throw new RuntimeException("Not supported yet.");
-    }
+	/**
+	 * replace a type by a new type in all function signatures
+	 * @param oldType
+	 * @param newType
+	 */
+	public void replaceType(String oldType, String newType) {
+		for(Signature sig : signatures.values()) 
+			sig.replaceType(oldType, newType);		
+	}
+
 
     /**
      * 
