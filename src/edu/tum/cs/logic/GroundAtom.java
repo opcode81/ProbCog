@@ -82,17 +82,21 @@ public class GroundAtom extends Formula {
     @Override
     public Formula simplify(Database evidence) {
         try {
-            // check whether evidence contains this groundatom and return instance of TrueFalse
-            if (evidence.contains(this.toString())) {
-                if (evidence.getVariableValue(this.toString(), false).equals("True"))
+            // check whether evidence contains this ground atom and return instance of TrueFalse
+            if(evidence.contains(this.toString())) {
+            	String value = evidence.getVariableValue(this.toString(), false); 
+                if(value.equals("True"))
                     return TrueFalse.TRUE;
-                else if (evidence.getVariableValue(this.toString(), false).equals("False"))
+                else if (value.equals("False"))
                     return TrueFalse.FALSE;
+                else
+                	throw new RuntimeException("Database contains invalid boolean value '" + value + "' for atom " + this.toString());
             }
-        } catch (Exception ex) {
-            System.out.println("Groundatom could not be simplified! " + this.toString());
+            // if evidence dosn't contain this atom, there's no change
+            return this;
+        } 
+        catch(Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
-        // if evidence dosn't contains this atom, return atom
-        return this;
     }
 }

@@ -42,7 +42,7 @@ public class Exist extends UngroundedFormula {
 		}
 		// ground
 		Vector<Formula> disjuncts = new Vector<Formula>();
-		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars);
+		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars, false);
 		return new Disjunction(disjuncts);
 	}
 
@@ -50,9 +50,4 @@ public class Exist extends UngroundedFormula {
 	public Formula toCNF() {
 		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
 	}
-
-    @Override
-    public Formula simplify(Database evidence) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
 }

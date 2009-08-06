@@ -57,4 +57,10 @@ public class TrueFalse extends Formula {
     public Formula simplify(Database evidence) {
         return this;
     }
+    
+    public TrueFalse opposite() {
+    	if(isTrue)
+    		return FALSE;
+    	return TRUE;
+    }
 }
