@@ -3,11 +3,18 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
+import java.util.Map.Entry;
 
+import weka.classifiers.trees.J48;
+import weka.core.Attribute;
+import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.analysis.pointcloud.DataReader;
 import edu.tum.cs.srldb.Database;
@@ -16,9 +23,11 @@ import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
 import edu.tum.cs.srldb.Database.AttributeClustering;
 import edu.tum.cs.srldb.datadict.DDAttribute;
+import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.DDObject;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary.BLNStructure;
+import edu.tum.cs.srldb.datadict.domain.Domain;
 
 public class PointCloudClassification {
 	
@@ -37,12 +46,11 @@ public class PointCloudClassification {
         }		
 	}
 	
-	public static void readData(String zolidata, String ulidata) throws FileNotFoundException, Exception {
-		String dataset = zolidata+ulidata;
-		String dbdir = dataset;
-		new File(dbdir).mkdir();
+	public static void readData(String zolidata, String ulidata, String suffix) throws FileNotFoundException, Exception {
+		String dbdir = zolidata + ulidata + suffix;
+		new File(dbdir).mkdir();		
 		
-		DataReader dr = new DataReader("bla");
+		DataReader dr = new DataReader(suffix);
 		dr.setRename("wideness", "widthFrac");
 		dr.setRename("longness", "lengthFrac");
 		dr.setRename("thickness", "thicknessFrac");
@@ -60,7 +68,7 @@ public class PointCloudClassification {
 		Vector<File> xmls = new Vector<File>();
 		System.out.println("reading XML training data...");
 		getXMLFiles(new File("data/training_" + zolidata), xmls);
-		getXMLFiles(new File("data/training_" + ulidata), xmls);
+		getXMLFiles(new File("data/" + ulidata), xmls);
 		for(File xml : xmls) {
 			System.out.println("  " + xml.getPath());
 			dr.readXML(xml);
@@ -69,7 +77,11 @@ public class PointCloudClassification {
 
 		// discard unused attributes
 		// "ratioObject", "ratioShadow", "ratioBelow"
-		String[] unusedAttributes = new String[]{"ratioAbove", "ratioObject", "ratioShadow", "ratioBelow", "eig_max", "eig_min", "eig_mid", "avg_z", "avg_d", "flat", "long", "sum_low_conf"};
+		String[] unusedAttributes;
+		if(suffix.indexOf("allattrs") != -1)
+			unusedAttributes = new String[]{"eig_max", "eig_min", "eig_mid", "avg_d", "flat", "long", "sum_low_conf"};
+		else
+			unusedAttributes = new String[]{"ratioAbove", "ratioObject", "ratioShadow", "ratioBelow", "eig_max", "eig_min", "eig_mid", "avg_z", "avg_d", "flat", "long", "sum_low_conf"};
 		for(String a : unusedAttributes)
 			db.getDataDictionary().getAttribute(a).discard();
 		
@@ -88,17 +100,45 @@ public class PointCloudClassification {
 		
 		// set relation properties, i.e. make belongsTo functional
 		dd.getRelation("belongsTo").setFunctional(new boolean[]{false, true});
-		dd.getRelation("isEllipseOf").setFunctional(new boolean[]{false, true});
+		DDRelation isEllipseOf = dd.getRelation("isEllipseOf"); 
+		if(isEllipseOf != null)
+			isEllipseOf.setFunctional(new boolean[]{false, true});
 
 		// finalize
-		db.check();	
+		db.check();
 
 		// write training databases
 		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/train.db")));
 		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/train.blogdb")));
 		db.writeSRLDB(new FileOutputStream(new File(dbdir + "/train.srldb")));
 		
+		// read test data		
+		dr.clear();
+		xmls.clear();
+		System.out.println("reading XML test data...");
+		getXMLFiles(new File("data/test_" + zolidata), xmls);	
+		getXMLFiles(new File("data/" + ulidata), xmls);
+		for(File xml : xmls) {
+			System.out.println("  " + xml.getPath());
+			dr.readXML(xml);
+		}
+		
+		// cluster it using the same clusterers
+		db.doClustering(clusteringMap);
+		
+		// write complete test databases
+		System.out.println("writing test data...");
+		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/test.db")));
+		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/test.blogdb")));
+		db.writeSRLDB(new FileOutputStream(dbdir + "/test.srldb"));
+	}
+	
+	public static void writeBasicModels(String dbdir) throws DDException, IOException, ClassNotFoundException {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
+		
 		// MLN
+		System.out.println("writing MLN structure...");
 		PrintStream mln = new PrintStream(new File(dbdir + "/pcc.mln"));
 		db.writeBasicMLN(mln);
 		DDObject ddo = dd.getObject("object");
@@ -113,7 +153,9 @@ public class PointCloudClassification {
 		mln.printf("isEllipseOf(e,o) ^ objectT(o,+ot) ^ xOrientation(e,+xo) ^ yOrientation(e,+yo) ^ radDistRatio(e,+r)\n");
 		
 		// BLN structure
+		System.out.println("writing BLN structures...");
 		BLNStructure bs = dd.createBasicBLNStructure();		
+		// naive Bayes: class -> attribute
 		for(DDAttribute attr : dd.getAttributes()) {
 			if(attr.isDiscarded())
 				continue;
@@ -124,21 +166,12 @@ public class PointCloudClassification {
 			String classAttr = attr.getOwner().getName() + "T";			
 			bs.connect(dd.getAttribute(classAttr), attr);
 		}
-		
 		// dependencies of the belongsTo relation
 		DDAttribute componentT = dd.getAttribute("componentT"); 
 		DDAttribute objectT = dd.getAttribute("objectT");
 		DDRelation belongsTo = dd.getRelation("belongsTo");
 		bs.connect(componentT, belongsTo);
 		bs.connect(objectT, belongsTo);
-		
-		
-		// dependencies of the isEllipseOf relation
-		DDRelation ddrel = dd.getRelation("isEllipseOf");
-		ddo = dd.getObject("ellipse");
-		for(DDAttribute attr : ddo.getAttributes().values())
-			bs.connect(attr, ddrel);
-		bs.connect(objectT, ddrel);
 		// relations depth, level and below
 		Vector<BeliefNode> par = new Vector<BeliefNode>();
 		par.add(bs.bn.addDecisionNode("!(c=c2)"));
@@ -146,7 +179,6 @@ public class PointCloudClassification {
 		par.add(bs.bn.addNode("#componentT(c2)"));
 		par.add(bs.getNode(belongsTo));
 		par.add(bs.getNode(objectT));
-		Vector<BeliefNode> chi = new Vector<BeliefNode>();		
 		BeliefNode par2 = bs.bn.addDecisionNode("c=c2");
 		for(String rel : componentRel) {
 			String nodeName = String.format("%s(c,c2)", rel);
@@ -157,38 +189,47 @@ public class PointCloudClassification {
 			relNode.setName(nodeName);
 			bs.bn.bn.connect(par2, relNode);
 		}		
-		// save
+		// save the model structure with everything but ellipses
+		bs.bn.savePMML(dbdir + "/pcc_rel.pmml");
+		// dependencies of the isEllipseOf relation
+		DDRelation isEllipseOf = dd.getRelation("isEllipseOf");
+		if(isEllipseOf != null) {
+			DDRelation ddrel = isEllipseOf;
+			ddo = dd.getObject("ellipse");
+			for(DDAttribute attr : ddo.getAttributes().values())
+				bs.connect(attr, ddrel);
+			bs.connect(objectT, ddrel);
+		}
+		// save the full model structure
 		bs.bn.savePMML(dbdir + "/pcc_rel3.pmml");
 		//bs.bn.show();
+		// generate a model structure that considers only the relations but none of the attributes
+		for(DDAttribute attr : dd.getAttributes()) {
+			if(attr.isDiscarded())
+				continue;
+			if(attr.getOwner().getName().equals("ellipse"))
+				continue;
+			if(attr.getName().equals("objectT") || attr.getName().equals("componentT"))
+				continue;
+			String classAttr = attr.getOwner().getName() + "T";			
+			bs.disconnect(dd.getAttribute(classAttr), attr);
+		}
+		bs.bn.savePMML(dbdir + "/pcc_noattrs.pmml");		
 		
 		// BLN
 		PrintStream bln = new PrintStream(new File(dbdir + "/pcc.abl"));
 		dd.writeBasicBLOGModel(bln);
-		
-		// read test data
-		db.clear();
-		xmls.clear();
-		System.out.println("reading XML test data...");
-		getXMLFiles(new File("data/test_" + zolidata), xmls);	
-		getXMLFiles(new File("data/test_" + ulidata), xmls);
-		for(File xml : xmls) {
-			System.out.println("  " + xml.getPath());
-			dr.readXML(xml);
-		}
-		
-		// cluster it using the same clusterers
-		db.doClustering(clusteringMap);
-		
-		// write complete test databases
-		System.out.println("writing test data...");
-		db.writeMLNDatabase(new PrintStream(new File(dbdir + "/test.db")));
-		db.writeBLOGDatabase(new PrintStream(new File(dbdir + "/test.blogdb")));
-		db.writeSRLDB(new FileOutputStream(dbdir + "/test.srldb"));
-		
+	}
+	
+	public static void writeIndividualTestDatabases(String dbdir) throws DDException, IOException, ClassNotFoundException {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/test.srldb"));
 		// write individual test databases without the class attribute
+		System.out.println("writing individual test databases...");
 		db.getDataDictionary().getAttribute("objectT").discard();
 		for(Object o : db.getObjects()) {
 			if(o.hasAttribute("objectT")) {
+				Database objDB = new Database(db.getDataDictionary());
+				objDB.addObject(o);
 				HashSet<Link> printedLinks = new HashSet<Link>();				
 				String dbname = dbdir + "/" + "test_" + o.getAttributeValue("objectT") + "_" + o.getConstantName();
 				PrintStream s = new PrintStream(new File(dbname + ".blogdb"));
@@ -201,6 +242,7 @@ public class PointCloudClassification {
 				// linked objects, i.e. components
 				for(Link l : db.getLinks(o)) {
 					if(!printedLinks.contains(l)) {
+						objDB.addLink(l);
 						printedLinks.add(l);
 						l.BLOGprintFacts(s);
 						l.MLNprintFacts(s2);
@@ -208,11 +250,13 @@ public class PointCloudClassification {
 						for(int i = 0; i < arguments.length; i++)
 							if(arguments[i] instanceof Object && arguments[i] != o) {
 								Object component = (Object)arguments[i]; 
+								objDB.addObject(component);
 								component.BLOGprintFacts(s);
 								component.MLNprintFacts(s2);
 								// links of the component
 								for(Link lc : db.getLinks(component)) {
 									if(!printedLinks.contains(lc)) {
+										objDB.addLink(lc);
 										printedLinks.add(lc);
 										lc.BLOGprintFacts(s);
 										lc.MLNprintFacts(s2);
@@ -221,18 +265,73 @@ public class PointCloudClassification {
 							}
 					}
 				}
+				System.out.println("  " + dbname);
+				objDB.writeSRLDB(new FileOutputStream(new File(dbname + ".srldb")));
 			}
 		}
-		
-		System.out.println("done.");
 	}
 	
-	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException {
-		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
+	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException, DDException, Exception {
+		Database db = Database.fromFile(new FileInputStream(dbdir + "/test.srldb"));
+		edu.tum.cs.srldb.datadict.DataDictionary dd = db.getDataDictionary();
+		//the vector of attributes
+		FastVector fvAttribs = new FastVector();
+		HashMap<String,Attribute> mapAttrs = new HashMap<String,Attribute>();
+		for(DDAttribute attribute : dd.getObject("object").getAttributes().values()){
+			if(attribute.isDiscarded()){
+				continue;
+			}
+			FastVector attValues = new FastVector();
+			Domain dom = attribute.getDomain();
+			for(String s : dom.getValues())
+				attValues.addElement(s);
+			Attribute attr = new Attribute(attribute.getName(), attValues);				
+			fvAttribs.addElement(attr);
+			mapAttrs.put(attribute.getName(), attr);
+		}
+
+		// learn decision tree
+		Instances instances = new Instances("name",fvAttribs,10000);
+		//for each object add an instance
+		for(Object o : db.getObjects()){
+			if (o.hasAttribute("objectT")){
+				Instance instance = new Instance(fvAttribs.size());
+				for(Entry<String,String> e : o.getAttributes().entrySet()) {
+					if (!dd.getAttribute(e.getKey()).isDiscarded()){
+						instance.setValue(mapAttrs.get(e.getKey()), e.getValue());
+					}		
+				}
+				instances.add(instance);
+			}		
+		}
+		
+		//learn a J48 decision tree from the instances
+		instances.setClass(mapAttrs.get("objectT"));
+		J48 j48 = new J48();
+		//j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
+		j48.buildClassifier(instances);
+		System.out.println(j48.toString());
+		ObjectOutputStream objstream = new ObjectOutputStream(new FileOutputStream(dbdir + "/pcc.j48"));
+		objstream.writeObject(j48);
+		objstream.close();
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException, Exception {
-		readData("zoli3", "uli3");
-		learnDecTree("zoli3uli3");
+		if(args.length != 3) {
+			System.err.println("usage: pcc <zolidata> <ulidata> <suffix>");
+			System.exit(1);
+		}
+
+		// suffix may contain (with special semantics) "merged" and/or "allattrs"
+		//String zolidata = "zoli4", ulidata = "uli4", suffix = "merged";
+		String zolidata = args[0], ulidata = args[1], suffix = args[2];
+		String dbdir = zolidata + ulidata + suffix;
+		
+		readData(zolidata, ulidata, suffix);		
+		writeBasicModels(dbdir);	
+		learnDecTree(dbdir);
+		writeIndividualTestDatabases(dbdir);
+		
+		System.out.println("done.");
 	}
 }
