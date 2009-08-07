@@ -1,7 +1,9 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -21,6 +23,10 @@ import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.tools.Pair;
 import edu.tum.cs.tools.StringTool;
 
+/**
+ * represents a grounded Bayesian logic network (i.e. a mixed network)
+ * @author jain
+ */
 public class GroundBLN extends AbstractGroundBLN {
 	
 	protected WorldVariables worldVars;
@@ -29,6 +35,9 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * grounded knowledge base of hard constraints
 	 */
 	protected KnowledgeBase gkb;
+	/**
+	 * maps (non-auxiliary) belief nodes to the corresponding logical variable coupler
+	 */
 	protected HashMap<BeliefNode, IVariableLogicCoupler> variable2groundAtomLookup;
 	protected HashMap<GroundAtom, BeliefNode> groundAtom2variable;
 	
@@ -233,6 +242,10 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 	}
 	
+	/**
+	 * gets the knowledge base of grounded hard logical constraints
+	 * @return
+	 */
 	public KnowledgeBase getKB() {
 		return gkb;
 	}
@@ -268,5 +281,13 @@ public class GroundBLN extends AbstractGroundBLN {
 	 */
 	public boolean isRegularVariable(BeliefNode var) {
 		return variable2groundAtomLookup.containsKey(var);
+	}
+	
+	/**
+	 * gets the set of regular variables (i.e. non-auxiliary belief nodes, which do not correspond to logical constraints) 
+	 * @return
+	 */
+	public Set<BeliefNode> getRegularVariables() {
+		return variable2groundAtomLookup.keySet();
 	}
 }
