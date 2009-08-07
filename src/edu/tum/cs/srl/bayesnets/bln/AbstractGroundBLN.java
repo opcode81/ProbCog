@@ -29,12 +29,33 @@ import edu.tum.cs.tools.Stopwatch;
 import edu.tum.cs.tools.StringTool;
 
 public abstract class AbstractGroundBLN {
+	/**
+	 * the ground Bayesian network (or ground auxiliary Bayesian network)
+	 */
 	protected BeliefNetworkEx groundBN;
+	/**
+	 * the underlying template model
+	 */
 	protected AbstractBayesianLogicNetwork bln;
+	/**
+	 * list of auxiliary node names contained in the ground Bayesian network (null if the network is not an auxiliary network)
+	 */
 	protected Vector<String> hardFormulaNodes;
+	/**
+	 * the file from which the evidence database was loaded (if any)
+	 */
 	protected String databaseFile;
+	/**
+	 * the database for which the ground model was instantiated
+	 */
 	protected Database db;
+	/**
+	 * temporary mapping of function names to relational nodes that can serve for instantiation (used only during grounding)
+	 */
 	protected HashMap<String, Vector<RelationalNode>> functionTemplates;
+	/**
+	 * temporary storage of names of instantiated variables (to avoid duplicate instantiation during grounding)
+	 */
 	protected HashSet<String> instantiatedVariables;
 	protected HashMap<String, Value[]> subCPFCache;
 	protected static final boolean debug = false;	
@@ -61,7 +82,20 @@ public abstract class AbstractGroundBLN {
 		cpfIDs = new HashMap<BeliefNode, String>();
 	}
 
+	/**
+	 * instantiates the auxiliary Bayesian network for this model
+	 * @throws Exception 
+	 */
 	public void instantiateGroundNetwork() throws Exception {
+		instantiateGroundNetwork(true);
+	}
+	
+	/**
+	 * instantiates the ground Bayesian network for this model
+	 * @param addAuxiliaryVars if true, also adds auxiliary nodes to the network that correspond to the hard logical constraints
+	 * @throws Exception
+	 */
+	public void instantiateGroundNetwork(boolean addAuxiliaryVars) throws Exception {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
@@ -117,10 +151,12 @@ public abstract class AbstractGroundBLN {
 		functionTemplates = null;
 		subCPFCache = null;
 		
-		// ground formulaic nodes
-		System.out.println("  formulaic nodes");
-		hardFormulaNodes = new Vector<String>();
-		groundFormulaicNodes();		
+		// add auxiliary variables for formulaic constraints
+		if(addAuxiliaryVars) {
+			System.out.println("  formulaic nodes");
+			hardFormulaNodes = new Vector<String>();
+			groundFormulaicNodes();
+		}
 		
 		System.out.println("network size: " + getGroundNetwork().bn.getNodes().length + " nodes");
 		System.out.println(String.format("construction time: %.4fs", sw.getElapsedTimeSecs()));
@@ -479,7 +515,7 @@ public abstract class AbstractGroundBLN {
 	}
 	
 	/**
-	 * adds to the given evidence the evidence that is implied by the hard formulaic constraints
+	 * adds to the given evidence the evidence that is implied by the hard formulaic constraints (since all of them must be true)
 	 * @param evidence 
 	 * @return a list of domain indices for each node in the network (-1 for no evidence)
 	 */
