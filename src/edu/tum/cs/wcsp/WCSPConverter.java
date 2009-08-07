@@ -21,6 +21,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -370,7 +371,7 @@ public class WCSPConverter implements GroundingCallback {
             for (int z = 0; z < temp.length; z++) {
                 g[i] = z;   // save the setting of the variable in the array
                  // set possibleWorld (the atom which maps to the selected value of the domain is set true, all other atoms of this variable are set false)
-                w.setWorldofWCSP(atoms, temp[z].toString());    
+                setWorldofWCSP(w, atoms, temp[z].toString());    
                 // call method again (with the new settings)
                 generateworldsNewCallback(f, gndAtoms, i + 1, w, g, weight, swn, swv);
             }
@@ -381,6 +382,33 @@ public class WCSPConverter implements GroundingCallback {
         vec.add(swn);
         return vec;
     }
+    
+    /**
+     * this method sets the groundatoms of the given hashset in this possible world to true or false
+     * @param atoms atoms to be set (true or false)
+     * @param value true value (atom which conatins this value is set true, all other atoms are set false)
+     */
+    protected void setWorldofWCSP(PossibleWorld w, HashSet<GroundAtom> atoms, String value) {
+        Iterator<GroundAtom> it = atoms.iterator();
+        GroundAtom g;
+        // sets all atoms of the hashset true or false
+        while (it.hasNext()) {
+            g = it.next();
+            // if atom does't contains value and value isn't boolean -> set atom false
+            if (!(g.args[g.args.length - 1].hashCode() == value.hashCode()) && !value.equals("True"))
+                w.set(g.index, false);
+            else {
+                // else set atom true and break
+                w.set(g.index, true);
+                break;
+            }
+        }
+
+        // set all left atoms false
+        while (it.hasNext())
+            w.set(it.next().index, false);
+    }
+
     
     /**
      * this method sets the possibleWorld (initial) to the values given by the evidence

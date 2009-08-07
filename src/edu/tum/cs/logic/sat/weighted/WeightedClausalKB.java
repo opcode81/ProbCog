@@ -5,10 +5,10 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.TrueFalse;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * A knowledge base of weighted clauses processed by the MAPMaxWalkSAT algorithm
@@ -19,7 +19,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     protected Vector<WeightedClause> clauses;
     private HashMap<Formula, Double> wFormulas;
     private HashMap<WeightedClause, Formula> cl2Formula;
-    private HashMap<Formula, HashSet<WeightedClause>> formula2clauses;
+    private edu.tum.cs.tools.Map2List<Formula, WeightedClause> formula2clauses;
     private MarkovRandomField kb;
 
     /**
@@ -32,7 +32,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
         clauses = new Vector<WeightedClause>();
         wFormulas = new HashMap<Formula, Double>();
         cl2Formula = new HashMap<WeightedClause, Formula>();
-        formula2clauses = new HashMap<Formula, HashSet<WeightedClause>>();
+        formula2clauses = new edu.tum.cs.tools.Map2List<Formula, WeightedClause>();
         this.kb = kb;
         // keeps track of the formulas and their according weight
         for (Formula f : kb.groundedFormulas.keySet()) {
@@ -56,25 +56,13 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
                 WeightedClause wc = new WeightedClause(child, weight, weight == kb.mln.getMaxWeight());
                 cl2Formula.put(wc, f);
                 clauses.add(wc);
-                if (formula2clauses.get(f) != null)
-                    formula2clauses.get(f).add(wc);
-                else {
-                    HashSet<WeightedClause> addWC = new HashSet<WeightedClause>();
-                    addWC.add(wc);
-                    formula2clauses.put(f, addWC);
-                }
+                formula2clauses.add(f, wc);                
             }
         } else if (!(f instanceof TrueFalse)) {
                 WeightedClause wc = new WeightedClause(f, weight, weight == kb.mln.getMaxWeight());
                 cl2Formula.put(wc, f);
                 clauses.add(wc);
-                if (formula2clauses.get(f) != null)
-                    formula2clauses.get(f).add(wc);
-                else {
-                    HashSet<WeightedClause> addWC = new HashSet<WeightedClause>();
-                    addWC.add(wc);
-                    formula2clauses.put(f, addWC);
-                }
+                formula2clauses.add(f, wc);
             }
         return f;
     }
@@ -121,10 +109,10 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     }
 
     /**
-     * Method returns a HashMap from formulas to a set of their according weighted clauses.
-     * @return formulas with their according weighted clauses
+     * gets the clauses that make up the given formula
+     * @return a collection of clauses
      */
-    public HashMap<Formula, HashSet<WeightedClause>> getFormula2clauses() {
-        return formula2clauses;
+    public Collection<WeightedClause> getClauses(Formula f) {
+        return formula2clauses.get(f);
     }
 }

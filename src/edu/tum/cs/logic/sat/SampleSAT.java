@@ -36,18 +36,27 @@ public class SampleSAT {
 	protected WorldVariables vars;
 	protected HashMap<Integer,Boolean> evidence;
 	protected final boolean verbose = false;
+	/**
+	 * probability of performing a greedy move
+	 */
+	protected double p = 0.9; 
 	
-	public SampleSAT(ClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
-		System.out.println("KB:");
-		kb.print();
-		
+	/**
+	 * 
+	 * @param kb a collection of clauses to satisfy (such as a ClausalKB)
+	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
+	 * @param vars the set of variables the SAT problem is defined on
+	 * @param evidence an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
+	 * @throws Exception
+	 */
+	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
 		this.state = state;
 		this.vars = vars;
 		this.unsatisfiedConstraints = new Vector<Constraint>();
 		bottlenecks = new HashMap<Integer,Vector<Constraint>>();
 		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		rand = new Random();
-		constraints = new Vector<Constraint>(kb.size());
+		constraints = new Vector<Constraint>();
 		
 		// read evidence
 		System.out.println("evidence:");
@@ -64,7 +73,7 @@ public class SampleSAT {
 				this.evidence.put(gndAtom.index, var.isTrue());			
 		}
 		
-		// set evidence
+		// set evidence in state
 		for(Entry<Integer, Boolean> e : this.evidence.entrySet()) 
 			state.set(e.getKey(), e.getValue());
 		
@@ -99,6 +108,9 @@ public class SampleSAT {
 		v.add(c);
 	}
 	
+	/**
+	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
+	 */
 	public void run() {	
 		// init
 		bottlenecks.clear();
@@ -121,7 +133,7 @@ public class SampleSAT {
 					}
 				}
 			}
-			if(rand.nextDouble() < 0.9) {
+			if(rand.nextDouble() < this.p) {
 				if(verbose) System.out.println("  Greedy Move:");
 				walkSATMove();
 			}
