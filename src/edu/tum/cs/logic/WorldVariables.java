@@ -15,6 +15,9 @@ import edu.tum.cs.tools.StringTool;
  */
 public class WorldVariables implements Iterable<GroundAtom> {
 	protected HashMap<String, GroundAtom> vars;
+	/**
+	 * maps indices of ground atoms to Blocks (or null if var not in block)
+	 */
 	protected HashMap<Integer, Block> var2block;
 	protected HashMap<Integer, GroundAtom> varsByIndex;
 

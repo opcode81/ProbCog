@@ -12,6 +12,6 @@ public class InferenceResult {
 	}
 	
 	public void print() {
-		System.out.println(String.format("  %.4f %s", value, ga.toString()));
+		System.out.println(String.format("  %.4f  %s", value, ga.toString()));
 	}
 }

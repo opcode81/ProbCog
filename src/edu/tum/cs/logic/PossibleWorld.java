@@ -53,32 +53,6 @@ public class PossibleWorld implements IPossibleWorld {
 		return worldVars;
 	}
 
-    /**
-     * this method sets the groundatoms of the given hashset in this possible world to true or false
-     * @param atoms atoms to be set (true or false)
-     * @param value true value (atom which conatins this value is set true, all other atoms are set false)
-     */
-    public void setWorldofWCSP(HashSet<GroundAtom> atoms, String value) {
-        Iterator<GroundAtom> it = atoms.iterator();
-        GroundAtom g;
-        // sets all atoms of the hashset true or false
-        while (it.hasNext()) {
-            g = it.next();
-            // if atom does't contains value and value isn't boolean -> set atom false
-            if (!(g.args[g.args.length - 1].hashCode() == value.hashCode()) && !value.equals("True"))
-                set(g.index, false);
-            else {
-                // else set atom true and break
-                set(g.index, true);
-                break;
-            }
-        }
-
-        // set all left atoms false
-        while (it.hasNext())
-            set(it.next().index, false);
-    }
-
 	public void print() {
 		print(System.out);
 	}
@@ -86,7 +60,8 @@ public class PossibleWorld implements IPossibleWorld {
     public void print(PrintStream out) {
 		out.println("world size: " + worldVars.size());
         for(int i = 0; i < worldVars.size(); i++) {
-			out.println(worldVars.get(i).index + "   " + worldVars.get(i) + " " + worldVars.get(i).isTrue(this));
+        	GroundAtom ga = worldVars.get(i);
+			out.println(ga.index + "   " + ga + " " + ga.isTrue(this));
 		}
 	}
 
