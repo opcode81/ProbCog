@@ -42,7 +42,6 @@ public class MaxWalkSAT {
     protected HashMap<Integer, Boolean> evidence;
     protected HashMap<edu.tum.cs.logic.sat.weighted.WeightedClause, Formula> clFormula;
     protected HashMap<WeightedClause, Formula> cl2Formula;
-    protected HashMap<Formula, Double> weightedFormulas;
     protected HashMap<Formula, Double> formula2weight;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2clauses;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2satClause;
@@ -77,11 +76,10 @@ public class MaxWalkSAT {
         this.threshold = threshold;
         flips = 0;
         this.unsatisfiedConstraints = new Vector<Constraint>();
-        this.weightedFormulas = kb.getWeightedFormulas();
         cl2Formula = new HashMap<WeightedClause, Formula>();
         formula2weight = new HashMap<Formula, Double>();
         formula2clauses = new HashMap<Formula, HashSet<WeightedClause>>();
-        clFormula = kb.getClauseFormula();
+        clFormula = kb.getClause2Formula();
         validConstraints = new Vector<Integer>();
         bottlenecks = new HashMap<Integer, Vector<Constraint>>();
         GAOccurrences = new HashMap<Integer, Vector<Constraint>>();

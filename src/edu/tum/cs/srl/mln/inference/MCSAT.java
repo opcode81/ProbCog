@@ -19,7 +19,7 @@ public class MCSAT extends InferenceAlgorithm {
 	public MCSAT(MarkovRandomField mrf) throws Exception {
 		super(mrf);
 		WeightedClausalKB wckb = new WeightedClausalKB(mrf);
-		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(wckb, mrf.getWorldVariables());
+		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(wckb, mrf.getWorldVariables(), mrf.getDb());
 	}
 
 	@Override
@@ -33,7 +33,6 @@ public class MCSAT extends InferenceAlgorithm {
 	public Vector<InferenceResult> infer(Iterable<String> queries, int maxSteps)
 			throws Exception {
 		sampler.run(maxSteps);
-		datastruct = sampler.getResults();
 		return getResults(queries);
 	}
 
