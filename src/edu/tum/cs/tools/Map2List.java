@@ -1,7 +1,9 @@
 package edu.tum.cs.tools;
 
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 /**
  * represents a mapping from keys to lists of values (specifically java.util.Vectors of values)
@@ -38,5 +40,9 @@ public class Map2List<TKey, TValue> {
 			map.put(key, v);			
 		}
 		v.add(value);
+	}
+	
+	public Set<Entry<TKey, Vector<TValue>>> entrySet() {
+		return map.entrySet();
 	}
 }

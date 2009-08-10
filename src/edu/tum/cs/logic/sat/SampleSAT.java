@@ -42,7 +42,7 @@ public class SampleSAT {
 	protected double p = 0.9; 
 	
 	/**
-	 * 
+	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
 	 * @param kb a collection of clauses to satisfy (such as a ClausalKB)
 	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
 	 * @param vars the set of variables the SAT problem is defined on
@@ -52,15 +52,13 @@ public class SampleSAT {
 	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
 		this.state = state;
 		this.vars = vars;
-		this.unsatisfiedConstraints = new Vector<Constraint>();
-		bottlenecks = new HashMap<Integer,Vector<Constraint>>();
-		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		rand = new Random();
-		constraints = new Vector<Constraint>();
 		
 		// read evidence
-		System.out.println("evidence:");
-		evidence.print();
+		if(verbose) {
+			System.out.println("evidence:");
+			evidence.print();
+		}
 		this.evidence = new HashMap<Integer,Boolean>();
 		for(Variable var : evidence.getEntries()) {
 			String strGndAtom = var.getPredicate(evidence.model);
@@ -82,6 +80,19 @@ public class SampleSAT {
 		// TODO unit propagation
 		
 		// instantiate constraints
+		initConstraints(kb);
+	}
+	
+	/**
+	 * prepares this sampler for a new set of constraints (Note: this method is called by the constructor; it only needs to be called explicitly when switching to a new set of constraints)
+	 * @param kb
+	 */
+	public void initConstraints(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb) {
+		unsatisfiedConstraints = new Vector<Constraint>();
+		bottlenecks = new HashMap<Integer,Vector<Constraint>>();
+		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
+		constraints = new Vector<Constraint>();
+		
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
 			constraints.add(new Clause(c.lits));		
 	}

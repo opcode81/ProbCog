@@ -8,6 +8,7 @@ package edu.tum.cs.srl.mln;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
@@ -15,6 +16,7 @@ import edu.tum.cs.srl.Signature;
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,11 +25,11 @@ import java.util.logging.Logger;
  * Class that represents a grounded instance of a MLN-file
  * @author wernickr
  */
-public class MarkovRandomField {
+public class MarkovRandomField implements Iterable<WeightedFormula> {
     protected Database db;
     public MarkovLogicNetwork mln;
     protected String dbFile;
-    public HashMap<Formula, Double> groundedFormulas;
+    protected Vector<WeightedFormula> weightedFormulas;
     protected WorldVariables world;
     
     /**
@@ -126,14 +128,16 @@ public class MarkovRandomField {
      * @param gc callback method (if not null, the callback method is called for each grounded formula)
      */
     protected void groundAndSimplify(boolean makelist, GroundingCallback gc) {
-        groundedFormulas = new HashMap<Formula, Double>();
-        for (Formula form : mln.formulas) {
+        weightedFormulas = new Vector<WeightedFormula>();
+        for(Formula form : mln.formulas) {
+        	double weight = mln.formula2weight.get(form);
+        	boolean isHard = weight == mln.getMaxWeight();
             try {
-                for (Formula gf : form.getAllGroundings(db, world, true)) {
-                    if (makelist)
-                        groundedFormulas.put(gf, mln.formula2weight.get(form));
-                    if (gc != null)
-                        gc.onGroundedFormula(gf, mln.formula2weight.get(form), db);
+                for(Formula gf : form.getAllGroundings(db, world, true)) {
+                    if(makelist)
+                        weightedFormulas.add(new WeightedFormula(gf, weight, isHard));
+                    if(gc != null)
+                        gc.onGroundedFormula(gf, weight, db);
                 }
             } catch (Exception ex) {
                 Logger.getLogger(MarkovRandomField.class.getName()).log(Level.SEVERE, null, ex);
@@ -142,20 +146,14 @@ public class MarkovRandomField {
     }
     
     /**
-     * Method returns set of grounded formulas
-     * @return
-     */
-    public HashMap<Formula, Double> getGroundedFormulas() {
-        return groundedFormulas;
-    }
-
-    /**
-     * Method returns database
+     * returns the database with which this MRF was grounded
      * @return
      */
     public Database getDb() {
         return db;
     }
-    
-    
+
+	public Iterator<WeightedFormula> iterator() {
+		return weightedFormulas.iterator();
+	}
 }

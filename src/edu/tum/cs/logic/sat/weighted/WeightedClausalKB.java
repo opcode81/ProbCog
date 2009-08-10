@@ -1,70 +1,68 @@
 package edu.tum.cs.logic.sat.weighted;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.Vector;
+import java.util.Map.Entry;
+
 import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.TrueFalse;
-import edu.tum.cs.srl.mln.MarkovRandomField;
-
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Vector;
-import java.util.HashMap;
 
 /**
- * A knowledge base of weighted clauses processed by the MAPMaxWalkSAT algorithm
- * @author wernickr
+ * A knowledge base of weighted clauses that is built up from general weighted formulas (retaining a mapping from formulas to clauses and vice versa) 
+ * @author wernickr, jain
  */
 public class WeightedClausalKB implements Iterable<WeightedClause> {
 
     protected Vector<WeightedClause> clauses;
-    private HashMap<Formula, Double> wFormulas;
-    private HashMap<WeightedClause, Formula> cl2Formula;
-    private edu.tum.cs.tools.Map2List<Formula, WeightedClause> formula2clauses;
-    private MarkovRandomField kb;
+    protected HashMap<WeightedClause, Formula> cl2Formula;
+    protected edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause> formula2clauses;
 
     /**
      * Constructor to instantiate a knowledge base of weighted clauses
      * @param kb instantiated Markov Random Field
      * @throws java.lang.Exception
      */
-    public WeightedClausalKB(MarkovRandomField kb) throws Exception {
-        // obtain clausal form
+    public WeightedClausalKB(Iterable<WeightedFormula> kb) throws Exception {
         clauses = new Vector<WeightedClause>();
-        wFormulas = new HashMap<Formula, Double>();
         cl2Formula = new HashMap<WeightedClause, Formula>();
-        formula2clauses = new edu.tum.cs.tools.Map2List<Formula, WeightedClause>();
-        this.kb = kb;
-        // keeps track of the formulas and their according weight
-        for (Formula f : kb.groundedFormulas.keySet()) {
-            addFormula(f, kb.groundedFormulas.get(f));
-            wFormulas.put(f, kb.groundedFormulas.get(f));
+        formula2clauses = new edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause>();
+        for(WeightedFormula wf : kb) {
+            addFormula(wf);
         }
     }
-
+   
     /**
-     * Method adds a formula into the knowledge base and returns the formula in CNF
-     * @param f Formula which should be inserted
-     * @param weight according weight (double)
-     * @return returns the formula in
+     * adds an arbitrary formula to the knowledge base (converting it to CNF and splitting it into clauses) 
+     * @param wf formula whose clauses to add (it is automatically converted to CNF and split into clauses; the association between the formula and its clauses is retained)
      * @throws java.lang.Exception
      */
-    public Formula addFormula(Formula f, Double weight) throws Exception {
-        f = f.toCNF();
-        if (f instanceof Conjunction) {
-            Conjunction c = (Conjunction) f;
-            for (Formula child : c.children) {
-                WeightedClause wc = new WeightedClause(child, weight, weight == kb.mln.getMaxWeight());
-                cl2Formula.put(wc, f);
-                clauses.add(wc);
-                formula2clauses.add(f, wc);                
-            }
-        } else if (!(f instanceof TrueFalse)) {
-                WeightedClause wc = new WeightedClause(f, weight, weight == kb.mln.getMaxWeight());
-                cl2Formula.put(wc, f);
-                clauses.add(wc);
-                formula2clauses.add(f, wc);
-            }
-        return f;
+    public void addFormula(WeightedFormula wf) throws Exception {
+    	// convert formula to CNF
+        Formula cnf = wf.formula.toCNF();
+        // add its clauses
+        if(cnf instanceof Conjunction) { // conjunction of clauses
+            Conjunction c = (Conjunction) cnf;
+            int numChildren = c.children.length;
+            for(Formula child : c.children)
+                addClause(wf, new WeightedClause(child, wf.weight / numChildren, wf.isHard));
+        } 
+        else if(!(cnf instanceof TrueFalse)) { // clause
+            addClause(wf, new WeightedClause(cnf, wf.weight, wf.isHard));
+        }
+    }
+    
+    /**
+     * adds a weighted clause to this KB
+     * @param wf the weighted formula whose CNF the clause appears in
+     * @param wc the clause to add
+     */
+    public void addClause(WeightedFormula wf, WeightedClause wc) {
+        cl2Formula.put(wc, wf.formula);
+        clauses.add(wc);
+        formula2clauses.add(wf, wc);
     }
 
     /**
@@ -76,15 +74,15 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     }
 
     /**
-     * Returns the count of weighted clauses in the knowledge base.
-     * @return size of the knowledge base (count of weighted clauses)
+     * returns the number of weighted clauses in the knowledge base.
+     * @return size of the knowledge base (number of weighted clauses)
      */
     public int size() {
         return clauses.size();
     }
 
     /**
-     * Prints all weighted clauses in the knowledge base on a console
+     * prints all weighted clauses in the knowledge base to stdout
      */
     public void print() {
         int i = 0;
@@ -93,26 +91,17 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     }
 
     /**
-     * Method returns a HashMap from formula to their according weight.
-     * @return Formulas with their according weight.
+     * @return a mapping from weighted clauses to the original formulas they were part of. 
      */
-    public HashMap<Formula, Double> getWeightedFormulas() {
-        return wFormulas;
-    }
-
-    /**
-     * Method returns a HashMap from weighted clauses to their according formula.
-     * @return weighted clauses with their according formula
-     */
-    public HashMap<WeightedClause, Formula> getClauseFormula() {
+    public HashMap<WeightedClause, Formula> getClause2Formula() {
         return cl2Formula;
     }
 
     /**
-     * gets the clauses that make up the given formula
+     * gets a set of entries with formulas and the clauses that the formulas are made up of when converted to CNF
      * @return a collection of clauses
      */
-    public Collection<WeightedClause> getClauses(Formula f) {
-        return formula2clauses.get(f);
+    public Set<Entry<WeightedFormula,Vector<WeightedClause>>> getFormulasAndClauses() {
+        return formula2clauses.entrySet();
     }
 }
