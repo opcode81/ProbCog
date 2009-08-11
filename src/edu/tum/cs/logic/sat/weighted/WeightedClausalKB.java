@@ -21,17 +21,24 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     protected edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause> formula2clauses;
 
     /**
-     * Constructor to instantiate a knowledge base of weighted clauses
-     * @param kb instantiated Markov Random Field
+     * constructs a weighted clausal KB from a collection of weighted formulas
+     * @param kb some collection of weighted formulas
      * @throws java.lang.Exception
      */
     public WeightedClausalKB(Iterable<WeightedFormula> kb) throws Exception {
-        clauses = new Vector<WeightedClause>();
-        cl2Formula = new HashMap<WeightedClause, Formula>();
-        formula2clauses = new edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause>();
+    	this();
         for(WeightedFormula wf : kb) {
             addFormula(wf);
         }
+    }
+    
+    /**
+     * constructs an empty weighted clausal KB
+     */
+    public WeightedClausalKB() {
+        clauses = new Vector<WeightedClause>();
+        cl2Formula = new HashMap<WeightedClause, Formula>();
+        formula2clauses = new edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause>();    	
     }
    
     /**
@@ -64,6 +71,14 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
         clauses.add(wc);
         formula2clauses.add(wf, wc);
     }
+    
+    /**
+     * adds a weighted clause to the KB (where the weighted formula the clause originated from is the clause itself) 
+     * @param wc the weighted clause to add
+     */
+    public void addClause(WeightedClause wc) {
+    	addClause(new WeightedFormula(wc, wc.weight, wc.isHard), wc);
+    }
 
     /**
      * Method returns the iterator of the weighted clauses in knowledge base.
@@ -87,7 +102,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     public void print() {
         int i = 0;
         for (WeightedClause c : this)
-            System.out.printf("%4d  %s\n", ++i, c.getWeight() + " " + c.toString());
+            System.out.printf("%4d  %s\n", ++i, c.weight + " " + c.toString());
     }
 
     /**
