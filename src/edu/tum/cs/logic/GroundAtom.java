@@ -66,11 +66,16 @@ public class GroundAtom extends Formula {
 
 	@Override
 	public boolean equals(Object other) {
-		return this.index == ((GroundAtom)other).index;
+		int otherIdx = ((GroundAtom)other).index;
+		if(this.index == -1 || otherIdx == -1)
+			throw new RuntimeException("Cannot compare GroundAtoms that are not yet part of a WorldVariables collection.");
+		return this.index == otherIdx;
 	}
 
 	@Override
 	public int hashCode() {
+		if(this.index == -1)
+			throw new RuntimeException("Tried to compute hash code of GroundAtom that was not yet added to a collection of world variables.");
 		return this.index;
 	}
 
