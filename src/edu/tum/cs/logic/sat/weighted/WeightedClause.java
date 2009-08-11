@@ -2,19 +2,20 @@ package edu.tum.cs.logic.sat.weighted;
 
 
 import edu.tum.cs.logic.Formula;
-import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.sat.Clause;
 
 
 /**
- * Class of a weighted clause for the MAPWalkSAT algorithm
- * @author wernickr, jain
+ * represents a weighted clause
+ * @author jain
  */
 public class WeightedClause extends Clause {
 
-    public GroundLiteral[] lits;
     public double weight;
-    public boolean hard;
+    /**
+     * whether the clause is to be considered a hard constraint
+     */
+    public boolean isHard;
 
     /**
      * Constructor to instantiate a weighted clause
@@ -26,23 +27,11 @@ public class WeightedClause extends Clause {
     public WeightedClause(Formula f, double weight, boolean hard) throws Exception {
     	super(f);
         this.weight = weight;
-        this.hard = hard;        
+        this.isHard = hard;        
     }
 
-    /**
-     * Prints out the weighted clause in a string.
-     * @return String of weighted clause
-     */
     public String toString() {
         return weight + " " + super.toString();
-    }
-
-    /**
-     * Method returns the weight of the clause
-     * @return double value of weight
-     */
-    public double getWeight() {
-        return weight;
     }
 }
 
