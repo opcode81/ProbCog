@@ -123,7 +123,7 @@ public class MaxWalkSAT {
 
         // instantiate constraints
         for (edu.tum.cs.logic.sat.weighted.WeightedClause c : kb) {
-            WeightedClause wcl = new WeightedClause(c.lits, c.hard);
+            WeightedClause wcl = new WeightedClause(c.lits, c.isHard);
             Formula f = clFormula.get(c);
             //mapping of weighted clauses to the formula they are part of
             cl2Formula.put(wcl, f);
