@@ -25,7 +25,7 @@ public class Clause extends ComplexFormula {
 				if(d.children[i] instanceof GroundLiteral)
 					lits[i] = (GroundLiteral)d.children[i];
 				else
-					throw new Exception("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName());
+					throw new Exception("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName() + "; only GroundLiterals allowed.");
 			}
 		}
 		else

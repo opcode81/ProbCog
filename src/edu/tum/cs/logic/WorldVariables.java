@@ -48,13 +48,9 @@ public class WorldVariables implements Iterable<GroundAtom> {
 	public Block addBlock(Vector<GroundAtom> block) {
 		Block b = new Block(block);
 		for(GroundAtom ga : block) {
-                        if (!vars.containsKey(ga.toString())){
-                            add(ga);
-                            var2block.put(ga.index, b);
-                        }else {
-                            var2block.put(ga.index, b);
-                        }
-
+            if(!vars.containsKey(ga.toString()))
+                add(ga);
+            var2block.put(ga.index, b);
 		}
 		return b;
 	}
