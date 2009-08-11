@@ -10,11 +10,12 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
-import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundLiteral;
+import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
 import edu.tum.cs.logic.sat.weighted.WeightedClause;
+import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 
 /**
@@ -24,7 +25,7 @@ import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 public class MCSAT extends Sampler {
 
 	protected GroundBLN gbln;
-	protected Vector<WeightedClause> kb;
+	protected WeightedClausalKB kb;
 	protected double maxWeight = 0;
 	/**
 	 * temporary collection of hard constraints appearing in the CPTs of the ground BN
@@ -33,7 +34,7 @@ public class MCSAT extends Sampler {
 	
 	public MCSAT(GroundBLN gbln) throws Exception {
 		this.gbln = gbln;
-		kb = new Vector<WeightedClause>();		
+		kb = new WeightedClausalKB();		
 		// add weighted clauses for probabilistic constraints
 		for(BeliefNode n : gbln.getRegularVariables()) {
 			CPF cpf = n.getCPF();
@@ -43,16 +44,11 @@ public class MCSAT extends Sampler {
 		// add weighted clauses for hard constraints
 		double hardWeight = maxWeight + 100;
 		for(Formula f : gbln.getKB()) {
-			f = f.toCNF();
-			if(f instanceof Conjunction) {
-				for(Formula child : ((Conjunction)f).children)
-					kb.add(new WeightedClause(child, hardWeight, true));
-			}
-			else
-				kb.add(new WeightedClause(f, hardWeight, true));
+			kb.addFormula(new WeightedFormula(f, hardWeight, true));
 		}
 		for(Disjunction f : hardConstraintsInCPTs) 
-			kb.add(new WeightedClause(f, hardWeight, true));
+			kb.addClause(new WeightedClause(f, hardWeight, true));
+		// clean up
 		hardConstraintsInCPTs = null;
 	}
 	
@@ -72,7 +68,7 @@ public class MCSAT extends Sampler {
 			}
 			else { // it is a soft constraint, whose negation we add to the KB
 				double weight = -Math.log(p);
-				kb.add(new WeightedClause(f, weight, false));
+				kb.addClause(new WeightedClause(f, weight, false));
 				if(weight > maxWeight)
 					maxWeight = weight;
 			}
