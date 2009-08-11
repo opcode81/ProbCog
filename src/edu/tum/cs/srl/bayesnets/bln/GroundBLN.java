@@ -1,6 +1,5 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,10 +74,11 @@ public class GroundBLN extends AbstractGroundBLN {
 			for(int i = 0; i < dom.getOrder(); i++) {
 				atomParams[atomParams.length-1] = dom.getName(i);
 				GroundAtom ga = new GroundAtom(relNode.getFunctionName(), atomParams.clone());
-				block.add(ga);
-				groundAtom2variable.put(ga, var);
+				block.add(ga);				
 			} 
-			Block b = worldVars.addBlock(block);
+			Block b = worldVars.addBlock(block); 
+			for(GroundAtom ga : b)
+				groundAtom2variable.put(ga, var);
 			variable2groundAtomLookup.put(var, new BlockVariable(b));
 		}
 	}
@@ -266,6 +266,11 @@ public class GroundBLN extends AbstractGroundBLN {
 			return gndAtom.predicate + "(" + StringTool.join(",", gndAtom.args, 0, gndAtom.args.length-1) + ")";		
 	}
 	
+	/**
+	 * returns the belief node in the ground network that corresponds to the given ground atom
+	 * @param gndAtom
+	 * @return the belief node corresponding to gndAtom or null if no correspondence is found 
+	 */
 	public BeliefNode getVariable(GroundAtom gndAtom) {
 		return groundAtom2variable.get(gndAtom);
 	}
@@ -289,5 +294,9 @@ public class GroundBLN extends AbstractGroundBLN {
 	 */
 	public Set<BeliefNode> getRegularVariables() {
 		return variable2groundAtomLookup.keySet();
+	}
+	
+	public Set<GroundAtom> getMappedGroundAtoms() {
+		return groundAtom2variable.keySet();
 	}
 }
