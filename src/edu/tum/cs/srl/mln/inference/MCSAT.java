@@ -24,9 +24,7 @@ public class MCSAT extends InferenceAlgorithm {
 
 	@Override
 	public double getResult(GroundAtom ga) {
-		// TODO Auto-generated method stub
-		// use datastruct for results
-		return 0;
+		return sampler.getResult(ga);
 	}
 
 	@Override
