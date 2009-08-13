@@ -6,7 +6,6 @@
  */
 package edu.tum.cs.logic.sat.weighted;
 
-import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -23,17 +22,14 @@ public class MCSAT {
 	protected WorldVariables vars;
 	protected Database db; 
 	protected Random rand;
-	protected HashMap<GroundAtom, Double> sums;
+	protected SampledDistribution dist;
 	
 	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) {		
 		this.kb = kb;
 		this.vars = vars;
 		this.db = db;
 		this.rand = new Random();
-		this.sums = new HashMap<GroundAtom, Double>();
-		for (int i = 0; i < vars.size(); i++){
-			sums.put(vars.get(i), 0.0);
-		}
+		this.dist = new SampledDistribution(vars);
 	}
 
 	public void run(int steps) throws Exception {		
@@ -62,22 +58,40 @@ public class MCSAT {
 			}
 			sat.initConstraints(M);
 			sat.run();
-			
-			// count sample
-			for (GroundAtom g : sums.keySet()){
-				if (sat.getState().isTrue(g)){
-					sums.put(g, sums.get(g) + 1);
-				}
-			}
+			dist.addSample(sat.getState(), 1.0);
 		}
-		//probability
-		for (GroundAtom g : sums.keySet()){
-			sums.put(g, sums.get(g) / steps);
-		}
+		dist.normalize(steps);
 	}
 	
 	public double getResult(GroundAtom ga) {
-		return sums.get(ga);
+		return dist.getResult(ga.index);
+	}
+	
+	public class SampledDistribution{
+		// Sampled Distribution
+		public double[] sums;
+		
+		public SampledDistribution(WorldVariables vars){
+			this.sums = new double[vars.size()];
+		}
+		
+		public void addSample(PossibleWorld w, double weight){
+			for (GroundAtom ga : w.getVariables()){
+				if(w.isTrue(ga)){
+					sums[ga.index] += weight;
+				}
+			}
+		}
+		
+		public void normalize(int steps){
+			for(int i = 0; i < sums.length; i++){
+				sums[i] /= steps;
+			}
+		}
+		
+		public double getResult(int indx){
+			return sums[indx];
+		}
 	}
 	
 }

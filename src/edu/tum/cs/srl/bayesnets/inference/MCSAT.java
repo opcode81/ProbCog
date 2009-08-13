@@ -31,6 +31,7 @@ public class MCSAT extends Sampler {
 	 * temporary collection of hard constraints appearing in the CPTs of the ground BN
 	 */
 	protected Vector<Disjunction> hardConstraintsInCPTs = new Vector<Disjunction>();
+	protected edu.tum.cs.logic.sat.weighted.MCSAT sampler;
 	
 	public MCSAT(GroundBLN gbln) throws Exception {
 		this.gbln = gbln;
@@ -50,6 +51,7 @@ public class MCSAT extends Sampler {
 			kb.addClause(new WeightedClause(f, hardWeight, true));
 		// clean up
 		hardConstraintsInCPTs = null;
+		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(kb, gbln.getWorldVars(), gbln.getDatabase());
 	}
 	
 	protected void walkCPT4ClauseCollection(CPF cpf, BeliefNode[] domProd, int[] domainIndices, int i) throws Exception {
@@ -83,8 +85,8 @@ public class MCSAT extends Sampler {
 	
 	@Override
 	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
-		
-		
+//		sampler.run(maxSteps);
+//		return getResults(queries);	
 		return null;
 	}
 
