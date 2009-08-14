@@ -5,6 +5,7 @@ import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
 import edu.tum.cs.srl.mln.inference.InferenceResult;
+import edu.tum.cs.srl.mln.inference.MCSAT;
 import edu.tum.cs.srl.mln.inference.MaxWalkSAT;
 import edu.tum.cs.tools.Stopwatch;
 
@@ -14,7 +15,7 @@ import edu.tum.cs.tools.Stopwatch;
  */
 public class MLNinfer {
 
-	enum Algorithm {MaxWalkSAT};
+	enum Algorithm {MaxWalkSAT, MCSAT};
 	
 	/**
 	 * @param args
@@ -25,7 +26,7 @@ public class MLNinfer {
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
-			Algorithm algo = Algorithm.MaxWalkSAT;
+			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
 			boolean debug = false;
 			
@@ -43,6 +44,8 @@ public class MLNinfer {
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-mws"))
 					algo = Algorithm.MaxWalkSAT;
+				else if(args[i].equals("-mcsat"))
+					algo = Algorithm.MCSAT;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -51,8 +54,9 @@ public class MLNinfer {
 			if(mlnFile == null || dbFile == null || query == null) {
 				System.out.println("\n usage: MLNinfer <-i <MLN file>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
 									 "    -maxSteps #      the maximum number of steps to take [default: 1000]\n" +
-							         "    -mws             algorithm: MaxWalkSAT (MAP inference) [default]\n" 
-//							         "    -debug           debug mode with additional outputs\n" + 
+									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
+									 "    -mcsat           algorithm: MC-SAT (default)\n" +
+							         "    -debug           debug mode with additional outputs\n" 
 //							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
 									 );
 				return;
@@ -79,14 +83,30 @@ public class MLNinfer {
 			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFile);
 			
 			// instantiate ground model
-			MarkovRandomField mrf = mln.groundMLN(dbFile);
+			MarkovRandomField mrf = mln.ground(dbFile);
+			if(debug) {
+				System.out.println("MRF:");
+				mrf.print(System.out);
+			}
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
-			InferenceAlgorithm infer = new MaxWalkSAT(mrf);
+			InferenceAlgorithm infer = null;
+			switch(algo) {
+			case MCSAT:
+				infer = new MCSAT(mrf); 
+				break;
+			case MaxWalkSAT:
+				infer = new MaxWalkSAT(mrf);
+				break;
+			}			
+			System.out.printf("algorithm: %s, steps: %d\n", infer.getClass().getSimpleName(), maxSteps);
 			Vector<InferenceResult> results = infer.infer(queries, maxSteps);
 	        sw.stop();
+	        
+	        // show results
+	        System.out.println("Results:");
 	        for(InferenceResult r : results)
 	        	r.print();
 		}
