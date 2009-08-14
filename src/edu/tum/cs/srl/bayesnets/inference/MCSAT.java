@@ -6,6 +6,7 @@
  */
 package edu.tum.cs.srl.bayesnets.inference;
 
+import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -90,14 +91,17 @@ public class MCSAT extends Sampler {
 		sampler.run(numSamples);
 		BeliefNetworkEx bn = gbln.getGroundNetwork();
 		SampledDistribution dist = new SampledDistribution(bn);
-		BeliefNode[] nodes = bn.bn.getNodes();
-		for(int i = 0; i < dist.sums.length; i++)
-			for(int j = 0; j < dist.sums[i].length; j++) {
-				GroundLiteral lit = gbln.getGroundLiteral(nodes[i], j);
-				dist.sums[i][j] = sampler.getResult(lit.gndAtom);
+		for(BeliefNode n : gbln.getRegularVariables()) {
+			int idx = bn.getNodeIndex(n);
+			for(int k = 0; k < n.getDomain().getOrder(); k++) {
+				GroundLiteral lit = gbln.getGroundLiteral(n, k);
+				dist.sums[idx][k] = sampler.getResult(lit.gndAtom);
 				if(!lit.isPositive)
-					dist.sums[i][j] = 1-dist.sums[i][j];
+					dist.sums[idx][k] = 1-dist.sums[idx][k];
 			}
+		}
+		dist.Z = 1.0;
+		dist.trials = dist.steps = numSamples;
 		return getResults(dist, queries);	
 	}
 
