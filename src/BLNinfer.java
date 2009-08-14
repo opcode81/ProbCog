@@ -21,6 +21,7 @@ import edu.tum.cs.srl.bayesnets.inference.GibbsSampling;
 import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
 import edu.tum.cs.srl.bayesnets.inference.LiftedBackwardSampling;
 import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
+import edu.tum.cs.srl.bayesnets.inference.MCSAT;
 import edu.tum.cs.srl.bayesnets.inference.SATIS;
 import edu.tum.cs.srl.bayesnets.inference.SATISEx;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
@@ -29,7 +30,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT};
 	
 	/**
 	 * @param args
@@ -106,6 +107,8 @@ public class BLNinfer {
 					algo = Algorithm.EnumerationAsk;
 				else if(args[i].equals("-satisex"))
 					algo = Algorithm.SATISEx;
+				else if(args[i].equals("-mcsat"))
+					algo = Algorithm.MCSAT;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -127,6 +130,7 @@ public class BLNinfer {
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
 							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
 							         "    -ea              algorithm: Enumeration-Ask (exact)\n" +
+							         "    -mcsat           algorithm: MC-SAT\n" +
 							         "    -py              use Python-based logic engine\n" +
 							         "    -debug           debug mode with additional outputs\n" + 
 							         "    -s           	   show ground network in editor\n" +
@@ -221,6 +225,8 @@ public class BLNinfer {
 				sampler = new SATIS((GroundBLN)gbln); break;
 			case SATISEx:
 				sampler = new SATISEx((GroundBLN)gbln); break;
+			case MCSAT:
+				sampler = new MCSAT((GroundBLN)gbln); break;
 			case EnumerationAsk:
 				sampler = new BNSampler(gbln, EnumerationAsk.class); break;
 			default: 
