@@ -10,6 +10,8 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundLiteral;
@@ -45,7 +47,7 @@ public class MCSAT extends Sampler {
 		// add weighted clauses for hard constraints
 		double hardWeight = maxWeight + 100;
 		for(Formula f : gbln.getKB()) {
-			kb.addFormula(new WeightedFormula(f, hardWeight, true));
+			kb.addFormula(new WeightedFormula(f, hardWeight, true), false);
 		}
 		for(Disjunction f : hardConstraintsInCPTs) 
 			kb.addClause(new WeightedClause(f, hardWeight, true));
@@ -85,9 +87,18 @@ public class MCSAT extends Sampler {
 	
 	@Override
 	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
-//		sampler.run(maxSteps);
-//		return getResults(queries);	
-		return null;
+		sampler.run(numSamples);
+		BeliefNetworkEx bn = gbln.getGroundNetwork();
+		SampledDistribution dist = new SampledDistribution(bn);
+		BeliefNode[] nodes = bn.bn.getNodes();
+		for(int i = 0; i < dist.sums.length; i++)
+			for(int j = 0; j < dist.sums[i].length; j++) {
+				GroundLiteral lit = gbln.getGroundLiteral(nodes[i], j);
+				dist.sums[i][j] = sampler.getResult(lit.gndAtom);
+				if(!lit.isPositive)
+					dist.sums[i][j] = 1-dist.sums[i][j];
+			}
+		return getResults(dist, queries);	
 	}
 
 }
