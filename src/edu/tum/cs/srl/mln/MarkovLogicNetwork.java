@@ -68,7 +68,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @param mlnFile
      */
     public MarkovLogicNetwork(String mlnFile) {
-    	this(mlnFile, false, null);
+    	this(mlnFile, true, null);
     }
 
     /**
@@ -118,7 +118,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @return returns a grounded MLN as a MarkovRandomField MRF
      * @throws Exception 
      */
-    public MarkovRandomField groundMLN(String dbFileLoc) throws Exception {
+    public MarkovRandomField ground(String dbFileLoc) throws Exception {
         MarkovRandomField mrf = new MarkovRandomField(this, dbFileLoc, makelist, gc);
         return mrf;
     }
