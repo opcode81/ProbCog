@@ -56,11 +56,12 @@ public class MCSAT {
 						M.addAll(e.getValue());
 				}
 			}
+			System.out.printf("MC-SAT step %d: %d constraints to be satisfied\n", i, M.size());
 			sat.initConstraints(M);
 			sat.run();
 			dist.addSample(sat.getState(), 1.0);
 		}
-		dist.normalize(steps);
+		dist.normalize();
 	}
 	
 	public double getResult(GroundAtom ga) {
@@ -68,25 +69,28 @@ public class MCSAT {
 	}
 	
 	public class SampledDistribution{
-		// Sampled Distribution
 		public double[] sums;
+		public double Z;
 		
 		public SampledDistribution(WorldVariables vars){
+			this.Z = 0.0;
 			this.sums = new double[vars.size()];
 		}
 		
 		public void addSample(PossibleWorld w, double weight){
-			for (GroundAtom ga : w.getVariables()){
+			for(GroundAtom ga : w.getVariables()){
 				if(w.isTrue(ga)){
 					sums[ga.index] += weight;
 				}
 			}
+			Z += weight;
 		}
 		
-		public void normalize(int steps){
+		public void normalize(){
 			for(int i = 0; i < sums.length; i++){
-				sums[i] /= steps;
+				sums[i] /= Z;
 			}
+			Z = 1.0;
 		}
 		
 		public double getResult(int indx){
