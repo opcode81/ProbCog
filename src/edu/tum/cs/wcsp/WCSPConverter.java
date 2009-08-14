@@ -66,7 +66,7 @@ public class WCSPConverter implements GroundingCallback {
         sb_result = new StringBuffer();
         this.mln = new MarkovLogicNetwork(mlnFileLoc, false, this);
         deltaMin = mln.getdeltaMin();
-        this.mrf = mln.groundMLN(dbFileLoc);
+        this.mrf = mln.ground(dbFileLoc);
     }
     
     /**
