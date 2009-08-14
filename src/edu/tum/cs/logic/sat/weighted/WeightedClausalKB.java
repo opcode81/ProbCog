@@ -23,12 +23,13 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     /**
      * constructs a weighted clausal KB from a collection of weighted formulas
      * @param kb some collection of weighted formulas
+     * @param requirePositiveWeights whether to negate formulas with negative weights to yield positive weights only
      * @throws java.lang.Exception
      */
-    public WeightedClausalKB(Iterable<WeightedFormula> kb) throws Exception {
+    public WeightedClausalKB(Iterable<WeightedFormula> kb, boolean requirePositiveWeights) throws Exception {
     	this();
         for(WeightedFormula wf : kb) {
-            addFormula(wf);
+            addFormula(wf, requirePositiveWeights);
         }
     }
     
@@ -44,9 +45,14 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     /**
      * adds an arbitrary formula to the knowledge base (converting it to CNF and splitting it into clauses) 
      * @param wf formula whose clauses to add (it is automatically converted to CNF and split into clauses; the association between the formula and its clauses is retained)
+     * @param makeWeightPositive whether to negate the formula if its weight is negative
      * @throws java.lang.Exception
      */
-    public void addFormula(WeightedFormula wf) throws Exception {
+    public void addFormula(WeightedFormula wf, boolean makeWeightPositive) throws Exception {
+    	if(makeWeightPositive && wf.weight < 0) {
+    		wf.weight *= -1;
+    		wf.formula = new edu.tum.cs.logic.Negation(wf.formula);
+    	}
     	// convert formula to CNF
         Formula cnf = wf.formula.toCNF();
         // add its clauses
