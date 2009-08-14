@@ -14,6 +14,7 @@ import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,9 +48,9 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         this.mln = mln;
         this.dbFile = dbFileLoc;
         readDB();
-        ground();
+        groundVariables();
         createBlocks();
-        groundAndSimplify(makelist, gc);
+        groundFormulas(makelist, gc);
     } 
     
     /**
@@ -73,9 +74,9 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     
     /**
      * Method grounds the mln file based on the given evidence
-     * creates groundatoms for all signatures
+     * creates ground atoms for all signatures
      */
-    public void ground() {
+    protected void groundVariables() {
         try {
             Collection<Signature> signa = mln.signatures.values();
             for (Signature pre : signa) {
@@ -93,7 +94,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     /**
      * Method creates blocks for groundatoms (only for atoms that are block variables)
      */
-    public void createBlocks(){
+    protected void createBlocks(){
         for (String key : mln.block.keySet()) {
             String[] domains = mln.getSignature(key).argTypes;
             int index = mln.getPosinArray(mln.block.get(key), domains);
@@ -123,11 +124,11 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     }
     
     /**
-     * Method that creates grounding for all formulas
+     * creates groundings for all formulas
      * @param makelist boolean (if true the grounded formula will be saved in a set)
      * @param gc callback method (if not null, the callback method is called for each grounded formula)
      */
-    protected void groundAndSimplify(boolean makelist, GroundingCallback gc) {
+    protected void groundFormulas(boolean makelist, GroundingCallback gc) {
         weightedFormulas = new Vector<WeightedFormula>();
         for(Formula form : mln.formulas) {
         	double weight = mln.formula2weight.get(form);
@@ -155,5 +156,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
 
 	public Iterator<WeightedFormula> iterator() {
 		return weightedFormulas.iterator();
+	}
+	
+	public void print(PrintStream out) {
+		for(WeightedFormula wf : this)
+			out.println(wf.toString());
 	}
 }
