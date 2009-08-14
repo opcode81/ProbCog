@@ -126,11 +126,11 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
         String dbfile = "C:/test-12.db";
         MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnfile, true, null);
         // read evidence + ground model
-        MarkovRandomField mrf = mln.groundMLN(dbfile);
+        MarkovRandomField mrf = mln.ground(dbfile);
         // run algorithm
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
         //state.print();
-        WeightedClausalKB wckb = new WeightedClausalKB(mrf);
+        WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         Stopwatch sw = new Stopwatch();
         sw.start();
         MaxWalkSATRoom ss = new MaxWalkSATRoom(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mln.getMaxWeight(), sw);

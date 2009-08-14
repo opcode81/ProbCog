@@ -18,6 +18,11 @@ public class ClausalKB implements Iterable<Clause> {
 			addFormula(f);		
 	}
 	
+	/**
+	 * adds a formula to the knowledge bases, converting it into CNF
+	 * @param f
+	 * @throws Exception
+	 */
 	public void addFormula(Formula f) throws Exception {
 		//System.out.println("formula: " + f.toString());
 		f = f.toCNF();
