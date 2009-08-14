@@ -3,6 +3,8 @@ package edu.tum.cs.logic.sat;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -39,7 +41,7 @@ public class SampleSAT {
 	/**
 	 * probability of performing a greedy move
 	 */
-	protected double p = 0.9; 
+	protected double p = 0.5; 
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
@@ -71,16 +73,12 @@ public class SampleSAT {
 				this.evidence.put(gndAtom.index, var.isTrue());			
 		}
 		
+		// instantiate constraints
+		initConstraints(kb);
+
 		// set evidence in state
 		for(Entry<Integer, Boolean> e : this.evidence.entrySet()) 
 			state.set(e.getKey(), e.getValue());
-		
-		// TODO since formulas never change it could make sense to remove all evidence atoms from all formulas
-		// TODO it might make sense to add additional hard constraints for all 0 entries in all cpts that forbid the parent-child configuration
-		// TODO unit propagation
-		
-		// instantiate constraints
-		initConstraints(kb);
 	}
 	
 	/**
@@ -88,13 +86,61 @@ public class SampleSAT {
 	 * @param kb
 	 */
 	public void initConstraints(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb) {
+		// initialize data structures for constraints (used during algorithm) 
 		unsatisfiedConstraints = new Vector<Constraint>();
-		bottlenecks = new HashMap<Integer,Vector<Constraint>>();
-		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
+		bottlenecks = new HashMap<Integer,Vector<Constraint>>();		
+		// build constraint data
 		constraints = new Vector<Constraint>();
-		
+		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
-			constraints.add(new Clause(c.lits));		
+			constraints.add(new Clause(c.lits));
+		//unitPropagation(); // TODO BUG: unit propagation extends evidence so that this cannot be called multiple times
+	}
+	
+	/**
+	 * performs unit propagation on clauses to simplify the set of constraints
+	 */
+	protected void unitPropagation() {
+		int oldSize = constraints.size();
+		LinkedList<Clause> unitClauses = new LinkedList<Clause>();
+		for(Constraint c : constraints) {
+			if(c instanceof Clause) {
+				Clause cl = (Clause)c;
+				if(cl.size() == 1)
+					unitClauses.add(cl);
+			}
+		}
+		while(!unitClauses.isEmpty()) {
+			Clause cl = unitClauses.remove();
+			GroundLiteral lit = cl.getLiterals()[0]; 
+			evidence.put(lit.gndAtom.index, lit.isPositive);
+			Vector<Constraint> affected = GAOccurrences.get(lit.gndAtom.index);
+			if(affected != null)
+				for(Constraint c : affected) {
+					if(c instanceof Clause) {
+						Clause acl = (Clause)c;
+						for(GroundLiteral l : acl.getLiterals()) {
+							if(l.gndAtom.index == lit.gndAtom.index) {
+								if(l.isPositive == lit.isPositive) // the affected clause is always true because the unit clause appears as a subset
+									constraints.remove(acl);
+								else { // otherwise the literal in the clause is false and we can remove it
+									acl.removeLiteral(lit.gndAtom.index);
+									if(acl.size() == 1)
+										unitClauses.add(acl);
+									if(acl.size() == 0)
+										constraints.remove(acl);
+								}								
+							}
+						}
+					}
+				}
+			// remove the unit clause from the set of constraints
+			constraints.remove(cl);
+			// we no longer need the occurrences entry
+			GAOccurrences.remove(lit.gndAtom.index);
+		}
+		int newSize = constraints.size();
+		if(verbose) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
 	}
 	
 	protected void addUnsatisfiedConstraint(Constraint c) {
@@ -171,7 +217,7 @@ public class SampleSAT {
 					int j = rand.nextInt(block.size());
 					for(int k = 0; k < block.size(); k++) {
 						boolean value = k == j; 
-						state.set(i+k, value);
+						state.set(block.get(k), value);
 					}					
 				}
 				i += block.size();
@@ -226,7 +272,7 @@ public class SampleSAT {
 		}
 	}
 	
-	protected void pickAndFlipVar(Collection<GroundAtom> candidates) {
+	protected void pickAndFlipVar(Iterable<GroundAtom> candidates) {
 		// find the best candidate
 		GroundAtom bestGA = null, bestGASecond = null;
 		int bestDelta = Integer.MIN_VALUE;
@@ -325,8 +371,8 @@ public class SampleSAT {
 		public Clause(GroundLiteral[] lits) {	
 			this.lits = lits;
 			// collect ground atom occurrences 
-			gndAtoms = new Vector<GroundAtom>();
-			trueOnes = new HashSet<GroundAtom>();
+			gndAtoms = new Vector<GroundAtom>(lits.length);
+			trueOnes = new HashSet<GroundAtom>((lits.length+1)/2);
 			for(GroundLiteral lit : lits) {
 				GroundAtom gndAtom = lit.gndAtom;
 				gndAtoms.add(gndAtom);
@@ -382,6 +428,25 @@ public class SampleSAT {
 			// if there is exactly one true literal, it is a bottleneck
 			else if(trueOnes.size() == 1) 
 				addBottleneck(trueOnes.iterator().next(), this);			
+		}
+		
+		public int size() {
+			return this.lits.length;
+		}
+
+		public GroundLiteral[] getLiterals() {
+			return lits;
+		}
+		
+		public void removeLiteral(int idxGndAtom) {
+			GroundLiteral[] newlits = new GroundLiteral[this.lits.length-1];
+			gndAtoms.clear();
+			for(int i = 0, j = 0; i < lits.length; i++)
+				if(lits[i].gndAtom.index != idxGndAtom) {
+					newlits[j++] = lits[i];
+					gndAtoms.add(lits[i].gndAtom);
+				}
+			lits = newlits;
 		}
 	}	
 	
