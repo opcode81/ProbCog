@@ -18,4 +18,11 @@ public class WeightedFormula {
 		this.weight = weight;
 		this.isHard = isHard;
 	}
+	
+	public String toString() {
+		if(isHard)
+			return formula.toString() + ".";
+		else
+			return weight + " " + formula.toString();
+	}
 }
