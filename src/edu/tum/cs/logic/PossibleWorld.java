@@ -6,8 +6,8 @@ import java.util.Iterator;
 
 public class PossibleWorld implements IPossibleWorld {
 	
-	WorldVariables worldVars;
-	boolean[] state;
+	protected WorldVariables worldVars;
+	protected boolean[] state;
 
 	public PossibleWorld(WorldVariables worldVars) {
 		this.worldVars = worldVars;
