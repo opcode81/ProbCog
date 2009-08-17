@@ -2,6 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.tools.StringTool;
@@ -42,14 +43,14 @@ public class WorldVariables implements Iterable<GroundAtom> {
 
 	/**
 	 * adds a block of mutually exclusive and exhaustive ground atoms that collectively define a single non-boolean variable
-	 * (each individual logical atom will be added to the set of logical variables)
+	 * (each individual ground atom will be added to the set of logical variables if it has not already been added)
 	 * @param block
 	 */
 	public Block addBlock(Vector<GroundAtom> block) {
 		Block b = new Block(block);
 		for(GroundAtom ga : block) {
             if(!vars.containsKey(ga.toString()))
-                add(ga);
+            	add(ga);
             var2block.put(ga.index, b);
 		}
 		return b;
@@ -67,24 +68,6 @@ public class WorldVariables implements Iterable<GroundAtom> {
 	public GroundAtom get(Integer index) {
 		return varsByIndex.get(index);
 	}
-        /**
-         * retrieves the variable (ground atom) containing all given String and at position of the asterisk (must be given) any additional String (before, between or afterwards)
-         * @param gndAtom
-         * @return
-         */
-        public Vector<GroundAtom> getGAforBlock(String gndAtom){
-            Vector<GroundAtom> block = new Vector<GroundAtom>();
-            if (gndAtom.contains("*")){
-                String part1 = gndAtom.substring(0, gndAtom.indexOf("*"));
-                String part2 = gndAtom.substring(gndAtom.indexOf("*")+1);
-                for (String atomString : vars.keySet()){
-                    if (atomString.contains(part1) && atomString.contains(part2)){
-                        block.add(vars.get(atomString));
-                    }
-                }
-            }
-            return block;
-        }
 
 	public Block getBlock(Integer idxGA) {
 		return var2block.get(idxGA);
@@ -92,6 +75,10 @@ public class WorldVariables implements Iterable<GroundAtom> {
 
 	public int size() {
 		return vars.size();
+	}
+	
+	public Set<String> getVariableStrings() {
+		return vars.keySet();
 	}
 
 	public String toString() {
@@ -133,6 +120,10 @@ public class WorldVariables implements Iterable<GroundAtom> {
 
 		public GroundAtom get(int index) {
 			return gndAtoms.get(index);
+		}
+		
+		public int indexOf(GroundAtom gndAtom) {
+			return gndAtoms.indexOf(gndAtom);
 		}
 	}
 
