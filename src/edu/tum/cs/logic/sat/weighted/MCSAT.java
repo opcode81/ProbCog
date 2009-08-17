@@ -56,7 +56,8 @@ public class MCSAT {
 						M.addAll(e.getValue());
 				}
 			}
-			System.out.printf("MC-SAT step %d: %d constraints to be satisfied\n", i, M.size());
+			if((i+1) % 100 == 0)
+				System.out.printf("  step %d: %d constraints to be satisfied\n", i+1, M.size());
 			sat.initConstraints(M);
 			sat.run();
 			dist.addSample(sat.getState(), 1.0);

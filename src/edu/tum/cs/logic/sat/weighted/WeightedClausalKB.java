@@ -120,7 +120,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
 
     /**
      * gets a set of entries with formulas and the clauses that the formulas are made up of when converted to CNF
-     * @return a collection of clauses
+     * @return
      */
     public Set<Entry<WeightedFormula,Vector<WeightedClause>>> getFormulasAndClauses() {
         return formula2clauses.entrySet();
