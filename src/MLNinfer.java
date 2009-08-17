@@ -80,6 +80,8 @@ public class MLNinfer {
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
 
 			// load relational model
+			Stopwatch constructSW = new Stopwatch();
+			constructSW.start();
 			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFile);
 			
 			// instantiate ground model
@@ -88,6 +90,7 @@ public class MLNinfer {
 				System.out.println("MRF:");
 				mrf.print(System.out);
 			}
+			constructSW.stop();
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
@@ -106,7 +109,8 @@ public class MLNinfer {
 	        sw.stop();
 	        
 	        // show results
-	        System.out.println("Results:");
+	        System.out.printf("\nconstruction time: %.4fs, inference time: %.4fs\n", constructSW.getElapsedTimeSecs(), sw.getElapsedTimeSecs());
+	        System.out.println("results:");
 	        for(InferenceResult r : results)
 	        	r.print();
 		}
