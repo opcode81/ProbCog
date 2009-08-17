@@ -143,7 +143,7 @@ public class SATIS extends BNSampler {
 					outsideSamplingOrder.add(node);
 			}
 			
-			// schedule all uninstantiated node for forward sampling in the topological order
+			// schedule all uninstantiated nodes for forward sampling in the topological order
 			for(int i : topOrder) {
 				if(uninstantiatedNodes.contains(nodes[i]))
 					forwardSampledNodes.add(nodes[i]);

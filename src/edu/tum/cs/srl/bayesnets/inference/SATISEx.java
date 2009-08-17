@@ -36,7 +36,7 @@ public class SATISEx extends SATIS {
 			int[] addr = new int[domProd.length];
 			walkCPF4HardConstraints(cpf, addr, 0, ckb);
 		}
-		System.out.println((ckb.size()-size) + " added");
+		System.out.println((ckb.size()-size) + " constraints added");
 		
 		return ckb;
 	}
