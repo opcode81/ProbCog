@@ -24,13 +24,14 @@ import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
 import edu.tum.cs.srl.bayesnets.inference.MCSAT;
 import edu.tum.cs.srl.bayesnets.inference.SATIS;
 import edu.tum.cs.srl.bayesnets.inference.SATISEx;
+import edu.tum.cs.srl.bayesnets.inference.SATISExGibbs;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.tools.Stopwatch;
 
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT, SATISExGibbs};
 	
 	/**
 	 * @param args
@@ -107,6 +108,8 @@ public class BLNinfer {
 					algo = Algorithm.EnumerationAsk;
 				else if(args[i].equals("-satisex"))
 					algo = Algorithm.SATISEx;
+				else if(args[i].equals("-satisexg"))
+					algo = Algorithm.SATISExGibbs;
 				else if(args[i].equals("-mcsat"))
 					algo = Algorithm.MCSAT;
 				else if(args[i].equals("-debug"))
@@ -124,7 +127,8 @@ public class BLNinfer {
 							         "    -gs              algorithm: Gibbs sampling\n" +						
 							         "    -exp             algorithm: Experimental\n" +
 							         "    -satis           algorithm: SAT-IS\n" +
-							         "    -satisex         algorithm: SAT-IS (extended with hard CPT constraints) \n" +
+							         "    -satisex         algorithm: SAT-IS Extended (adds hard CPT constraints to the KB) \n" +
+							         "    -satisexg        algorithm: SAT-IS Extended with interspersed Gibbs sampling\n" +
 							         "    -bs              algorithm: backward sampling\n" +
 							         "    -lbs             algorithm: lifted backward sampling\n" +
 							         "    -sbs             algorithm: SMILE backward sampling\n" +
@@ -225,6 +229,8 @@ public class BLNinfer {
 				sampler = new SATIS((GroundBLN)gbln); break;
 			case SATISEx:
 				sampler = new SATISEx((GroundBLN)gbln); break;
+			case SATISExGibbs:
+				sampler = new SATISExGibbs((GroundBLN)gbln); break;
 			case MCSAT:
 				sampler = new MCSAT((GroundBLN)gbln); break;
 			case EnumerationAsk:
