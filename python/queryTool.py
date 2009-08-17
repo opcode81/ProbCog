@@ -61,7 +61,7 @@ class MLNQuery:
         Label(self.frame, text="Engine: ").grid(row=row, column=0, sticky="E")
         alchemy_engines = config.alchemy_versions.keys()
         alchemy_engines.sort()
-        engines = ["internal"]
+        engines = ["internal", "J-MLNs"]
         engines.extend(alchemy_engines)
         self.selected_engine = StringVar(master)
         engine = self.settings.get("engine")
@@ -94,7 +94,8 @@ class MLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
-        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP":"-a"}
+        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP (MaxWalkSAT)":"-a"}
+        self.jmlns_methods = {"MAP (MaxWalkSAT)":"-mws", "MC-SAT":"-mcsat"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
 
@@ -201,24 +202,31 @@ class MLNQuery:
         
     def onChangeEngine(self, name = None, index = None, mode = None):
         # enable/disable controls
-        if self.selected_engine.get() == "internal":
-            self.internalMode = True
+        engineName = self.selected_engine.get()
+        if engineName == "internal":
+            self.numEngine = 1
             methods = MLN.InferenceMethods._names.values()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=DISABLED)
             self.cb_save_results.configure(state=NORMAL)
+        elif engineName == "J-MLNs":
+            self.numEngine = 2
+            methods = self.jmlns_methods.keys()
+            #self.entry_output_filename.configure(state=NORMAL)
+            self.cb_open_world.configure(state=DISABLED)
+            self.cb_save_results.configure(state=DISABLED)
         else:
-            self.internalMode = False
+            self.numEngine = 0
             methods = self.alchemy_methods.keys()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=NORMAL)
             self.cb_save_results.configure(state=DISABLED)
         
         # change additional parameters
-        self.params.set(self.settings.get("params%d" % int(self.internalMode), ""))
+        self.params.set(self.settings.get("params%d" % int(self.numEngine), ""))
         
         # change supported inference methods
-        self.selected_method.set(self.settings.get("method%d" % int(self.internalMode), methods[0])) # default value
+        self.selected_method.set(self.settings.get("method%d" % int(self.numEngine), methods[0])) # default value
         if "list_methods" in dir(self): self.list_methods.grid_forget()
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(methods))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
@@ -247,8 +255,8 @@ class MLNQuery:
             self.settings["mln_rename"] = self.selected_mln.rename_on_edit.get()
             self.settings["db"] = db
             self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
-            self.settings["method%d" % int(self.internalMode)] = method
-            self.settings["params%d" % int(self.internalMode)] = params
+            self.settings["method%d" % int(self.numEngine)] = method
+            self.settings["params%d" % int(self.numEngine)] = params
             self.settings["query"] = self.query.get()
             self.settings["engine"] = self.selected_engine.get()
             self.settings["qf"] = qf
@@ -327,6 +335,21 @@ class MLNQuery:
                     cls, e, tb = sys.exc_info()
                     sys.stderr.write("Error: %s\n" % str(e))
                     traceback.print_tb(tb)
+            elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
+                # create command to execute
+                params = ' -i "%s" -e "%s" -q "%s" %s %s' % (mln, db, self.settings["query"], self.jmlns_methods[method], params)
+                if self.settings["maxSteps"] != "":
+                    params += " -maxSteps %s" % (self.settings["maxSteps"])
+                # run
+                app = "java -cp /usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/BNJ/bin:/usr/wiss/jain/work/code/SRLDB/lib/log4j-1.2.9.jar MLNinfer"
+                command = "%s %s" % (app, params)
+                # execute 
+                print "\nStarting Alchemy..."
+                print "\ncommand:\n%s\n" % command
+                t_start = time.time()
+                os.system(command)
+                t_taken = time.time() - t_start
+                pass
             else: # engine is Alchemy
                 haveOutFile = True
                 infile = mln
