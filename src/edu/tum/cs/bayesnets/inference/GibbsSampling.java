@@ -37,6 +37,8 @@ public class GibbsSampling extends Sampler {
 			if(i % infoInterval == 0)
 				System.out.println("  step " + i);
 			gibbsStep(evidenceDomainIndices, s);
+			s.trials = 1;
+			s.weight = 1;
 			addSample(s);
 		}
 
@@ -46,8 +48,6 @@ public class GibbsSampling extends Sampler {
 	}
 	
 	public void gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {
-		s.trials = 1;
-		s.weight = 1;
 		// resample all of the (non-evidence) nodes
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int j = 0; j < nodes.length; j++)  {
