@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
@@ -19,7 +18,7 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
-import edu.tum.cs.srl.Database.Variable;
+import edu.tum.cs.logic.sat.EvidenceHandler;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
@@ -40,6 +39,7 @@ public class MaxWalkSAT {
     protected Random rand;
     protected WorldVariables vars;
     protected HashMap<Integer, Boolean> evidence;
+    protected EvidenceHandler evidenceHandler;
     protected HashMap<edu.tum.cs.logic.sat.weighted.WeightedClause, Formula> clFormula;
     protected HashMap<WeightedClause, Formula> cl2Formula;
     protected HashMap<Formula, Double> formula2weight;
@@ -86,33 +86,9 @@ public class MaxWalkSAT {
         formula2satClause = new HashMap<Formula, HashSet<WeightedClause>>();
         rand = new Random();
 
-        // read evidence and set value of Groundatoms to related value in evidence
-        this.evidence = new HashMap<Integer, Boolean>();
-        for (Variable var : evidence.getEntries()) {
-            String strGndAtom = var.getPredicate(evidence.model);
-            GroundAtom gndAtom = vars.get(strGndAtom);
-            Block block = vars.getBlock(gndAtom.index);
-            if (block != null && var.isTrue()) {
-                for (GroundAtom ga : block) {
-                    if (ga.toString().equals(strGndAtom)) {
-                        if (!this.evidence.containsKey(ga.index)) {
-                            this.evidence.put(ga.index, true);
-                        }
-                    } else {
-                        if (!this.evidence.containsKey(ga.index)) {
-                            this.evidence.put(ga.index, false);
-                        }
-                    }
-                }
-            } else {
-                this.evidence.put(gndAtom.index, var.isTrue());
-            }
-        }
-
-        // set possible world (state)
-        for (Entry<Integer, Boolean> e : this.evidence.entrySet()) {
-            state.set(e.getKey(), e.getValue());
-        }
+        evidenceHandler = new EvidenceHandler(vars, evidence);
+        this.evidence = evidenceHandler.getEvidence();
+        evidenceHandler.setEvidenceInState(state);
 
         //initial list of constraints which are flipable by the algorithm (not set in evidence)
         for (int c = 0; c < vars.size(); c++) {
@@ -305,29 +281,10 @@ public class MaxWalkSAT {
     }
 
     /**
-     * Sets the initial state randomly
+     * sets the initial state randomly 
      */
     protected void setState() {
-        for (int i = 0; i < vars.size();) {
-            Block block = vars.getBlock(i);
-            if (block != null) {
-                if (!this.evidence.containsKey(i)) {
-                    // if block is not set in evidence set random groundatom in block true and the others false
-                    int j = rand.nextInt(block.size());
-                    for(int k = 0; k < block.size(); k++) {
-                        boolean value = k == j;
-                       	state.set(block.get(k), value);
-                    }
-                }
-                i += block.size();
-            } else {
-                if (!this.evidence.containsKey(i)) {
-                    // if groundatom is not set in evidence set random state
-                    state.set(i, rand.nextBoolean());
-                }
-                ++i;
-            }
-        }
+        evidenceHandler.setRandomState(state);
     }
 
     /**

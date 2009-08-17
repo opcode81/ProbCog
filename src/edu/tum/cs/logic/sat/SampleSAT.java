@@ -1,13 +1,11 @@
 package edu.tum.cs.logic.sat;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
@@ -15,7 +13,6 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
@@ -35,9 +32,11 @@ public class SampleSAT {
 	protected Vector<Constraint> unsatisfiedConstraints;
 	protected Vector<Constraint> constraints;
 	protected Random rand;
-	protected WorldVariables vars;
-	protected HashMap<Integer,Boolean> evidence;
+	protected WorldVariables vars;	
 	protected final boolean verbose = false;
+	protected EvidenceHandler evidenceHandler;
+	protected HashMap<Integer,Boolean> evidence;
+	
 	/**
 	 * probability of performing a greedy move
 	 */
@@ -48,37 +47,23 @@ public class SampleSAT {
 	 * @param kb a collection of clauses to satisfy (such as a ClausalKB)
 	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
 	 * @param vars the set of variables the SAT problem is defined on
-	 * @param evidence an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
+	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
 	 * @throws Exception
 	 */
-	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
+	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Database db) throws Exception {
 		this.state = state;
 		this.vars = vars;
 		rand = new Random();
 		
 		// read evidence
-		if(verbose) {
-			System.out.println("evidence:");
-			evidence.print();
-		}
-		this.evidence = new HashMap<Integer,Boolean>();
-		for(Variable var : evidence.getEntries()) {
-			String strGndAtom = var.getPredicate(evidence.model);
-			GroundAtom gndAtom = vars.get(strGndAtom);			
-			Block block = vars.getBlock(gndAtom.index);
-			if(block != null) 
-				for(GroundAtom ga : block)
-					this.evidence.put(ga.index, var.value.equals(ga.args[ga.args.length-1]));				
-			else 
-				this.evidence.put(gndAtom.index, var.isTrue());			
-		}
+		evidenceHandler = new EvidenceHandler(vars, db);
+		evidence = evidenceHandler.getEvidence();
 		
 		// instantiate constraints
 		initConstraints(kb);
 
 		// set evidence in state
-		for(Entry<Integer, Boolean> e : this.evidence.entrySet()) 
-			state.set(e.getKey(), e.getValue());
+		evidenceHandler.setEvidenceInState(state);
 	}
 	
 	/**
@@ -209,25 +194,7 @@ public class SampleSAT {
 	}
 	
 	protected void setRandomState() {
-		for(int i = 0; i < vars.size();) {
-			//System.out.println("  setting " + vars.get(i));
-			Block block = vars.getBlock(i); 
-			if(block != null) {
-				if(!this.evidence.containsKey(i)) {
-					int j = rand.nextInt(block.size());
-					for(int k = 0; k < block.size(); k++) {
-						boolean value = k == j; 
-						state.set(block.get(k), value);
-					}					
-				}
-				i += block.size();
-			}
-			else { 
-				if(!this.evidence.containsKey(i))
-					state.set(i, rand.nextBoolean());
-				++i;
-			}
-		}		
+		evidenceHandler.setRandomState(state);
 	}
 	
 	protected void walkSATMove() {
