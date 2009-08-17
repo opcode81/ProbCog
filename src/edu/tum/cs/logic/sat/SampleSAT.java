@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.logic.GroundAtom;
@@ -40,7 +39,7 @@ public class SampleSAT {
 	/**
 	 * probability of performing a greedy move
 	 */
-	protected double p = 0.5; 
+	protected double p = 0.9; 
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
