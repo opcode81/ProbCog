@@ -316,8 +316,8 @@ public class Database {
 		public String[] params;
 		public String value;
 		
-		public Variable(String predicate, String[] params, String value) {
-			this.functionName = predicate;
+		public Variable(String functionName, String[] params, String value) {
+			this.functionName = functionName;
 			this.params = params;
 			this.value = value;
 		}
@@ -334,13 +334,17 @@ public class Database {
 		 * gets the predicate representation that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
 		 * @return
 		 */
-		public String getPredicate(RelationalModel rbn) {
-			if(rbn.getSignature(functionName).isBoolean())
+		public String getPredicate(RelationalModel model) {
+			if(isBoolean(model))
 				return functionName + "(" + RelationalNode.join(",", params) + ")";
 			else				
 				return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
 		}
 
+		public boolean isBoolean(RelationalModel model) {
+			return model.getSignature(functionName).isBoolean();
+		}
+		
 		public boolean isTrue() {
 			return value.equalsIgnoreCase("True");
 		}
