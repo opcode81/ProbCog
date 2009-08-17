@@ -92,7 +92,7 @@ class BLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood weighting":"-lw", "Gibbs sampling":"-gs", "EPIS-BN": "-epis", "Backward Sampling": "-bs", "Lifted Backward Sampling with Children": "-lbs", "SMILE Backward Sampling": "-sbs", "Backward Sampling with Priors": "-bsp", "Experimental": "-exp", "SAT-IS": "-satis", "SAT-IS Extended":"-satisex"}
+        self.methods = {"Likelihood weighting":"-lw", "Gibbs sampling":"-gs", "EPIS-BN": "-epis", "Backward Sampling": "-bs", "Lifted Backward Sampling with Children": "-lbs", "SMILE Backward Sampling": "-sbs", "Backward Sampling with Priors": "-bsp", "Experimental": "-exp", "SAT-IS": "-satis", "SAT-IS Extended": "-satisex", "SAT-IS Extended/Gibbs":"-satisexg", "Likelihood Weighting With Uncertain Evidence": "-lwu", "MC-SAT": "-mcsat"}
         self.selected_method = StringVar(master)
         self.selected_method.set(self.settings.get("method", self.methods.keys()[0])) # default value
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(self.methods.keys()))
