@@ -35,7 +35,7 @@ public class MaxWalkSAT {
     protected HashMap<Integer, Vector<Constraint>> GAOccurrences;
     protected PossibleWorld state;
     protected Vector<Constraint> unsatisfiedConstraints;
-    protected Vector<Integer> validConstraints;
+    protected Vector<Integer> nonEvidenceGndAtomIndices;
     protected Random rand;
     protected WorldVariables vars;
     protected HashMap<Integer, Boolean> evidence;
@@ -45,7 +45,7 @@ public class MaxWalkSAT {
     protected HashMap<Formula, Double> formula2weight;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2clauses;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2satClause;
-    protected double countUnsCon;
+    protected int countUnsCon;
     protected int lastMinStep;
     protected double unsSum;
     protected double unsSumBeta;
@@ -77,7 +77,7 @@ public class MaxWalkSAT {
         formula2weight = new HashMap<Formula, Double>();
         formula2clauses = new HashMap<Formula, HashSet<WeightedClause>>();
         clFormula = kb.getClause2Formula();
-        validConstraints = new Vector<Integer>();
+        nonEvidenceGndAtomIndices = new Vector<Integer>();
         bottlenecks = new HashMap<Integer, Vector<Constraint>>();
         GAOccurrences = new HashMap<Integer, Vector<Constraint>>();
         formula2satClause = new HashMap<Formula, HashSet<WeightedClause>>();
@@ -90,7 +90,7 @@ public class MaxWalkSAT {
         //initial list of constraints which are flipable by the algorithm (not set in evidence)
         for (int c = 0; c < vars.size(); c++) {
             if (!this.evidence.containsKey(c)) {
-                validConstraints.add(c);
+                nonEvidenceGndAtomIndices.add(c);
             }
         }
 
@@ -237,18 +237,22 @@ public class MaxWalkSAT {
                 }
             }
 
-            // print state of progress every xx steps (e.g. 500)
-            if (step % 500 == 0) {
-                System.out.println("MAPWaxWalkSAT step " + step + ", Flips: " + flips + ", " + countUnsCon / unsatisfiedConstraints.size() * 100 + " % of hard constraints unsatisfied, sum: " + unsSum + ", minsteps: " + minSteps + ", minSum: " + minSum /*+ "diff: " + diffSum + " , " + (Math.pow(Math.E, ((double) (-diffSum) / ((new Double(step) / new Double(vars.size()))))))*/);
-            }
-
             // choose between walkSATMove (greedy flip) and SAMove(random flip)
+            String move;
             if (rand.nextDouble() < 0.95) {
                 walkSATMove();
-            } else {
+                move = "greedy";
+            } 
+            else {
                 SAMove();
+                move = "SA";
             }
             step++;
+
+            // print progress
+            if(step % 1 == 0) {
+                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f\n", step, move, countUnsCon, unsSum);
+            }
         }
     }
 
@@ -328,7 +332,7 @@ public class MaxWalkSAT {
         // ensure that one flip will be done
         while (!done) {
             // randomly pick a ground atom to flip (only from valid constraints which were not set in evidence)
-            int idxGA = validConstraints.get(rand.nextInt(validConstraints.size()));
+            int idxGA = nonEvidenceGndAtomIndices.get(rand.nextInt(nonEvidenceGndAtomIndices.size()));
             GroundAtom gndAtom = vars.get(idxGA), gndAtom2 = null;
             // if it's in a block, must choose a second to flip
             Block block = vars.getBlock(gndAtom.index);
@@ -461,6 +465,7 @@ public class MaxWalkSAT {
                 // if the according formula was satisfied (count of satisfied clauses is equal to the count of all clauses of the formula), it is now unsatisfied and the weight of the formula is added to the overall unsatisfied sum
                 if (satConFormula == formula2clauses.get(parent).size()) {
                     unsSum += formula2weight.get(parent);
+                    this.countUnsCon++;
                 }
                 // the clause is removed from the set of satisfied clauses of the formula
                 formula2satClause.get(parent).remove(wcl);
@@ -664,20 +669,21 @@ public class MaxWalkSAT {
             if (trueOnes.contains(gndAtom)) {
                 trueOnes.remove(gndAtom);
                 numTrueLits--;
-            // if no more true lits are left, the clause is now unsatisfied; this is handled in flipGndAtom
-            // the lit was false and is now true, add it to the clause's list of true lits
-            } else {
-                // the clause was previously unsatisfied, it is now satisfied
-                if (numTrueLits == 0) {
+                // if no more true lits are left, the clause is now unsatisfied; this is handled in flipGndAtom            
+            } 
+            else { // the lit was false and is now true, add it to the clause's list of true lits
+                if (numTrueLits == 0) { // if the clause was previously unsatisfied, it is now satisfied
                     // remove the clause from unsatisfied constraints, add it to the set or satisfied cluases of the according formula
                     unsatisfiedConstraints.remove(this);
                     formula2satClause.get(parent).add(this);
                     // if the according formula is now satisfied subtract it's weight from the unsatisfied sum
-                    if (formula2satClause.get(parent).size() == formula2clauses.get(parent).size()) {
+                    if(formula2satClause.get(parent).size() == formula2clauses.get(parent).size()) {
                         unsSum -= formula2weight.get(parent);
-                    }
-                // we are adding a second true lit, so the first one is no longer a bottleneck of this clause
-                } else if (numTrueLits == 1) {
+                        if(hard)
+                        	countUnsCon--;
+                    }                
+                } 
+                else if (numTrueLits == 1) { // we are adding a second true lit, so the first one is no longer a bottleneck of this clause
                     bottlenecks.get(trueOnes.iterator().next().index).remove(this);
                 }
                 trueOnes.add(gndAtom);
