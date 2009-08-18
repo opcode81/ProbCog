@@ -21,7 +21,7 @@ public class MaxWalkSAT extends InferenceAlgorithm {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
-        sat = new edu.tum.cs.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mrf.mln.getMaxWeight());
+        sat = new edu.tum.cs.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
 	}
 	
 	@Override
