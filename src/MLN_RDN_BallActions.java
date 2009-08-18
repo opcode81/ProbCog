@@ -5,7 +5,6 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
