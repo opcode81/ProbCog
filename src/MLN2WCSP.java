@@ -1,4 +1,3 @@
-import java.io.IOException;
 
 import edu.tum.cs.wcsp.WCSPConverter;
 

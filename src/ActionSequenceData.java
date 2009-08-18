@@ -1,8 +1,6 @@
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Vector;
 
@@ -252,10 +250,7 @@ public class ActionSequenceData {
 		System.out.println("done.");
 	}
 	
-	public static void learnDecTree(String dbdir) throws FileNotFoundException, IOException, ClassNotFoundException {
-		Database db = Database.fromFile(new FileInputStream(dbdir + "/train.srldb"));
-	}
-	
+
 	public static void main(String[] args) throws FileNotFoundException, Exception {
 		readData("brownies");
 //		learnDecTree("models/brownies");

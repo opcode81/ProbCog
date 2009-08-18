@@ -8,8 +8,6 @@ import java.io.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import org.python.parser.ast.boolopType;
-
 
 public class BlogbdToLDCRF {
 
