@@ -135,7 +135,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         weightedFormulas = new Vector<WeightedFormula>();
         for(Formula form : mln.formulas) {
         	double weight = mln.formula2weight.get(form);
-        	boolean isHard = weight == mln.getMaxWeight();
+        	boolean isHard = weight == mln.getHardWeight();
             for(Formula gf : form.getAllGroundings(db, vars, true)) {
                 if(makelist)
                     weightedFormulas.add(new WeightedFormula(gf, weight, isHard));
