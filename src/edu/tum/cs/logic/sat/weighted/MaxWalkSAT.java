@@ -45,7 +45,6 @@ public class MaxWalkSAT {
     protected HashMap<Formula, Double> formula2weight;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2clauses;
     protected HashMap<Formula, HashSet<WeightedClause>> formula2satClause;
-    protected double threshold;
     protected double countUnsCon;
     protected int lastMinStep;
     protected double unsSum;
@@ -65,15 +64,13 @@ public class MaxWalkSAT {
      * @param kb a knowledge base of weighted clauses, which can be instantiated by an Markov Random Field (MRF)
      * @param state a possible world containing all variables of the Markov Logic Network (MLN)
      * @param vars world variables of the MLN which is needed by the class
-     * @param evidence the database of the MRF -> given contraints and true/false values of the variables
-     * @param threshold maximum steps taken by the algorithm (a possible integer value)
+     * @param evidence an evidence database
      * @throws java.lang.Exception
      */
-    public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold) throws Exception {
+    public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
 
         this.state = state;
         this.vars = vars;
-        this.threshold = threshold;
         flips = 0;
         this.unsatisfiedConstraints = new Vector<Constraint>();
         cl2Formula = new HashMap<WeightedClause, Formula>();
@@ -788,10 +785,10 @@ public class MaxWalkSAT {
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         Stopwatch sw = new Stopwatch();
         sw.start();
-        MaxWalkSAT ss = new MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mln.getMaxWeight());
+        MaxWalkSAT ss = new MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
         ss.run();
         sw.stop();
-        System.out.println("Sum Weights: " + mln.getMaxWeight());
+        System.out.println("Sum Weights: " + mln.getHardWeight());
         System.out.println("********** Solution found: **********");
         System.out.println("Steps: " + ss.getStep());
         //ss.getBestState().toString();
