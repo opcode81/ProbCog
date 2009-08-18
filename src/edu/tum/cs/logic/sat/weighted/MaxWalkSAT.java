@@ -58,6 +58,10 @@ public class MaxWalkSAT {
     double minSum;
     protected int deltaCostCalcMethod = 1; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
     protected int maxSteps = 1000;
+    /**
+     * probability of a greedy move
+     */
+    protected double p = 0.999;
 
     /**
      *  Constructor to instantiate an object of MAPMaxWalkSAT
@@ -239,7 +243,7 @@ public class MaxWalkSAT {
 
             // choose between walkSATMove (greedy flip) and SAMove(random flip)
             String move;
-            if (rand.nextDouble() < 0.95) {
+            if (rand.nextDouble() < p) {
                 walkSATMove();
                 move = "greedy";
             } 
@@ -251,7 +255,7 @@ public class MaxWalkSAT {
 
             // print progress
             if(step % 1 == 0) {
-                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f\n", step, move, countUnsCon, unsSum);
+                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f\n", step, move, countUnsCon, unsSum, minSum);
             }
         }
     }
@@ -464,9 +468,10 @@ public class MaxWalkSAT {
                 int satConFormula = formula2satClause.get(parent).size();
                 // if the according formula was satisfied (count of satisfied clauses is equal to the count of all clauses of the formula), it is now unsatisfied and the weight of the formula is added to the overall unsatisfied sum
                 if (satConFormula == formula2clauses.get(parent).size()) {
-                    unsSum += formula2weight.get(parent);
-                    this.countUnsCon++;
+                    unsSum += formula2weight.get(parent);                    
                 }
+                if(wcl.isHard())
+                	this.countUnsCon++;
                 // the clause is removed from the set of satisfied clauses of the formula
                 formula2satClause.get(parent).remove(wcl);
             }
@@ -679,9 +684,9 @@ public class MaxWalkSAT {
                     // if the according formula is now satisfied subtract it's weight from the unsatisfied sum
                     if(formula2satClause.get(parent).size() == formula2clauses.get(parent).size()) {
                         unsSum -= formula2weight.get(parent);
-                        if(hard)
-                        	countUnsCon--;
                     }                
+                    if(hard)
+                    	countUnsCon--;
                 } 
                 else if (numTrueLits == 1) { // we are adding a second true lit, so the first one is no longer a bottleneck of this clause
                     bottlenecks.get(trueOnes.iterator().next().index).remove(this);
