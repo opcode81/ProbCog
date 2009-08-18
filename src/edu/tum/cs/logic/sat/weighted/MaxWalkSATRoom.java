@@ -33,12 +33,11 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
      * @param state a possible world containing all variables of the Markov Logic Network (MLN)
      * @param vars world variables of the MLN which is needed by the class
      * @param evidence the database of the MRF -> given contraints and true/false values of the variables
-     * @param threshold maximum steps taken by the algorithm (a possible integer value)
      * @param sw an externally instantiated and started Instance of type stopwatch
      * @throws java.lang.Exception
      */
-    public MaxWalkSATRoom(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, double threshold, Stopwatch sw) throws Exception {
-        super(kb, state, vars, evidence, threshold);
+    public MaxWalkSATRoom(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence, Stopwatch sw) throws Exception {
+        super(kb, state, vars, evidence);
         this.sw = sw;
         // needed for our tool to display the solutions
         screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -133,7 +132,7 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         Stopwatch sw = new Stopwatch();
         sw.start();
-        MaxWalkSATRoom ss = new MaxWalkSATRoom(wckb, state, mrf.getWorldVariables(), mrf.getDb(), mln.getMaxWeight(), sw);
+        MaxWalkSATRoom ss = new MaxWalkSATRoom(wckb, state, mrf.getWorldVariables(), mrf.getDb(), sw);
         ss.setMaxsteps(10000);
         ss.run();
         sw.stop();
