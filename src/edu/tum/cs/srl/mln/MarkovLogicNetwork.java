@@ -42,7 +42,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     protected HashMap<String, String> block;
     boolean makelist;
     GroundingCallback gc;
-    double sumWeights = 0;
+    double sumAbsWeights = 0;
 
     /**
      * Constructor for the MLN
@@ -260,7 +260,7 @@ public class MarkovLogicNetwork implements RelationalModel {
                     // add formula and weight in according sets
                     formulas.add(f);
                     formula2weight.put(f, weight);
-                    sumWeights += weight;
+                    sumAbsWeights += Math.abs(weight);
                 } else {
                     throw new IllegalArgumentException();
                 }
@@ -302,17 +302,18 @@ public class MarkovLogicNetwork implements RelationalModel {
             }
 
             // calculate weights of the hard constraints
+            double hardWeight = getHardWeight();
             for (Formula f : hardCon)
-                formula2weight.put(f, sumWeights + 1);
+                formula2weight.put(f, hardWeight);
         }
     }
 
     /**
-     * Method returns the maximum weight of the MLN
+     * returns the weight used for hard constraints
      * @return
      */
-    public double getMaxWeight() {
-        return sumWeights;
+    public double getHardWeight() {
+        return sumAbsWeights + 100;
     }
 
     /**
