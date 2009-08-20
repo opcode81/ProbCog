@@ -5,17 +5,14 @@
 
 package edu.tum.cs.srl.mln;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.IPossibleWorld;
-import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
