@@ -2,7 +2,7 @@ package edu.tum.cs.srl.mln.inference;
 
 import edu.tum.cs.logic.GroundAtom;
 
-public class InferenceResult {
+public class InferenceResult implements Comparable<InferenceResult> {
 	public GroundAtom ga;
 	public double value;
 	
@@ -13,5 +13,9 @@ public class InferenceResult {
 	
 	public void print() {
 		System.out.println(String.format("  %.4f  %s", value, ga.toString()));
+	}
+
+	public int compareTo(InferenceResult o) {
+		return this.ga.toString().compareTo(o.ga.toString());
 	}
 }
