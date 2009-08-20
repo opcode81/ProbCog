@@ -8,11 +8,14 @@ package edu.tum.cs.srl.mln;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.IPossibleWorld;
+import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
@@ -26,7 +29,6 @@ import edu.tum.cs.srl.Signature;
 public class MarkovRandomField implements Iterable<WeightedFormula> {
     protected Database db;
     public MarkovLogicNetwork mln;
-    protected String dbFile;
     protected Vector<WeightedFormula> weightedFormulas;
     protected WorldVariables vars;
     
@@ -40,11 +42,9 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      */
     public MarkovRandomField(MarkovLogicNetwork mln, String dbFileLoc, boolean makelist, GroundingCallback gc) throws Exception{
         db = new Database(mln);
-        db.readMLNDB(new File(dbFileLoc).toString());
         this.vars = new WorldVariables();
         this.mln = mln;
-        this.dbFile = dbFileLoc;
-        db.readMLNDB(dbFile);
+        db.readMLNDB(dbFileLoc);
         groundVariables();
         createBlocks();
         groundFormulas(makelist, gc);
@@ -134,8 +134,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     protected void groundFormulas(boolean makelist, GroundingCallback gc) throws Exception {
         weightedFormulas = new Vector<WeightedFormula>();
         for(Formula form : mln.formulas) {
-        	double weight = mln.formula2weight.get(form);
-        	boolean isHard = weight == mln.getHardWeight();
+        	Double weight = mln.formula2weight.get(form);
+        	if(weight == null)
+        		throw new Exception(String.format("MLN does not contain assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
+        	boolean isHard = weight.equals(mln.getHardWeight());
             for(Formula gf : form.getAllGroundings(db, vars, true)) {
                 if(makelist)
                     weightedFormulas.add(new WeightedFormula(gf, weight, isHard));
@@ -160,5 +162,17 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
 	public void print(PrintStream out) {
 		for(WeightedFormula wf : this)
 			out.println(wf.toString());
+	}
+	
+	/**
+	 * gets the sum of weights of formulas satisfied in the given possible world
+	 * @return
+	 */
+	public double getWorldValue(IPossibleWorld w) {
+		double s = 0;
+		for(WeightedFormula wf : this)
+			if(wf.formula.isTrue(w))
+				s += wf.weight;
+		return s;
 	}
 }
