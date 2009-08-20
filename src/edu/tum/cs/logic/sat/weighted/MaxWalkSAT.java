@@ -52,8 +52,8 @@ public class MaxWalkSAT {
     public int step;
     protected final boolean verbose = false;
     protected PossibleWorld bestState;
-    protected int greedymoves;
-    protected int satmoves;
+    protected int greedyMoves;
+    protected int SAMoves;
     protected int flips;
     double minSum;
     protected int deltaCostCalcMethod = 1; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
@@ -609,6 +609,17 @@ public class MaxWalkSAT {
      */
     public double getP() {
     	return p;
+    }
+    
+    /**
+     * With this method one can set the method the daltacosts of a goriundatom are calculated. Possible values are:
+     * 1 - Calculation of deltacosts: Always 1/Count of constraints of the according formula
+     * 2 - Calculation of deltacosts: Only if value of formula was changed (then complete weight of the formula are the deltacosts of the groundatom)
+     * 3 - see 2, if no change of the value of the according formula was made then see 1
+     * @param deltaCostCalcMethod 1, 2 or 3 (see above for details)
+     */
+    public void setDeltaCostCalcMethod(int deltaCostCalcMethod) {
+        this.deltaCostCalcMethod = deltaCostCalcMethod;
     }
 
     protected abstract class Constraint {
