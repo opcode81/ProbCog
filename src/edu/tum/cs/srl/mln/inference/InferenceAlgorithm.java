@@ -4,6 +4,7 @@
  */
 package edu.tum.cs.srl.mln.inference;
 
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -25,7 +26,7 @@ public abstract class InferenceAlgorithm {
 	
 	public abstract double getResult(GroundAtom ga);
 	
-	public Vector<InferenceResult> getResults(Iterable<String> queries) {
+	public ArrayList<InferenceResult> getResults(Iterable<String> queries) {
 		// generate patterns
 		Vector<Pattern> patterns = new Vector<Pattern>();
 		for(String query : queries) {
@@ -37,7 +38,7 @@ public abstract class InferenceAlgorithm {
 		}
 		// check all ground variables for matches
 		// TODO This should be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
-		Vector<InferenceResult> results = new Vector<InferenceResult>();
+		ArrayList<InferenceResult> results = new ArrayList<InferenceResult>();
 		int numRes = 0;
 		for(GroundAtom ga : mrf.getWorldVariables())
 			for(Pattern pattern : patterns)				
@@ -51,5 +52,9 @@ public abstract class InferenceAlgorithm {
 		return results;
 	}
 	
-	public abstract Vector<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception;
+	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception;
+	
+	public String getAlgorithmName() {
+		return this.getClass().getSimpleName();
+	}
 }

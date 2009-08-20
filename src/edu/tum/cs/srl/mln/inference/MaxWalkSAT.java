@@ -6,14 +6,14 @@
  */
 package edu.tum.cs.srl.mln.inference;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 
-public class MaxWalkSAT extends InferenceAlgorithm {
+public class MaxWalkSAT extends MAPInferenceAlgorithm {
 
 	protected edu.tum.cs.logic.sat.weighted.MaxWalkSAT sat;
 	
@@ -30,10 +30,27 @@ public class MaxWalkSAT extends InferenceAlgorithm {
 	}
 
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception {
+	public ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception {
         sat.setMaxSteps(maxSteps);
         sat.run();	        
 		return getResults(queries);
+	}
+
+	public PossibleWorld getSolution() {
+		return sat.getBestState();
+	}
+	
+	/**
+	 * sets the probability of a greedy move
+	 * @param p
+	 */
+	public void setP(double p) {
+		sat.setP(p);
+	}
+	
+	@Override
+	public String getAlgorithmName() {
+		return super.getAlgorithmName() + "[p=" + sat.getP() + "]";
 	}
 
 }

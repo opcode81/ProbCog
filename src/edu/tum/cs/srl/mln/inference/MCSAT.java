@@ -6,7 +6,7 @@
  */
 package edu.tum.cs.srl.mln.inference;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
@@ -28,7 +28,7 @@ public class MCSAT extends InferenceAlgorithm {
 	}
 
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries, int maxSteps)
+	public ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps)
 			throws Exception {
 		sampler.run(maxSteps);
 		return getResults(queries);
