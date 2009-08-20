@@ -1,25 +1,20 @@
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.logic.Formula;
-import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.RelationKey;
-import edu.tum.cs.srl.RelationalModel;
-import edu.tum.cs.srl.Signature;
-
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import edu.tum.cs.logic.Formula;
+import edu.tum.cs.srl.RelationKey;
+import edu.tum.cs.srl.RelationalModel;
+import edu.tum.cs.srl.Signature;
 
 /**
  * represents a Markov logic network
@@ -30,7 +25,6 @@ public class MarkovLogicNetwork implements RelationalModel {
     File mlnFile;
     ArrayList<Formula> formulas;
     HashMap<Formula, Double> formula2weight;
-    MLNFileParser parser;
     /**
      * maps a predicate name to its signature
      */
@@ -45,29 +39,30 @@ public class MarkovLogicNetwork implements RelationalModel {
     double sumAbsWeights = 0;
 
     /**
-     * Constructor for the MLN
+     * constructs an MLN
      * @param mlnFileLoc location of the MLN-file
      * @param makelist if true, a list of grounded formulas would be generated through the grounding
      * @param gc an optional Callback-function (if not null), which is applied to every grounded formula
+     * @throws Exception 
      */
-    public MarkovLogicNetwork(String mlnFileLoc, boolean makelist, GroundingCallback gc) {
+    public MarkovLogicNetwork(String mlnFileLoc, boolean makelist, GroundingCallback gc) throws Exception {
         mlnFile = new File(mlnFileLoc);
         signatures = new HashMap<String, Signature>();
         block = new HashMap<String, String>();        
         decDomains = new HashMap<String, String[]>();
         formulas = new ArrayList<Formula>();
         formula2weight = new HashMap<Formula, Double>();
-        parser = new MLNFileParser(mlnFile);
+        read(mlnFile);
         this.makelist = makelist;
         this.gc = gc;
-
     }
     
     /**
      * constructs an MLN from the given text file
      * @param mlnFile
+     * @throws Exception 
      */
-    public MarkovLogicNetwork(String mlnFile) {
+    public MarkovLogicNetwork(String mlnFile) throws Exception {
     	this(mlnFile, true, null);
     }
 
@@ -124,76 +119,57 @@ public class MarkovLogicNetwork implements RelationalModel {
     }
 
     /**
-     * Parser to read a MLN-File
-     * @author wernickr
+     * Method parses a MLN-file
+     * @throws Exception 
      */
-    public class MLNFileParser {
-
-        private File mlnFile;
+    public void read(File mlnFile) throws Exception {
         String actLine;
-        ArrayList<Formula> hardCon;
+        ArrayList<Formula> hardCon = new ArrayList<Formula>();
+    	
+        // read the complete MLN-File and save it in a String
+        FileReader fr = new FileReader(mlnFile);
+        char[] cbuf = new char[(int) mlnFile.length()];
+        fr.read(cbuf);
+        String content = new String(cbuf);
+        fr.close();
+        
+        // remove all comments
+        Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+        Matcher matcher = comments.matcher(content);
+        content = matcher.replaceAll("");
+        BufferedReader breader = new BufferedReader(new StringReader(content));
 
-        /**
-         * Constructor of the MLNFileParser
-         * @param mlnFile filelocation of the MLN-file to parse
-         */
-        public MLNFileParser(File mlnFile) {
-            hardCon = new ArrayList<Formula>();
-            this.mlnFile = mlnFile;
-            try {
-                parsemlnFile();
-            } catch (FileNotFoundException ex) {
-                Logger.getLogger(MarkovLogicNetwork.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(MarkovLogicNetwork.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-
-        /**
-         * Method parses a MLN-file
-         */
-        public void parsemlnFile() throws FileNotFoundException, IOException {
+        //Pattern for declaration of predicates
+        Pattern predicate = Pattern.compile("[a-z]+[\\w]*[(]{1}([a-z|A-Z]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z]+[\\w]*[!]?))*[)]{1}");
+        //Pattern for valid operators
+        Pattern operators = Pattern.compile("[\\s]*([v]{1}|[=>]{2}|[\\^]{1})[\\s]*");
+        //Pattern for valid literals
+        Pattern literals = Pattern.compile("[(]*[!]?[(]*" + predicate + "[)]*");
+        //Pattern for comparison
+        Pattern literals2 = Pattern.compile("[!]?[(]*[a-z|A-Z]+[\\w]*[=|<|>][a-z|A-Z]+[\\w]*[)]*");
+        // Pattern for exisistence-quantor
+        Pattern existence = Pattern.compile("[\\s]*[(]*[!]?[(]*[E][X][I][S][T][\\s]+[a-z|A-Z]+[\\w]*([\\s]+|[(]+)*");
+        //Pattern for valid formulas (general)
+        Pattern formula = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*[\\s]*");
+        //Pattern for valid numbers
+        Pattern validNumber = Pattern.compile("[-]?([0-9]+[.]?[0-9]*){1,18}");
+        //Pattern for valid weight
+        Pattern validWeight = Pattern.compile("[\\s]*[(]*[\\s]*" + validNumber + "[\\s]*[)]*[\\s]+");
+        //Pattern for a weighted formula
+        Pattern formula2 = Pattern.compile("(" + validWeight + ")" + formula);
+        //Pattern for a hard constarint
+        Pattern formula3 = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*.");
+        //Pattern for blanks
+        Pattern blank = Pattern.compile("[\\s]+");
+        // Pattern for domain declaration
+        Pattern domain = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
+        
+        // parse line by line         
+        for(actLine = breader.readLine(); breader != null && actLine != null; actLine = breader.readLine()) {
+            if(actLine.equals(""))
+            	continue;
             
-            // read the complete MLN-File and save it in a String
-            FileReader fr = new FileReader(mlnFile);
-            char[] cbuf = new char[(int) mlnFile.length()];
-            fr.read(cbuf);
-            String content = new String(cbuf);
-            fr.close();
-            
-            // remove all comments
-            Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
-            Matcher matcher = comments.matcher(content);
-            content = matcher.replaceAll("");
-            BufferedReader breader = new BufferedReader(new StringReader(content));
-
-            // parse line by line 
-            try {
-                actLine = breader.readLine();
-                while (breader != null && actLine != null) {
-                    if (!actLine.equals(""))
-                        insertintoList(actLine);
-                    actLine = breader.readLine();
-                }
-            } catch (FileNotFoundException fnfe) {
-                System.out.println("Sorry! The file not found, try again!");
-                fnfe.printStackTrace();
-            } catch (IOException ioe) {
-                System.out.println("There was an error during process! Could not parse file!");
-                ioe.printStackTrace();
-            } catch (Exception e) {
-                System.out.println("There was an error during parsing! No valid mlnfile!");
-                System.out.println(actLine);
-                e.printStackTrace();
-            }
-        }
-
-        /**
-         * Method that parses the given line and saves the result (formula, domain declaration, etc.) in the according sets
-         * @param line the stringrepresentation of the line to parse
-         * @throws iris.kitool.logic.parser.ParseException
-         */
-        public void insertintoList(String line) throws ParseException {
+            String line = actLine;
             int brleft = 0;
             int brright = 0;
 
@@ -211,32 +187,6 @@ public class MarkovLogicNetwork implements RelationalModel {
                 throw new IllegalArgumentException();
             }
 
-
-            //Pattern for declaration of predicates
-            Pattern predicate = Pattern.compile("[a-z]+[\\w]*[(]{1}([a-z|A-Z]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z]+[\\w]*[!]?))*[)]{1}");
-            //Pattern for valid operators
-            Pattern operators = Pattern.compile("[\\s]*([v]{1}|[=>]{2}|[\\^]{1})[\\s]*");
-            //Pattern for valid literals
-            Pattern literals = Pattern.compile("[(]*[!]?[(]*" + predicate + "[)]*");
-            //Pattern for comparison
-            Pattern literals2 = Pattern.compile("[!]?[(]*[a-z|A-Z]+[\\w]*[=|<|>][a-z|A-Z]+[\\w]*[)]*");
-            // Pattern for exisistence-quantor
-            Pattern existence = Pattern.compile("[\\s]*[(]*[!]?[(]*[E][X][I][S][T][\\s]+[a-z|A-Z]+[\\w]*([\\s]+|[(]+)*");
-            //Pattern for valid formulas (general)
-            Pattern formula = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*[\\s]*");
-            //Pattern for valid numbers
-            Pattern validNumber = Pattern.compile("[-]?([0-9]+[.]?[0-9]*){1,18}");
-            //Pattern for valid weight
-            Pattern validWeight = Pattern.compile("[\\s]*[(]*[\\s]*" + validNumber + "[\\s]*[)]*[\\s]+");
-            //Pattern for a weighted formula
-            Pattern formula2 = Pattern.compile("(" + validWeight + ")" + formula);
-            //Pattern for a hard constarint
-            Pattern formula3 = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*.");
-            //Pattern for blanks
-            Pattern blank = Pattern.compile("[\\s]+");
-            // Pattern for domain declaration
-            Pattern domain = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
-
             Matcher m = formula3.matcher(line);
             Matcher m2 = formula2.matcher(line);
             Matcher m3 = predicate.matcher(line);
@@ -244,7 +194,6 @@ public class MarkovLogicNetwork implements RelationalModel {
             Matcher m5 = domain.matcher(line);
             Matcher m6 = validNumber.matcher(line);
             Matcher m8 = formula.matcher(line);
-
             
             if (m.matches()) { // it's a hard constraint
                 Formula f = Formula.fromString(line.substring(0, line.length() - 1));
@@ -267,9 +216,13 @@ public class MarkovLogicNetwork implements RelationalModel {
 
             } else if (m3.matches()) { // parse predicate with signature and predicate name
                 Pattern pat = Pattern.compile("\\s*(\\w+)\\s*(\\w*)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
-                Matcher matcher = pat.matcher(line);
+                matcher = pat.matcher(line);
                 if (matcher.find()) {
                     String predicate2 = matcher.group(1);
+                    Signature sig = getSignature(predicate2);
+                    if(sig != null) {
+                    	throw new Exception(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
+                    }
                     String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
                     for (int c = 0; c < argTypes.length; c++) {
                         // check whether it's a blockvariable
@@ -279,12 +232,12 @@ public class MarkovLogicNetwork implements RelationalModel {
                             break;
                         }
                     }
-                    Signature sig = new Signature(predicate2, "boolean", argTypes);
+                    sig = new Signature(predicate2, "boolean", argTypes);
                     addSignature(matcher.group(1), sig);
                 }
                 
             } else if (m4.matches()) {
-                return;
+                continue;
             } else if (m5.matches()) { // it's a domain declaration
                 Pattern domName = Pattern.compile("[a-z]+\\w+");
                 Pattern domCont = Pattern.compile("\\{(\\s*[A-Z]+\\w*\\s*,?)+\\}");
@@ -300,12 +253,12 @@ public class MarkovLogicNetwork implements RelationalModel {
                 System.out.println("Error parsing predicate/formula! Line: " + actLine);
                 throw new IllegalArgumentException();
             }
-
-            // calculate weights of the hard constraints
-            double hardWeight = getHardWeight();
-            for (Formula f : hardCon)
-                formula2weight.put(f, hardWeight);
         }
+        
+        // assign weights of the hard constraints
+        double hardWeight = getHardWeight();
+        for (Formula f : hardCon)
+            formula2weight.put(f, hardWeight);
     }
 
     /**
