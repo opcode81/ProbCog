@@ -1,3 +1,7 @@
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -5,8 +9,10 @@ import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
 import edu.tum.cs.srl.mln.inference.InferenceResult;
+import edu.tum.cs.srl.mln.inference.MAPInferenceAlgorithm;
 import edu.tum.cs.srl.mln.inference.MCSAT;
 import edu.tum.cs.srl.mln.inference.MaxWalkSAT;
+import edu.tum.cs.srl.mln.inference.Toulbar2MAPInference;
 import edu.tum.cs.tools.Stopwatch;
 
 /**
@@ -15,7 +21,7 @@ import edu.tum.cs.tools.Stopwatch;
  */
 public class MLNinfer {
 
-	enum Algorithm {MaxWalkSAT, MCSAT};
+	enum Algorithm {MaxWalkSAT, MCSAT, Toulbar2};
 	
 	/**
 	 * @param args
@@ -29,6 +35,7 @@ public class MLNinfer {
 			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
 			boolean debug = false;
+			String param = null;
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -38,6 +45,8 @@ public class MLNinfer {
 					query = args[++i];
 				else if(args[i].equals("-e"))
 					dbFile = args[++i];				
+				else if(args[i].equals("-p"))
+					param = args[++i];				
 				else if(args[i].equals("-cw"))
 					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
@@ -46,6 +55,8 @@ public class MLNinfer {
 					algo = Algorithm.MaxWalkSAT;
 				else if(args[i].equals("-mcsat"))
 					algo = Algorithm.MCSAT;
+				else if(args[i].equals("-t2"))
+					algo = Algorithm.Toulbar2;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -56,6 +67,8 @@ public class MLNinfer {
 									 "    -maxSteps #      the maximum number of steps to take [default: 1000]\n" +
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
+									 "    -t2              algorithm: Toulbar2 branch & bound\n" +
+									 "    -p <value>       sets an algorithm parameter (applicable for mws)\n" +
 							         "    -debug           debug mode with additional outputs\n" 
 //							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
 									 );
@@ -101,18 +114,30 @@ public class MLNinfer {
 				infer = new MCSAT(mrf); 
 				break;
 			case MaxWalkSAT:
-				infer = new MaxWalkSAT(mrf);
+				MaxWalkSAT mws = new MaxWalkSAT(mrf); 
+				if(param != null)
+					mws.setP(Double.parseDouble(param));
+				infer = mws;
+				break;
+			case Toulbar2:
+				infer = new Toulbar2MAPInference(mrf);
 				break;
 			}			
-			System.out.printf("algorithm: %s, steps: %d\n", infer.getClass().getSimpleName(), maxSteps);
-			Vector<InferenceResult> results = infer.infer(queries, maxSteps);
+			System.out.printf("algorithm: %s, steps: %d\n", infer.getAlgorithmName(), maxSteps);
+			List<InferenceResult> results = infer.infer(queries, maxSteps);
 	        sw.stop();
 	        
 	        // show results
 	        System.out.printf("\nconstruction time: %.4fs, inference time: %.4fs\n", constructSW.getElapsedTimeSecs(), sw.getElapsedTimeSecs());
 	        System.out.println("results:");
+	        Collections.sort(results);
 	        for(InferenceResult r : results)
-	        	r.print();
+	        	r.print();	        
+	        if(infer instanceof MAPInferenceAlgorithm) {
+	        	MAPInferenceAlgorithm mapi = (MAPInferenceAlgorithm)infer;
+	        	double value = mrf.getWorldValue(mapi.getSolution());
+	        	System.out.printf("\nsolution value: %f\n", value);
+	        }
 		}
 		catch(Exception e) {
 			e.printStackTrace();
