@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.logic.sat.weighted.MaxWalkSATRoom;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
@@ -21,7 +22,7 @@ import edu.tum.cs.tools.Stopwatch;
  */
 public class MLNinfer {
 
-	enum Algorithm {MaxWalkSAT, MCSAT, Toulbar2};
+	enum Algorithm {MaxWalkSAT, MCSAT, Toulbar2, MaxWalkSATRooms};
 	
 	/**
 	 * @param args
@@ -53,6 +54,8 @@ public class MLNinfer {
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-mws"))
 					algo = Algorithm.MaxWalkSAT;
+				else if(args[i].equals("-mwsr"))
+					algo = Algorithm.MaxWalkSATRooms;
 				else if(args[i].equals("-mcsat"))
 					algo = Algorithm.MCSAT;
 				else if(args[i].equals("-t2"))
@@ -114,7 +117,8 @@ public class MLNinfer {
 				infer = new MCSAT(mrf); 
 				break;
 			case MaxWalkSAT:
-				MaxWalkSAT mws = new MaxWalkSAT(mrf); 
+			case MaxWalkSATRooms:
+				MaxWalkSAT mws = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class : MaxWalkSATRoom.class); 
 				if(param != null)
 					mws.setP(Double.parseDouble(param));
 				infer = mws;
