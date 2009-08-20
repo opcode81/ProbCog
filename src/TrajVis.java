@@ -7,6 +7,8 @@ import javax.swing.JFrame;
 
 import de.tum.in.fipm.kipm.gui.visualisation.JointTrajectoriesIsomap;
 import de.tum.in.fipm.kipm.gui.visualisation.items.BodyPoseSequence;
+import edu.tum.cs.tools.CollectionFilter;
+import edu.tum.cs.vis.DrawableAnimated;
 import edu.tum.cs.vis.items.Trajectory;
 import edu.tum.cs.vis.items.Legend;
 
@@ -28,6 +30,7 @@ public class TrajVis {
 		boolean wire = false;
 		boolean error = false;
 		boolean background = false;
+		int minStep = 0;
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-c")) {
@@ -54,6 +57,9 @@ public class TrajVis {
 			else if(args[i].equals("-bg")) {
 				background = true;
 			}
+			else if(args[i].equals("-minStep")) {
+				minStep = Integer.parseInt(args[++i]);
+			}
 			else {
 				System.err.println("Error: unknown parameter " + args[i]);
 				error = true;
@@ -69,10 +75,11 @@ public class TrajVis {
 			System.out.println("           -e <embedded data>       low-dimensional (2D/3D) embedding");
 			System.out.println("           -l <label indices file>  point labels");
 			System.out.println("           -lm <label names file>   label mapping");
-			System.out.println("           -c   			        center embeddings around mean");
-			System.out.println("           -nomesh			        do not draw kitchen mesh");	
+			System.out.println("           -c                       center embeddings around mean");
+			System.out.println("           -nomesh                  do not draw kitchen mesh");	
 			System.out.println("           -wire                    draw human pose using lines only");
 			System.out.println("           -bg                    	draw kitchen background");
+			System.out.println("           -minStep <frame no.>     draw trajectory starting with given frame");
 			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
 			return;
 		}
@@ -121,6 +128,10 @@ public class TrajVis {
 			m.isomap.addAnimated(traj);
 		}		
 		//m.isomap.setHeight(400);
+		
+		for(Trajectory t : new CollectionFilter<Trajectory, DrawableAnimated>(m.isomap.getAnimatedItems(), Trajectory.class)) {
+			t.minStep = minStep;
+		}
 			
 		JFrame frame = new JFrame();
 		Dimension size = m.getPreferredSize();
