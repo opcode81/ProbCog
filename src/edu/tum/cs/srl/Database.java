@@ -152,7 +152,7 @@ public class Database {
 		boolean verbose = true;
 		
 		// read file content
-		if(verbose) System.out.println("  reading file contents");
+		if(verbose) System.out.printf("  reading contents of %s...\n", databaseFilename);
 		String dbContent = BLOGModel.readTextFile(databaseFilename);
 		
 		// remove comments
@@ -382,17 +382,17 @@ public class Database {
         boolean verbose = true;
 
         // read file content
-        if (verbose) System.out.println("  reading file contents...");
+        if (verbose) System.out.printf("reading contents of %s...\n", databaseFilename);
         String dbContent = BLOGModel.readTextFile(databaseFilename);
 
         // remove comments
-        if (verbose) System.out.println("  removing comments...");
+        //if (verbose) System.out.println("  removing comments...");
         Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
         Matcher matcher = comments.matcher(dbContent);
         dbContent = matcher.replaceAll("");
 
         // read lines
-        if (verbose) System.out.println("  reading items...");
+        //if (verbose) System.out.println("  reading items...");
         Pattern re_entry = Pattern.compile("[!]?[a-z]+[\\w]*[(]{1}([a-z|A-Z|0-9]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z|0-9]+[\\w]*[!]?))*[)]{1}");
         Pattern funcName = Pattern.compile("([!]?\\w+)(\\()(\\s*[A-Z|0-9]+[\\w+\\s*(,)]*\\s*)(\\))");
         Pattern domName = Pattern.compile("[a-z]+\\w+");
@@ -415,7 +415,7 @@ public class Database {
                     var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True");
 			
                 addVariable(var, ignoreUndefinedNodes);
-                if (++numVars % 100 == 0 && verbose) System.out.println("    " + numVars + " vars read\r");
+                //if (++numVars % 100 == 0 && verbose) System.out.println("    " + numVars + " vars read\r");
                 continue;
             }
 
