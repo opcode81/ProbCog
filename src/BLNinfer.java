@@ -12,6 +12,7 @@ import edu.tum.cs.bayesnets.inference.EnumerationAsk;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.*;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
@@ -176,19 +177,23 @@ public class BLNinfer {
 				}
 			}
 			
+			// read evidence database
+			Database db = new Database(blog);
+			db.readBLOGDB(dbFile);
+			if(cwPreds != null) {
+				for(String predName : cwPreds)
+					db.setClosedWorldPred(predName);
+			}
+			
 			// instantiate ground model
 			AbstractGroundBLN gbln;
 			if(!usePython) {
 				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, blnFile);
-				gbln = new GroundBLN(bln, dbFile);
+				gbln = new GroundBLN(bln, db);
 			}
 			else {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, blnFile);
-				gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, dbFile);
-			}
-			if(cwPreds != null) {
-				for(String predName : cwPreds)
-					gbln.getDatabase().setClosedWorldPred(predName);
+				gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, db);
 			}
 			gbln.instantiateGroundNetwork();
 			if(showBN) {
@@ -198,7 +203,6 @@ public class BLNinfer {
 				String baseName = bifFile.substring(0, bifFile.lastIndexOf('.'));
 				gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
 			}
-
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
