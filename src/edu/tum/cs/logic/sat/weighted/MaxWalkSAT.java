@@ -224,9 +224,11 @@ public class MaxWalkSAT {
         while (step < maxSteps && unsatisfiedConstraints.size() > 0) {
             // calculation of the difference between actually found (unsSum) and globally found minimal unsatisfied sum (minSum) -> acually unused
             diffSum = unsSum - minSum;
+            boolean newBest = false;
             // if there is another new minimal unsatisfied value
-            if (unsSum <= minSum) {
+            if (unsSum <= minSum) {            	
                 if (unsSum < minSum) {
+                	newBest = true;
                     // saves new minimum, resets the steps which shows how often the algorithm hits the minimum (minSteps)
                     minSum = unsSum;
                     minSteps = 0;
@@ -236,9 +238,8 @@ public class MaxWalkSAT {
                     lastMinStep = step;
                 }
                 // if the actual minimum is hit again minSteps where set +1
-                if (unsSum == minSum) {
+                if (unsSum == minSum)
                     minSteps++;
-                }
             }
 
             // choose between walkSATMove (greedy flip) and SAMove(random flip)
@@ -254,8 +255,8 @@ public class MaxWalkSAT {
             step++;
 
             // print progress
-            if(step % 1 == 0) {
-                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f\n", step, move, countUnsCon, unsSum, minSum);
+            if(step % 100 == 0 || newBest) {
+                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f  %s\n", step, move, countUnsCon, unsSum, minSum, newBest ? "[NEW BEST]" : "");
             }
         }
     }
@@ -592,6 +593,22 @@ public class MaxWalkSAT {
      */
     public int getStep() {
         return step;
+    }
+    
+    /**
+     * sets the probability of a greedy move
+     * @param p
+     */
+    public void setP(double p) {
+    	this.p = p;
+    }
+    
+    /**
+     * gets the probability of a greedy move
+     * @return parameter p
+     */
+    public double getP() {
+    	return p;
     }
 
     protected abstract class Constraint {
