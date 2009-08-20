@@ -340,8 +340,8 @@ class MLNQuery:
                 params = ' -i "%s" -e "%s" -q "%s" %s %s' % (mln, db, self.settings["query"], self.jmlns_methods[method], params)
                 if self.settings["maxSteps"] != "":
                     params += " -maxSteps %s" % (self.settings["maxSteps"])
-                # run
-                app = "java -cp /usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/BNJ/bin:/usr/wiss/jain/work/code/SRLDB/lib/log4j-1.2.9.jar MLNinfer"
+                # run                
+                app = "MLNinfer"
                 command = "%s %s" % (app, params)
                 # execute 
                 print "\nStarting J-MLNs..."
