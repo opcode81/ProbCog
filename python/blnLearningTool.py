@@ -278,7 +278,7 @@ if __name__ == '__main__':
     # process command line arguments
     argv = sys.argv
     i = 1
-    arg2setting = {} #{"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None}
+    arg2setting = {"-t": "db"} #{"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None}
     while i < len(argv):
         if argv[i] in arg2setting and i+1 < len(argv):
             setting = arg2setting[argv[i]]
