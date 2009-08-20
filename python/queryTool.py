@@ -95,7 +95,7 @@ class MLNQuery:
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
         self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP (MaxWalkSAT)":"-a"}
-        self.jmlns_methods = {"MAP (MaxWalkSAT)":"-mws", "MC-SAT":"-mcsat"}
+        self.jmlns_methods = {"MAP (MaxWalkSAT)":"-mws", "MC-SAT":"-mcsat", "MAP (Toulbar2 B&B)":"-t2"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
 
@@ -344,7 +344,7 @@ class MLNQuery:
                 app = "java -cp /usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/BNJ/bin:/usr/wiss/jain/work/code/SRLDB/lib/log4j-1.2.9.jar MLNinfer"
                 command = "%s %s" % (app, params)
                 # execute 
-                print "\nStarting Alchemy..."
+                print "\nStarting J-MLNs..."
                 print "\ncommand:\n%s\n" % command
                 t_start = time.time()
                 os.system(command)
