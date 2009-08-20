@@ -42,11 +42,9 @@ public class KnowledgeBase implements Iterable<Formula> {
 		// read KB file
 		String fileContent = FileUtil.readTextFile(filename);
 		// remove comments
-                System.out.println("vorher: " + fileContent);
 		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(fileContent);
 		fileContent = matcher.replaceAll("");
-                System.out.println("nachher: " + fileContent);
 		// read lines
 		BufferedReader br = new BufferedReader(new StringReader(fileContent));
 		String line;
