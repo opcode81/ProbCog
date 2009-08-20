@@ -1,15 +1,14 @@
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Vector;
+import java.util.regex.Pattern;
 
-import edu.tum.cs.srl.bayesnets.ABL;
-import edu.tum.cs.srl.bayesnets.BLOGModel;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.BLOGModel;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
-import java.util.regex.Pattern;
-import java.util.Vector;
-
 
 public class learnBLOG {	
 	
@@ -80,27 +79,20 @@ public class learnBLOG {
 					bn = new BLOGModel(bifFile);
 			}
 			
-
 			// prepare it for learning
 			bn.prepareForLearning();
 
 			// read the training databases
 			System.out.println("Reading data...");
 			Vector<Database> dbs = new Vector<Database>();
-			String[] pathName = dbFile.split("/");
-			String dirName=".";
-			for(int p=0;p<pathName.length-1;p++) {
-				dirName+="/"+pathName[p];
-			}
-			
-			Pattern p = Pattern.compile( pathName[pathName.length-1] );
-			
-			for (File file : new File( dirName ).listFiles()) { 
+			Pattern p = Pattern.compile( dbFile );
+			File directory = new File(dbFile).getParentFile();
+			if(directory == null)
+				directory = new File(".");
+			for (File file : directory.listFiles()) { 
 				if(p.matcher(file.getName()).matches()) {
-					
-					
 					Database db = new Database(bn);
-					db.readBLOGDB(dirName+"/"+file.getName(), ignoreUndefPreds);
+					db.readBLOGDB(file.getPath(), ignoreUndefPreds);
 					dbs.add(db);
 				}
 			}
@@ -113,18 +105,15 @@ public class learnBLOG {
 			// learn domains
 			if(learnDomains) {
 				System.out.println("Learning domains...");
-				
 				DomainLearner domLearner = new DomainLearner(bn);
-				for(Database db : dbs) {
-					
-					domLearner.learn(db);
+				for(Database db : dbs) {					
+					domLearner.learn(db);					
 				}
-
 				domLearner.finish();
 			}
 			System.out.println("Domains:");
-			for(Signature sig : bn.getSignatures()) {
-				System.out.println("  " + sig.functionName + ": " + sig.returnType);
+			for(Signature sig : bn.getSignatures()) {	
+				System.out.println("  " + sig.functionName + ": " + sig.returnType + " ");
 			}
 			// learn parameters
 			boolean learnParams = true;
