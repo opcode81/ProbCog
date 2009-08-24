@@ -6,7 +6,6 @@
 package edu.tum.cs.srl.mln;
 
 import edu.tum.cs.logic.Formula;
-import edu.tum.cs.srl.Database;
 
 
 
@@ -16,6 +15,6 @@ import edu.tum.cs.srl.Database;
  */
 public interface GroundingCallback { 
     
-    public void onGroundedFormula(Formula f, double weight, Database db);
+    public void onGroundedFormula(Formula f, double weight, MarkovRandomField mrf);
     
 }
