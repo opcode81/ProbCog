@@ -26,6 +26,10 @@ public class GroundBLN extends AbstractGroundBLN {
 		super(bln, databaseFile);
 	}
 	
+	public GroundBLN(BayesianLogicNetworkPy bln, Database db) throws Exception {
+		super(bln, db);
+	}
+	
 	@Override
 	public void groundFormulaicNodes() throws Exception {
 		BayesianLogicNetworkPy bln = (BayesianLogicNetworkPy)this.bln;
