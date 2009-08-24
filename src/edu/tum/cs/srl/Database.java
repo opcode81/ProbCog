@@ -12,8 +12,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.srl.bayesnets.BLOGModel;
-import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.tools.FileUtil;
 import edu.tum.cs.tools.StringTool;
 
 /**
@@ -153,7 +152,7 @@ public class Database {
 		
 		// read file content
 		if(verbose) System.out.printf("  reading contents of %s...\n", databaseFilename);
-		String dbContent = BLOGModel.readTextFile(databaseFilename);
+		String dbContent = FileUtil.readTextFile(databaseFilename);
 		
 		// remove comments
 		if(verbose) System.out.println("  removing comments");
@@ -336,9 +335,9 @@ public class Database {
 		 */
 		public String getPredicate(RelationalModel model) {
 			if(isBoolean(model))
-				return functionName + "(" + RelationalNode.join(",", params) + ")";
+				return functionName + "(" + StringTool.join(",", params) + ")";
 			else				
-				return functionName + "(" + RelationalNode.join(",", params) + "," + value + ")";	
+				return functionName + "(" + StringTool.join(",", params) + "," + value + ")";	
 		}
 
 		public boolean isBoolean(RelationalModel model) {
@@ -383,7 +382,7 @@ public class Database {
 
         // read file content
         if (verbose) System.out.printf("reading contents of %s...\n", databaseFilename);
-        String dbContent = BLOGModel.readTextFile(databaseFilename);
+        String dbContent = FileUtil.readTextFile(databaseFilename);
 
         // remove comments
         //if (verbose) System.out.println("  removing comments...");
@@ -442,5 +441,9 @@ public class Database {
      */
     public HashMap<String, HashSet<String>> getDomains() {
         return domains;
+    }
+    
+    public RelationalModel getModel() {
+    	return this.model;
     }
 }
