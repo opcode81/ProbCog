@@ -1,11 +1,8 @@
 package edu.tum.cs.srl.bayesnets;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -18,20 +15,12 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.tools.FileUtil;
+import edu.tum.cs.tools.StringTool;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 	
 	protected String blogContents;
-	
-	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
-		File inputFile = new File(filename);
-		FileReader fr = new FileReader(inputFile);
-		char[] cbuf = new char[(int)inputFile.length()];
-		fr.read(cbuf);
-		String content = new String(cbuf);
-		fr.close();
-		return content;
-	}
 
 	/**
 	 * constructs a BLOG model by obtaining the node data from a Bayesian network template and function signatures from one or more BLOG files.
@@ -72,7 +61,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		// read the blog files
 		StringBuffer buf = new StringBuffer();
 		for(String blogFile : files) {
-			buf.append(readTextFile(blogFile));
+			buf.append(FileUtil.readTextFile(blogFile));
 			buf.append('\n');
 		}
 		return buf.toString();
@@ -221,7 +210,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			}
 			Vector<String> lists = new Vector<String>();
 			getCPD(lists, cpf, domains, addr, 1);
-			out.printf("%s ~ TabularCPD[%s](%s);\n", relNode.getCleanName(), RelationalNode.join(",", lists.toArray(new String[0])), args.toString());
+			out.printf("%s ~ TabularCPD[%s](%s);\n", relNode.getCleanName(), StringTool.join(",", lists.toArray(new String[0])), args.toString());
 		}
 	}
 	
@@ -277,7 +266,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			if(node.isBuiltInPred())
 				continue;
 			Signature sig = getSignature(node.functionName);
-			out.printf("random %s %s(%s);\n", sig.returnType, node.functionName, RelationalNode.join(", ", sig.argTypes));			
+			out.printf("random %s %s(%s);\n", sig.returnType, node.functionName, StringTool.join(", ", sig.argTypes));			
 		}
 		out.println();
 	}
