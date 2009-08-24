@@ -139,7 +139,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
                 if(makelist)
                     weightedFormulas.add(new WeightedFormula(gf, weight, isHard));
                 if(gc != null)
-                    gc.onGroundedFormula(gf, weight, db);
+                    gc.onGroundedFormula(gf, weight, this);
             }
         }
     }
