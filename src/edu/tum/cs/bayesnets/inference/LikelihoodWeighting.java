@@ -23,8 +23,19 @@ public class LikelihoodWeighting extends Sampler {
 			if(i % infoInterval == 0)
 				System.out.println("  step " + i);			
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
-			if(ret != null) 
+			if(ret != null) {
 				addSample(ret);
+				
+				if(false) { // debugging of weighting
+					System.out.print("w=" + ret.weight);
+					for(int j = 0; j < evidenceDomainIndices.length; j++)
+						if(evidenceDomainIndices[j] == -1) {
+							BeliefNode node = bn.bn.getNodes()[j];							
+							System.out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
+						}
+					System.out.println();
+				}
+			}
 		}
 		sw.stop();
 		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
