@@ -223,6 +223,7 @@ public class BackwardSampling extends Sampler {
 				System.out.println("  step " + currentStep);
 			getSample(s);
 			this.addSample(s);
+			onAddedSample(s);
 		}
 		
 		sw.stop();
@@ -306,5 +307,8 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			return false;
 		s.nodeDomainIndices[this.nodeIndices.get(node)] = idx;
 		return true;
+	}
+	
+	protected void onAddedSample(WeightedSample s) {		
 	}
 }
