@@ -11,6 +11,7 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.tools.Pair;
+import edu.tum.cs.tools.StringTool;
 
 public class RelationalNode extends ExtendedNode {
 	/**
@@ -30,16 +31,6 @@ public class RelationalNode extends ExtendedNode {
 	
 	public static final String BUILTINPRED_EQUALS = "EQ";
 	public static final String BUILTINPRED_NEQUALS = "NEQ";
-	
-	public static String join(String glue, String[] elems) {
-		StringBuffer res = new StringBuffer();
-		for(int i = 0; i < elems.length; i++) {
-			res.append(elems[i]);
-			if(i < elems.length-1)
-				res.append(glue);
-		}
-		return res.toString();
-	}
 	
 	/**
 	 * extracts the node name (function/predicate name) from a variable name (which contains arguments)
@@ -70,7 +61,7 @@ public class RelationalNode extends ExtendedNode {
 			name = name.substring(1);
 		}
 		else if(name.charAt(0) == '+') { // precondition: node is boolean and required to be true
-			isPrecondition = true;
+			isPrecondition = true;			
 			isAuxiliary = true;
 			name = name.substring(1);
 		}
@@ -109,6 +100,9 @@ public class RelationalNode extends ExtendedNode {
 			this.params = new String[]{name};
 			this.isConstant = true;
 		}
+		
+		if(isPrecondition)
+			bn.setEvidenceFunction(functionName);
 	}
 	
 	public String toString() {
@@ -308,7 +302,7 @@ public class RelationalNode extends ExtendedNode {
 			buf.append("|");
 			if(this.parentMode != null && this.parentMode.length() > 0)
 				buf.append(parentMode + ":");
-			buf.append(join(",", this.addParams));
+			buf.append(StringTool.join(",", this.addParams));
 		}
 		this.node.setName(buf.toString());
 	}
