@@ -21,6 +21,7 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.tools.CollectionFilter;
+import edu.tum.cs.tools.StringTool;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx implements RelationalModel {
 	/**
@@ -42,6 +43,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * a mapping of nodes to their corresponding parent grounders (which are created on demand)
 	 */
 	protected Map<RelationalNode, ParentGrounder> parentGrounders;
+	/**
+	 * a set of functions/predicates that are required to be fully specified in the evidence
+	 */
+	protected HashSet<String> evidenceFunctions = new HashSet<String>();
 	
 	public Collection<RelationKey> getRelationKeys(String relation) {
 		return relationKeys.get(relation.toLowerCase());
@@ -346,7 +351,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					throw new Exception("Parameter " + i + " of " + sig.functionName + " has empty type: " + sig);
 				argTypes[i] = Database.lowerCaseString(sig.argTypes[i]);
 			}
-			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), RelationalNode.join(", ", argTypes));		
+			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), StringTool.join(", ", argTypes));		
 		}
 		out.println();
 		
@@ -436,7 +441,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 						// print the condition
 						if(k++ > 0)
 							out.print(" v ");						
-						out.print("EXIST " + RelationalNode.join(",", freeparams.toArray(new String[0])) + " " + writer.formatAsAtom(parent.toAtom()));
+						out.print("EXIST " + StringTool.join(",", freeparams.toArray(new String[0])) + " " + writer.formatAsAtom(parent.toAtom()));
 					}
 					if(k == 0)
 						throw new Exception("None of the parents of OR-node " + node + " handle any of the free parameters.");
@@ -537,7 +542,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					params[i++] = node.params[j];
 				for(int j = 0; j < node.addParams.length; j++)
 					params[i++] = node.addParams[j];
-				String fullName = Signature.formatVarName(node.getFunctionName() + "_" + RelationalNode.join("", node.addParams), params);
+				String fullName = Signature.formatVarName(node.getFunctionName() + "_" + StringTool.join("", node.addParams), params);
 				BeliefNode fullyGroundedNode = this.addNode(fullName);
 				fullyGroundedNode.setDomain(node.node.getDomain());
 				// create the corresponding relational node and define a signature for it
@@ -621,6 +626,18 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	public boolean isBoolean(String functionName) {
 		return getSignature(functionName).isBoolean();
+	}
+	
+	/**
+	 * sets the given function as an evidence function that must always be given
+	 * @param functionName
+	 */
+	public void setEvidenceFunction(String functionName) {
+		this.evidenceFunctions.add(functionName);
+	}
+	
+	public boolean isEvidenceFunction(String functionName) {
+		return evidenceFunctions.contains(functionName);
 	}
 }
 
