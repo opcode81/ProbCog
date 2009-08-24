@@ -69,6 +69,9 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			converter.setGroundAtomState(state, i, domIdx);
 		}
 		
+		// set evidence (as in the WCSP, evidence variables are removed)
+		state.setEvidence(mrf.getDb());
+		
 		// clean up
 		new File("temp.wcsp").delete();
 				
