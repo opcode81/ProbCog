@@ -16,6 +16,7 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.tools.StringTool;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	
@@ -116,7 +117,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 						int domIdx = dom.findName(value);					
 						if(domIdx < 0) {
 							String[] domain = BeliefNetworkEx.getDiscreteDomainAsArray(ndCurrent.node);
-							throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + RelationalNode.join(",", domain) + "}");
+							throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + StringTool.join(",", domain) + "}");
 						}
 						addr += factor * domIdx; 
 						factor *= dom.getOrder();
@@ -179,7 +180,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 						String[] domElems = new String[dom.getOrder()];
 						for(int j = 0; j < domElems.length; j++)
 							domElems[j] = dom.getName(j);
-						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), RelationalNode.join(",", domElems), varName));
+						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
 					}					
 					// side affair: learn the CPT of constant nodes here by incrementing the counter
 					if(ndCurrent.isConstant) {
