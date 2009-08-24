@@ -1,8 +1,10 @@
 package edu.tum.cs.logic;
 
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Iterator;
+
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.RelationalModel;
+import edu.tum.cs.srl.Database.Variable;
 
 public class PossibleWorld implements IPossibleWorld {
 	
@@ -70,5 +72,12 @@ public class PossibleWorld implements IPossibleWorld {
             this.state = state;
         else 
             throw new IllegalArgumentException("Size of state array does not match number of variables!");        
+    }
+    
+    public void setEvidence(Database db) {
+    	RelationalModel model = db.getModel();
+    	for(Variable var : db.getEntries()) {
+    		this.set(var.getPredicate(model), var.isTrue()); 
+    	}
     }
 }
