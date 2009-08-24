@@ -1,28 +1,19 @@
 package edu.tum.cs.tools;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
 public class FileUtil {
 
-	public static String readTextFile(String filename) { 
-        try { 
-            File f = new File(filename); 
-            byte[] buffer = new byte[(int) f.length()]; 
-            BufferedInputStream fis = new BufferedInputStream(new FileInputStream(f)); 
-            int i = 0; 
-            int b = fis.read(); 
-            while (b != -1) { 
-                buffer[i++] = (byte) b; 
-                b = fis.read(); 
-            } 
-            fis.close(); 
-            return new String(buffer); 
-        } 
-        catch (Exception e1) { 
-            e1.printStackTrace(); 
-        } 
-        return null;            
-    } 
+	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
+		File inputFile = new File(filename);
+		FileReader fr = new FileReader(inputFile);
+		char[] cbuf = new char[(int)inputFile.length()];
+		fr.read(cbuf);
+		String content = new String(cbuf);
+		fr.close();
+		return content;
+	}
 
 }
