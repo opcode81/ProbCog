@@ -6,14 +6,17 @@ import java.io.IOException;
 
 public class FileUtil {
 
-	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
-		File inputFile = new File(filename);
-		FileReader fr = new FileReader(inputFile);
-		char[] cbuf = new char[(int)inputFile.length()];
+	public static String readTextFile(File file) throws FileNotFoundException, IOException {		
+		FileReader fr = new FileReader(file);
+		char[] cbuf = new char[(int)file.length()];
 		fr.read(cbuf);
 		String content = new String(cbuf);
 		fr.close();
 		return content;
+	}
+	
+	public static String readTextFile(String filename) throws FileNotFoundException, IOException {
+		return readTextFile(new File(filename));
 	}
 
 }
