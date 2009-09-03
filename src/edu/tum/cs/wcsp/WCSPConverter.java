@@ -21,6 +21,7 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
@@ -202,7 +203,8 @@ public class WCSPConverter implements GroundingCallback {
         } else { // if the variable doesn't exists, add a new variable and the required mappings
             vars.add(function);
             gnd_varidx.put(gnd, vars.indexOf(function));
-            func_dom.put(function, mln.getBlock().get(wld.getVariables().get(gnd.index).predicate.toString()));
+            Signature sig = mln.getSignature(gnd.predicate);
+            func_dom.put(function, sig.argTypes[mln.getFunctionallyDeterminedArgument(gnd.predicate)]);
             HashSet<GroundAtom> temp = new HashSet<GroundAtom>();
             temp.add(gnd);
             vars_gnd.put(vars.get(vars.indexOf(function)), temp);
