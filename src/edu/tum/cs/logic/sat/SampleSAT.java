@@ -316,9 +316,11 @@ public class SampleSAT {
 		if(bn != null) 
 			delta -= bn.size();
 		// consider newly satisfied constraints (positive)
-		for(Constraint c : this.GAOccurrences.get(gndAtom.index))
-			if(c.flipSatisfies(gndAtom))
-				delta++; 
+		Vector<Constraint> occs = this.GAOccurrences.get(gndAtom.index);
+		if(occs != null)
+			for(Constraint c : occs)
+				if(c.flipSatisfies(gndAtom))
+					delta++; 
 		return delta;
 	}
 	
