@@ -2,11 +2,11 @@ package edu.tum.cs.srl.mln;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,6 +15,7 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.tools.FileUtil;
 
 /**
  * represents a Markov logic network
@@ -24,16 +25,19 @@ public class MarkovLogicNetwork implements RelationalModel {
 
     File mlnFile;
     ArrayList<Formula> formulas;
-    HashMap<Formula, Double> formula2weight;
+    protected HashMap<Formula, Double> formula2weight;
     /**
      * maps a predicate name to its signature
      */
-    HashMap<String, Signature> signatures;
+    protected HashMap<String, Signature> signatures;
     /**
      * maps domain/type names to a list of guaranteed domain elements
      */
     protected HashMap<String, String[]> decDomains;
-    protected HashMap<String, String> block;
+    /**
+     * mapping from predicate name to index of argument that is functionally determined
+     */
+    protected HashMap<String, Integer> functionalPreds;
     boolean makelist;
     GroundingCallback gc;
     double sumAbsWeights = 0;
@@ -48,7 +52,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     public MarkovLogicNetwork(String mlnFileLoc, boolean makelist, GroundingCallback gc) throws Exception {
         mlnFile = new File(mlnFileLoc);
         signatures = new HashMap<String, Signature>();
-        block = new HashMap<String, String>();        
+        functionalPreds = new HashMap<String, Integer>();        
         decDomains = new HashMap<String, String[]>();
         formulas = new ArrayList<Formula>();
         formula2weight = new HashMap<Formula, Double>();
@@ -85,11 +89,11 @@ public class MarkovLogicNetwork implements RelationalModel {
     }
 
     /**
-     * Method returns blockvariables of MLN-file
-     * @return 
+     * gets the functionally determined argument of a functional predicate 
+     * @return the index of the argument that is functionally determined
      */
-    public HashMap<String, String> getBlock() {
-        return block;
+    public Integer getFunctionallyDeterminedArgument(String predicateName) {
+        return this.functionalPreds.get(predicateName);
     }
 
     /**
@@ -127,11 +131,7 @@ public class MarkovLogicNetwork implements RelationalModel {
         ArrayList<Formula> hardCon = new ArrayList<Formula>();
     	
         // read the complete MLN-File and save it in a String
-        FileReader fr = new FileReader(mlnFile);
-        char[] cbuf = new char[(int) mlnFile.length()];
-        fr.read(cbuf);
-        String content = new String(cbuf);
-        fr.close();
+        String content = FileUtil.readTextFile(mlnFile);
         
         // remove all comments
         Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
@@ -215,7 +215,7 @@ public class MarkovLogicNetwork implements RelationalModel {
                 }
 
             } else if (m3.matches()) { // parse predicate with signature and predicate name
-                Pattern pat = Pattern.compile("\\s*(\\w+)\\s*(\\w*)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
+                Pattern pat = Pattern.compile("\\s*(\\w+)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
                 matcher = pat.matcher(line);
                 if (matcher.find()) {
                     String predicate2 = matcher.group(1);
@@ -223,12 +223,14 @@ public class MarkovLogicNetwork implements RelationalModel {
                     if(sig != null) {
                     	throw new Exception(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
                     }
-                    String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
+                    String[] argTypes = matcher.group(2).trim().split("\\s*,\\s*");
                     for (int c = 0; c < argTypes.length; c++) {
                         // check whether it's a blockvariable
-                        if (argTypes[c].contains("!")) {
+                        if(argTypes[c].endsWith("!")) {
                             argTypes[c] = argTypes[c].replace("!", "");
-                            block.put(predicate2, argTypes[c]);
+                            Integer oldValue = functionalPreds.put(predicate2, c);
+                            if(oldValue != null)
+                            	throw new Exception(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predicate2));
                             break;
                         }
                     }
@@ -303,8 +305,7 @@ public class MarkovLogicNetwork implements RelationalModel {
 
 
     /**
-     * 
-     * @return
+     * @return a mapping from domain names to arrays of elements
      */
     public HashMap<String, String[]> getGuaranteedDomainElements() {
         return decDomains;
@@ -318,5 +319,16 @@ public class MarkovLogicNetwork implements RelationalModel {
     public Collection<RelationKey> getRelationKeys(String relation) {
     	// TODO     
     	return null;
+    }
+    
+    /**
+     * @return the set of functional predicates (i.e. their names)
+     */
+    public Set<String> getFunctionalPreds() {
+    	return functionalPreds.keySet();
+    }
+    
+    public Collection<Signature> getSignatures() {
+    	return this.signatures.values();
     }
 }
