@@ -6,8 +6,8 @@
 package edu.tum.cs.srl.mln;
 
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
@@ -16,7 +16,6 @@ import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
 
 /**
@@ -43,7 +42,6 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         this.mln = mln;
         db.readMLNDB(dbFileLoc);
         groundVariables();
-        createBlocks();
         groundFormulas(makelist, gc);
     } 
     
@@ -60,66 +58,38 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      * @throws Exception 
      */
     protected void groundVariables() throws Exception {
-        Collection<Signature> signa = mln.signatures.values();
-        for (Signature pre : signa) {
-            Collection<String[]> col = ParameterGrounder.generateGroundings(mln.getSignature(pre.functionName), db);
-            for(String[] grAtom : col) {
-                GroundAtom gnd = new GroundAtom(pre.functionName, grAtom);
-                vars.add(gnd);
-            }
-        }
+    	for(Signature sig : mln.getSignatures()) {
+    		groundVariables(sig, new String[sig.argTypes.length], 0, mln.getFunctionallyDeterminedArgument(sig.functionName));
+    	}
     }
     
-    /**
-     * creates blocks for ground atoms (only for atoms that are block variables)
-     */
-    protected void createBlocks(){
-        for (String key : mln.block.keySet()) {
-            String[] domains = mln.getSignature(key).argTypes;
-            int index = mln.getPosinArray(mln.block.get(key), domains);
-            Vector<GroundAtom> atoms = new Vector<GroundAtom>();
-            atoms = getGAforBlock(key + "*");
-            int c = 0;
-            while (atoms != null && atoms.size() > 0) {
-                String partofAtom = "";
-                String atomString = atoms.get(c).toString();
-                for (int d = 0; d <= domains.length - 1; d++) {
-                    if (d == index) {
-                        if (atomString.contains(","))
-                            atomString = atomString.substring(atomString.indexOf(','));
-                         else 
-                            atomString = ")";
-                        
-                        partofAtom = partofAtom + "*" + atomString;
-                        Vector<GroundAtom> foo = getGAforBlock(partofAtom); 
-                        vars.addBlock(foo);
-                        atoms.removeAll(foo);;
-                        break;
-                    }
-                    partofAtom = partofAtom + atomString.substring(0, atomString.indexOf(',') + 1);
-                    atomString = atomString.substring(atomString.indexOf(',') + 1);
-                }
-            }
-        }
-    }
-    
-	/**
-     * retrieves the variable (ground atom) containing all given String and at position of the asterisk (must be given) any additional String (before, between or afterwards)
-     * @param gndAtom
-     * @return
-     */
-    public Vector<GroundAtom> getGAforBlock(String gndAtom){
-        Vector<GroundAtom> block = new Vector<GroundAtom>();
-        if (gndAtom.contains("*")){
-            String part1 = gndAtom.substring(0, gndAtom.indexOf("*"));
-            String part2 = gndAtom.substring(gndAtom.indexOf("*")+1);
-            for (String atomString : vars.getVariableStrings()){
-                if (atomString.contains(part1) && atomString.contains(part2)){
-                    block.add(vars.get(atomString));
-                }
-            }
-        }
-        return block;
+    protected void groundVariables(Signature sig, String[] args, int i, Integer functionallyDeterminedArg) {
+    	if(i == args.length) {
+    		if(functionallyDeterminedArg != null) {
+    			Vector<GroundAtom> block = new Vector<GroundAtom>();
+        		Set<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
+        		for(String value : dom) {
+        			args[functionallyDeterminedArg] = value;
+        			block.add(new GroundAtom(sig.functionName, args.clone()));
+        		}
+    			vars.addBlock(block);
+    			//System.out.println("Block: " + block);
+    		}
+    		else {
+    			vars.add(new GroundAtom(sig.functionName, args.clone()));
+    		}
+    		return;
+    	}    	
+    	if(functionallyDeterminedArg != null && functionallyDeterminedArg.equals(i)) { // skip the functionally determined argument
+    		groundVariables(sig, args, i+1, functionallyDeterminedArg);    		
+    	}
+    	else {
+    		Set<String> dom = db.getDomain(sig.argTypes[i]);
+    		for(String value : dom) {
+    			args[i] = value;
+    			groundVariables(sig, args, i+1, functionallyDeterminedArg);
+    		}
+    	}
     }
     
     /**
