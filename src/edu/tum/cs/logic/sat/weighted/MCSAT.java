@@ -23,6 +23,8 @@ public class MCSAT {
 	protected Database db; 
 	protected Random rand;
 	protected SampledDistribution dist;
+	protected double p = 0.9;
+	protected final boolean verbose = true;
 	
 	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) {		
 		this.kb = kb;
@@ -32,7 +34,13 @@ public class MCSAT {
 		this.dist = new SampledDistribution(vars);
 	}
 
-	public void run(int steps) throws Exception {		
+	public void run(int steps) throws Exception {
+		if(verbose) {
+			System.out.println("MC-SAT constraints:");
+			for(WeightedClause wc : kb)
+				System.out.println("  " + wc);
+		}
+		
 		// find initial state satisfying all hard constraints
 		Vector<WeightedClause> M = new Vector<WeightedClause>();
 		for(Entry<WeightedFormula, Vector<WeightedClause>> e : kb.getFormulasAndClauses()) {
@@ -43,6 +51,7 @@ public class MCSAT {
 		}
 		PossibleWorld state = new PossibleWorld(vars);
 		SampleSAT sat = new SampleSAT(M, state, vars, db);
+		sat.setP(p);
 		sat.run();
 		
 		// actual MC-SAT sampling
@@ -56,13 +65,27 @@ public class MCSAT {
 						M.addAll(e.getValue());
 				}
 			}
-			if((i+1) % 100 == 0)
+			if(verbose || (i+1) % 100 == 0) {
 				System.out.printf("  step %d: %d constraints to be satisfied\n", i+1, M.size());
+				if(verbose) {
+					for(WeightedClause wc : M)
+						System.out.println("    " + wc);
+				}
+			}
 			sat.initConstraints(M);
 			sat.run();
+			
+			if(true) {
+				sat.getState().print();
+			}
+			
 			dist.addSample(sat.getState(), 1.0);
 		}
 		dist.normalize();
+	}
+	
+	public void setP(double p) {
+		this.p = p;
 	}
 	
 	public double getResult(GroundAtom ga) {
