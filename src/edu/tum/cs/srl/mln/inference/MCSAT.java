@@ -33,5 +33,9 @@ public class MCSAT extends InferenceAlgorithm {
 		sampler.run(maxSteps);
 		return getResults(queries);
 	}
+	
+	public void setP(double p) {
+		sampler.setP(p);
+	}
 
 }
