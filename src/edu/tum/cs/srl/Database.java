@@ -69,6 +69,15 @@ public class Database {
 		}
 		return null;
 	}
+	
+	/**
+	 * retrieves a variable setting
+	 * @param varName the name of the variable to retrieve
+	 * @return returns the variable setting with the given name if it is contained in the database), null otherwise
+	 */
+	public Variable getVariable(String varName) {
+		return entries.get(varName.toLowerCase());
+	}
 
 	/**
 	 * checks whether the database contains an entry for the given variable name 
