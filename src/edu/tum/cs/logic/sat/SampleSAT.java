@@ -162,12 +162,11 @@ public class SampleSAT {
 		for(Constraint c : constraints)
 			c.initState();
 		
-		if(verbose) System.out.println("running SampleSAT...");
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {			
 			if(verbose /*|| step % 10 == 0*/) {				
 				System.out.println("SampleSAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
-				if(false) {
+				if(true) {
 					//state.print();				
 					for(Constraint c : unsatisfiedConstraints) {
 						System.out.println("  unsatisfied: " + c);
@@ -322,6 +321,14 @@ public class SampleSAT {
 				if(c.flipSatisfies(gndAtom))
 					delta++; 
 		return delta;
+	}
+	
+	/**
+	 * sets the probability of a greedy move
+	 * @param p
+	 */
+	public void setP(double p) {
+		this.p = p;
 	}
 	
 	protected abstract class Constraint {
