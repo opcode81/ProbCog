@@ -6,6 +6,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.sat.weighted.MaxWalkSATRoom;
+import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
@@ -104,7 +105,8 @@ public class MLNinfer {
 			MarkovRandomField mrf = mln.ground(dbFile);
 			if(debug) {
 				System.out.println("MRF:");
-				mrf.print(System.out);
+				for(WeightedFormula wf : mrf)
+					System.out.println("  " + wf.toString());
 			}
 			constructSW.stop();
 			
@@ -114,7 +116,9 @@ public class MLNinfer {
 			InferenceAlgorithm infer = null;
 			switch(algo) {
 			case MCSAT:
-				infer = new MCSAT(mrf); 
+				infer = new MCSAT(mrf);
+				if(param != null)
+					((MCSAT)infer).setP(Double.parseDouble(param));
 				break;
 			case MaxWalkSAT:
 			case MaxWalkSATRooms:
