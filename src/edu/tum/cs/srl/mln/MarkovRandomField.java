@@ -17,10 +17,11 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.Database.Variable;
 
 /**
  * Class that represents a grounded instance of a MLN-file
- * @author wernickr
+ * @author wernickr, jain
  */
 public class MarkovRandomField implements Iterable<WeightedFormula> {
     protected Database db;
@@ -54,7 +55,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     }
     
     /**
-     * creates ground atoms for all signatures
+     * creates the set ground atoms, considering functional predicates (and extending evidence as needed) 
      * @throws Exception 
      */
     protected void groundVariables() throws Exception {
@@ -63,15 +64,31 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     	}
     }
     
-    protected void groundVariables(Signature sig, String[] args, int i, Integer functionallyDeterminedArg) {
+    protected void groundVariables(Signature sig, String[] args, int i, Integer functionallyDeterminedArg) throws Exception {
     	if(i == args.length) {
     		if(functionallyDeterminedArg != null) {
+    			// build the block of variables and check if we have positive evidence for one of them
     			Vector<GroundAtom> block = new Vector<GroundAtom>();
         		Set<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
+        		GroundAtom trueOne = null;
         		for(String value : dom) {
         			args[functionallyDeterminedArg] = value;
-        			block.add(new GroundAtom(sig.functionName, args.clone()));
+        			GroundAtom ga = new GroundAtom(sig.functionName, args.clone()); 
+        			block.add(ga);
+        			Variable var = db.getVariable(ga.toString());
+        			if(var != null && var.isTrue()) {
+        				if(trueOne != null)
+        					throw new Exception(String.format("The block the variable '%s' is in contains more than one true ground atom", ga.toString()));
+        				trueOne = ga; 
+        			}
         		}
+        		// if we have positive evidence, explicitly set the others to false in the database (to make full use of the evidence when grounding the formulas later on)
+        		if(trueOne != null) {
+        			for(GroundAtom ga : block)
+        				if(ga != trueOne && !db.contains(ga.toString()))
+        					db.addVariable(new Variable(ga.predicate, ga.args, "False"));
+        		}
+        		// add the block to the set of vars
     			vars.addBlock(block);
     			//System.out.println("Block: " + block);
     		}
