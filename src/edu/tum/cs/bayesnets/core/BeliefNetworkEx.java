@@ -607,12 +607,12 @@ public class BeliefNetworkEx {
 	}
 	
 	/**
-	 * shows the Bayesian Network in a BNJ editor window
+	 * shows the Bayesian Network in an editor window (with support for standard IO plugins)
 	 */
 	public void show() {
 		registerDefaultPlugins();		
 		edu.ksu.cis.bnj.gui.GUIWindow window = new edu.ksu.cis.bnj.gui.GUIWindow();
-		window.register();		
+		window.register();	
 		window.open(bn, filename);
 	}
 	
