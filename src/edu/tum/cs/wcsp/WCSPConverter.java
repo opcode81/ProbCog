@@ -53,17 +53,18 @@ public class WCSPConverter implements GroundingCallback {
     int generatedFormulas = 0;
 
     /**
-     * Constructor to instantiate a WCSP-Converter
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
-     * @param mlnFileLoc filelocation of the MLN-File
-     * @param dbFileLoc  filelocation of the evidence
+     * @param mlnFileLoc MLN file
+     * @param dbFileLoc  MLN database file
      * @throws Exception 
      */
     public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws Exception {
-        this.mln = new MarkovLogicNetwork(mlnFileLoc, false, this);
+        this.mln = new MarkovLogicNetwork(mlnFileLoc);
     	deltaMin = mln.getdeltaMin();
         sb_result = new StringBuffer();
-        mln.ground(dbFileLoc); // implicitly performs the conversion of formulas to WCSP constraints through the callback
+        Database db = new Database(mln);
+        db.readMLNDB(dbFileLoc);
+        mln.ground(db, false, this); // implicitly performs the conversion of formulas to WCSP constraints through the callback
     }
     
     /**
@@ -410,7 +411,7 @@ public class WCSPConverter implements GroundingCallback {
      * this method sets the truth values of a block of mutually exclusive ground atoms 
      * @param atoms atoms within the block
      * @param value value indicating the atom to set to true
-     * TODO this method makes bad assumptions about the blocking of variables 
+     * TODO this method makes evil assumptions about the blocking of variables 
      */
     protected void setWorldofWCSP(PossibleWorld w, HashSet<GroundAtom> atoms, String value) {
         Iterator<GroundAtom> it = atoms.iterator();
