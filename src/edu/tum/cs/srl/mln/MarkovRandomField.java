@@ -30,21 +30,20 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     protected WorldVariables vars;
     
     /**
-     * Constructor of a MarkovRandomField
-     * @param mln an instance of a MLN
-     * @param dbFileLoc filelocation of evidence 
-     * @param makelist boolean to set, whether a list of grounded formulas should be generated
-     * @param gc an optional callback method (called for each grounded formula)
+     * @param mln a Markov logic network
+     * @param db an evidence database containing the set of objects for wich to ground the MLN  
+     * @param storeFormula whether to store the grounded formulas that are generated
+     * @param gc an optional callback (which is called for each grounded formula), may be null
+     * @throws Exception 
      * @throws Exception 
      */
-    public MarkovRandomField(MarkovLogicNetwork mln, String dbFileLoc, boolean makelist, GroundingCallback gc) throws Exception{
-        db = new Database(mln);
+    public MarkovRandomField(MarkovLogicNetwork mln, Database db, boolean storeFormulas, GroundingCallback gc) throws Exception {
+        this.db = db;
         this.vars = new WorldVariables();
-        this.mln = mln;
-        db.readMLNDB(dbFileLoc);
+        this.mln = mln;        
         groundVariables();
-        groundFormulas(makelist, gc);
-    } 
+        groundFormulas(storeFormulas, gc);
+    }
     
     /**
      * Method that returns worldVariables of the given MLN
