@@ -32,4 +32,8 @@ public class JythonInterpreter extends PythonInterpreter {
     public String evalString(String command, Object ... args) throws ConversionException {
     	return eval(command, args).toString();
     }
+    
+    public double evalDouble(String command, Object ... args) throws NumberFormatException, ConversionException {
+    	return Double.parseDouble(evalString(command, args));
+    }
 }
