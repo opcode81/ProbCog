@@ -24,7 +24,7 @@ public class MCSAT {
 	protected Random rand;
 	protected SampledDistribution dist;
 	protected double p = 0.9;
-	protected final boolean verbose = true;
+	protected final boolean verbose = false;
 	
 	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) {		
 		this.kb = kb;
@@ -75,7 +75,7 @@ public class MCSAT {
 			sat.initConstraints(M);
 			sat.run();
 			
-			if(true) {
+			if(false) {
 				sat.getState().print();
 			}
 			
