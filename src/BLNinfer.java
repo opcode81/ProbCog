@@ -39,9 +39,9 @@ public class BLNinfer {
 	 */
 	public static void main(String[] args) {
 		try {
-			String blogFile = null;
-			String bifFile = null;
-			String blnFile = null;
+			String declsFile = null;
+			String networkFile = null;
+			String logicFile = null;
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
@@ -58,11 +58,11 @@ public class BLNinfer {
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-b"))
-					blogFile = args[++i];
+					declsFile = args[++i];
 				else if(args[i].equals("-x"))
-					bifFile = args[++i];
+					networkFile = args[++i];
 				else if(args[i].equals("-l"))
-					blnFile = args[++i];
+					logicFile = args[++i];
 				else if(args[i].equals("-q"))
 					query = args[++i];
 				else if(args[i].equals("-e"))
@@ -118,30 +118,37 @@ public class BLNinfer {
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
-			if(bifFile == null || dbFile == null || blogFile == null || blnFile == null || query == null) {
-				System.out.println("\n usage: inferBLN <-b <BLOG file>> <-x <xml-BIF file>> <-l <BLN file>> <-e <evidence db pattern>> <-q <comma-sep. queries>> [options]\n\n"+
-									 "    -maxSteps #      the maximum number of steps to take\n" +
-									 "    -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
-									 "    -skipFailedSteps failed steps (> max trials) should just be skipped\n" +
-									 "    -lw              algorithm: likelihood weighting (default)\n" +
-									 "    -lwu             algorithm: likelihood weighting with uncertain evidence (default)\n" +
-							         "    -gs              algorithm: Gibbs sampling\n" +						
-							         "    -exp             algorithm: Experimental\n" +
-							         "    -satis           algorithm: SAT-IS\n" +
-							         "    -satisex         algorithm: SAT-IS Extended (adds hard CPT constraints to the KB) \n" +
-							         "    -satisexg        algorithm: SAT-IS Extended with interspersed Gibbs sampling\n" +
-							         "    -bs              algorithm: backward sampling\n" +
-							         "    -lbs             algorithm: lifted backward sampling\n" +
-							         "    -sbs             algorithm: SMILE backward sampling\n" +
-							         "    -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
-							         "    -ea              algorithm: Enumeration-Ask (exact)\n" +
-							         "    -mcsat           algorithm: MC-SAT\n" +
-							         "    -py              use Python-based logic engine\n" +
-							         "    -debug           debug mode with additional outputs\n" + 
-							         "    -s           	   show ground network in editor\n" +
-							         "    -si              save ground network instance in BIF format (.instance.xml)\n" +
-							         "    -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
-							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
+			if(networkFile == null || dbFile == null || declsFile == null || logicFile == null || query == null) {
+				System.out.println("\n usage: BLNinfer <arguments>\n\n" +
+						             "   required arguments:\n\n" +
+						             "     -b <declarations file>    declarations file (types, domains, signatures, etc.)\n" +
+						             "     -x <network file>         fragment network (XML-BIF or PMML)\n" + 
+						             "     -l <logic file>           logical constraints file\n" + 
+						             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
+						             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
+						             "   options:\n\n" +
+									 "     -maxSteps #      the maximum number of steps to take\n" +
+									 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
+									 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +									 
+									 "     -lw              algorithm: likelihood weighting (default)\n" +
+									 "     -lwu             algorithm: likelihood weighting with uncertain evidence\n" +
+							         "     -gs              algorithm: Gibbs sampling\n" +						
+							         "     -exp             algorithm: Experimental\n" +
+							         "     -satis           algorithm: SAT-IS\n" +
+							         "     -satisex         algorithm: SAT-IS Extended (adds hard CPT constraints to the KB) \n" +
+							         "     -satisexg        algorithm: SAT-IS Extended with interspersed Gibbs sampling\n" +
+							         "     -bs              algorithm: backward sampling\n" +
+							         "     -lbs             algorithm: lifted backward sampling\n" +
+							         "     -sbs             algorithm: SMILE backward sampling\n" +
+							         "     -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
+							         "     -ea              algorithm: Enumeration-Ask (exact)\n" +
+							         "     -mcsat           algorithm: MC-SAT\n\n" +
+							         "     -py              use Python-based logic engine\n" +
+							         "     -debug           debug mode with additional outputs\n" + 
+							         "     -s               show ground network in editor\n" +
+							         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
+							         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
+							         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
 				return;
 			}			
 
@@ -163,7 +170,7 @@ public class BLNinfer {
 				throw new IllegalArgumentException("Unbalanced parentheses in queries");
 
 			// load relational model
-			ABL blog = new ABL(blogFile, bifFile);
+			ABL blog = new ABL(declsFile, networkFile);
 			
 			// (on request) remove deterministic dependencies in CPTs
 			if(removeDeterministicCPTEntries) {
@@ -188,11 +195,11 @@ public class BLNinfer {
 			// instantiate ground model
 			AbstractGroundBLN gbln;
 			if(!usePython) {
-				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, blnFile);
+				BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, logicFile);
 				gbln = new GroundBLN(bln, db);
 			}
 			else {
-				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, blnFile);
+				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, logicFile);
 				gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, db);
 			}
 			gbln.instantiateGroundNetwork();
@@ -200,7 +207,7 @@ public class BLNinfer {
 				gbln.getGroundNetwork().show();
 			}
 			if(saveInstance) {
-				String baseName = bifFile.substring(0, bifFile.lastIndexOf('.'));
+				String baseName = networkFile.substring(0, networkFile.lastIndexOf('.'));
 				gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
 			}
 			
