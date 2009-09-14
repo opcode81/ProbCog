@@ -12,14 +12,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.Formula;
+import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.tools.FileUtil;
+import edu.tum.cs.tools.JythonInterpreter;
 
 /**
  * represents a Markov logic network
- * @author wernickr
+ * @author wernickr, jain
  */
 public class MarkovLogicNetwork implements RelationalModel {
 
@@ -38,8 +41,6 @@ public class MarkovLogicNetwork implements RelationalModel {
      * mapping from predicate name to index of argument that is functionally determined
      */
     protected HashMap<String, Integer> functionalPreds;
-    boolean makelist;
-    GroundingCallback gc;
     double sumAbsWeights = 0;
 
     /**
@@ -49,7 +50,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @param gc an optional Callback-function (if not null), which is applied to every grounded formula
      * @throws Exception 
      */
-    public MarkovLogicNetwork(String mlnFileLoc, boolean makelist, GroundingCallback gc) throws Exception {
+    public MarkovLogicNetwork(String mlnFileLoc) throws Exception {
         mlnFile = new File(mlnFileLoc);
         signatures = new HashMap<String, Signature>();
         functionalPreds = new HashMap<String, Integer>();        
@@ -57,19 +58,8 @@ public class MarkovLogicNetwork implements RelationalModel {
         formulas = new ArrayList<Formula>();
         formula2weight = new HashMap<Formula, Double>();
         read(mlnFile);
-        this.makelist = makelist;
-        this.gc = gc;
     }
     
-    /**
-     * constructs an MLN from the given text file
-     * @param mlnFile
-     * @throws Exception 
-     */
-    public MarkovLogicNetwork(String mlnFile) throws Exception {
-    	this(mlnFile, true, null);
-    }
-
     /**
      * adds a predicate signature to this model 
      * @param predicateName name of the predicate
@@ -117,9 +107,12 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @return returns a grounded MLN as a MarkovRandomField MRF
      * @throws Exception 
      */
-    public MarkovRandomField ground(String dbFileLoc) throws Exception {
-        MarkovRandomField mrf = new MarkovRandomField(this, dbFileLoc, makelist, gc);
-        return mrf;
+    public MarkovRandomField ground(Database db) throws Exception {
+    	return ground(db, true, null);
+    }
+    
+    public MarkovRandomField ground(Database db, boolean storeFormulasInMRF, GroundingCallback gc) throws Exception {
+        return new MarkovRandomField(this, db, storeFormulasInMRF, gc);
     }
 
     /**
@@ -128,7 +121,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      */
     public void read(File mlnFile) throws Exception {
         String actLine;
-        ArrayList<Formula> hardCon = new ArrayList<Formula>();
+        ArrayList<Formula> hardFormulas = new ArrayList<Formula>();
     	
         // read the complete MLN-File and save it in a String
         String content = FileUtil.readTextFile(mlnFile);
@@ -139,108 +132,63 @@ public class MarkovLogicNetwork implements RelationalModel {
         content = matcher.replaceAll("");
         BufferedReader breader = new BufferedReader(new StringReader(content));
 
-        //Pattern for declaration of predicates
-        Pattern predicate = Pattern.compile("[a-z]+[\\w]*[(]{1}([a-z|A-Z]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z]+[\\w]*[!]?))*[)]{1}");
-        //Pattern for valid operators
-        Pattern operators = Pattern.compile("[\\s]*([v]{1}|[=>]{2}|[\\^]{1})[\\s]*");
-        //Pattern for valid literals
-        Pattern literals = Pattern.compile("[(]*[!]?[(]*" + predicate + "[)]*");
-        //Pattern for comparison
-        Pattern literals2 = Pattern.compile("[!]?[(]*[a-z|A-Z]+[\\w]*[=|<|>][a-z|A-Z]+[\\w]*[)]*");
-        // Pattern for exisistence-quantor
-        Pattern existence = Pattern.compile("[\\s]*[(]*[!]?[(]*[E][X][I][S][T][\\s]+[a-z|A-Z]+[\\w]*([\\s]+|[(]+)*");
-        //Pattern for valid formulas (general)
-        Pattern formula = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*[\\s]*");
-        //Pattern for valid numbers
-        Pattern validNumber = Pattern.compile("[-]?([0-9]+[.]?[0-9]*){1,18}");
-        //Pattern for valid weight
-        Pattern validWeight = Pattern.compile("[\\s]*[(]*[\\s]*" + validNumber + "[\\s]*[)]*[\\s]+");
-        //Pattern for a weighted formula
-        Pattern formula2 = Pattern.compile("(" + validWeight + ")" + formula);
-        //Pattern for a hard constarint
-        Pattern formula3 = Pattern.compile("(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + "(" + operators + "(" + existence + ")*" + "(" + literals + "|" + literals2 + ")" + ")*.");
-        //Pattern for blanks
-        Pattern blank = Pattern.compile("[\\s]+");
-        // Pattern for domain declaration
-        Pattern domain = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
+        String identifier = "\\w+";
+        String constant = "(?:[A-Z]\\w*|[0-9]+)";
+        // predicate declaration
+        Pattern predDecl = Pattern.compile(String.format("(%s)\\(\\s*(%s!?(?:\\s*,\\s*%s!?)*)\\s*\\)", identifier, identifier, identifier));
+        // domain declaration
+        Pattern domDecl = Pattern.compile(String.format("(%s)\\s*=\\s*\\{\\s*(%s(?:\\s*,\\s*%s)*)\\s*\\}", identifier, constant, constant));
+        
+        JythonInterpreter jython = null;
         
         // parse line by line         
         for(actLine = breader.readLine(); breader != null && actLine != null; actLine = breader.readLine()) {
-            if(actLine.equals(""))
-            	continue;
-            
-            String line = actLine;
-            int brleft = 0;
-            int brright = 0;
+        	String line = actLine.trim();
+        	if(line.length() == 0)
+            	continue;            
 
-            // check whether number of left brackets and number of right brackets is the same
-            for (int i = 0; i < line.length(); i++) {
-                if (line.charAt(i) == '(')
-                    brleft++;
-                else if (line.charAt(i) == ')')
-                    brright++;
-            }
-            // if the numbers are different throw an exception
-            if (brleft != brright) {
-                System.out.println("Error parsing file! There is an unequal number of left and right brackets in your predicate/formula!");
-                System.out.println("Line: " + line);
-                throw new IllegalArgumentException();
-            }
-
-            Matcher m = formula3.matcher(line);
-            Matcher m2 = formula2.matcher(line);
-            Matcher m3 = predicate.matcher(line);
-            Matcher m4 = blank.matcher(line);
-            Matcher m5 = domain.matcher(line);
-            Matcher m6 = validNumber.matcher(line);
-            Matcher m8 = formula.matcher(line);
-            
-            if (m.matches()) { // it's a hard constraint
-                Formula f = Formula.fromString(line.substring(0, line.length() - 1));
+            // hard constraint
+            if(line.endsWith(".")) {
+            	Formula f;
+                String strF = line.substring(0, line.length() - 1);
+                try {
+                	f = Formula.fromString(strF);
+                }
+                catch(ParseException e) {
+                	throw new Exception("The hard formula '" + strF + "' could not be parsed: " + e.toString());
+                }
                 formulas.add(f);
-                hardCon.add(f);
-            } else if (m2.matches()) { // it's a weighted formula
-                if (m6.find()) {
-                    // parse weight
-                    Double weight = Double.parseDouble(m6.group());
-                    m8.find();
-                    // parse formula from string
-                    Formula f = Formula.fromString(m8.group());
-                    // add formula and weight in according sets
-                    formulas.add(f);
-                    formula2weight.put(f, weight);
-                    sumAbsWeights += Math.abs(weight);
-                } else {
-                    throw new IllegalArgumentException();
-                }
-
-            } else if (m3.matches()) { // parse predicate with signature and predicate name
-                Pattern pat = Pattern.compile("\\s*(\\w+)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
-                matcher = pat.matcher(line);
-                if (matcher.find()) {
-                    String predicate2 = matcher.group(1);
-                    Signature sig = getSignature(predicate2);
-                    if(sig != null) {
-                    	throw new Exception(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
-                    }
-                    String[] argTypes = matcher.group(2).trim().split("\\s*,\\s*");
-                    for (int c = 0; c < argTypes.length; c++) {
-                        // check whether it's a blockvariable
-                        if(argTypes[c].endsWith("!")) {
-                            argTypes[c] = argTypes[c].replace("!", "");
-                            Integer oldValue = functionalPreds.put(predicate2, c);
-                            if(oldValue != null)
-                            	throw new Exception(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predicate2));
-                            break;
-                        }
-                    }
-                    sig = new Signature(predicate2, "boolean", argTypes);
-                    addSignature(matcher.group(1), sig);
-                }
-                
-            } else if (m4.matches()) {
+                hardFormulas.add(f);
                 continue;
-            } else if (m5.matches()) { // it's a domain declaration
+            } 
+            
+            // predicate declaration
+            Matcher m = predDecl.matcher(line);
+            if(m.matches()) {                 
+                String predName = m.group(1);
+                Signature sig = getSignature(predName);
+                if(sig != null) {
+                	throw new Exception(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
+                }
+                String[] argTypes = m.group(2).trim().split("\\s*,\\s*");
+                for (int c = 0; c < argTypes.length; c++) {
+                    // check whether it's a blockvariable
+                    if(argTypes[c].endsWith("!")) {
+                        argTypes[c] = argTypes[c].replace("!", "");
+                        Integer oldValue = functionalPreds.put(predName, c);
+                        if(oldValue != null)
+                        	throw new Exception(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predName));
+                        break;
+                    }
+                }
+                sig = new Signature(predName, "boolean", argTypes);
+                addSignature(predName, sig);
+                continue;
+            }
+            
+            // domain declaration
+            m = domDecl.matcher(line);
+            if(m.matches()) { 
                 Pattern domName = Pattern.compile("[a-z]+\\w+");
                 Pattern domCont = Pattern.compile("\\{(\\s*[A-Z]+\\w*\\s*,?)+\\}");
                 Matcher mat = domName.matcher(line);
@@ -251,15 +199,47 @@ public class MarkovLogicNetwork implements RelationalModel {
                     String[] cont = domarg.trim().split("\\s*,\\s*");
                     decDomains.put(mat.group(0), cont);
                 }
-            } else { // if none of the pattern matches, throw an exception
-                System.out.println("Error parsing predicate/formula! Line: " + actLine);
-                throw new IllegalArgumentException();
+                continue;
             }
+            
+            // must be a weighted formula
+            int iSpace = line.indexOf(' ');
+            if(iSpace == -1)
+            	throw new Exception("This line is not a correct declaration of a weighted formula: " + line);
+            String strWeight = line.substring(0, iSpace);
+            Double weight = null;
+            try {
+            	weight = Double.parseDouble(strWeight);
+            }            
+            catch(NumberFormatException e) {
+            	if(jython == null) {
+            		jython = new JythonInterpreter();
+            		jython.exec("from math import *");
+            		jython.exec("def logx(x):\n  if x == 0: return -100\n  return log(x)");
+            	}
+            	try {
+            		weight = jython.evalDouble(strWeight);
+            	}
+            	catch(Exception e2) {
+            		throw new Exception("Could not interpret weight '" + strWeight + "': " + e2.toString());
+            	}            
+            }
+            String strF = line.substring(iSpace+1).trim();
+            Formula f;
+            try {
+            	f = Formula.fromString(strF);
+            }
+            catch(ParseException e) {
+            	throw new Exception("The formula '" + strF + "' could not be parsed: " + e.toString());
+            }
+            formulas.add(f);
+            formula2weight.put(f, weight);
+            sumAbsWeights += Math.abs(weight);
         }
         
-        // assign weights of the hard constraints
+        // assign weights to hard constraints
         double hardWeight = getHardWeight();
-        for (Formula f : hardCon)
+        for (Formula f : hardFormulas)
             formula2weight.put(f, hardWeight);
     }
 
