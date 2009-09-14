@@ -11,7 +11,7 @@ import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 
 public abstract class Formula {	
-	public abstract void getVariables(Database db, Map<String,String> ret);
+	public abstract void getVariables(Database db, Map<String,String> ret) throws Exception;
 	/**
 	 * grounds this formula for a particular binding of its variables
 	 * @param binding		the variable binding

@@ -27,7 +27,7 @@ public class Exist extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) throws Exception {
 		f.getVariables(db, ret);
 		for(String var : vars) {
 			var2domName.put(var, ret.remove(var));
