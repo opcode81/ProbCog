@@ -53,8 +53,8 @@ class BLNQuery:
 
         row = 0
 
-        # - BIF selection
-        Label(self.frame, text="BIF: ").grid(row=row, column=0, sticky=NE)
+        # - fragments selection
+        Label(self.frame, text="Fragments: ").grid(row=row, column=0, sticky=NE)
         # frame
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
@@ -67,17 +67,17 @@ class BLNQuery:
         start_button = Button(frame, text="show", command=self.showBN)
         start_button.grid(row=0, column=1, sticky="NEWS")
         
-        # blog/abl selection
+        # declarations selection
         row += 1
-        Label(self.frame, text="BLOG: ").grid(row=row, column=0, sticky=NE)
-        self.selected_blog = FilePickEdit(self.frame, ["*.blog", "*.abl"], self.settings.get("blog", ""), 10, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
+        Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
+        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 10, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
         self.selected_blog.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
-        # bln selection
+        # logical constraints selection
         row += 1
-        Label(self.frame, text="BLN: ").grid(row=row, column=0, sticky=NE)
-        self.selected_bln = FilePickEdit(self.frame, "*.bln", self.settings.get("bln", ""), 16, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
+        Label(self.frame, text="Logic: ").grid(row=row, column=0, sticky=NE)
+        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 16, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
         self.selected_bln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
         
