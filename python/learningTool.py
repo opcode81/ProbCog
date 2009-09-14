@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # MLN Parameter Learning Tool
 # 
 # (C) 2006-2007 by Dominik Jain
