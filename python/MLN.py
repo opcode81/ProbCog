@@ -94,7 +94,7 @@ try:
         import psyco # Don't use Psyco when debugging!
         psyco.full()    
 except:
-    sys.stderr.write("Warning: Psyco (http://psyco.sourceforge.net) could not be loaded! Performance will be impaired.\n")
+    sys.stderr.write("Note: Psyco (http://psyco.sourceforge.net) was not loaded. On 32bit systems, it is recommended to install it for improved performance.\n")
 
 PMB_METHOD = 'old' # 'excl' or 'old'
 # concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
