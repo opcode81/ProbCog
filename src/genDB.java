@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.PrintStream;
 import java.util.Properties;
 
@@ -25,9 +26,18 @@ public class genDB {
 			
 			Properties props = new Properties();
 			//props.put("python.path", "C:\\Progra~2\\jython-2.1\\Lib;datagen");
-			//props.put("python.home", "C:\\Progra~2\\jython-2.1");
-			props.put("python.path", "/usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/SRLDB/datagen");
-			PythonInterpreter.initialize(System.getProperties(), props, null);
+			//props.put("python.path", "/usr/wiss/jain/work/code/SRLDB/bin:/usr/wiss/jain/work/code/SRLDB/python");
+			String jythonpath = System.getenv("JYTHONPATH");
+			if(jythonpath == null) {
+				System.err.println("Warning: JYTHONPATH environment variable not set. If modules such as 'datagen' cannot be imported, either manually set sys.path in your generator scripts to include the appropriate directories or set this variable to include ProbCog's 'python' directory.");
+				jythonpath = "";
+			}
+			else
+				jythonpath += File.pathSeparator;
+			jythonpath += System.getProperty("java.class.path");
+			props.put("python.path", jythonpath);
+			Properties sysprops = System.getProperties();
+			PythonInterpreter.initialize(sysprops, props, null);
 			PythonInterpreter jython = new PythonInterpreter();
 			
 			jython.exec("import sys");
