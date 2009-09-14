@@ -62,38 +62,6 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
         System.out.printf("reinitialized %d ground atoms according to room planning heuristic.\n", count);
     }
 
-
-    public static void main(String[] args) throws Exception {
-
-        String mlnfile = "C:/raumplanung - neu.mln";
-        String dbfile = "C:/test-12.db";
-        MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnfile, true, null);
-        // read evidence + ground model
-        MarkovRandomField mrf = mln.ground(dbfile);
-        // run algorithm
-        PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
-        //state.print();
-        WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
-        Stopwatch sw = new Stopwatch();
-        sw.start();
-        MaxWalkSATRoom ss = new MaxWalkSATRoom(wckb, state, mrf.getWorldVariables(), mrf.getDb());
-        ss.setMaxSteps(10000);
-        ss.run();
-        sw.stop();
-        //System.out.println("Sum Weights: " + mln.getMaxWeight());
-        System.out.println("********** Solution found: **********");
-        System.out.println("Steps: " + ss.getStep());
-        state.print();
-        /*System.out.println("SECOND RUN");
-        ss.run();
-        System.out.println("done");
-        state.print();
-         * */
-        System.out.println("time taken: " + sw.getElapsedTimeSecs());
-        //ss.showSolution();
-        ss.printBestState();
-    }
-
     /**
      * Prints all solutions and necessary informations into a file set at the constructor.
      */

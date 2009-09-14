@@ -810,35 +810,5 @@ public class MaxWalkSAT {
             return gndAtoms;
         }
     }
-
-    public static void main(String[] args) throws Exception {
-
-        String mlnfile = "C:/raumplanung.mln";
-        String dbfile = "C:/test.db";
-        MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnfile, true, null);
-        // read evidence + ground model
-        MarkovRandomField mrf = mln.ground(dbfile);
-        // run algorithm
-        PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
-        // state.print();
-        WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
-        Stopwatch sw = new Stopwatch();
-        sw.start();
-        MaxWalkSAT ss = new MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
-        ss.run();
-        sw.stop();
-        System.out.println("Sum Weights: " + mln.getHardWeight());
-        System.out.println("********** Solution found: **********");
-        System.out.println("Steps: " + ss.getStep());
-        //ss.getBestState().toString();
-        /*System.out.println("SECOND RUN");
-        ss.run();
-        System.out.println("done");
-        state.print();
-         * */
-        System.out.println("time taken: " + sw.getElapsedTimeSecs());
-
-
-    }
 }
 
