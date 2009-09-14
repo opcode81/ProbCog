@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # MLN Query Tool
 #
 # (C) 2006-2007 by Dominik Jain
@@ -94,7 +96,7 @@ class MLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
-        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP (MaxWalkSAT)":"-a"}
+        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP (MaxWalkSAT)":"-a", "belief propagation":"-bp"}
         self.jmlns_methods = {"MAP (MaxWalkSAT)":"-mws", "MC-SAT":"-mcsat", "MAP (Toulbar2 B&B)":"-t2"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
