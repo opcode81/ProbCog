@@ -6,7 +6,6 @@
  */
 package edu.tum.cs.srl.bayesnets.inference;
 
-import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
