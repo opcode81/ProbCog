@@ -387,7 +387,7 @@ public class Database {
      * 
      * */
     public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
-        boolean verbose = true;
+        boolean verbose = false;
 
         // read file content
         if (verbose) System.out.printf("reading contents of %s...\n", databaseFilename);
