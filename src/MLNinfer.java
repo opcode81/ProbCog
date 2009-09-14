@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.sat.weighted.MaxWalkSATRoom;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
@@ -99,10 +100,15 @@ public class MLNinfer {
 			// load relational model
 			Stopwatch constructSW = new Stopwatch();
 			constructSW.start();
+			System.out.printf("reading model %s...\n", mlnFile);
 			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFile);
 			
 			// instantiate ground model
-			MarkovRandomField mrf = mln.ground(dbFile);
+			System.out.printf("reading database %s...\n", dbFile);
+			Database db = new Database(mln);
+			db.readMLNDB(dbFile);
+			System.out.printf("creating ground MRF...\n");
+			MarkovRandomField mrf = mln.ground(db);
 			if(debug) {
 				System.out.println("MRF:");
 				for(WeightedFormula wf : mrf)
