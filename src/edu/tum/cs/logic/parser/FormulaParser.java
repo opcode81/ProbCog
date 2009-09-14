@@ -15,7 +15,12 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         }
 
         public static Formula parse(String s) throws ParseException {
-                return new FormulaParser(new StringReader(s)).formula();
+                FormulaParser parser = new FormulaParser(new StringReader(s));
+                Formula f = parser.formula();
+                Token t = parser.getNextToken();
+                if(t.beginColumn != s.length())
+                        throw new ParseException("Unexpected token '" + t.toString() + "'");
+                return f;
         }
 
   final public String variable() throws ParseException {
@@ -357,21 +362,6 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     finally { jj_save(1, xla); }
   }
 
-  final private boolean jj_3R_11() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_scan_token(20)) {
-    jj_scanpos = xsp;
-    if (jj_scan_token(19)) return true;
-    }
-    return false;
-  }
-
-  final private boolean jj_3R_10() {
-    if (jj_scan_token(LCIDENT)) return true;
-    return false;
-  }
-
   final private boolean jj_3_2() {
     if (jj_3R_5()) return true;
     return false;
@@ -416,6 +406,21 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
 
   final private boolean jj_3R_7() {
     if (jj_3R_11()) return true;
+    return false;
+  }
+
+  final private boolean jj_3R_11() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_scan_token(20)) {
+    jj_scanpos = xsp;
+    if (jj_scan_token(19)) return true;
+    }
+    return false;
+  }
+
+  final private boolean jj_3R_10() {
+    if (jj_scan_token(LCIDENT)) return true;
     return false;
   }
 
@@ -683,5 +688,5 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     int arg;
     JJCalls next;
   }
-  
+
 }
