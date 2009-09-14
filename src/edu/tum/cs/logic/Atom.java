@@ -2,7 +2,6 @@ package edu.tum.cs.logic;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
@@ -24,8 +23,10 @@ public class Atom extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) throws Exception {
         Signature sig = db.getSignature(predName);
+        if(sig == null)
+        	throw new Exception("Unknown predicate '" + predName + "'");
 		int i = 0;
 		for(String param : params) {
 			if(isVariable(param)) {

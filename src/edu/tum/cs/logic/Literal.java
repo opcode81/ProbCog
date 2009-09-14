@@ -18,7 +18,7 @@ public class Literal extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) throws Exception {
 		atom.getVariables(db, ret);	
 	}
 

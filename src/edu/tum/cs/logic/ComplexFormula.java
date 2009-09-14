@@ -24,7 +24,7 @@ public abstract class ComplexFormula extends Formula {
 	}*/
 	
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(Database db, Map<String, String> ret) throws Exception {
 		for(Formula f : children)
 			f.getVariables(db, ret);
 	}
