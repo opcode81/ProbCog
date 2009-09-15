@@ -31,7 +31,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     
     /**
      * @param mln a Markov logic network
-     * @param db an evidence database containing the set of objects for wich to ground the MLN  
+     * @param db an evidence database containing the set of objects for which to ground the MLN  
      * @param storeFormula whether to store the grounded formulas that are generated
      * @param gc an optional callback (which is called for each grounded formula), may be null
      * @throws Exception 
@@ -43,6 +43,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         this.mln = mln;        
         groundVariables();
         groundFormulas(storeFormulas, gc);
+    }
+    
+    public MarkovRandomField(MarkovLogicNetwork mln, Database db) throws Exception {
+    	this(mln, db, true, null);
     }
     
     /**
@@ -122,10 +126,11 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         		throw new Exception(String.format("MLN does not contain assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
         	boolean isHard = weight.equals(mln.getHardWeight());
             for(Formula gf : form.getAllGroundings(db, vars, true)) {
+            	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
                 if(makelist)
-                    weightedFormulas.add(new WeightedFormula(gf, weight, isHard));
+                    weightedFormulas.add(wf);
                 if(gc != null)
-                    gc.onGroundedFormula(gf, weight, this);
+                    gc.onGroundedFormula(wf, this);
             }
         }
     }
