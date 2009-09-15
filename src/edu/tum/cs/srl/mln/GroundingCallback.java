@@ -5,7 +5,7 @@
 
 package edu.tum.cs.srl.mln;
 
-import edu.tum.cs.logic.Formula;
+import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 
 
 
@@ -15,6 +15,6 @@ import edu.tum.cs.logic.Formula;
  */
 public interface GroundingCallback { 
     
-    public void onGroundedFormula(Formula f, double weight, MarkovRandomField mrf);
+    public void onGroundedFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception;
     
 }

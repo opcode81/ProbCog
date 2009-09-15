@@ -10,13 +10,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Vector;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
@@ -28,29 +26,31 @@ import edu.tum.cs.srl.mln.MarkovRandomField;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
- * @author wylezich
+ * @author wylezich, jain
  */
 public class WCSPConverter implements GroundingCallback {
 
-    MarkovLogicNetwork mln;
-    PossibleWorld wld;
-    Double deltaMin;
-    HashMap<String, HashSet<String>> doms;
-    HashMap<Integer, Integer> gndID_BlockID;
-    ArrayList<String> vars;
-    ArrayList<String> simplifiedVars;
-    HashMap<GroundAtom, Integer> gnd_varidx;
-    HashMap<Integer, Integer> gnd_sfvaridx;
-    HashMap<String, HashSet<GroundAtom>> vars_gnd;
-    HashMap<Integer, HashSet<GroundAtom>> sfvars_gnd;
-    HashMap<String, String> func_dom;
-    HashMap<Integer, Integer> sfvars_vars;
-    StringBuffer sb_result, sb_settings;
-    PrintStream ps;
-    ArrayList<String> setwithnull;
-    ArrayList<String> setwithvalue;
-    long start = System.currentTimeMillis();
-    int generatedFormulas = 0;
+	protected MarkovLogicNetwork mln;
+	protected PossibleWorld wld;
+	protected Double deltaMin;
+	protected HashMap<String, HashSet<String>> doms;
+	protected HashMap<Integer, Integer> gndID_BlockID;
+	protected ArrayList<String> vars;
+	protected ArrayList<String> simplifiedVars;
+	protected HashMap<GroundAtom, Integer> gnd_varidx;
+	protected HashMap<Integer, Integer> gnd_sfvaridx;
+	protected HashMap<String, HashSet<GroundAtom>> vars_gnd;
+    /**
+     * maps indices of simplified WCSP variables to sets of ground atoms
+     */
+	protected HashMap<Integer, HashSet<GroundAtom>> sfvars_gnd;
+	protected HashMap<String, String> func_dom;
+	protected HashMap<Integer, Integer> sfvars_vars;
+	protected StringBuffer sb_result, sb_settings;
+	protected PrintStream ps;
+	protected int numConstraints = 0;
+	protected boolean initialized = false;
+	protected long sumSoftCosts = 0;
 
     /**
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
@@ -69,13 +69,14 @@ public class WCSPConverter implements GroundingCallback {
     
     /**
      * @param mrf
+     * @throws Exception 
      */
-    public WCSPConverter(MarkovRandomField mrf) {
+    public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
     	deltaMin = mln.getdeltaMin();
         sb_result = new StringBuffer();
         for(WeightedFormula wf : mrf) {
-        	convertFormula(wf.formula, wf.weight, mrf);
+        	convertFormula(wf, mrf);
         }
     }
     
@@ -98,7 +99,7 @@ public class WCSPConverter implements GroundingCallback {
         // save generated WCSP-File in a file
     	//System.out.println("writing output to " + wcspFilename);
         ps = new PrintStream(wcspFilename);
-        ps.print(generateHead(new StringBuffer()));
+        generateHead(ps);
         ps.print(sb_result);
         ps.flush();
         ps.close();
@@ -154,7 +155,7 @@ public class WCSPConverter implements GroundingCallback {
     /**
      * this method generates a variable for each groundatom; for blocks only one variable is created
      */
-    private void atom2var() {
+    protected void atom2var() {
         vars = new ArrayList<String>();                         // arraylist, which contains new variables
         gnd_varidx = new HashMap<GroundAtom, Integer>();        // Hashmap that maps groundatom to the new variable
         func_dom = new HashMap<String, String>();               // Hashmap that maps variable to domain the variable uses
@@ -184,7 +185,7 @@ public class WCSPConverter implements GroundingCallback {
      * otherwise a new blockvariable will be created
      * @param gnd groundatom to check for existing blockvariable
      */
-    private void atom2func(GroundAtom gnd) {
+    protected void atom2func(GroundAtom gnd) {
         String shortend = "";
         int x = 0;
         // generate the new variable by cutting the last entry of the values of the predicate
@@ -216,8 +217,9 @@ public class WCSPConverter implements GroundingCallback {
      * this method simplifies the generated variables (if a variable is given by the evidence, it's not necessary for the WCSP) 
      * @param variables all generated variables to check for evidence-entry
      * @param db evidence of the szenario
+     * @throws Exception 
      */
-    private void simplyfyVars(ArrayList<String> variables, Database db) {      
+    private void simplyfyVars(ArrayList<String> variables, Database db) throws Exception {      
         sfvars_vars = new HashMap<Integer, Integer>();  // mapping of simplified variables to variables
         simplifiedVars = new ArrayList<String>();       // arraylist of simplified variables
         gnd_sfvaridx = new HashMap<Integer, Integer>(); // mapping of groundatom to simplified variable
@@ -227,29 +229,26 @@ public class WCSPConverter implements GroundingCallback {
         for (int i = 0; i < variables.size(); i++) {
             HashSet<GroundAtom> givenAtoms = new HashSet<GroundAtom>();
             // check all entries in HashSet of the selected variable for an entry in evidence
-            for (GroundAtom g : vars_gnd.get(variables.get(i))) {
-                try {
-                    if (db.getVariableValue(g.toString(), false) != null) // evidence- entry exists
-                        givenAtoms.add(g);
-                } catch (Exception ex) {
-                    Logger.getLogger(WCSPConverter.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            HashSet<GroundAtom> gndAtoms = vars_gnd.get(variables.get(i)); 
+            for (GroundAtom g : gndAtoms) {
+		           if (db.getVariableValue(g.toString(), false) != null) // evidence- entry exists
+		                givenAtoms.add(g);
             }
             
             // if hashsets (givenAtoms and hashset of the variable) have same size, then all Goundatoms are set by the evidence
             // we don't need to handle this variable anymore
-            // if hashsets don't have same size, the variable must be handeld
-            if ((vars_gnd.get(variables.get(i)).size() != givenAtoms.size())) {
+            // if hashsets don't have same size, the variable must be handled
+            if ((gndAtoms.size() != givenAtoms.size())) {
                 // add variable to simplifiedVars
+            	int idx = simplifiedVars.size();
                 simplifiedVars.add(variables.get(i));
                 // save mapping of simplified variable and variable
-                sfvars_vars.put(simplifiedVars.indexOf(variables.get(i)), i);
+                sfvars_vars.put(idx, i);
                 // save mapping of groundatoms to the new simplified variable
                 for (GroundAtom g : vars_gnd.get(variables.get(i)))
-                    gnd_sfvaridx.put(g.index, simplifiedVars.indexOf(variables.get(i)));
+                    gnd_sfvaridx.put(g.index, idx);
                 // clone hashset and save it in the mapping of simplified variables to groundatoms 
-                HashSet<GroundAtom> tmp = (HashSet<GroundAtom>) vars_gnd.get(variables.get(i)).clone();
-                sfvars_gnd.put((simplifiedVars.indexOf(variables.get(i))), tmp);
+                sfvars_gnd.put(idx, (HashSet<GroundAtom>) gndAtoms.clone());
             }
         }
     }
@@ -258,89 +257,89 @@ public class WCSPConverter implements GroundingCallback {
      * this method generates a WCSP-Constraint for a formula
      * @param f formula (for this formula a WCSP- constraint is generated), the formula is already simplified
      * @param weight the weight of the formula to calculate the costs
+     * @throws Exception 
      */
-    protected void convertFormula(Formula f, double weight) {
+    protected void convertFormula(WeightedFormula wf) throws Exception {
+    	Formula f = wf.formula;
+    	double weight = wf.weight;
+    	
         // get all groundatoms of the formula
         HashSet<GroundAtom> gndAtoms = new HashSet<GroundAtom>();
         f.getGroundAtoms(gndAtoms);
 
         // save index of the corresponding simplified variable in an array
-        ArrayList<Integer> ar = new ArrayList<Integer>(gndAtoms.size());
+        ArrayList<Integer> referencedVarIndices = new ArrayList<Integer>(gndAtoms.size());
         for (GroundAtom g : gndAtoms) {
-            // add simplified variable only if the array doesn't contains this sf_variable already
-            if (!ar.contains(gnd_sfvaridx.get(g.index))) 
-                ar.add(gnd_sfvaridx.get(g.index));
+            // add simplified variable only if the array doesn't contain this sf_variable already
+        	int idx = gnd_sfvaridx.get(g.index);
+            if (!referencedVarIndices.contains(idx)) 
+                referencedVarIndices.add(idx);
         }
         
-        // write the first line of the contraint in the stringbuffer
-        // syntax: arity of the contraint, indices of the variables
-        sb_result.append(ar.size() + " ");
-        int value = 1;
-        for (Integer in : ar) {
+        // generate all possibilities for this constraint
+        ArrayList<String> settingsZero = new ArrayList<String>();
+        ArrayList<String> settingsOther = new ArrayList<String>();        
+        convertFormula(f, referencedVarIndices, 0, wld, new int[referencedVarIndices.size()], weight, settingsZero, settingsOther);
+        ArrayList<String> smallerSet;
+        long cost = Math.round(wf.weight / deltaMin); 
+        long defaultCosts;
+        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing form 0
+        	smallerSet = settingsOther;
+            // the default costs (0) are calculated and set in the first line of the constraint
+            defaultCosts = 0;
+        } 
+        else { // there are fewer settings that result in 0 costs than settings with the other value
+        	smallerSet = settingsZero;
+            // the default costs correspond to the formula's weight
+            defaultCosts = cost;
+        }
+        
+        // if the smaller set contains no lines, this constraint is either unsatisfiable or a tautology, so it need not be considered at all
+        if(smallerSet.size() == 0)
+        	return;
+
+        numConstraints++;
+        // TODO ideally, we should set the costs of hard constraints to the sumSoftCosts+1
+        if(!wf.isHard)
+        	sumSoftCosts += cost;
+        
+        // write results
+        String nl = System.getProperty("line.separator");
+        // first line of the constraint: arity of the constraint followed by indices of the variables, default costs, and number of constraint lines
+        sb_result.append(referencedVarIndices.size() + " ");
+        for(Integer in : referencedVarIndices) {
             sb_result.append(in + " ");
-            // the maximum number of entries is calculated to set the capacity of the sets
-            // this value is also needed for the large-version of the WCSP
-            value = value * doms.get(func_dom.get(vars.get(sfvars_vars.get(in)))).size();
-        }
-
-        setwithnull = new ArrayList<String>(value);
-        setwithvalue = new ArrayList<String>(value);
-        
-        // recursive method to gerenate all possibilities for this contraint
-        Vector<ArrayList<String>> vec = convertFormula(f, ar, 0, wld, new int[ar.size()], weight, setwithnull, setwithvalue);
-        if (vec.size() > 0) {
-            Double zahl;
-            //vec(0) = setwithvalue vec(1) = setwithnull
-            if (vec.get(0).size() < vec.get(1).size()) { // in this case there are more null-values than lines with a value differing form 0
-                // the defaultcosts (0) are calculated and set in the first line of the constraint
-                zahl = (0.0 * (-1.0) + Math.abs(Math.min(weight * (-1.0), 0.0)));
-                sb_result.append(Math.round(zahl / deltaMin) + " " + vec.get(0).size());
-                // first line is completed
-                sb_result.append(System.getProperty("line.separator"));
-                // all lines differing from defaultcosts are appended to the stringbuffer
-                for (String s : vec.get(0))
-                    sb_result.append(s + System.getProperty("line.separator"));
-
-            } else { // in this case there are less "null-values" than lines with a value differing from 0
-                // the defaultcosts (value <> 0) are calculated and set in the first line of the constraint
-                zahl = (weight * (-1.0) + Math.abs(Math.min(weight * (-1.0), 0.0)));
-                sb_result.append(Math.round(zahl / deltaMin) + " " + vec.get(1).size());
-                // first line is completed
-                sb_result.append(System.getProperty("line.separator"));
-                // all lines differing from defaultcosts are appended to the stringbuffer
-                for (String s : vec.get(1))
-                    sb_result.append(s + System.getProperty("line.separator"));
-
-            }
-        }
+        }        
+        sb_result.append(defaultCosts + " " + smallerSet.size());        
+        sb_result.append(nl);
+        // all lines differing from default costs are appended to the string buffer
+        for (String s : smallerSet)
+            sb_result.append(s + nl);
     }
 
     /**
-     * this method generates the head of the WCSP-File
-     * @param s stringbuffer to save the head of the WCSP-File
-     * @return
+     * writes the header of the WCSP file
+     * @param out the stream to write to
      */
-    private StringBuffer generateHead(StringBuffer s) {
-        int domsize = 0, tempdomsize = 0;
-        String str = "";
+    protected void generateHead(PrintStream out) {
+        int maxDomSize = 0;        
 
-        // calculate the arity for each domain of the simplified variables
-        for (int i = 0; i < simplifiedVars.size(); i++) {
-            tempdomsize = doms.get(func_dom.get(simplifiedVars.get(i))).size();
-            str = str + tempdomsize + " ";
-            if (tempdomsize > domsize)
-                domsize = tempdomsize;
+        // get list of domain sizes and maximum domain size
+        StringBuffer strDomSizes = new StringBuffer();
+        for(int i = 0; i < simplifiedVars.size(); i++) {
+        	HashSet<String> domSet = doms.get(func_dom.get(simplifiedVars.get(i))); 
+            int domSize = domSet == null ? 2 : domSet.size();
+            strDomSizes.append(domSize + " ");
+            if(domSize > maxDomSize)
+                maxDomSize = domSize;
         }
 
         // the first line of the WCSP-File
         // syntax: name of the WCSP, number of variables, maximum domainsize of the variables, number of constraints, initial TOP
-        String tmpstring = "WCSPfromMLN " + simplifiedVars.size() + " " + domsize + " " + generatedFormulas + "" + " 80000";
-        s.append(tmpstring);
-        s.append(System.getProperty("line.separator"));
-        // the second line contains the arity of each simplified variable of the WCSP
-        s.append(str);
-        s.append(System.getProperty("line.separator"));
-        return s;
+        long top = sumSoftCosts+1;
+        out.printf("WCSPfromMLN %d %d %d %d\n", simplifiedVars.size(), maxDomSize, numConstraints, top);
+        // the second line contains the domain size of each simplified variable of the WCSP
+        out.println(strDomSizes.toString());
     }
 
     /**
@@ -348,50 +347,46 @@ public class WCSPConverter implements GroundingCallback {
      * @param f formula (for this formula all possiblilities are generated)
      * @param wcspVarIndices set of all groundatoms of the formula
      * @param i counter to terminate the recursion
-     * @param w possibleworld to evaluate costs for a setting of groundatoms
+     * @param w possible world to evaluate costs for a setting of groundatoms
      * @param g array to save the current allocation of the variable
      * @param weight weight of the formula to calculate costs
-     * @param swn set to save all possibilities with costs of 0
-     * @param swv set to save all possibilities with costs different to 0
-     * @return returns a Vector that contains the two sets where all constraints of this WCSP-constraint are saved
+     * @param settingsZero set to save all possibilities with costs of 0
+     * @param settingsOther set to save all possibilities with costs different to 0
+     * @throws Exception 
      */
-    private Vector<ArrayList<String>> convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, double weight, ArrayList<String> swn, ArrayList<String> swv) {
+    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, double weight, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
+    	if(weight < 0)
+    		throw new Exception("Weights must be positive");
         // if all groundatoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.size()) {
             StringBuffer zeile = new StringBuffer();
-            Double zahl;
             // print the allocation of variables
             for (Integer c : g)
                 zeile.append(c + " ");
             
             // calculate weight according to WCSP-Syntax
-            if (!f.isTrue(w)) { // if formula is false, costs are set to the weight
-                zahl = (0.0 + Math.abs(Math.min(weight * (-1.0), 0.0)));
-                zeile.append(Math.round(zahl / deltaMin));
-                swn.add(zeile.toString());  // add this line to the according set
-            } else { // if formula is true, costs are set to 0
-                zahl = (weight * (-1.0) + Math.abs(Math.min(weight * (-1.0), 0.0)));
-                zeile.append(Math.round(zahl / deltaMin));
-                swv.add(zeile.toString()); // add this line to the according set
+            if (!f.isTrue(w)) { // if formula is false, costs correspond to the weight
+                zeile.append(Math.round(weight / deltaMin));
+                settingsOther.add(zeile.toString());  
+            } else { // if formula is true, there are no costs
+                zeile.append("0");
+                settingsZero.add(zeile.toString()); 
             }
         } else { // recursion  
-            // get domain of the handled simplified variable 
-            Object[] dom = doms.get(func_dom.get(simplifiedVars.get(wcspVarIndices.get(i)))).toArray();
-            // get the groundatoms this simplified variable is mapped to
-            HashSet<GroundAtom> atoms = sfvars_gnd.get((wcspVarIndices.get(i)));
-            for (int z = 0; z < dom.length; z++) {
-                g[i] = z;   // save the setting of the variable in the array
-                 // set possibleWorld (the atom which maps to the selected value of the domain is set true, all other atoms of this variable are set false)
-                setWorldofWCSP(w, atoms, dom[z].toString());    
-                // call method again (with the new settings)
-                convertFormula(f, wcspVarIndices, i + 1, w, g, weight, swn, swv);
-            }
+        	int wcspVarIdx = wcspVarIndices.get(i);
+            // get domain of the handled simplified variable
+        	HashSet<String> domSet = doms.get(func_dom.get(simplifiedVars.get(wcspVarIdx)));
+        	int domSize;
+        	if(domSet == null) // variable is boolean
+        		domSize = 2;
+        	else // variable is non-boolean (results from blocked ground atoms)
+        		domSize = domSet.size();
+    		for(int j = 0; j < domSize; j++) {
+    			g[i] = j;
+    			setGroundAtomState(w, wcspVarIdx, j);
+    			convertFormula(f, wcspVarIndices, i + 1, w, g, weight, settingsZero, settingsOther);
+    		}
         }
-        // when all possibilities are generated, save the two sets in a vector and return it
-        Vector<ArrayList<String>> vec = new Vector<ArrayList<String>>();
-        vec.add(swv);
-        vec.add(swn);
-        return vec;
     }
     
     /**
@@ -402,35 +397,35 @@ public class WCSPConverter implements GroundingCallback {
      */
     public void setGroundAtomState(PossibleWorld w, int wcspVarIdx, int domIdx) {
     	HashSet<GroundAtom> atoms = sfvars_gnd.get(wcspVarIdx);
-    	Object[] dom = doms.get(func_dom.get(simplifiedVars.get(wcspVarIdx))).toArray();
-    	setWorldofWCSP(w, atoms, dom[domIdx].toString());
+    	if(atoms.size() == 1) { // var is boolean
+    		w.set(atoms.iterator().next(), domIdx == 0);
+    	}
+    	else { // var corresponds to block
+	    	Object[] dom = doms.get(func_dom.get(simplifiedVars.get(wcspVarIdx))).toArray();
+	    	setBlockState(w, atoms, dom[domIdx].toString());
+    	}
     	//System.out.printf("%s = %s\n", this.simplifiedVars.get(wcspVarIdx), dom[domIdx].toString());
     }
     
     /**
      * this method sets the truth values of a block of mutually exclusive ground atoms 
-     * @param atoms atoms within the block
+     * @param block atoms within the block
      * @param value value indicating the atom to set to true
      * TODO this method makes evil assumptions about the blocking of variables 
      */
-    protected void setWorldofWCSP(PossibleWorld w, HashSet<GroundAtom> atoms, String value) {
-        Iterator<GroundAtom> it = atoms.iterator();
+    protected void setBlockState(PossibleWorld w, HashSet<GroundAtom> block, String value) {
+    	int detArgIdx = this.mln.getFunctionallyDeterminedArgument(block.iterator().next().predicate);
+        Iterator<GroundAtom> it = block.iterator();
         GroundAtom g;
-        // sets all atoms of the hashset true or false
-        while (it.hasNext()) {
+        while(it.hasNext()) {
             g = it.next();
-            // if atom does't contains value and value isn't boolean -> set atom false
-            if (!(g.args[g.args.length - 1].hashCode() == value.hashCode()) && !value.equals("True"))
-                w.set(g.index, false);
-            else {
-                // else set atom true and break
-                w.set(g.index, true);
-                break;
-            }
+            boolean v = g.args[detArgIdx].equals(value); 
+            w.set(g.index, v);
+            if(v)
+            	break;
         }
-
-        // set all left atoms false
-        while (it.hasNext())
+        // set all remaining atoms false
+        while(it.hasNext())
             w.set(it.next().index, false);
     }
 
@@ -440,25 +435,29 @@ public class WCSPConverter implements GroundingCallback {
      * @param f a ground formula
      * @param weight the weight of the formula
      * @param db evidence of the scenario
+     * @throws Exception 
      */
-    public void onGroundedFormula(Formula f, double weight, MarkovRandomField mrf) {
-    	convertFormula(f, weight, mrf);
+    public void onGroundedFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
+    	convertFormula(wf, mrf);
     }
     
-    public void convertFormula(Formula f, double weight, MarkovRandomField mrf) {
-        if (generatedFormulas++ < 1) { // set initial mappings of the WCSP-Converter
+    public void convertFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
+    	// initialization (necessary to perform here if working through callback)
+        if(!initialized) { 
             this.wld = new PossibleWorld(mrf.getWorldVariables());
             doms = mrf.getDb().getDomains();
             atom2var();
             simplyfyVars(vars, mrf.getDb());
+            initialized = true;
         }
-        // call the recursive method to generate all possibilities for formula f
-        convertFormula(f, weight);
-
-        //debug
-        if (generatedFormulas % 5000 == 0) {
-            //System.out.println("Zeit für 5000 Formeln: " + ((System.currentTimeMillis() - start) / 1000.0) + " secs");
-            start = System.currentTimeMillis();
+        
+        // if the weight is negative, negate the formula and its weight
+        if(wf.weight < 0) {
+        	wf.formula = new Negation(wf.formula);
+        	wf.weight *= -1;
         }
+        
+        // perform actual conversions
+        convertFormula(wf);
     }   
 }
