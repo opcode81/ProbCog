@@ -136,7 +136,7 @@ Negation negation() :
 	Formula f;
 }
 {
-	<NOT> <OPENRB> f = formulaElement() <CLOSERB>
+	<NOT> <OPENRB> f = formula() <CLOSERB>
 	{ return new Negation(f); }
 }
 
