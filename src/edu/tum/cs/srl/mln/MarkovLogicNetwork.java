@@ -258,11 +258,13 @@ public class MarkovLogicNetwork implements RelationalModel {
     public double getdeltaMin() {
         double deltaMin = Double.MAX_VALUE;
         TreeSet<Double> weight = new TreeSet<Double>();
-        // add weights in a sorted treeset
-        for (double d : formula2weight.values())
+        // add weights in a sorted TreeSet
+        for(double d : formula2weight.values())
             weight.add(d);
-        // calculate the smallest difference between sorted weightst and set  deltaMin-Value
-        while (weight.iterator().hasNext()) {
+        if(weight.size() == 1)
+        	return 1.0e-5;
+        // calculate the smallest difference between consecutive weights
+        while(weight.iterator().hasNext()) {
             Double d = weight.first();
             weight.remove(d);
             if (weight.iterator().hasNext()) {
