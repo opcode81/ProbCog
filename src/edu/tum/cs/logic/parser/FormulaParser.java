@@ -177,7 +177,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         Formula f;
     jj_consume_token(NOT);
     jj_consume_token(OPENRB);
-    f = formulaElement();
+    f = formula();
     jj_consume_token(CLOSERB);
           {if (true) return new Negation(f);}
     throw new Error("Missing return statement in function");
