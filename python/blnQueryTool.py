@@ -285,7 +285,7 @@ if __name__ == '__main__':
     settings = {}
     if os.path.exists(CONFIG_FILENAME):
         try:
-            settings = pickle.load(file(CONFIG_FILENAME, "r"))
+            settings = pickle.loads(os.linesep.join(map(lambda x: x.strip("\r\n"), file(CONFIG_FILENAME, "r").readlines())))
         except:
             pass
     # process command line arguments
