@@ -5,7 +5,7 @@ public class Cache2D<TContext, TKey, TValue> extends Map2D<TContext, TKey, TValu
 	public int numCacheMiss = 0;
 	
 	public TValue get(TContext context, TKey key) {
-		TValue value = this.get(context, key);
+		TValue value = super.get(context, key);
 		if(value == null)
 			numCacheMiss++;
 		else 
