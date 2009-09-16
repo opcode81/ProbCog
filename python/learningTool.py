@@ -300,7 +300,7 @@ if __name__ == '__main__':
     settings = {}
     if os.path.exists("learnweights.config.dat"):
         try:
-            settings = pickle.load(file("learnweights.config.dat", "r"))
+            settings = pickle.loads(os.linesep.join(map(lambda x: x.strip("\r\n"), file("learnweights.config.dat", "r").readlines())))            
         except:
             pass
     root = Tk()    
