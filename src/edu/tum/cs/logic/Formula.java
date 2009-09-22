@@ -11,6 +11,12 @@ import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 
 public abstract class Formula {	
+	/**
+	 * gets a mapping from names of meta-variables appearing in the formula to the types/domains they apply to
+	 * @param db 
+	 * @param ret mapping in which to store the result
+	 * @throws Exception
+	 */
 	public abstract void getVariables(Database db, Map<String,String> ret) throws Exception;
 	/**
 	 * grounds this formula for a particular binding of its variables
@@ -21,6 +27,10 @@ public abstract class Formula {
 	 * @throws Exception
 	 */
 	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception;
+	/**
+	 * gets the set of ground atoms appearing in this (grounded) formula
+	 * @param ret the set to write to
+	 */
 	public abstract void getGroundAtoms(Set<GroundAtom> ret);
 	public abstract boolean isTrue(IPossibleWorld w);
 
@@ -82,7 +92,7 @@ public abstract class Formula {
 		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable
 		String varName = varNames[i];
 		String domName = var2domName.get(varName);
-		Set<String> domain = db.getDomain(domName);
+		Iterable<String> domain = db.getDomain(domName);
 		if(domain == null)
 			throw new Exception("Domain named '" + domName + "' (of variable " + varName + " in formula " + this.toString() + ") not found in the database!");
 		for(String element : domain) {
