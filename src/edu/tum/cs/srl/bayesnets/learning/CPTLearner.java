@@ -294,7 +294,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		}
 		
 		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable
-		Set<String> domain = db.getDomain(domainNames[i]);
+		Iterable<String> domain = db.getDomain(domainNames[i]);
 		for(String element : domain) {
 			params[i] = element;
 			countVariable(db, node, params, domainNames, i+1, closedWorld);	

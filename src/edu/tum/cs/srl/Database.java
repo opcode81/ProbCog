@@ -8,11 +8,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.srl.taxonomy.Concept;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.tools.FileUtil;
+import edu.tum.cs.tools.MultiIterator;
 import edu.tum.cs.tools.StringTool;
 
 /**
@@ -29,6 +33,12 @@ public class Database {
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
 	
+	// taxonomy-related variables
+	
+	protected Taxonomy taxonomy;
+	protected HashMap<String,String> entity2type;
+	protected HashMap<String,MultiIterator<String>> multiDomains;
+	
 	/**
 	 * constructs an empty database for the given model
 	 * @param bn
@@ -38,10 +48,18 @@ public class Database {
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
+		
 		// fill domains with guaranteed domain elements
 		for(Entry<String, String[]> e : bn.getGuaranteedDomainElements().entrySet()) {
 			for(String element : e.getValue()) 
 				fillDomain(e.getKey(), element);
+		}
+		
+		// taxonomy-related stuff
+		taxonomy = model.getTaxonomy();
+		if(taxonomy != null) {
+			entity2type = new HashMap<String,String>();
+			multiDomains = new HashMap<String,MultiIterator<String>>();
 		}
 	}
 	
@@ -98,7 +116,7 @@ public class Database {
 			if(ignoreUndefinedFunctions)
 				return;
 			else
-				throw new Exception(String.format("Error: node %s appears in the data but it is not declared in the model.", var.functionName));
+				throw new Exception(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
 		}
 		else {
 			if(sig.argTypes.length != var.params.length) 
@@ -208,16 +226,32 @@ public class Database {
 	/**
 	 * adds to the domain type the given value
 	 * @param type	name of the domain/type
-	 * @param value	the value to add
+	 * @param value	the value/entity name to add
 	 */
 	protected void fillDomain(String type, String value) {
+		// if we are working with a taxonomy, we need to check whether we
+		// previously assigned the value to a super-type of type
+		// and if so, reassign it to the sub-type
+		if(taxonomy != null) {
+			String prevType = entity2type.get(value);
+			if(prevType != null) {
+				if(prevType.equals(type))
+					return;
+				if(taxonomy.query_isa(type, prevType)) 
+					domains.get(prevType).remove(value);					
+				else
+					return;
+			}
+			entity2type.put(value, type);
+		}
+		// add to domain if not already present
 		HashSet<String> dom = domains.get(type);
 		if(dom == null) {
 			dom = new HashSet<String>();
 			domains.put(type, dom);
 		}
 		if(!dom.contains(value))
-			dom.add(value);		
+			dom.add(value);
 	}
 	
 	/**
@@ -254,9 +288,29 @@ public class Database {
 	 * 
 	 * @param domName
 	 * @return the domain as a set of strings or null if the domain is not found
+	 * @throws Exception 
 	 */
-	public Set<String> getDomain(String domName) {
-		return domains.get(domName);
+	public Iterable<String> getDomain(String domName) throws Exception {
+		if(taxonomy == null)
+			return domains.get(domName);
+		else { // if we have a taxonomy, the domain is the combination of domains of the given type and all of its sub-types
+			MultiIterator<String> dom = multiDomains.get(domName);
+			if(dom != null)
+				return dom;			
+			dom = new MultiIterator<String>();
+			boolean isEmpty = true;
+			for(Concept c : taxonomy.getDescendants(domName)) {
+				Iterable<String> subdom = domains.get(c.name);
+				if(subdom != null) {
+					dom.add(subdom);
+					isEmpty = false;
+				}
+			}
+			if(isEmpty)
+				dom = null;
+			multiDomains.put(domName, dom);
+			return dom;
+		}
 	}
 	
 	/**
@@ -304,7 +358,7 @@ public class Database {
 			}
 			return;
 		}
-		Set<String> dom = this.getDomain(sig.argTypes[i]);
+		Iterable<String> dom = this.getDomain(sig.argTypes[i]);
 		if(dom == null)
 			return;
 		for(String value : dom) {
@@ -409,7 +463,6 @@ public class Database {
         BufferedReader br = new BufferedReader(new StringReader(dbContent));
         String line;
         Variable var;
-        int numVars = 0;
         while ((line = br.readLine()) != null) {
             line = line.trim();
             // parse variable assignment
@@ -448,7 +501,9 @@ public class Database {
      * 
      * @return
      */
-    public HashMap<String, HashSet<String>> getDomains() {
+    public HashMap<String, HashSet<String>> getDomains() throws Exception {
+    	if(taxonomy != null)
+    		throw new Exception("Cannot safely return the set of domains for a model that uses a taxonomy");
         return domains;
     }
     

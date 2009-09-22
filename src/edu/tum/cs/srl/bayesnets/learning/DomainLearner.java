@@ -1,7 +1,6 @@
 package edu.tum.cs.srl.bayesnets.learning;
 
 import java.util.HashSet;
-import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -18,32 +17,45 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 	}
 	
 	public void learn(Database db) throws Exception {
-		// directly learned domains
+		// all domains are directly learned
 		boolean debug = false;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			ExtendedNode extNode = bn.getExtendedNode(i);
 			boolean mustApplyBooleanDomain = false;
+			// for decision nodes, set standard boolean domain
 			if(extNode instanceof DecisionNode)
-				mustApplyBooleanDomain = true;			
-			// for decision nodes and built-in predicates, set standard boolean domain
-			if(mustApplyBooleanDomain || ((RelationalNode)extNode).isBuiltInPred()) {
+				mustApplyBooleanDomain = true;
+			// for relational nodes...
+			if(extNode instanceof RelationalNode) {				
+				RelationalNode node = (RelationalNode)extNode;
+				// ...apply boolean domain if it's a built-in predicate or if the sig is boolean
+				mustApplyBooleanDomain = node.isBuiltInPred();
+				if(!mustApplyBooleanDomain) {
+					if(debug) System.out.println("node: " + node);
+					Signature sig = bn.getSignature(node.getFunctionName());
+					if(sig == null) {
+						throw new Exception("Could not obtain signature of " + node.getFunctionName());
+					}					
+					if(sig.isBoolean())
+						mustApplyBooleanDomain = true;
+					else { // ... otherwise apply the values we have in the database						
+						Iterable<String> values = db.getDomain(sig.returnType);
+						if(values == null)
+							throw new Exception("Domain '" + sig.returnType + "' of node '" + nodes[i].getName() + "' has no values in the database.");
+						for(String value : values) {
+							if(debug) System.out.println("adding " + value + " to " + sig.returnType + " while processing " + sig.functionName + " - returnType = " + sig.returnType);
+							((HashSet<String>)directDomainData[i]).add(value);
+						}			
+						continue;
+					}
+				}					
+			}			
+			if(mustApplyBooleanDomain) {
 				((HashSet<String>)directDomainData[i]).add("True");
 				((HashSet<String>)directDomainData[i]).add("False");
 				continue;
-			}			
-			// for regular nodes, get all values from the database
-			RelationalNode node = (RelationalNode)extNode;
-			if(debug) System.out.println("node: " + node);
-			Signature sig = bn.getSignature(node.getFunctionName());
-			if(sig == null) {
-				throw new Exception("Could not obtain signature of " + node.getFunctionName());
-			}			
-			Set<String> values = db.getDomain(sig.returnType);
-			for(String value : values) {
-				if(debug) System.out.println("adding " + value + " to " + sig.returnType + " while processing " + sig.functionName + " - returnType = " + sig.returnType);
-				((HashSet<String>)directDomainData[i]).add(value);
 			}
 		}
 	}
@@ -52,6 +64,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		super.end_learning();
 		
 		// standardize boolean domains
+		Discrete booleanDomain = new Discrete(new String[]{"True", "False"});
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
@@ -63,7 +76,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 					if(sig != null)
 						sig.returnType = "Boolean";
 				}
-				bn.bn.changeBeliefNodeDomain(nodes[i], new Discrete(new String[]{"True", "False"}));
+				bn.bn.changeBeliefNodeDomain(nodes[i], booleanDomain);
 			}
 		}
 	}

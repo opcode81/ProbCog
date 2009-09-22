@@ -19,8 +19,10 @@ import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.tools.CollectionFilter;
+import edu.tum.cs.tools.MultiIterator;
 import edu.tum.cs.tools.StringTool;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx implements RelationalModel {
@@ -47,6 +49,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * a set of functions/predicates that are required to be fully specified in the evidence
 	 */
 	protected HashSet<String> evidenceFunctions = new HashSet<String>();
+	protected Taxonomy taxonomy = null;
 	
 	public Collection<RelationKey> getRelationKeys(String relation) {
 		return relationKeys.get(relation.toLowerCase());
@@ -235,18 +238,33 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	/**
-	 * check signatures for inconsistencies and write return types for constant nodes
+	 * check fragments for type inconsistencies and write return types for constant nodes
 	 * @throws Exception
 	 */
-	protected void checkSignatures() throws Exception {
-		// obtain parameter/argument -> type name mapping for non-constant nodes
-		HashMap<String,String> types = new HashMap<String,String>();
-		Vector<RelationalNode> constants = new Vector<RelationalNode>();
+	protected void checkSignatures() throws Exception {		
 		for(RelationalNode node : getRelationalNodes()) {
+			if(node.isFragment()) {
+				MultiIterator<RelationalNode> relevantNodes = new MultiIterator<RelationalNode>();
+				relevantNodes.add(node);
+				relevantNodes.add(getRelationalParents(node));				
+				checkFragment(node, relevantNodes);
+			}			
+		}			
+	}
+	
+	protected void checkFragment(RelationalNode fragment, Iterable<RelationalNode> relevantNodes) throws Exception {		
+		HashMap<String,String> types = new HashMap<String,String>(); // parameter/argument -> type name mapping
+		for(RelationalNode node : relevantNodes) {
 			if(node.isBuiltInPred())
 				continue;
-			if(node.isConstant)
-				constants.add(node);
+			if(node.isConstant) {
+				// update constant return types using the mapping
+				String type = types.get(node.getFunctionName());
+				if(type == null) // constants that were referenced by any of their parents must now have a type assigned
+					throw new Exception("Constant " + node + " not referenced and therefore not typed.");
+				Signature sig = new Signature(node.getFunctionName(), type, new String[0]);
+				addSignature(node, sig);
+			}
 			else {
 				Signature sig = getSignature(node);
 				if(sig == null) {
@@ -257,20 +275,20 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					throw new Exception(String.format("Signature of '%s' does not match node definition: It contains %d elements vs. %d elements in the node definition.", node.toString(), sig.argTypes.length, node.params.length));
 				for(int i = 0; i < node.params.length; i++) {
 					String key = node.params[i];
-					String value = types.get(key);
-					if(value != null && !value.equals(sig.argTypes[i]))
-						throw new Exception(String.format("Type mismatch while processing node '%s': '%s' has types '%s' and '%s'", node.getName(), key, value, sig.argTypes[i]));
-					types.put(key, sig.argTypes[i]);
+					String prevType = types.get(key);
+					if(prevType == null)
+						types.put(key, sig.argTypes[i]);
+					else {
+						if(!prevType.equals(sig.argTypes[i])) {
+							boolean error = true;
+							if(taxonomy != null && taxonomy.query_isa(prevType, sig.argTypes[i]))
+								error = false;
+							if(error)
+								throw new Exception(String.format("Type mismatch while processing fragment '%s': '%s' has incompatible types '%s' and '%s'", fragment.getName(), key, prevType, sig.argTypes[i]));
+						}
+					}					
 				}
 			}
-		}			
-		// update constant return types using the mapping
-		for(RelationalNode constant : constants) {
-			String type = types.get(constant.getFunctionName());
-			if(type == null) // constants that were referenced by any of their parents must now have a type assigned
-				throw new Exception("Constant " + constant + " not referenced and therefore not typed.");
-			Signature sig = new Signature(constant.getFunctionName(), type, new String[0]);
-			addSignature(constant, sig);
 		}
 	}
 
@@ -638,6 +656,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	public boolean isEvidenceFunction(String functionName) {
 		return evidenceFunctions.contains(functionName);
+	}
+
+	public Taxonomy getTaxonomy() {
+		return taxonomy;
 	}
 }
 

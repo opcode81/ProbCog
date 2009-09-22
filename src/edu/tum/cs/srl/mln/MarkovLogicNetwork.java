@@ -17,6 +17,7 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.tools.FileUtil;
 import edu.tum.cs.tools.JythonInterpreter;
 
@@ -313,4 +314,11 @@ public class MarkovLogicNetwork implements RelationalModel {
     public Collection<Signature> getSignatures() {
     	return this.signatures.values();
     }
+
+    /**
+     * @return null because MLNs do not use a taxonomy
+     */
+	public Taxonomy getTaxonomy() {
+		return null;
+	}
 }

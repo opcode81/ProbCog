@@ -105,6 +105,14 @@ public class RelationalNode extends ExtendedNode {
 			bn.setEvidenceFunction(functionName);
 	}
 	
+	/**
+	 * determines whether this node corresponds to a fragment variable
+	 * @return true if the node corresponds to a fragment
+	 */
+	public boolean isFragment() {
+		return !isConstant && !isAuxiliary && !isBuiltInPred();
+	}
+	
 	public String toString() {
 		return getName();		
 	}

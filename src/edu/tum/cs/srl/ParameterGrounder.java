@@ -67,7 +67,7 @@ public class ParameterGrounder {
 			return;
 		}
 		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable
-		Set<String> domain = db.getDomain(domainNames[i]);		
+		Iterable<String> domain = db.getDomain(domainNames[i]);		
 		if(domain == null)
 			throw new Exception("Domain " + domainNames[i] + " not found in the database!");
 		for(String element : domain) {

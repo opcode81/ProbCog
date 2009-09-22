@@ -9,24 +9,67 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
+import edu.tum.cs.srl.taxonomy.Concept;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 
+/**
+ * Advanced BLOG Model
+ * @author jain
+ */
 public class ABL extends BLOGModel {
 	
 	public ABL(String[] blogFiles, String networkFile) throws Exception {
 		super(blogFiles, networkFile);
-		
-		// read functional dependencies among relation arguments
-		Pattern pat = Pattern.compile("RelationKey\\s+(\\w+)\\s*\\((.*)\\)");
-		Matcher matcher = pat.matcher(this.blogContents);
-		while(matcher.find()) {
-			String relation = matcher.group(1);
-			String[] arguments = matcher.group(2).trim().split("\\s*,\\s*");
-			addRelationKey(new RelationKey(relation, arguments));
-		}	
 	}
 	
 	public ABL(String blogFile, String networkFile) throws Exception {
 		this(new String[]{blogFile}, networkFile);
+	}
+
+	@Override
+	protected boolean readDeclaration(String line) throws Exception {
+		if(super.readDeclaration(line))
+			return true;
+		// read functional dependencies among relation arguments
+		if(line.startsWith("relationKey") || line.startsWith("RelationKey")) {
+			Pattern pat = Pattern.compile("[Rr]elationKey\\s+(\\w+)\\s*\\((.*)\\)\\s*;?");
+			Matcher matcher = pat.matcher(line);
+			if(matcher.matches()) {
+				String relation = matcher.group(1);
+				String[] arguments = matcher.group(2).trim().split("\\s*,\\s*");
+				addRelationKey(new RelationKey(relation, arguments));
+				return true;
+			}
+			return false;
+		}
+		// read type information
+		if(line.startsWith("type") || line.startsWith("Type")) {
+			if(taxonomy == null) taxonomy = new Taxonomy();
+			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?);?");
+			Matcher matcher = pat.matcher(line);
+			Pattern typeDecl = Pattern.compile("(\\w+)(?:\\s+isa\\s+(\\w+))?");
+			if(matcher.matches()) {
+				String[] decls = matcher.group(1).split("\\s*,\\s*");
+				for(String d : decls) {
+					Matcher m = typeDecl.matcher(d);
+					if(m.matches()) {
+						Concept c = new Concept(m.group(1));
+						taxonomy.addConcept(c);
+						if(m.group(2) != null) {
+							Concept parent = taxonomy.getConcept(m.group(2));
+							if(parent == null) 
+								throw new Exception("Error in declaration of type '" + m.group(1) + "': The parent type '" + m.group(2) + "' is undeclared.");
+							c.setParent(parent);
+						}						
+						return true;
+					}
+					else
+						throw new Exception("The type declaration '" + d + "' is invalid");
+				}
+			}
+			return false;
+		}
+		return false;
 	}
 	
 	@Override
@@ -36,7 +79,7 @@ public class ABL extends BLOGModel {
 		// write relation keys
 		for(Collection<RelationKey> ckey : this.relationKeys.values()) {
 			for(RelationKey key : ckey) {
-				out.println("RelationKey " + key.toString());
+				out.println("relationKey " + key.toString());
 			}
 		}
 		out.println();
