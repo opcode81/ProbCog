@@ -58,7 +58,7 @@ public abstract class AbstractGroundBLN {
 	 */
 	protected HashSet<String> instantiatedVariables;
 	protected HashMap<String, Value[]> subCPFCache;
-	protected static final boolean debug = false;	
+	protected boolean debug = false;	
 	/**
 	 * maps an instantiated ground node to a string identifying the CPF template that was used to create it
 	 */
@@ -119,7 +119,7 @@ public abstract class AbstractGroundBLN {
 			if(!(extNode instanceof RelationalNode)) 
 				continue;
 			RelationalNode relNode = (RelationalNode)extNode;			
-			if(relNode.isConstant || relNode.isAuxiliary || relNode.isBuiltInPred()) // nodes that do not correspond to ground atoms can be ignored
+			if(!relNode.isFragment()) // nodes that do not correspond to fragments can be ignored
 				continue;
 			// keep track of handled functions and add to the list of functions
 			String f = relNode.getFunctionName();
@@ -202,8 +202,25 @@ public abstract class AbstractGroundBLN {
 			ret = instantiateVariable(relNode, params);
 		}
 		
-		if(suitableTemplates == 0)			
-			throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
+		if(suitableTemplates == 0) {
+			if(!this.bln.rbn.isEvidenceFunction(functionName))			
+				throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
+			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
+				/*
+				String value = this.db.getVariableValue(varName, true);
+				Domain dom = new Discrete(new String[]{value});
+				BeliefNode node = groundBN.addNode(varName, dom);
+				CPF cpf = new CPF(new BeliefNode[]{node});
+				cpf.setValues(new Value[]{new ValueDouble(1.0)});
+				node.setCPF(cpf);
+				ret = node;
+				// TODO can't call this because we don't have a relNode; Actually we wouldn't want to have this node at all
+				//onAddGroundAtomNode(relNode, actualParams, mainNode);
+				 */				
+				if(debug)
+					System.out.println("      " + varName + " (skipped, is evidence)");
+			}			
+	    }
 
 		return ret;
 	}
@@ -326,9 +343,9 @@ public abstract class AbstractGroundBLN {
 	/**
 	 * connects the parents given by the grounding to the target node 
 	 * @param parentGrounding
-	 * @param srcRelNode  the relational node that the target node is an instance to
-	 * @param targetNode  the node to connect the parents to
-	 * @param src2targetParent  a mapping in which to store which node in the model produced which instantiated parent (or null)
+	 * @param srcRelNode  the relational node that is to serve as the template for the target node
+	 * @param targetNode  the node in the ground network to connect the parents to
+	 * @param src2targetParent  a mapping in which to store which node in the template model produced which instantiated parent in the ground network (or null)
 	 * @param constantSettings  a mapping in which to store bindings of constants (or null)
 	 * @throws Exception 
 	 */
@@ -339,7 +356,13 @@ public abstract class AbstractGroundBLN {
 				continue;
 			if(relParent.isConstant) {
 				//System.out.println("Constant node: " + parent.getName() + " = " + entry.getValue()[0]);
-				if(constantSettings != null) constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
+				if(constantSettings != null) 
+					constantSettings.put(relParent.node, ((Discrete)relParent.node.getDomain()).findName(entry.getValue()[0]));
+				continue;
+			}
+			if(relParent.isPrecondition) {
+				if(constantSettings != null)
+					constantSettings.put(relParent.node, 0); // precondition nodes are always true
 				continue;
 			}
 			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
@@ -566,5 +589,9 @@ public abstract class AbstractGroundBLN {
 	public String getCPFID(BeliefNode node) {
 		String cpfID = cpfIDs.get(node);
 		return cpfID;
+	}
+	
+	public void setDebugMode(boolean enabled) {
+		this.debug = enabled;
 	}
 }

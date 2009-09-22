@@ -243,7 +243,7 @@ public class ParentGrounder {
 		}
 		else { // ground the next variable
 			String param = ungroundedParams[idx];
-			Set<String> s = db.getDomain(ungroundedParamDomains[idx]);
+			Iterable<String> s = db.getDomain(ungroundedParamDomains[idx]);
 			if(s == null) 
 				throw new Exception("Domain " + ungroundedParamDomains[idx] + " not found!");			
 			for(String constant : s) {

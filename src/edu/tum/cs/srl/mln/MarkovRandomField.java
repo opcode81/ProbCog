@@ -72,7 +72,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     		if(functionallyDeterminedArg != null) {
     			// build the block of variables and check if we have positive evidence for one of them
     			Vector<GroundAtom> block = new Vector<GroundAtom>();
-        		Set<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
+        		Iterable<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
         		GroundAtom trueOne = null;
         		for(String value : dom) {
         			args[functionallyDeterminedArg] = value;
@@ -104,7 +104,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     		groundVariables(sig, args, i+1, functionallyDeterminedArg);    		
     	}
     	else {
-    		Set<String> dom = db.getDomain(sig.argTypes[i]);
+    		Iterable<String> dom = db.getDomain(sig.argTypes[i]);
     		for(String value : dom) {
     			args[i] = value;
     			groundVariables(sig, args, i+1, functionallyDeterminedArg);

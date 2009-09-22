@@ -19,11 +19,9 @@ import edu.tum.cs.tools.FileUtil;
 import edu.tum.cs.tools.StringTool;
 
 public class BLOGModel extends RelationalBeliefNetwork {
-	
-	protected String blogContents;
 
 	/**
-	 * constructs a BLOG model by obtaining the node data from a Bayesian network template and function signatures from one or more BLOG files.
+	 * constructs a BLOG model by obtaining the node data from a fragment network and declarations from one or more BLOG files.
 	 * @param blogFiles
 	 * @param networkFile  a Bayesian network file
 	 * @throws Exception
@@ -33,21 +31,53 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		
 		// read the blog files
 		String blog = readBlogContent(blogFiles);
-		this.blogContents = blog;
 		
-		// obtain signatures from the blog file				
-		Pattern pat = Pattern.compile("random\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)", Pattern.CASE_INSENSITIVE);
-		Matcher matcher = pat.matcher(blog);
-		while(matcher.find()) {
-			String retType = matcher.group(1);
-			String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
-			Signature sig = new Signature(matcher.group(2), retType, argTypes);
-			addSignature(matcher.group(2), sig);
+		// remove comments		
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+		Matcher matcher = comments.matcher(blog);
+		blog = matcher.replaceAll("");
+		
+		// read line by line		
+		String[] lines = blog.split("\n");
+		for(String line : lines) {
+			line = line.trim();
+			if(line.length() == 0)
+				continue;
+			if(!readDeclaration(line))
+				if(!line.contains("~"))
+					throw new Exception("Could not interpret the line '" + line + "'");			
 		}
 		
-		readGuaranteedDomainElements(blog);
-		
 		checkSignatures();
+	}	
+	
+	protected boolean readDeclaration(String line) throws Exception {
+		// function signature
+		if(line.startsWith("random")) {
+			Pattern pat = Pattern.compile("random\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
+			Matcher matcher = pat.matcher(line);
+			if(matcher.matches()) {
+				String retType = matcher.group(1);
+				String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
+				Signature sig = new Signature(matcher.group(2), retType, argTypes);
+				addSignature(matcher.group(2), sig);
+				return true;
+			}			
+			return false;
+		}
+		// obtain guaranteed domain elements
+		if(line.startsWith("guaranteed")) {
+			Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*)\\s*;?");
+			Matcher matcher = pat.matcher(line);
+			if(matcher.matches()) {
+				String domName = matcher.group(1);
+				String[] elems = matcher.group(2).split("\\s*,\\s*");
+				guaranteedDomElements.put(domName, elems);
+				return true;
+			}
+			return false;
+		}
+		return false;
 	}
 	
 	/**
@@ -73,23 +103,8 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @param xmlbifFile
 	 * @throws Exception
 	 */
-	public BLOGModel(String blogFile, String xmlbifFile) throws Exception {
-		this(new String[]{blogFile}, xmlbifFile);
-	}
-	
-	/**
-	 * reads the guaranteed domain elements listed in the given contents of a BLOG file and stores them in the guaranteedDomElements member
-	 * @param blogContent
-	 */
-	protected void readGuaranteedDomainElements(String blogContent) {
-		// obtain guaranteed domain elements
-		Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*)\\s*;");
-		Matcher matcher = pat.matcher(blogContent);
-		while(matcher.find()) {
-			String domName = matcher.group(1);
-			String[] elems = matcher.group(2).split("\\s*,\\s*");
-			guaranteedDomElements.put(domName, elems);
-		}	
+	public BLOGModel(String blogFile, String networkFile) throws Exception {
+		this(new String[]{blogFile}, networkFile);
 	}
 	
 	/**
