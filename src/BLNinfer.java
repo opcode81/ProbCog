@@ -32,7 +32,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT, SATISExGibbs};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, BackwardSamplingWithChildren, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT, SATISExGibbs};
 	
 	/**
 	 * @param args
@@ -99,6 +99,8 @@ public class BLNinfer {
 					algo = Algorithm.SmileBackwardSampling;
 				else if(args[i].equals("-bsp"))
 					algo = Algorithm.BackwardSamplingPriors;
+				else if(args[i].equals("-bsc"))
+					algo = Algorithm.BackwardSamplingWithChildren;
 				else if(args[i].equals("-lbs"))
 					algo = Algorithm.LiftedBackwardSampling;
 				else if(args[i].equals("-exp"))
@@ -138,6 +140,8 @@ public class BLNinfer {
 							         "     -satisex         algorithm: SAT-IS Extended (adds hard CPT constraints to the KB) \n" +
 							         "     -satisexg        algorithm: SAT-IS Extended with interspersed Gibbs sampling\n" +
 							         "     -bs              algorithm: backward sampling\n" +
+							         "     -bsp             algorithm: backward sampling with priors\n" +
+							         "     -bsc             algorithm: backward sampling with priors and extended context\n" +
 							         "     -lbs             algorithm: lifted backward sampling\n" +
 							         "     -sbs             algorithm: SMILE backward sampling\n" +
 							         "     -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
@@ -202,6 +206,7 @@ public class BLNinfer {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, logicFile);
 				gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, db);
 			}
+			gbln.setDebugMode(debug);
 			gbln.instantiateGroundNetwork();
 			if(showBN) {
 				gbln.getGroundNetwork().show();
@@ -233,6 +238,7 @@ public class BLNinfer {
 			case BackwardSamplingPriors:
 				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
 			case Experimental:
+			case BackwardSamplingWithChildren:
 				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
 			case LiftedBackwardSampling:
 				sampler = new LiftedBackwardSampling(gbln); break;
