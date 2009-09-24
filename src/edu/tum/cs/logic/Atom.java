@@ -35,7 +35,9 @@ public class Atom extends UngroundedFormula {
 					type = sig.argTypes[i];
 				else
 					type = sig.returnType;
-				ret.put(param, type);
+				String oldval = ret.put(param, type);
+				if(oldval != null && !type.equals(oldval))
+					throw new Exception("The variable " + param + " is bound to more than one domain: " + oldval + " and " + type);
 			}
 			++i;
 		}
@@ -53,8 +55,11 @@ public class Atom extends UngroundedFormula {
 			if(i++ > 0)
 				sb.append(',');
 			String value = binding.get(param);
-			if(value == null)
+			if(value == null) { // if the binding contains no value for a parameter, it must be a constant
+				if(isVariable(param))
+					throw new Exception("Cannot ground " + toString() + " - variable " + param + " unbound.");
 				value = param;
+			}
 			sb.append(value);
 		}
 		sb.append(')');
