@@ -43,6 +43,7 @@ TOKEN : {
 | < EQUALS: "=" >
 | < IFF: "<=>" >
 | < EXIST: "EXIST" | "EXISTS" >
+| < FORALL: "FORALL" >
 | < OPENRB: "(" >
 | < CLOSERB: ")" >
 | < LISTSEP: "," >
@@ -154,6 +155,20 @@ Exist exist() :
 	{ return new Exist(vars, f); } 
 }
 
+ForAll forall() :
+{
+	Formula f;
+	Collection<String> vars;
+}
+{
+	<FORALL> 
+	vars = varlist()
+	<OPENRB>
+	f = formula()
+	<CLOSERB>
+	{ return new ForAll(vars, f); } 
+}
+
 Equality equality() :
 {
 	String left, right;
@@ -182,6 +197,8 @@ Formula formulaElement() :
 		<OPENRB> f = formula() <CLOSERB>
 	| 
 		f = exist()
+	|
+		f = forall()
 	)	
 	{ return f; }
 }
