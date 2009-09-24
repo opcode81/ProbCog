@@ -11,16 +11,17 @@ public @SuppressWarnings("all") interface FormulaParserConstants {
   int EQUALS = 9;
   int IFF = 10;
   int EXIST = 11;
-  int OPENRB = 12;
-  int CLOSERB = 13;
-  int LISTSEP = 14;
-  int LCCHAR = 15;
-  int UCCHAR = 16;
-  int DIGIT = 17;
-  int IDENTCHAR = 18;
-  int NUMBER = 19;
-  int UCIDENT = 20;
-  int LCIDENT = 21;
+  int FORALL = 12;
+  int OPENRB = 13;
+  int CLOSERB = 14;
+  int LISTSEP = 15;
+  int LCCHAR = 16;
+  int UCCHAR = 17;
+  int DIGIT = 18;
+  int IDENTCHAR = 19;
+  int NUMBER = 20;
+  int UCIDENT = 21;
+  int LCIDENT = 22;
 
   int DEFAULT = 0;
 
@@ -37,6 +38,7 @@ public @SuppressWarnings("all") interface FormulaParserConstants {
     "\"=\"",
     "\"<=>\"",
     "<EXIST>",
+    "\"FORALL\"",
     "\"(\"",
     "\")\"",
     "\",\"",

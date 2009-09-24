@@ -195,6 +195,18 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     throw new Error("Missing return statement in function");
   }
 
+  final public ForAll forall() throws ParseException {
+        Formula f;
+        Collection<String> vars;
+    jj_consume_token(FORALL);
+    vars = varlist();
+    jj_consume_token(OPENRB);
+    f = formula();
+    jj_consume_token(CLOSERB);
+          {if (true) return new ForAll(vars, f);}
+    throw new Error("Missing return statement in function");
+  }
+
   final public Equality equality() throws ParseException {
         String left, right;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -248,6 +260,9 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         break;
       case EXIST:
         f = exist();
+        break;
+      case FORALL:
+        f = forall();
         break;
       default:
         jj_la1[9] = jj_gen;
@@ -378,6 +393,16 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return false;
   }
 
+  final private boolean jj_3R_11() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_scan_token(21)) {
+    jj_scanpos = xsp;
+    if (jj_scan_token(20)) return true;
+    }
+    return false;
+  }
+
   final private boolean jj_3R_6() {
     if (jj_3R_10()) return true;
     return false;
@@ -385,6 +410,11 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
 
   final private boolean jj_3R_9() {
     if (jj_3R_11()) return true;
+    return false;
+  }
+
+  final private boolean jj_3R_10() {
+    if (jj_scan_token(LCIDENT)) return true;
     return false;
   }
 
@@ -409,21 +439,6 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     return false;
   }
 
-  final private boolean jj_3R_11() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_scan_token(20)) {
-    jj_scanpos = xsp;
-    if (jj_scan_token(19)) return true;
-    }
-    return false;
-  }
-
-  final private boolean jj_3R_10() {
-    if (jj_scan_token(LCIDENT)) return true;
-    return false;
-  }
-
   public FormulaParserTokenManager token_source;
   SimpleCharStream jj_input_stream;
   public Token token, jj_nt;
@@ -439,7 +454,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       jj_la1_0();
    }
    private static void jj_la1_0() {
-      jj_la1_0 = new int[] {0x180000,0x380000,0x4000,0x380000,0x4000,0x300000,0x300020,0x380000,0x380000,0x301820,0x40,0x80,0x100,0x400,};
+      jj_la1_0 = new int[] {0x300000,0x700000,0x8000,0x700000,0x8000,0x600000,0x600020,0x700000,0x700000,0x603820,0x40,0x80,0x100,0x400,};
    }
   final private JJCalls[] jj_2_rtns = new JJCalls[2];
   private boolean jj_rescan = false;
@@ -616,7 +631,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
 
   public ParseException generateParseException() {
     jj_expentries.removeAllElements();
-    boolean[] la1tokens = new boolean[22];
+    boolean[] la1tokens = new boolean[23];
     if (jj_kind >= 0) {
       la1tokens[jj_kind] = true;
       jj_kind = -1;
@@ -630,7 +645,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         }
       }
     }
-    for (int i = 0; i < 22; i++) {
+    for (int i = 0; i < 23; i++) {
       if (la1tokens[i]) {
         jj_expentry = new int[1];
         jj_expentry[0] = i;
