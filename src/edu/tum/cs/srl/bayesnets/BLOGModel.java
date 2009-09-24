@@ -67,7 +67,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 		}
 		// obtain guaranteed domain elements
 		if(line.startsWith("guaranteed")) {
-			Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*)\\s*;?");
+			Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*?)\\s*;?");
 			Matcher matcher = pat.matcher(line);
 			if(matcher.matches()) {
 				String domName = matcher.group(1);
