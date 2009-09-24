@@ -56,8 +56,13 @@ public class DecisionNode extends ExtendedNode {
 			}
 		}
 		else {
-			Formula gf = formula.ground(varBinding, worldVars, db);
-			return gf.isTrue(w);
+			try {
+				Formula gf = formula.ground(varBinding, worldVars, db);
+				return gf.isTrue(w);				
+			}
+			catch(Exception e) {
+				throw new Exception("Cannot evaluate precondition " + formula + ": " + e.getMessage());
+			}
 		}
 	}
 	
