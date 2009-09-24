@@ -218,7 +218,7 @@ public class Database {
 			}
 			// something else
 			if(line.length() != 0) {
-				System.err.println("Line could not be read: " + line);
+				throw new Exception("Database entry could not be read: " + line);
 			}
 		}
 	}	
