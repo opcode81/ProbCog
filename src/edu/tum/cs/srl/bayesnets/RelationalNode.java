@@ -220,6 +220,13 @@ public class RelationalNode extends ExtendedNode {
 	}
 	
 	/**
+	 * @return true iff this node has a combination function (i.e. an aggregator) assigned to it
+	 */
+	public boolean hasAggregator() {
+		return this.aggregator != null;
+	}
+	
+	/**
 	 * retrieves this node's signature
 	 * @return
 	 */
