@@ -70,14 +70,14 @@ class BLNQuery:
         # declarations selection
         row += 1
         Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
-        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 10, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
+        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 12, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
         self.selected_blog.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
         # logical constraints selection
         row += 1
         Label(self.frame, text="Logic: ").grid(row=row, column=0, sticky=NE)
-        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 16, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
+        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
         self.selected_bln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
         
