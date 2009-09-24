@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -246,8 +247,10 @@ public abstract class AbstractGroundBLN {
 		// add edges from the parents
 		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
 		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(actualParams, db);
-		// - normal case: just one set of parents
-		if(groundings.size() == 1) {
+		// - normal case: just CPF application for one set of parents
+		if(!relNode.hasAggregator()) {
+			if(groundings.size() != 1) 
+				throw new Exception("Cannot instantiate " + mainNodeName + " for " + groundings.size() + " groups of parents.");			
 			if(debug) {
 				System.out.println("        relevant nodes/parents from " + pg.toString());
 				Map<Integer, String[]> grounding = groundings.firstElement();						
@@ -257,7 +260,7 @@ public abstract class AbstractGroundBLN {
 			}
 			instantiateCPF(groundings.firstElement(), relNode, mainNode);
 		}				
-		// - several sets of parents -> use combination function
+		// - other case: use combination function
 		else { 
 			// determine if auxiliary nodes need to be used and connect the parents appropriately			
 			if(relNode.aggregator.charAt(0) != '=') {
@@ -281,19 +284,25 @@ public abstract class AbstractGroundBLN {
 			// if the node is functionally determined by the parents, aux. nodes carrying the CPD in the template node are not required
 			// we link the grounded parents directly
 			else {
+				ArrayList<BeliefNode> domprod = new ArrayList<BeliefNode>(); // vector ordered by parent set (i.e. the parents belonging to a set are grouped)
+				domprod.add(mainNode);
 				for(Map<Integer, String[]> grounding : groundings) {
-					connectParents(grounding, relNode, mainNode, null, null);
+					HashMap<BeliefNode,BeliefNode> src2targetParent = new HashMap<BeliefNode,BeliefNode>();
+					connectParents(grounding, relNode, mainNode, src2targetParent, null);
+					domprod.addAll(src2targetParent.values());
 				}
+				// force parent ordering (ordered by group) in CPF
+				mainNode.getCPF().buildZero(domprod.toArray(new BeliefNode[domprod.size()]), false);
 			}
 			// apply combination function
 			String combFunc = relNode.aggregator;
 			CPFFiller filler;
-			if(combFunc == null || combFunc.equals("OR") || combFunc.equals("=OR")) {
+			if(combFunc == null || combFunc.equals("=OR") || combFunc.equals("OR")) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
 				// set filler
-				filler = new CPFFiller_OR(mainNode);
+				filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
 			}
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
@@ -374,7 +383,7 @@ public abstract class AbstractGroundBLN {
 	
 	/**
 	 * connects the parents given by the grounding to the target node and transfers the (correct part of the) CPF to the target node
-	 * @param parentGrounding  a grounding
+	 * @param parentGrounding  a grounding (mapping of indices of relational nodes to an array of actual parameters)
 	 * @param srcRelNode  relational node that the CPF is to be copied from 
 	 * @param targetNode  the target node to connect parents to and whose CPF is to be written
 	 * @throws Exception
@@ -484,6 +493,10 @@ public abstract class AbstractGroundBLN {
 		}
 	}
 	
+	/**
+	 * abstract base class for filling a CPF that is determined by a combination function
+	 * @author jain
+	 */
 	public abstract class CPFFiller {
 		CPF cpf;
 		BeliefNode[] nodes;
@@ -518,6 +531,10 @@ public abstract class AbstractGroundBLN {
 		protected abstract double getValue(int[] addr);
 	}
 	
+	/**
+	 * CPF filler for simple OR of boolean nodes
+	 * @author jain
+	 */
 	public class CPFFiller_OR extends CPFFiller {
 		public CPFFiller_OR(BeliefNode node) {
 			super(node);
@@ -529,6 +546,46 @@ public abstract class AbstractGroundBLN {
 			boolean isTrue = false;
 			for(int i = 1; i < addr.length; i++)
 				isTrue = isTrue || addr[i] == 0;
+			return (addr[0] == 0 && isTrue) || (addr[0] == 1 && !isTrue) ? 1.0 : 0.0;
+		}
+	}
+	
+	/**
+	 * CPF filler for disjunction of conjunction of boolean nodes
+	 * @author jain
+	 */
+	public class CPFFiller_ORGrouped extends CPFFiller {
+		int groupSize;
+
+		/**
+		 * 
+		 * @param node node whose CPF to fill
+		 * @param groupSize number of consecutive parents that make up a group representing a conjunction
+		 */
+		public CPFFiller_ORGrouped(BeliefNode node, int groupSize) {
+			super(node);
+			this.groupSize = groupSize;
+		}
+
+		@Override
+		protected double getValue(int[] addr) {
+			// disjunction of conjunction of boolean nodes (each conjunction is of groupSize)
+			// order in boolean domains is 0=True, 1=False
+			boolean isTrue = false;
+			int g = 0;
+			for(int i = 1; i < addr.length;) {
+				if((i-1) % groupSize == 0) {
+					if(isTrue) 
+						break;
+				}
+				isTrue = addr[i] == 0;
+				if(!isTrue) { // skip to next conjunction
+					++g;
+					i = 1 + g * groupSize;
+					continue;
+				}
+				++i;
+			}
 			return (addr[0] == 0 && isTrue) || (addr[0] == 1 && !isTrue) ? 1.0 : 0.0;
 		}
 	}
@@ -557,24 +614,6 @@ public abstract class AbstractGroundBLN {
 			}
 		}
 		return groundBN.evidence2DomainIndices(fullEvidence);
-	}
-	
-	@Deprecated
-	public void inferAIS(int numSamples) {
-		boolean useEvidence = true;
-		if(useEvidence) {
-			BeliefNode[] nodes = groundBN.bn.getNodes();
-			int[] evidenceDomainIndices = getFullEvidence(db.getEntriesAsArray());
-			for(int i = 0; i < evidenceDomainIndices.length; i++)
-				if(evidenceDomainIndices[i] != -1) {
-					nodes[i].setEvidence(new DiscreteEvidence(evidenceDomainIndices[i]));
-				}
-		}
-		
-		AIS ais = new AIS();
-		ais.setNumSamples(numSamples);
-		ais.setInterval(50);
-		ais.run(groundBN.bn);		
 	}
 	
 	public BeliefNetworkEx getGroundNetwork() {
