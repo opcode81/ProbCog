@@ -26,7 +26,7 @@ from ScrolledText import ScrolledText
 from string import ascii_letters, digits, punctuation
 try:
     import Pmw
-    havePMW = False
+    havePMW = True
 except:
     havePMW = False
 import os
@@ -460,7 +460,7 @@ class FilePickEdit(Frame):
                     selectioncommand = self.onSelChange,
                     scrolledlist_items = self.files,
             )
-            self.list.grid(row=0, column=0, padx=10, sticky="NEW")
+            self.list.grid(row=0, column=0, padx=0, pady=0, sticky="NEWS")
             self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
             self.picked_name = self.list            
         else:
@@ -548,11 +548,11 @@ class FilePick(Frame):
         
     def makelist(self):
         if havePMW:
-            self.list = Pmw.ComboBox(self.list_frame,
+            self.list = Pmw.ComboBox(self,
                     selectioncommand = self.onSelChange,
                     scrolledlist_items = self.files,
             )
-            self.list.grid(row=0, column=0, padx=10, sticky="NEW")
+            self.list.grid(row=0, column=0, padx=0, sticky="NEWS")
             self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
             self.picked_name = self.list            
         else:
