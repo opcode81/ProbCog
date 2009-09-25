@@ -454,7 +454,7 @@ if __name__ == '__main__':
         configname = filename
         if os.path.exists(configname):
             try:
-                settings = pickle.loads(os.linesep.join(map(lambda x: x.strip("\r\n"), file(configname, "r").readlines())))
+                settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file(configname, "r").readlines())))
             except:
                 pass
             break
