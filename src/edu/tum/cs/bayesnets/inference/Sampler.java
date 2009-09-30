@@ -47,6 +47,12 @@ public abstract class Sampler {
 		this.dist.addSample(s);
 	}
 	
+	/**
+	 * samples from a distribution whose normalization constant is not known
+	 * @param distribution
+	 * @param generator
+	 * @return the index of the value that was sampled (or -1 if the distribution is not well-defined)
+	 */
 	public static int sample(double[] distribution, Random generator) {
 		double sum = 0;
 		for(int i = 0; i < distribution.length; i++)
@@ -54,6 +60,13 @@ public abstract class Sampler {
 		return sample(distribution, sum, generator);
 	}
 	
+	/**
+	 * samples from the given distribution
+	 * @param distribution
+	 * @param sum the distribution's normalization constant
+	 * @param generator
+	 * @return the index of the value that was sampled (or -1 if the distribution is not well-defined)
+	 */
 	public static int sample(double[] distribution, double sum, Random generator) {
 		double random = generator.nextDouble() * sum;		
 		int ret = 0;
@@ -65,6 +78,12 @@ public abstract class Sampler {
 		return sum >= random ? ret : -1;		
 	}
 	
+	/**
+	 * samples from a distribution whose normalization constant is not known
+	 * @param distribution 
+	 * @param generator
+	 * @return the index of the value in the collection that was sampled (or -1 if the distribution is not well-defined)
+	 */
 	public static int sample(Collection<Double> distribution, Random generator) {
 		double sum = 0;
 		for(Double d : distribution)
@@ -72,6 +91,13 @@ public abstract class Sampler {
 		return sample(distribution, sum, generator);
 	}
 
+	/**
+	 * samples from the given distribuion
+	 * @param distribution
+	 * @param sum the distribution's normalization constant
+	 * @param generator
+	 * @return the index of the value in the collection that was sampled (or -1 if the distribution is not well-defined)
+	 */
 	public static int sample(Collection<Double> distribution, double sum, Random generator) {
 		double random = generator.nextDouble() * sum;		
 		sum = 0;
@@ -131,7 +157,7 @@ public abstract class Sampler {
 		// get the addresses of the first two relevant fields and the difference between them
 		for(int i = 1; i < addr.length; i++)
 			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];		
-		addr[0] = 0; // (the fist element in the index into the domain of the node we are sampling)
+		addr[0] = 0; // (the first element in the index into the domain of the node we are sampling)
 		int realAddr = cpf.addr2realaddr(addr);
 		addr[0] = 1;
 		int diff = cpf.addr2realaddr(addr) - realAddr; // diff is the address difference between two consecutive entries in the relevant column
