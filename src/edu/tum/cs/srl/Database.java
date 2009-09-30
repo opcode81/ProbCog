@@ -42,8 +42,9 @@ public class Database {
 	/**
 	 * constructs an empty database for the given model
 	 * @param bn
+	 * @throws Exception 
 	 */
-	public Database(RelationalModel bn) {
+	public Database(RelationalModel bn) throws Exception {
 		this.model = bn;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
@@ -227,8 +228,9 @@ public class Database {
 	 * adds to the domain type the given value
 	 * @param type	name of the domain/type
 	 * @param value	the value/entity name to add
+	 * @throws Exception 
 	 */
-	protected void fillDomain(String type, String value) {
+	protected void fillDomain(String type, String value) throws Exception {
 		// if we are working with a taxonomy, we need to check whether we
 		// previously assigned the value to a super-type of type
 		// and if so, reassign it to the sub-type

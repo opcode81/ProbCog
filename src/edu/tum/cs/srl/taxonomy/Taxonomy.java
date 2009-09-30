@@ -36,9 +36,14 @@ public class Taxonomy {
 		return c.getDescendants();
 	}
 	
-	public boolean query_isa(String subtype, String type) {
+	public boolean query_isa(String subtype, String type) throws Exception {
 		Concept c = getConcept(type);
-		Vector<Concept> p1 = getConcept(subtype).getParents();
+		Concept sc = getConcept(subtype);
+		if(c == null)
+			throw new Exception("Concept '" + type + "' unknown.");
+		if(sc == null)
+			throw new Exception("Concept '" + subtype + "' unknown.");
+		Vector<Concept> p1 = sc.getParents();		
 		Vector<Concept> p2 = c.getParents();
 		if(!(p1.size() > p2.size()))
 				return false;
