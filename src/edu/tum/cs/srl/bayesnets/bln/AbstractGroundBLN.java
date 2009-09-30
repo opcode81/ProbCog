@@ -297,12 +297,15 @@ public abstract class AbstractGroundBLN {
 			// apply combination function
 			String combFunc = relNode.aggregator;
 			CPFFiller filler;
-			if(combFunc == null || combFunc.equals("=OR") || combFunc.equals("OR")) {
+			if(combFunc.equals("=OR") || combFunc.equals("OR")) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
 				// set filler
-				filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
+				if(combFunc.equals("=OR"))
+					filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
+				else
+					filler = new CPFFiller_OR(mainNode);
 			}
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
