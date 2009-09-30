@@ -3,6 +3,7 @@ package edu.tum.cs.srldb.datadict;
 import java.io.Serializable;
 
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
+import edu.tum.cs.srldb.datadict.domain.DiscardedDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
@@ -86,11 +87,10 @@ public class DDAttribute implements Cloneable, Serializable {
 	 * An attribute may eventually be discarded even though it is defined, because,
 	 * for example, it requires clustering and too few instances to actually perform
 	 * clustering were found in the database.
-	 *  
-	 * @return
 	 */
 	public void discard() {
 		discarded = true;
+		domain = DiscardedDomain.getInstance(); // avoid wasting space on domain data
 	}
 	
 	public boolean isDiscarded() {
@@ -121,5 +121,9 @@ public class DDAttribute implements Cloneable, Serializable {
 	
 	public DDItem getOwner() {
 		return owner;
+	}
+	
+	public String toString() {
+		return String.format("DDAttribute:%s[domain=%s/size=%d, discarded=%s, clustering=%s/%s]", name, domain.getClass().getSimpleName(), domain.getValues().length, Boolean.toString(discarded), Boolean.toString(doClustering), numClusters == null ? "auto" : numClusters.toString());
 	}
 }

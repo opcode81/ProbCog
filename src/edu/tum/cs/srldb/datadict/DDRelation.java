@@ -5,6 +5,7 @@ import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
+import edu.tum.cs.tools.StringTool;
 
 public class DDRelation extends DDItem implements Serializable {
 
@@ -139,5 +140,14 @@ public class DDRelation extends DDItem implements Serializable {
 		this.singleVal = singleVal;
 		if(arguments.length != this.singleVal.length)
 			throw new DDException("Single value array dimension differs from object array dimension");
+	}
+	
+	public String toString() {
+		StringBuffer args = new StringBuffer();
+		for(int i = 0; i < arguments.length; i++) {
+			if(i > 0) args.append(", ");
+			args.append(arguments[i].getDomainName());
+		}
+		return String.format("DDRelation:%s(%s) [%s]", name, args.toString(), StringTool.join(", ", this.attributes.values()));
 	}
 }

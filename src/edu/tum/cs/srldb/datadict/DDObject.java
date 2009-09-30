@@ -5,6 +5,7 @@ import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
+import edu.tum.cs.tools.StringTool;
 
 public class DDObject extends DDItem implements IDDRelationArgument, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -53,5 +54,9 @@ public class DDObject extends DDItem implements IDDRelationArgument, Serializabl
 	
 	public String getDomainName() {
 		return name;
+	}
+	
+	public String toString() {
+		return String.format("DDObject:%s [%s]", name, StringTool.join(", ", this.attributes.values()));
 	}
 }
