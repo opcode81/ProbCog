@@ -48,7 +48,7 @@ public class SmileInference extends Sampler {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {			
 			double[] values = net.getNodeValue("N" + i);
-			dist.sums[i] = values;
+			dist.values[i] = values;
 		}
 		dist.Z = 1.0;
 		
