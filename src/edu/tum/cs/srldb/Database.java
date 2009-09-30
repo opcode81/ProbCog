@@ -143,11 +143,20 @@ public class Database implements Cloneable, Serializable {
 	}
 	
 	/**
-	 * writes this database object to a file
+	 * writes this database object to a file (and, as a side-effect, changes all items' database references to this object in order to avoid saving data on other databases)
 	 * @param s
 	 * @throws IOException
 	 */
 	public void writeSRLDB(FileOutputStream s) throws IOException {
+		// make sure that we do not by mistake save data on other databases
+		// by setting all the items' databases to this
+		for(Object o : this.objects)
+			o.database = this;
+		for(Link l : this.links)
+			l.database = this;
+		// clean up data dictionary
+		this.datadict.cleanUp();		
+		// save		
 		ObjectOutputStream objstream = new ObjectOutputStream(s);
 	    objstream.writeObject(this);
 	    objstream.close();

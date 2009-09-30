@@ -4,6 +4,8 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.xml.sax.Attributes;
+
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
@@ -437,5 +439,27 @@ public class DataDictionary implements java.io.Serializable {
 			dd2node.put(rel, bn.addNode(nodeName.toString()));
 		}
 		return new BLNStructure(bn, dd2node);
+	}
+	
+	public String toString() {		
+		StringBuffer sb = new StringBuffer("DataDictionary:\n");
+		for(DDObject ddo : this.objects.values()) {
+			sb.append(ddo);
+			sb.append('\n');
+		}
+		for(DDRelation ddr : this.relations.values()) {
+			sb.append(ddr);
+			sb.append('\n');
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * cleans up stale domain references
+	 */
+	public void cleanUp() {
+		domains.clear();
+		for(DDAttribute attr : attributes.values())
+			domains.put(attr.getDomain().getName(), attr.getDomain());
 	}
 }
