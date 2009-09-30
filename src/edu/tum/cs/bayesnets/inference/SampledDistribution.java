@@ -13,17 +13,30 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  *
  */
 public class SampledDistribution {
-	public double[][] sums;
+	/**
+	 * an array of values representing the distribution, one for each node and each domain element:
+	 * values[i][j] is the value for the j-th domain element of the i-th node in the network
+	 */
+	public double[][] values;
+	/**
+	 * the normalization constant that applies to each of the distribution values
+	 */
 	public double Z;
+	/**
+	 * the belief network for which we are representing a distribution
+	 */
 	public BeliefNetworkEx bn;
+	/**
+	 * values that may be used by certain algorithms to store the number of steps involved in creating the distribution
+	 */
 	public int trials, steps;
 	
 	public SampledDistribution(BeliefNetworkEx bn) {
 		this.bn = bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
-		sums = new double[nodes.length][];
+		values = new double[nodes.length][];
 		for(int i = 0; i < nodes.length; i++)
-			sums[i] = new double[nodes[i].getDomain().getOrder()];			
+			values[i] = new double[nodes[i].getDomain().getOrder()];			
 	}
 	
 	public void addSample(WeightedSample s) {
@@ -33,7 +46,7 @@ public class SampledDistribution {
 		Z += s.weight;
 		for(int i = 0; i < s.nodeIndices.length; i++) {
 			try {
-				sums[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
+				values[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
 			}
 			catch(ArrayIndexOutOfBoundsException e) {
 				BeliefNode[] nodes = bn.bn.getNodes();
@@ -52,7 +65,7 @@ public class SampledDistribution {
 	}
 	
 	public double getProbability(int nodeIdx, int domainIdx) {
-		return sums[nodeIdx][domainIdx] / Z;
+		return values[nodeIdx][domainIdx] / Z;
 	}
 	
 	public void printNodeDistribution(PrintStream out, int index) {
@@ -60,7 +73,7 @@ public class SampledDistribution {
 		out.println(node.getName() + ":");
 		Discrete domain = (Discrete)node.getDomain();
 		for(int j = 0; j < domain.getOrder(); j++) {
-			double prob = sums[index][j] / Z;
+			double prob = values[index][j] / Z;
 			out.println(String.format("  %.4f %s", prob, domain.getName(j)));
 		}
 	}

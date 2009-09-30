@@ -94,9 +94,9 @@ public class MCSAT extends Sampler {
 			int idx = bn.getNodeIndex(n);
 			for(int k = 0; k < n.getDomain().getOrder(); k++) {
 				GroundLiteral lit = gbln.getGroundLiteral(n, k);
-				dist.sums[idx][k] = sampler.getResult(lit.gndAtom);
+				dist.values[idx][k] = sampler.getResult(lit.gndAtom);
 				if(!lit.isPositive)
-					dist.sums[idx][k] = 1-dist.sums[idx][k];
+					dist.values[idx][k] = 1-dist.values[idx][k];
 			}
 		}
 		dist.Z = 1.0;
