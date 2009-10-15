@@ -5,11 +5,15 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.bayesnets.inference.BNJPearl;
+import edu.tum.cs.bayesnets.inference.BNJVariableElimination;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.EnumerationAsk;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
+import edu.tum.cs.bayesnets.inference.BNJInference;
+import edu.tum.cs.bayesnets.inference.SampleSearch;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.srl.Database;
@@ -32,7 +36,7 @@ import edu.tum.cs.tools.Stopwatch;
 
 public class BLNinfer {
 
-	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, BackwardSamplingWithChildren, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT, SATISExGibbs};
+	enum Algorithm {LikelihoodWeighting, LWU, CSP, GibbsSampling, EPIS, BackwardSampling, SmileBackwardSampling, BackwardSamplingPriors, BackwardSamplingWithChildren, Experimental, LiftedBackwardSampling, SATIS, SATISEx, EnumerationAsk, MCSAT, SATISExGibbs, Pearl, VarElim};
 	
 	/**
 	 * @param args
@@ -46,6 +50,7 @@ public class BLNinfer {
 			String query = null;
 			int maxSteps = 1000;
 			int maxTrials = 5000;
+			int infoInterval = 100;
 			Algorithm algo = Algorithm.LikelihoodWeighting;
 			String[] cwPreds = null;
 			boolean showBN = false;
@@ -83,6 +88,8 @@ public class BLNinfer {
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-maxTrials"))
 					maxTrials = Integer.parseInt(args[++i]);
+				else if(args[i].equals("-infoInterval"))
+					infoInterval = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
 					algo = Algorithm.LikelihoodWeighting;
 				else if(args[i].equals("-lwu"))
@@ -115,6 +122,10 @@ public class BLNinfer {
 					algo = Algorithm.SATISExGibbs;
 				else if(args[i].equals("-mcsat"))
 					algo = Algorithm.MCSAT;
+				else if(args[i].equals("-pearl"))
+					algo = Algorithm.Pearl;
+				else if(args[i].equals("-elim"))
+					algo = Algorithm.VarElim;
 				else if(args[i].equals("-debug"))
 					debug = true;
 				else
@@ -131,6 +142,7 @@ public class BLNinfer {
 						             "   options:\n\n" +
 									 "     -maxSteps #      the maximum number of steps to take\n" +
 									 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms\n" +
+									 "     -infoInterval #  the number of steps after which to output a status message\n" +
 									 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +									 
 									 "     -lw              algorithm: likelihood weighting (default)\n" +
 									 "     -lwu             algorithm: likelihood weighting with uncertain evidence\n" +
@@ -146,6 +158,8 @@ public class BLNinfer {
 							         "     -sbs             algorithm: SMILE backward sampling\n" +
 							         "     -epis            algorithm: SMILE evidence prepropagation importance sampling\n" +
 							         "     -ea              algorithm: Enumeration-Ask (exact)\n" +
+							         "     -pearl           algorithm: Pearl's algorithm for polytrees (exact)\n" +
+							         "     -elim            algorithm: variable elimination (exact)\n" +
 							         "     -mcsat           algorithm: MC-SAT\n\n" +
 							         "     -py              use Python-based logic engine\n" +
 							         "     -debug           debug mode with additional outputs\n" + 
@@ -237,7 +251,6 @@ public class BLNinfer {
 				sampler = new BNSampler(gbln, BackwardSampling.class); break;
 			case BackwardSamplingPriors:
 				sampler = new BNSampler(gbln, BackwardSamplingWithPriors.class); break;
-			case Experimental:
 			case BackwardSamplingWithChildren:
 				sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
 			case LiftedBackwardSampling:
@@ -252,6 +265,12 @@ public class BLNinfer {
 				sampler = new MCSAT((GroundBLN)gbln); break;
 			case EnumerationAsk:
 				sampler = new BNSampler(gbln, EnumerationAsk.class); break;
+			case Pearl:
+				sampler = new BNSampler(gbln, BNJPearl.class); break;
+			case VarElim:
+				sampler = new BNSampler(gbln, BNJVariableElimination.class); break;
+			case Experimental:
+				sampler = new BNSampler(gbln, SampleSearch.class); break;
 			default: 
 				throw new Exception("algorithm not handled");
 			}
@@ -260,7 +279,7 @@ public class BLNinfer {
 				((BNSampler)sampler).setMaxTrials(maxTrials);
 				((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
 			}
-			Vector<InferenceResult> results = sampler.infer(queries, maxSteps, 100);
+			Vector<InferenceResult> results = sampler.infer(queries, maxSteps, infoInterval);
 			sw.stop();
 			for(InferenceResult res : results)
 				res.print();
