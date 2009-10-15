@@ -42,12 +42,14 @@ public class BNSampler extends Sampler {
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// sample		
+		System.out.println("initializing...");
 		edu.tum.cs.bayesnets.inference.Sampler sampler = getSampler();
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
 		sampler.setMaxTrials(maxTrials);
 		sampler.setSkipFailedSteps(skipFailedSteps);
+		System.out.printf("running %s...\n", sampler.getAlgorithmName());
 		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
 		
 		// determine query nodes and print their distributions		
