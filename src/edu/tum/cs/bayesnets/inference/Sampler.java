@@ -182,4 +182,8 @@ public abstract class Sampler {
 	public void setDebugMode(boolean active) {
 		debug = active;
 	}
+	
+	public String getAlgorithmName() {
+		return this.getClass().getSimpleName();
+	}
 }
