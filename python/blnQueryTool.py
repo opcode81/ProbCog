@@ -92,10 +92,14 @@ class BLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood weighting":"-lw", "Gibbs sampling":"-gs", "EPIS-BN": "-epis", "Backward Sampling": "-bs", "Enumeration-Ask (exact)": "-ea", "Lifted Backward Sampling with Children": "-lbs", "SMILE Backward Sampling": "-sbs", "Backward Sampling with Priors": "-bsp", "Backward Sampling with Children":"-bsc", "Experimental": "-exp", "SAT-IS": "-satis", "SAT-IS Extended": "-satisex", "SAT-IS Extended/Gibbs":"-satisexg", "Likelihood Weighting With Uncertain Evidence": "-lwu", "MC-SAT": "-mcsat"}
+        self.methods = {"Likelihood Weighting":"-lw", "Gibbs Sampling":"-gs", "EPIS-BN": "-epis", "Backward Sampling": "-bs", "Enumeration-Ask (exact)": "-ea", "Lifted Backward Sampling with Children": "-lbs", "SMILE Backward Sampling": "-sbs", "Backward Sampling with Priors": "-bsp", "Backward Sampling with Children":"-bsc", "Experimental": "-exp", "SAT-IS": "-satis", "SAT-IS Extended": "-satisex", "SAT-IS Extended/Gibbs":"-satisexg", "Likelihood Weighting with Uncertain Evidence": "-lwu", "MC-SAT": "-mcsat", "Pearl's algorithm":"-pearl", "Variable Elimination": "-elim"}
+        method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
-        self.selected_method.set(self.settings.get("method", self.methods.keys()[0])) # default value
-        self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(self.methods.keys()))
+        stored_method = self.settings.get("method")
+        if stored_method is None or stored_method not in method_names:
+            stored_method = "Likelihood Weighting" # default value
+        self.selected_method.set(stored_method) 
+        self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(method_names))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
 
         # queries
