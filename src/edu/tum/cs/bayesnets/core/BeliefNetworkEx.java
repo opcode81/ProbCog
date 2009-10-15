@@ -35,6 +35,7 @@ import edu.ksu.cis.bnj.ver3.streams.Exporter;
 import edu.ksu.cis.bnj.ver3.streams.Importer;
 import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
+import edu.tum.cs.bayesnets.core.io.Converter_ergo;
 import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
 import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
@@ -627,6 +628,9 @@ public class BeliefNetworkEx {
 		// Hugin
 		Converter_hugin hugin = new Converter_hugin();
 		iopl.addPlugin(null, hugin);
+		// Ergo
+		Converter_ergo ergo = new Converter_ergo();
+		iopl.addPlugin(ergo, null);
 	}
 	
 	/**
