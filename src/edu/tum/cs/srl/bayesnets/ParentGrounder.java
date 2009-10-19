@@ -11,7 +11,7 @@ import java.util.Vector;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 /**
  * generates groundings of all nodes relevant to a given node N for particular bindings of N's parameters; the relevant nodes being N and its parents  

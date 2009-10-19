@@ -5,7 +5,7 @@ import java.util.HashMap;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
 
 public class GibbsSampling extends Sampler {
 	int[] nodeOrder;	

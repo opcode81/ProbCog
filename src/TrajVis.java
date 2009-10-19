@@ -7,7 +7,7 @@ import javax.swing.JFrame;
 
 import de.tum.in.fipm.kipm.gui.visualisation.JointTrajectoriesIsomap;
 import de.tum.in.fipm.kipm.gui.visualisation.items.BodyPoseSequence;
-import edu.tum.cs.tools.CollectionFilter;
+import edu.tum.cs.util.datastruct.CollectionFilter;
 import edu.tum.cs.vis.DrawableAnimated;
 import edu.tum.cs.vis.items.Trajectory;
 import edu.tum.cs.vis.items.Legend;

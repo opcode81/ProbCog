@@ -6,7 +6,7 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class Clause extends ComplexFormula {
 	

@@ -5,7 +5,7 @@ import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class DDObject extends DDItem implements IDDRelationArgument, Serializable {
 	private static final long serialVersionUID = 1L;

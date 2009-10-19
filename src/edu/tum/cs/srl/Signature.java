@@ -3,7 +3,7 @@
  */
 package edu.tum.cs.srl;
 
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class Signature {
 	public String returnType;

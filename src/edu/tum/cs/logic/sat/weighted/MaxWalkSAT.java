@@ -22,8 +22,8 @@ import edu.tum.cs.logic.sat.EvidenceHandler;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.tools.Stopwatch;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.StringTool;
 
 /**
  * Implementation of a stochastic weighted Maximum-a-posteriori WalkSAT algorithm

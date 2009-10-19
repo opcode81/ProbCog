@@ -15,9 +15,9 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
-import edu.tum.cs.tools.FileUtil;
-import edu.tum.cs.tools.MultiIterator;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.FileUtil;
+import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.MultiIterator;
 
 /**
  * represents an evidence/training database for a relational model 

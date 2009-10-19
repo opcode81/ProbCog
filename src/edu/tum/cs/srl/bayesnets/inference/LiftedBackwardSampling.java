@@ -13,9 +13,9 @@ import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
-import edu.tum.cs.tools.Cache2D;
-import edu.tum.cs.tools.MutableDouble;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.datastruct.Cache2D;
+import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class LiftedBackwardSampling extends Sampler {
 

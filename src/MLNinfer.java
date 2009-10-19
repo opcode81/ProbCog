@@ -16,7 +16,7 @@ import edu.tum.cs.srl.mln.inference.MAPInferenceAlgorithm;
 import edu.tum.cs.srl.mln.inference.MCSAT;
 import edu.tum.cs.srl.mln.inference.MaxWalkSAT;
 import edu.tum.cs.srl.mln.inference.Toulbar2MAPInference;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
 
 /**
  * MLN command-line inference tool 

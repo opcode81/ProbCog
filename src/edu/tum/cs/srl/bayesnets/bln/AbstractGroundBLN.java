@@ -25,9 +25,9 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.tools.Pair;
-import edu.tum.cs.tools.Stopwatch;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 public abstract class AbstractGroundBLN {
 	/**

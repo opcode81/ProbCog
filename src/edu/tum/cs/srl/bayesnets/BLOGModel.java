@@ -15,8 +15,8 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.tools.FileUtil;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.FileUtil;
+import edu.tum.cs.util.StringTool;
 
 public class BLOGModel extends RelationalBeliefNetwork {
 

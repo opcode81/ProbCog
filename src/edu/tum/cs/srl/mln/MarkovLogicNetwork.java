@@ -18,8 +18,8 @@ import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
-import edu.tum.cs.tools.FileUtil;
 import edu.tum.cs.tools.JythonInterpreter;
+import edu.tum.cs.util.FileUtil;
 
 /**
  * represents a Markov logic network

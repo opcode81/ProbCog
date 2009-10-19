@@ -14,8 +14,8 @@ import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
-import edu.tum.cs.tools.Pair;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.datastruct.Pair;
 
 public class GroundBLN extends AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;

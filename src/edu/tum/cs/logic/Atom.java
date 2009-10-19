@@ -5,7 +5,7 @@ import java.util.Map;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class Atom extends UngroundedFormula {
 

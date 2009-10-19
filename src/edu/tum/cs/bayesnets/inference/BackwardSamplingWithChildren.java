@@ -7,9 +7,9 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.tools.Cache2D;
-import edu.tum.cs.tools.MutableDouble;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.datastruct.Cache2D;
+import edu.tum.cs.util.datastruct.MutableDouble;
 
 /**
  * a backward sampling algorithm that, to sample the parents of an instantiated node N, considers 

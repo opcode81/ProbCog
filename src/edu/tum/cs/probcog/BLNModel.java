@@ -14,7 +14,7 @@ import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
-import edu.tum.cs.tools.Pair;
+import edu.tum.cs.util.datastruct.Pair;
 
 public class BLNModel extends Model {
 
