@@ -15,8 +15,8 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
-import edu.tum.cs.tools.Stopwatch;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.StringTool;
 
 /**
  * Implementation of the stochastic SAT sampling algorithm SampleSAT by Wei et al.

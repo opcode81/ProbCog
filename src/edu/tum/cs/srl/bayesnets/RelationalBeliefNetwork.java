@@ -21,9 +21,9 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.srldb.Database;
-import edu.tum.cs.tools.CollectionFilter;
-import edu.tum.cs.tools.MultiIterator;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.CollectionFilter;
+import edu.tum.cs.util.datastruct.MultiIterator;
 
 public class RelationalBeliefNetwork extends BeliefNetworkEx implements RelationalModel {
 	/**

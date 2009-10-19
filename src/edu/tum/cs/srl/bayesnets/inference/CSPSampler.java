@@ -12,7 +12,7 @@ import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.GroundFormula;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
 
 public class CSPSampler extends Sampler {
 	AbstractGroundBLN gbln;

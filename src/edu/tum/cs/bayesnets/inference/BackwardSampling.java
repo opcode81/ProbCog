@@ -12,8 +12,8 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;
-import edu.tum.cs.tools.Stopwatch;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.StringTool;
 
 /**
  * an implementation of the backward simulation algorithm as described by Robert Fung and Brendan Del Favero 

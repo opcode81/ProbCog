@@ -31,7 +31,7 @@ import edu.tum.cs.srl.bayesnets.inference.SATIS;
 import edu.tum.cs.srl.bayesnets.inference.SATISEx;
 import edu.tum.cs.srl.bayesnets.inference.SATISExGibbs;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
 
 
 public class BLNinfer {

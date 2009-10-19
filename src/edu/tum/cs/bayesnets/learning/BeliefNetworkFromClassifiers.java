@@ -21,7 +21,7 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.DiscretizationFilter;
 import edu.tum.cs.bayesnets.core.Discretized;
-import edu.tum.cs.tools.MathUtils;
+import edu.tum.cs.util.math.MathUtils;
 
 /**
  * An instance of <code>BeliefNetworkFromClassifiers</code> is able to create the structure

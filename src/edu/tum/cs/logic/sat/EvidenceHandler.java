@@ -19,7 +19,7 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Database.Variable;
-import edu.tum.cs.tools.Map2Set;
+import edu.tum.cs.util.datastruct.Map2Set;
 
 // TODO we could speed some of this up by explicitly keeping track of blocked and unblocked non-evidence vars 
 

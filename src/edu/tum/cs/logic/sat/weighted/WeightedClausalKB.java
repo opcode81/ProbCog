@@ -18,7 +18,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
 
     protected Vector<WeightedClause> clauses;
     protected HashMap<WeightedClause, Formula> cl2Formula;
-    protected edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause> formula2clauses;
+    protected edu.tum.cs.util.datastruct.Map2List<WeightedFormula, WeightedClause> formula2clauses;
 
     /**
      * constructs a weighted clausal KB from a collection of weighted formulas
@@ -39,7 +39,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     public WeightedClausalKB() {
         clauses = new Vector<WeightedClause>();
         cl2Formula = new HashMap<WeightedClause, Formula>();
-        formula2clauses = new edu.tum.cs.tools.Map2List<WeightedFormula, WeightedClause>();    	
+        formula2clauses = new edu.tum.cs.util.datastruct.Map2List<WeightedFormula, WeightedClause>();    	
     }
    
     /**

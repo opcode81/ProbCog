@@ -19,8 +19,8 @@ import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.tools.Pair;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * represents a grounded Bayesian logic network (i.e. a mixed network)
@@ -29,6 +29,9 @@ import edu.tum.cs.tools.StringTool;
 public class GroundBLN extends AbstractGroundBLN {
 	
 	protected WorldVariables worldVars;
+	/**
+	 * possible world (used only temporarily during instantiation)
+	 */
 	protected PossibleWorld state;
 	/**
 	 * grounded knowledge base of hard constraints

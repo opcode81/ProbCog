@@ -1,7 +1,8 @@
 package edu.tum.cs.srldb.fipm;
 import edu.tum.cs.srldb.Object;
 import edu.tum.cs.srldb.datadict.DDException;
-import edu.tum.cs.tools.*;
+import edu.tum.cs.util.*;
+import edu.tum.cs.util.db.DatabaseTool;
 
 import java.sql.*;
 

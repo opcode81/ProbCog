@@ -3,7 +3,6 @@ package edu.tum.cs.srl.bayesnets.inference;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -13,7 +12,6 @@ import edu.tum.cs.bayesnets.inference.Sampler;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
 import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;
-import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.sat.ClausalKB;
@@ -40,11 +38,12 @@ public class SATIS extends BNSampler {
 	
 	public SATIS(GroundBLN bln) throws Exception {
 		super(bln, SATIS_BSampler.class);
-		gbln = bln;
+		gbln = bln;		
 		initSATSampler();
 	}
 	
 	protected void initSATSampler() throws Exception {
+		System.out.println("initializing SAT sampler...");
 		// create SAT sampler
 		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
 		ClausalKB ckb = getClausalKB();

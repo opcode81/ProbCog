@@ -16,7 +16,7 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	

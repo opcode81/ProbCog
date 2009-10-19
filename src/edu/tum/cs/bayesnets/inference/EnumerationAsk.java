@@ -3,7 +3,7 @@ package edu.tum.cs.bayesnets.inference;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.tools.Stopwatch;
+import edu.tum.cs.util.Stopwatch;
 
 public class EnumerationAsk extends Sampler {
 	int[] nodeOrder;

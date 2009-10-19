@@ -5,7 +5,7 @@ import java.io.Serializable;
 
 import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Database;
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 public class DDRelation extends DDItem implements Serializable {
 

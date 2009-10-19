@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.tools.StringTool;
+import edu.tum.cs.util.StringTool;
 
 /**
  * contains the set of variables of a propositionalized first-order knowledge base, 

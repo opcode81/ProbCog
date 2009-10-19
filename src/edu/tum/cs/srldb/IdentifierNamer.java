@@ -6,7 +6,7 @@ import java.util.Map;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDRelation;
 import edu.tum.cs.srldb.datadict.DataDictionary;
-import edu.tum.cs.tools.Map2D;
+import edu.tum.cs.util.datastruct.Map2D;
 
 /**
  * helper class to name identifiers such that within one category, each identifier is unique 
