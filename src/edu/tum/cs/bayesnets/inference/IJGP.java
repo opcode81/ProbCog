@@ -13,13 +13,16 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class IJGP extends Sampler {
 
 	protected JoinGraph jg;
+	protected BeliefNode[] nodes;
 	
 	public IJGP(BeliefNetworkEx bn, int bound) {
 		super(bn);
+		nodes = bn.bn.getNodes();
 		jg = new JoinGraph(bn, bound);
 		// construct join-graph
 	}
@@ -28,6 +31,8 @@ public class IJGP extends Sampler {
 	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
 
 		Vector<JoinGraph.Node> nodes = jg.getTopologicalorder();
+		
+		// process evidence variables: remove them from the supernodes
 		for (JoinGraph.Node n : nodes){
 			//process observed variables
 			Vector<CPF> cpf = n.functions;
@@ -37,10 +42,46 @@ public class IJGP extends Sampler {
 			}
 		}
 		
-		//createDistribution();
-		// do it
+		// compute individual functions
+		
+		
+		createDistribution();
+		// fill it
+		return dist;		
+	}
 
-		return dist;
+	protected class MessageFunction {
+
+		protected int[] varsToSumOver;
+		BeliefNode[] cpts;
+		Iterable<MessageFunction> childFunctions;
+
+		public MessageFunction() {
+			// TODO
+		}
+		
+		public double compute(int[] nodeDomainIndices) {
+			MutableDouble result = new MutableDouble(0.0);
+			compute(varsToSumOver, 0, nodeDomainIndices.clone(), result);
+			return result.value;
+		}
+		
+		protected void compute(int[] varsToSumOver, int i, int[] nodeDomainIndices, MutableDouble sum) {
+			if(i == varsToSumOver.length) {
+				double result = 1.0;
+				for(BeliefNode node : cpts)
+					result *= getCPTProbability(node, nodeDomainIndices);			
+				for(MessageFunction h : childFunctions)
+					result *= h.compute(nodeDomainIndices);
+				sum.value += result;
+				return;
+			}
+			int idxVar = varsToSumOver[i];
+			for(int v = 0; v < nodes[idxVar].getDomain().getOrder(); v++) {
+				nodeDomainIndices[idxVar] = v;
+				compute(varsToSumOver, i+1, nodeDomainIndices, sum);
+			}
+		}
 	}
 
 	protected static class BucketVar {
