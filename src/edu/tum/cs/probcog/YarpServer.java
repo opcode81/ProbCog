@@ -85,8 +85,6 @@ public class YarpServer extends Server {
 	        	// write results
 	        	Bottle listOfResults = result;
 	        	for(InferenceResult r : results) {
-	        		if(!r.mapConstants(model))
-	        			continue;	        		
 	        		Bottle tuple = listOfResults.addList();
 	        		tuple.addString(r.functionName);
 	        		for(String param : r.params)

@@ -33,7 +33,7 @@ public class BLNModel extends Model {
 	}
 
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
 		Sampler sampler;
 		// determine inference method and instantiate sampler
 		String inferenceMethod = getParameter("inferenceMethod", "LW");
@@ -45,7 +45,7 @@ public class BLNModel extends Model {
 		}
 		// run inference
 		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries, getIntParameter("numSamples", 1000), 100);
-		// store results
+		// store results in common InferenceResult format
 		Vector<InferenceResult> ret = new Vector<InferenceResult>();
 		for(edu.tum.cs.srl.bayesnets.inference.InferenceResult res : results) {
 			 Pair<String, String[]> var = RelationalNode.parse(res.varName);
@@ -71,7 +71,7 @@ public class BLNModel extends Model {
 	}
 
 	@Override
-	public void setEvidence(Iterable<String[]> evidence) throws Exception {
+	protected void _setEvidence(Iterable<String[]> evidence) throws Exception {
 		db = new Database(bln.rbn);
 		for(String[] tuple : evidence) {
 			String functionName = tuple[0];
@@ -123,7 +123,7 @@ public class BLNModel extends Model {
 			ArrayList<String> tuple = new ArrayList<String>(elems.length+1);
 			tuple.add(e.getKey());
 			for(int i = 0; i < elems.length; i++) {
-				String c = mapConstant(elems[i]);
+				String c = mapConstantFromProbCog(elems[i]);
 				if(c == null)
 					continue;
 				tuple.add(c);
