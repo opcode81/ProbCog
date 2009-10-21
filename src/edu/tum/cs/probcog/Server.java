@@ -5,9 +5,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.parser.ParseException;
 
+/**
+ * serves a pool of models (base class for specialized server interfaces);
+ * uses a dummy command pipe interface
+ * @author jain
+ */
 public class Server {
 	ModelPool modelPool; 
 	
@@ -24,6 +31,14 @@ public class Server {
 		return ret;
 	}
 	
+	/**
+	 * @deprecated
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 * @throws ParseException
+	 * @throws Exception
+	 */
 	public Vector<InferenceResult> query(String request) throws IOException, ParseException, Exception {
 		// get request components
 		String[] qs = request.split(";");
@@ -74,6 +89,15 @@ public class Server {
 		return queries;
 	}
 	
+	/**
+	 * processes a query
+	 * @param modelName the model to use
+	 * @param queries a collection of queries, i.e. either predicate/function names, partially grounded predicates/terms (variables in lower-case) or fully grounded predicates/terms
+	 * @param evidence a collection of arrays, where each array contains a predicate/function name followed by some arguments, and, in the case of a (non-boolean) function, the value as the last element
+	 * NOTE: false boolean evidence is currently unsupported  
+	 * @return a vector of inference results with constants already mapped
+	 * @throws Exception
+	 */
 	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Collection<String[]> evidence) throws Exception {
 		// get model
 		Model model = modelPool.getModel(modelName);		
@@ -82,6 +106,34 @@ public class Server {
 		// instantiate model and perform inference
 		model.instantiate();
 		return model.infer(queries);
+	}
+	
+	/**
+	 * 
+	 * @param modelName
+	 * @param queries
+	 * @param evidence a list of evidence atoms, e.g. "foo(bar,baz)"; use an atom even if the variable is actually non-boolean, i.e. use "foo(bar,baz)" for "foo(bar)=baz" 
+	 * @return a vector of inference results with constants already mapped
+	 * @throws Exception 
+	 */
+	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Iterable<String> evidence) throws Exception {
+		// process the evidence
+		Pattern atom = Pattern.compile("(\\w+)\\((.*?)\\)");
+		Vector<String[]> newEv = new Vector<String[]>();
+		for(String var : evidence) {
+			Matcher m = atom.matcher(var);
+			if(!m.matches())
+				throw new IllegalArgumentException("Evidence variable formatted incorrectly: " + var);
+			String fName = m.group(1);
+			String[] params = m.group(2).split("\\s*,\\s*");
+			String[] seq = new String[params.length+1];
+			seq[0] = fName;
+			for(int i = 0; i < params.length; i++)
+				seq[i+1] = params[i];
+			newEv.add(seq);
+		}
+		// call other query method
+		return query(modelName, queries, newEv); 
 	}
 	
 	protected static String inferenceResults2LispTuples(Vector<InferenceResult> results) {
@@ -103,9 +155,27 @@ public class Server {
 			Server server = new Server("/usr/wiss/jain/work/code/SRLDB/models/models.xml");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			System.err.println("ProbCog Server running...");
-			// test case
-			boolean test = true;
-			if(test) {
+			// test cases
+			boolean testKnowRob = true;
+			boolean testLISP = false;
+			if(testKnowRob) {
+				// * evidence
+				Vector<String> evidence = new Vector<String>();
+				evidence.add("takesPartIn(P,M)");
+				evidence.add("usesAnyIn(P,Spoon,M)");
+				evidence.add("usesAnyIn(P,Bowl,M)");
+				evidence.add("usesAnyIn(P,DinnerPlate,M)"); // tests mapping (DinnerPlate is mapped to Plate internally)
+				// * queries
+				Vector<String> queries = new Vector<String>();
+				queries.add("usesAnyIn");
+				queries.add("consumesAnyIn");
+				// * run inference
+				Vector<InferenceResult> results = server.query("tableSetting_fall09", queries, evidence);
+				for(InferenceResult res : results) {
+					res.print(System.out);
+				}
+			}			
+			if(testLISP) {
 				String input = "((sitsAtIn ?PERSON ?SEATING-LOCATION M) (usesAnyIn ?PERSON ?UTENSIL M));((takesPartIn P1 M) (name P1 Anna) (takesPartIn P2 M) (name P2 Bert) (takesPartIn P3 M) (name P3 Dorothy) (mealT M Breakfast))";
 				String output = inferenceResults2LispTuples(server.query(input)); 
 				System.out.println(output);
