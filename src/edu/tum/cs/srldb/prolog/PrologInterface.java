@@ -1,4 +1,5 @@
-package edu.tum.cs.srldb.prolog;
+package edu.tum.cs.srldb.prolog; 
+// TODO this package should be moved/renamed to edu.tum.cs.probcog.prolog, as the srldb package is concerned strictly with data collection
 
 import java.io.IOException;
 import java.util.Arrays;
