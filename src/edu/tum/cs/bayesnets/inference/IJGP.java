@@ -13,75 +13,149 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class IJGP extends Sampler {
 
 	protected JoinGraph jg;
-	protected BeliefNode[] nodes;
 	
+	protected static class Cluster{
+		HashSet<CPF> functions;
+		HashMap<JoinGraph.Node,JoinGraph.Arc> arcs;
+		
+		public Cluster(JoinGraph.Node n){
+			functions.addAll(n.functions);
+			for (JoinGraph.Node nb : n.getNeighbors()){
+				arcs.put(nb,n.getArcToNode(nb));
+			}
+		}
+		
+		public void excludeMessage(JoinGraph.Node n){
+			arcs.remove(n);
+		}
+		
+		public Cluster clone(){
+			return this.clone();
+		}
+		
+		public Cluster getReducedCluster(HashSet<BeliefNode> nodes){
+			// deletes all functions and arcs in the cluster whose scope contains the given nodes
+			Cluster redCluster = this.clone();
+			for (BeliefNode bn : nodes){
+				for (CPF cpf : functions){
+					BeliefNode[] domProd = cpf.getDomainProduct();
+					for (int i = 0; i < domProd.length; i++){
+						if (bn.equals(domProd[i])){
+							redCluster.functions.remove(cpf);
+							break;
+						}
+					}
+				}
+				for (JoinGraph.Node arcNode : arcs.keySet()){
+					if (arcs.get(arcNode).seperator.contains(bn))
+						redCluster.arcs.remove(arcNode);
+				}
+			}
+			return redCluster;
+		}
+		
+		public void subtractCluster(Cluster c2){
+			// deletes all functions and arcs of the cluster that are also in cluster c2
+			for (CPF cpf : c2.functions){
+				functions.remove(cpf);
+			}
+			for (JoinGraph.Node n : c2.arcs.keySet()){
+				arcs.remove(n);
+			}
+		}
+		
+		public double getClusterProduct(int[] evidenceDomainIndices){
+			double d = 1.0;
+			for (CPF cpf : functions){
+				// from BeliefNetworkEx.getCPTProbability - better way?
+				int[] domainProduct = getDomainProductNodeIndices(node);
+				int[] address = new int[domainProduct.length];
+				for (int i = 0; i < address.length; i++) {
+					address[i] = evidenceDomainIndices[domainProduct[i]];
+				}
+				int realAddress = cpf.addr2realaddr(address);
+				d *= cpf.getDouble(realAddress);
+			}
+			return d;
+		}
+	}
+
 	public IJGP(BeliefNetworkEx bn, int bound) {
 		super(bn);
-		nodes = bn.bn.getNodes();
 		jg = new JoinGraph(bn, bound);
 		// construct join-graph
 	}
 
 	@Override
 	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
-
 		Vector<JoinGraph.Node> nodes = jg.getTopologicalorder();
-		
-		// process evidence variables: remove them from the supernodes
-		for (JoinGraph.Node n : nodes){
-			//process observed variables
-			Vector<CPF> cpf = n.functions;
-			for (BeliefNode belNode : n.nodes){
+		// process observed variables
+		for (JoinGraph.Node n : nodes) {
+			for (BeliefNode belNode : n.nodes) {
 				int nodeIdx = bn.getNodeIndex(belNode);
 				int domainIdx = evidenceDomainIndices[nodeIdx];
+				if (domainIdx > -1)
+					n.nodes.remove(belNode);
+			}
+		}
+		// for every node in JG in order and back:
+		int s = nodes.size();
+		for (int j = 0; j < 2*s; j++){
+			int i;
+			if (j < s)
+				i = j;
+			else
+				i = s-j-1;
+			JoinGraph.Node u = nodes.get(i);	
+			for (JoinGraph.Node v : nodes.get(i).getNeighbors()){
+				// construct cluster_n
+				Cluster cluster_n = new Cluster(u);
+				cluster_n.excludeMessage(v);
+				// Include in cluster_H each function in cluster_n which scope does not contain variables in elim(u,v)
+				HashSet<BeliefNode> elim = new HashSet<BeliefNode>(nodes.get(i).nodes);			
+				elim.removeAll(u.getArcToNode(v).seperator);
+				Cluster cluster_H = cluster_n.getReducedCluster(elim);
+				// denote by cluster_A the remaining functions
+				Cluster cluster_A = cluster_n.clone();
+				cluster_A.subtractCluster(cluster_H);
+				// compute and send to v the combined funtion
+				double h = 0.0;
+				
+				// wrong, todo
+				for (BeliefNode bn : elim){
+					h += cluster_A.getClusterProduct(evidenceDomainIndices);
+				}
+				// send h and the individual functions H to node v
+				u.getArcToNode(v).setOutMessage(u, h);
 			}
 		}
 		
-		// compute individual functions
-		
-		
-		createDistribution();
-		// fill it
-		return dist;		
-	}
-
-	protected class MessageFunction {
-
-		protected int[] varsToSumOver;
-		BeliefNode[] cpts;
-		Iterable<MessageFunction> childFunctions;
-
-		public MessageFunction() {
-			// TODO
-		}
-		
-		public double compute(int[] nodeDomainIndices) {
-			MutableDouble result = new MutableDouble(0.0);
-			compute(varsToSumOver, 0, nodeDomainIndices.clone(), result);
-			return result.value;
-		}
-		
-		protected void compute(int[] varsToSumOver, int i, int[] nodeDomainIndices, MutableDouble sum) {
-			if(i == varsToSumOver.length) {
-				double result = 1.0;
-				for(BeliefNode node : cpts)
-					result *= getCPTProbability(node, nodeDomainIndices);			
-				for(MessageFunction h : childFunctions)
-					result *= h.compute(nodeDomainIndices);
-				sum.value += result;
-				return;
+		// compute probabilties and store results in distribution
+		System.out.println("reading results...");
+		this.createDistribution();
+		BeliefNode[] beliefNodes = bn.bn.getNodes();
+		for (int i = 0; i < beliefNodes.length; i++) {
+			// For every node X let u be a vertex in the join graph that X is in u
+			JoinGraph.Node u;
+			for (JoinGraph.Node node : nodes){
+				if(node.nodes.contains(beliefNodes[i])){
+					u = node;
+					break;
+				}
 			}
-			int idxVar = varsToSumOver[i];
-			for(int v = 0; v < nodes[idxVar].getDomain().getOrder(); v++) {
-				nodeDomainIndices[idxVar] = v;
-				compute(varsToSumOver, i+1, nodeDomainIndices, sum);
-			}
+			// compute probability
+			double p = 0.0;
+			dist.values[i] = values;
 		}
+		dist.Z = 1.0;
+		return dist;
+
+		// createDistribution();
+		// do it	
 	}
 
 	protected static class BucketVar {
@@ -110,7 +184,8 @@ public class IJGP extends Sampler {
 		}
 
 		public BeliefNode getMaxNode(BeliefNetworkEx bn) {
-			// returns the BeliefNode of a bucket variable highest in the topological order
+			// returns the BeliefNode of a bucket variable highest in the
+			// topological order
 			int maxInt = 0;
 			BeliefNode maxNode = null;
 			for (BeliefNode node : nodes) {
@@ -228,7 +303,7 @@ public class IJGP extends Sampler {
 			}
 			return mb;
 		}
-		
+
 		public Vector<Bucket> getBuckets() {
 			return new Vector<Bucket>(bucketMap.values());
 		}
@@ -237,7 +312,7 @@ public class IJGP extends Sampler {
 	protected static class JoinGraph {
 
 		HashSet<Node> nodes;
-		HashMap<MiniBucket,Node> bucket2node = new HashMap<MiniBucket,Node>();
+		HashMap<MiniBucket, Node> bucket2node = new HashMap<MiniBucket, Node>();
 
 		public JoinGraph(BeliefNetworkEx bn, int bound) {
 			nodes = new HashSet<Node>();
@@ -247,20 +322,20 @@ public class IJGP extends Sampler {
 			// associate each minibucket with a node
 			for (MiniBucket mb : minibuckets) {
 				Node newNode = new Node(mb);
-				nodes.add(newNode);	
-				bucket2node.put(mb,newNode);
+				nodes.add(newNode);
+				bucket2node.put(mb, newNode);
 			}
 			// keep the arcs and label them by regular separator
-			for (MiniBucket mb: minibuckets){
-				for (MiniBucket par : mb.parents){
-					new Arc(bucket2node.get(par),bucket2node.get(mb));
+			for (MiniBucket mb : minibuckets) {
+				for (MiniBucket par : mb.parents) {
+					new Arc(bucket2node.get(par), bucket2node.get(mb));
 				}
 			}
 			// conntect the mini-bucket clusters
-			for (MiniBucket mb1 : minibuckets){
-				for (MiniBucket mb2 : minibuckets){
-					if (mb1 != mb2 && mb1.bucket == mb2.bucket){
-						new Arc(bucket2node.get(mb1),bucket2node.get(mb2));
+			for (MiniBucket mb1 : minibuckets) {
+				for (MiniBucket mb2 : minibuckets) {
+					if (mb1 != mb2 && mb1.bucket == mb2.bucket) {
+						new Arc(bucket2node.get(mb1), bucket2node.get(mb2));
 					}
 				}
 			}
@@ -269,52 +344,96 @@ public class IJGP extends Sampler {
 		protected Node merge(Node u, Node v) {
 			return null;
 		}
-		
-		public Vector<Node> getTopologicalorder(){
-			//implement
+
+		public Vector<Node> getTopologicalorder() {
+			// implement
 			return new Vector<Node>(nodes);
 		}
-
+		
+		
+		
 		public static class Arc {
-			Node[] nodes = new Node[2];
+			Vector<Node> nodes = new Vector<Node>();
 			HashSet<BeliefNode> seperator = new HashSet<BeliefNode>();
+			//messages between Nodes
+			double messageN0N1 = 1;
+			double messageN1N0 = 1;
 			
-			public Arc(Node n1, Node n2){
- 				if(n1 != n2){
-					nodes[0] = n1;
-	 				nodes[1] = n2;
-	 				// create separator
-	 				if (n1.mb.bucket == n2.mb.bucket)
-	 					seperator.add(n1.mb.bucket.bucketNode);
-	 				else{
-		 				for(BeliefNode bn : n1.nodes){
-		 					if (n2.nodes.contains(bn))
-		 						seperator.add(bn);
-		 				}
-	 				}
-	 				n1.addArc(this);
-	 				n2.addArc(this);
- 				}
+
+			public Arc(Node n0, Node n1) {
+				if (n0 != n1) {
+					nodes.add(n0);
+					nodes.add(n1);
+					// create separator
+					if (n0.mb.bucket == n1.mb.bucket)
+						seperator.add(n0.mb.bucket.bucketNode);
+					else {
+						for (BeliefNode bn : n0.nodes) {
+							if (n1.nodes.contains(bn))
+								seperator.add(bn);
+						}
+					}
+					n0.addArc(n0,this);
+					n1.addArc(n1,this);
+				}
 			}
+			
+			public Node getNeighbor(Node n){
+				// needs to throw exception when n not in nodes
+				return nodes.get((nodes.indexOf(n)+1)%2);
+			}
+			
+			public void setOutMessage(Node n,double m){
+				int idx = nodes.indexOf(n);
+				if (idx == 0)
+					messageN0N1 = m;
+				else
+					messageN1N0 = m;
+			}
+			
+			public double getOutMessage(Node n){
+				int idx = nodes.indexOf(n);
+				if (idx == 0)
+					return(messageN0N1);
+				else
+					return(messageN1N0);
+			}
+			
+			public double getInMessage(Node n){
+				int idx = nodes.indexOf(n);
+				if (idx == 0)
+					return(messageN1N0);
+				else
+					return(messageN0N1);
+			}
+			
 		}
 
 		public static class Node {
 			MiniBucket mb;
 			Vector<CPF> functions = new Vector<CPF>();
 			HashSet<BeliefNode> nodes = new HashSet<BeliefNode>();
-			HashSet<Arc> arcs = new HashSet<Arc>();
-			
-			public Node(MiniBucket mb){
+			HashMap<Node,Arc> arcs = new HashMap<Node,Arc>();
+
+			public Node(MiniBucket mb) {
 				this.mb = mb;
 				for (BucketVar var : mb.items) {
 					nodes.addAll(var.nodes);
-					if(var.cpf != null)
+					if (var.cpf != null)
 						functions.add(var.cpf);
 				}
 			}
+
+			public void addArc(Node n,Arc arc) {
+				arcs.put(n,arc);
+			}
 			
-			public void addArc(Arc arc){
-				arcs.add(arc);
+			public HashSet<Node> getNeighbors(){
+				return new HashSet<Node>(arcs.keySet());
+			}
+			
+			public Arc getArcToNode(Node n){
+				return arcs.get(n);
 			}
 		}
 	}
