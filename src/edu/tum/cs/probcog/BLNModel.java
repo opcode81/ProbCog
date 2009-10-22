@@ -12,8 +12,9 @@ import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
-import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
+import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
+import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory.Algorithm;
 import edu.tum.cs.util.datastruct.Pair;
 
 public class BLNModel extends Model {
@@ -36,13 +37,8 @@ public class BLNModel extends Model {
 	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
 		Sampler sampler;
 		// determine inference method and instantiate sampler
-		String inferenceMethod = getParameter("inferenceMethod", "LW");
-		if(inferenceMethod.equals("LW")) {
-			sampler = new LikelihoodWeighting(gbln);
-		}
-		else {
-			throw new Exception("Specified inference method unhandled");
-		}
+		String inferenceMethod = getParameter("inferenceMethod", "LikelihoodWeighting");		
+		sampler = BLNInferenceFactory.createSampler(Algorithm.valueOf(inferenceMethod), gbln);
 		// run inference
 		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries, getIntParameter("numSamples", 1000), 100);
 		// store results in common InferenceResult format
