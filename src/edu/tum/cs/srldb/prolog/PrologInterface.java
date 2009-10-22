@@ -31,27 +31,28 @@ public class PrologInterface {
 	 */
 	private static Map<String, String> objectTypes = new HashMap<String, String>();
 
-	private static String modelPool = "C:/srldb/models/models.xml";
+	private static String modelPool = "/home/tenorth/work/srldb/models/models.xml";
 
 	private static String modelName = "tableSetting_fall09";
 
 	/**
 	 * Initialize the Prolog engine.
 	 */
-	static {
-		try {
-			Vector<String> args = new Vector<String>(Arrays.asList(Prolog
-					.get_default_init_args()));
-			args.add("-G128M");
-			args.add("-q");
-			args.add("-nosignals");
-			args.add("C:/owl/gram_ias.pl");
-			Prolog.set_default_init_args(args.toArray(new String[0]));
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	static {
+//		try {
+//			Vector<String> args = new Vector<String>(Arrays.asList(Prolog.get_default_init_args()));
+//			args.add("-G128M");
+////			args.add("-q");
+//			args.add("-nosignals");
+//			Prolog.set_default_init_args(args.toArray(new String[0]));
+//
+//			// load the appropriate startup file for this context
+//			new Query("ensure_loaded('/home/tenorth/work/owl/gram_tabletop.pl')").oneSolution();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
 
 	/**
 	 * Execute the given query. Assert the given premises and retract them after
@@ -64,7 +65,7 @@ public class PrologInterface {
 	public static Map<String, Vector<Object>> executeQuery(String query,
 			String plFile) {
 
-		System.err.println("Executing query: " + query);
+//		System.err.println("Executing query: " + query);
 
 		HashMap<String, Vector<Object>> result = new HashMap<String, Vector<Object>>();
 		Hashtable[] solutions;
@@ -113,34 +114,16 @@ public class PrologInterface {
 	}
 
 	/**
-	 * Retrieves all objects that are located on the kitchen table from the
-	 * prolog system and stores them in <code>objectTypes</code>.
+	 * Put all objects that are located on the kitchen table into the
+	 *  <code>objectTypes</code>.
 	 */
-	public static void queryObjectsOnTable() {
-
-		Map<String, Vector<Object>> answer = executeQuery(
-				"rdf_triple(kitchen:'on-Physical', Top, Bottom), rdf_triple(rdf:type, Bottom, kitchen:'KitchenTable')",
-				"");
-		for (Iterator<String> i = answer.keySet().iterator(); i.hasNext();) {
-			String key = i.next();
-
-			// Only the objects _on_ the table are interesting
-			if (key.equals("Top")) {
-				for (Iterator<Object> i2 = answer.get(key).iterator(); i2
-						.hasNext();) {
-					String instanceName = ((String) i2.next()).replaceAll("'",
-							"");
-
-					if (objectTypes.get(instanceName) == null) {
-						System.out.println("found object on table: "
-								+ instanceName);
-						objectTypes.put(instanceName, UNKNOWN_TYPE);
-					}
-				}
-			}
-		}
+	public static void setObjectsOnTable(String[] objs) {
+		
+		for(String identifier : objs)
+			objectTypes.put(identifier, UNKNOWN_TYPE);
 	}
-
+	
+	
 	/**
 	 * Retrieves the concepts for all object instances that are stored in
 	 * <code>objectTypes</code>.
@@ -152,7 +135,7 @@ public class PrologInterface {
 			String type = inferObjectType(instance);
 			if (objectTypes.get(instance).equals(UNKNOWN_TYPE)) {
 				String localClassName = getLocalClassName(type);
-				System.out.println(instance + " (" + localClassName + ")");
+//				System.out.println(instance + " (" + localClassName + ")");
 				objectTypes.put(instance, localClassName);
 			}
 		}
@@ -193,7 +176,7 @@ public class PrologInterface {
 	public static String inferObjectType(String instanceName) {
 
 		Map<String, Vector<Object>> answer = executeQuery(
-				"rdf_triple(rdf:type, '" + instanceName + "', Type)", "");
+				"rdf_has('" + instanceName + "', rdf:type, Type)", "");
 
 		for (Iterator<String> i = answer.keySet().iterator(); i.hasNext();) {
 			String key = i.next();
@@ -222,7 +205,6 @@ public class PrologInterface {
 
 		try {
 			// Retrieve all objects that are already on the table
-			queryObjectsOnTable();
 			queryObjectTypes();
 
 			Server srldbServer = new Server(modelPool);
@@ -237,8 +219,8 @@ public class PrologInterface {
 			for (String instance : objectTypes.keySet()) {
 				evidence.add(String.format("usesAnyIn(P,%s,M)", objectTypes
 						.get(instance)));
-				System.out.println(String.format("usesAnyIn(P,%s,M)",
-						objectTypes.get(instance)));
+//				System.out.println(String.format("usesAnyIn(P,%s,M)",
+//						objectTypes.get(instance)));
 			}
 
 			// Generate queries: "usesAnyIn" for utensils, "consumesAnyIn" for
@@ -275,8 +257,6 @@ public class PrologInterface {
 	}
 
 	public static void main(String[] args) {
-
-		setPerception("C:/srldb/models/kitchen/tableSetting/ias_entities.owl");
 
 		getMissingObjectsOnTable();
 
