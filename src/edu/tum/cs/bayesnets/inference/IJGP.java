@@ -70,7 +70,7 @@ public class IJGP extends Sampler {
 		
 		public double getClusterProduct(int[] evidenceDomainIndices){
 			double d = 1.0;
-			for (CPF cpf : functions){
+			/*for (CPF cpf : functions){
 				// from BeliefNetworkEx.getCPTProbability - better way?
 				int[] domainProduct = getDomainProductNodeIndices(node);
 				int[] address = new int[domainProduct.length];
@@ -79,7 +79,7 @@ public class IJGP extends Sampler {
 				}
 				int realAddress = cpf.addr2realaddr(address);
 				d *= cpf.getDouble(realAddress);
-			}
+			}*/
 			return d;
 		}
 	}
@@ -149,7 +149,7 @@ public class IJGP extends Sampler {
 			}
 			// compute probability
 			double p = 0.0;
-			dist.values[i] = values;
+			//dist.values[i] = values;
 		}
 		dist.Z = 1.0;
 		return dist;
