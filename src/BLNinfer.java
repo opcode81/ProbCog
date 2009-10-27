@@ -4,16 +4,6 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
-import edu.tum.cs.bayesnets.inference.BNJPearl;
-import edu.tum.cs.bayesnets.inference.BNJVariableElimination;
-import edu.tum.cs.bayesnets.inference.BackwardSampling;
-import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
-import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
-import edu.tum.cs.bayesnets.inference.EnumerationAsk;
-import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
-import edu.tum.cs.bayesnets.inference.SampleSearch;
-import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
-import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -22,15 +12,7 @@ import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory;
 import edu.tum.cs.srl.bayesnets.inference.BNSampler;
-import edu.tum.cs.srl.bayesnets.inference.CSPSampler;
-import edu.tum.cs.srl.bayesnets.inference.GibbsSampling;
 import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
-import edu.tum.cs.srl.bayesnets.inference.LiftedBackwardSampling;
-import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
-import edu.tum.cs.srl.bayesnets.inference.MCSAT;
-import edu.tum.cs.srl.bayesnets.inference.SATIS;
-import edu.tum.cs.srl.bayesnets.inference.SATISEx;
-import edu.tum.cs.srl.bayesnets.inference.SATISExGibbs;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory.Algorithm;
 import edu.tum.cs.util.Stopwatch;
@@ -42,6 +24,10 @@ public class BLNinfer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		/*for(int i = 0; i < args.length; i++) {
+			System.out.printf("%d %s\n", i, args[i]);
+		}*/
+		
 		try {
 			String declsFile = null;
 			String networkFile = null;
@@ -88,6 +74,8 @@ public class BLNinfer {
 					maxSteps = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-maxTrials"))
 					maxTrials = Integer.parseInt(args[++i]);
+				else if(args[i].equals("-ia")) 
+					algo = Algorithm.valueOf(args[++i]);				
 				else if(args[i].equals("-infoInterval"))
 					infoInterval = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-lw"))
@@ -96,8 +84,6 @@ public class BLNinfer {
 					algo = Algorithm.LWU;
 				else if(args[i].equals("-epis"))
 					algo = Algorithm.EPIS;
-				else if(args[i].equals("-csp"))
-					algo = Algorithm.CSP;
 				else if(args[i].equals("-gs"))
 					algo = Algorithm.GibbsSampling;
 				else if(args[i].equals("-bs"))
@@ -161,6 +147,10 @@ public class BLNinfer {
 							         "     -pearl           algorithm: Pearl's algorithm for polytrees (exact)\n" +
 							         "     -elim            algorithm: variable elimination (exact)\n" +
 							         "     -mcsat           algorithm: MC-SAT\n\n" +
+							         "     -ia <name>       inference algorithm selection; valid names:");
+				for(Algorithm a : Algorithm.values()) 
+					System.out.printf("                        %-28s  %s\n", a.toString(), a.getDescription());				
+				System.out.println(
 							         "     -py              use Python-based logic engine\n" +
 							         "     -debug           debug mode with additional outputs\n" + 
 							         "     -s               show ground network in editor\n" +
