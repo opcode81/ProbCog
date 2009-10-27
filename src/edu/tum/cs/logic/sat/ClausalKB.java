@@ -11,11 +11,23 @@ public class ClausalKB implements Iterable<Clause> {
 	
 	protected Vector<Clause> clauses;
 	
+	/**
+	 * creates a clausal KB from a given (non-clausal) KB
+	 * @param kb
+	 * @throws Exception
+	 */
 	public ClausalKB(edu.tum.cs.logic.KnowledgeBase kb) throws Exception {
 		// obtain clausal form
-		clauses = new Vector<Clause>();
+		this();
 		for(Formula f : kb) 
 			addFormula(f);		
+	}
+	
+	/**
+	 * creates an empty clausal KB
+	 */
+	public ClausalKB() {
+		clauses = new Vector<Clause>();
 	}
 	
 	/**
