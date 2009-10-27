@@ -32,14 +32,21 @@ public class SampleSAT {
 	protected Vector<Constraint> constraints;
 	protected Random rand;
 	protected WorldVariables vars;	
-	protected final boolean verbose = false;
+	protected boolean debug = false;
 	protected EvidenceHandler evidenceHandler;
 	protected HashMap<Integer,Boolean> evidence;
+	protected boolean useUnitPropagation = false;
 	
 	/**
-	 * probability of performing a greedy move
+	 * SampleSAT's p parameter: probability of performing a random walk (WalkSAT-style) move rather than a simulated annealing-style move
 	 */
-	protected double p = 0.9; 
+	protected double pSampleSAT = 0.5;
+	
+	/**
+	 * WalkSAT's p parameter: random walk parameter, probability of non-greedy move (random flip in unsatisfied clause) rather than greedy (locally optimal) move.
+	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
+	 */
+	protected double pWalkSAT = 0.1;
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
@@ -65,6 +72,19 @@ public class SampleSAT {
 		evidenceHandler.setEvidenceInState(state);
 	}
 	
+	public void setDebugMode(boolean active) {
+		debug = active;
+	}
+
+	/**
+	 * enables unit propagation when initializing the set of constraints
+	 * TODO unit propagation extends evidence so that initConstraints cannot be called multiple times when using unit propagation
+	 */
+	public void enableUnitPropagation() {
+		useUnitPropagation = true;
+		throw new RuntimeException("not supported"); // TODO initConstraints is called by constructor
+	}
+	
 	/**
 	 * prepares this sampler for a new set of constraints (Note: this method is called by the constructor; it only needs to be called explicitly when switching to a new set of constraints)
 	 * @param kb
@@ -78,7 +98,8 @@ public class SampleSAT {
 		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
 			constraints.add(new Clause(c.lits));
-		//unitPropagation(); // TODO BUG: unit propagation extends evidence so that this cannot be called multiple times
+		if(useUnitPropagation)
+			unitPropagation(); 
 	}
 	
 	/**
@@ -124,7 +145,7 @@ public class SampleSAT {
 			GAOccurrences.remove(lit.gndAtom.index);
 		}
 		int newSize = constraints.size();
-		if(verbose) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
+		if(debug) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
 	}
 	
 	protected void addUnsatisfiedConstraint(Constraint c) {
@@ -156,16 +177,16 @@ public class SampleSAT {
 		// init
 		bottlenecks.clear();
 		unsatisfiedConstraints.clear();
-		if(verbose) System.out.println("setting random state...");
+		if(debug) System.out.println("setting random state...");
 		setRandomState();
-		if(verbose) state.print();
+		if(debug) state.print();
 		for(Constraint c : constraints)
 			c.initState();
 		
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {			
-			if(verbose /*|| step % 10 == 0*/) {				
-				System.out.println("SampleSAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
+			if(debug /*|| step % 10 == 0*/) {				
+				System.out.println("SAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
 				if(true) {
 					//state.print();				
 					for(Constraint c : unsatisfiedConstraints) {
@@ -173,14 +194,7 @@ public class SampleSAT {
 					}
 				}
 			}
-			if(rand.nextDouble() < this.p) {
-				if(verbose) System.out.println("  Greedy Move:");
-				walkSATMove();
-			}
-			else {
-				if(verbose) System.out.println("  SAMove:");
-				SAMove();
-			}
+			makeMove();
 			step++;
 		}
 		/*System.out.println("SampleSAT finished");
@@ -195,9 +209,26 @@ public class SampleSAT {
 		evidenceHandler.setRandomState(state);
 	}
 	
+	protected void makeMove() {
+		if(rand.nextDouble() < this.pSampleSAT) {
+			if(debug) System.out.println("  WalkSAT move:");
+			walkSATMove();
+		}
+		else {
+			if(debug) System.out.println("  SA move:");
+			SAMove();
+		}
+	}
+	
 	protected void walkSATMove() {
+		// pick an unsatisfied constraint
 		Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
-		c.greedySatisfy();
+		// with probability p, satisfy the constraint randomly		
+		if(rand.nextDouble() < this.pWalkSAT)
+			c.satisfyRandomly(); 
+		// with probability 1-p, satisfy it greedily
+		else
+			c.satisfyGreedily();
 	}
 	
 	protected void SAMove() {
@@ -209,32 +240,43 @@ public class SampleSAT {
 			// if it has evidence, skip it
 			if(evidence.containsKey(idxGA))
 				continue;
-			// if it's in a block, must choose a second to flip
-			Block block = vars.getBlock(idxGA);
-			if(block != null) {				
-				GroundAtom trueOne = block.getTrueOne(state);
-				if(gndAtom == trueOne) { // if we are flipping the true one, pick the second at random among the others
-					Vector<GroundAtom> others = new Vector<GroundAtom>();
-					for(GroundAtom ga : block) {
-						if(ga != trueOne && !evidence.containsKey(ga.index))
-							others.add(ga);
-					}
-					if(others.isEmpty())
-						continue;
-					gndAtom2 = others.get(rand.nextInt(others.size()));
+			// try to flip it (along with a second one, where appropriate)
+			done = pickSecondAtRandomAndFlip(gndAtom);
+		}	
+	}
+	
+	/**
+	 * attempts to flip the variable that is given, choosing an appropriate second variable (at random where applicable) if the variable is in a block
+	 * @param gndAtom
+	 * @return true if the variable could be flipped
+	 */
+	protected boolean pickSecondAtRandomAndFlip(GroundAtom gndAtom) {
+		// if it's in a block, must choose a second to flip
+		GroundAtom gndAtom2 = null;
+		Block block = vars.getBlock(gndAtom.index);
+		if(block != null) {				
+			GroundAtom trueOne = block.getTrueOne(state);
+			if(gndAtom == trueOne) { // if we are flipping the true one, pick the second at random among the others
+				Vector<GroundAtom> others = new Vector<GroundAtom>();
+				for(GroundAtom ga : block) {
+					if(ga != trueOne && !evidence.containsKey(ga.index))
+						others.add(ga);
 				}
-				else { // second to flip must be true one
-					if(evidence.containsKey(trueOne.index))
-						continue;
-					gndAtom2 = trueOne;
-				}
+				if(others.isEmpty())
+					return false;
+				gndAtom2 = others.get(rand.nextInt(others.size()));
 			}
-			// flip
-			flipGndAtom(gndAtom);
-			if(gndAtom2 != null)
-				flipGndAtom(gndAtom2);
-			done = true;
+			else { // second to flip must be true one
+				if(evidence.containsKey(trueOne.index))
+					return false;
+				gndAtom2 = trueOne;
+			}
 		}
+		// flip
+		flipGndAtom(gndAtom);
+		if(gndAtom2 != null)
+			flipGndAtom(gndAtom2);
+		return true;		
 	}
 	
 	protected void pickAndFlipVar(Iterable<GroundAtom> candidates) {
@@ -291,7 +333,7 @@ public class SampleSAT {
 	}
 	
 	protected void flipGndAtom(GroundAtom gndAtom) {
-		if(verbose) System.out.println("  flipping " + gndAtom);
+		if(debug) System.out.println("  flipping " + gndAtom);
 		// modify state
 		boolean value = state.isTrue(gndAtom);
 		state.set(gndAtom, !value);
@@ -324,15 +366,16 @@ public class SampleSAT {
 	}
 	
 	/**
-	 * sets the probability of a greedy move
+	 * sets the probability of a random walk move
 	 * @param p
 	 */
 	public void setP(double p) {
-		this.p = p;
+		this.pSampleSAT = p;
 	}
 	
 	protected abstract class Constraint {
-		public abstract void greedySatisfy();
+		public abstract void satisfyGreedily();
+		public abstract void satisfyRandomly();
 		public abstract boolean flipSatisfies(GroundAtom gndAtom);
 		public abstract void handleFlip(GroundAtom gndAtom);
 		public abstract void initState();
@@ -356,8 +399,21 @@ public class SampleSAT {
 		}
 
 		@Override
-		public void greedySatisfy() {
+		public void satisfyGreedily() {
 			pickAndFlipVar(gndAtoms);
+		}
+		
+		public void satisfyRandomly() {
+			boolean done = false;
+			while(!done) {
+				// randomly pick a ground atom from the clause to flip
+				GroundAtom gndAtom = this.gndAtoms.get(rand.nextInt(this.gndAtoms.size()));
+				// if it has evidence, skip it
+				if(evidence.containsKey(gndAtom.index))
+					continue;
+				// try to flip it (along with a second one, where appropriate)
+				done = pickSecondAtRandomAndFlip(gndAtom);
+			}
 		}
 
 		@Override
