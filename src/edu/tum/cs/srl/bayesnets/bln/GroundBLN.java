@@ -1,6 +1,5 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -15,10 +14,10 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
-import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
 
@@ -28,7 +27,7 @@ import edu.tum.cs.util.datastruct.Pair;
  */
 public class GroundBLN extends AbstractGroundBLN {
 	
-	protected WorldVariables worldVars;
+	protected VariableLogicCoupling coupling;	
 	/**
 	 * possible world (used only temporarily during instantiation)
 	 */
@@ -36,12 +35,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	/**
 	 * grounded knowledge base of hard constraints
 	 */
-	protected KnowledgeBase gkb;
-	/**
-	 * maps (non-auxiliary) belief nodes to the corresponding logical variable coupler
-	 */
-	protected HashMap<BeliefNode, IVariableLogicCoupler> variable2groundAtomLookup;
-	protected HashMap<GroundAtom, BeliefNode> groundAtom2variable;
+	protected KnowledgeBase gkb;	
 	
 	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
 		super(bln, db);
@@ -54,100 +48,30 @@ public class GroundBLN extends AbstractGroundBLN {
 	@Override
 	protected void init(AbstractBayesianLogicNetwork bln, Database db) {
 		super.init(bln, db);
-		worldVars = new WorldVariables();
-		variable2groundAtomLookup = new HashMap<BeliefNode, IVariableLogicCoupler>();
-		groundAtom2variable = new HashMap<GroundAtom, BeliefNode>();
+		coupling = new VariableLogicCoupling();
 	}
 	
 	@Override
 	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params, BeliefNode var) {
-		if(relNode.isBoolean()) {
-			GroundAtom ga = new GroundAtom(relNode.getFunctionName(), params);
-			worldVars.add(ga);
-			variable2groundAtomLookup.put(var, new BooleanVariable(ga));
-			groundAtom2variable.put(ga, var);
+		if(relNode.isBoolean()) {			
+			coupling.addBooleanVariable(var, relNode.getFunctionName(), params);
 		}
 		else {
 			// node is non-Boolean, so add one block containing the ground atoms for each possible value
-			Discrete dom = relNode.getDomain();
-			String[] atomParams = new String[params.length+1];
-			for(int i = 0; i < params.length; i++)
-				atomParams[i] = params[i];
-			Vector<GroundAtom> block = new Vector<GroundAtom>(dom.getOrder());
-			for(int i = 0; i < dom.getOrder(); i++) {
-				atomParams[atomParams.length-1] = dom.getName(i);
-				GroundAtom ga = new GroundAtom(relNode.getFunctionName(), atomParams.clone());
-				block.add(ga);				
-			} 
-			Block b = worldVars.addBlock(block); 
-			for(GroundAtom ga : b)
-				groundAtom2variable.put(ga, var);
-			variable2groundAtomLookup.put(var, new BlockVariable(b));
+			coupling.addBlockVariable(var, relNode.getDomain(), relNode.getFunctionName(), params);
 		}
-	}
-	
-	/**
-	 * couples the logical variables (ground atoms) with the actual variables (belief nodes)
-	 * @author jain
-	 *
-	 */
-	protected interface IVariableLogicCoupler {
-		public int getValue(PossibleWorld w);		
-		public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars);
-	}
-	
-	protected static class BooleanVariable implements IVariableLogicCoupler {
-		public int idxGndAtom;
-		
-		public BooleanVariable(GroundAtom ga) {
-			this.idxGndAtom = ga.index;
-		}
-		
-		public int getValue(PossibleWorld w) {			
-			return w.get(idxGndAtom) ? 0 : 1; // True is first element
-		}
-
-		public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars) {
-			GroundAtom ga = worldVars.get(idxGndAtom);
-			return new GroundLiteral(domIdx == 0, ga);
-		}		
-	}
-	
-	protected static class BlockVariable implements IVariableLogicCoupler {
-		protected Block block;
-		
-		public BlockVariable(Block b) {
-			block = b;
-		}
-		
-		public int getValue(PossibleWorld w) {
-			int i = 0;
-			for(GroundAtom ga : block) {
-				if(ga.isTrue(w))
-					return i;
-				++i;
-			}
-			throw new RuntimeException("No true atom in block " + block);
-		}
-
-		public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars) {
-			GroundAtom ga = block.get(domIdx);
-			return new GroundLiteral(true, ga);
-		}		
 	}
 	
 	public GroundLiteral getGroundLiteral(BeliefNode var, int domIdx) {
-		IVariableLogicCoupler vlc = variable2groundAtomLookup.get(var);
-		if(vlc == null)
-			throw new RuntimeException("Variable " + var + " has no logical coupling!");
-		return vlc.getGroundLiteral(domIdx, worldVars);
+		return coupling.getGroundLiteral(var, domIdx);
 	}
 	
 	@Override	
 	protected void groundFormulaicNodes() throws Exception {
+		WorldVariables worldVars = coupling.getWorldVars();
 		state = new PossibleWorld(worldVars);
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
-		gkb = bln.kb.ground(this.db, this.worldVars, true);
+		gkb = bln.kb.ground(this.db, worldVars, true);
 		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		int i = 0;
 		for(Formula gf : gkb) {
@@ -167,6 +91,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			fillFormulaCPF(gf, nodeData.first.getCPF(), nodeData.second, parentGAs);
 			this.cpfIDs.put(nodeData.first, "F" + gkb.getTemplateID(gf));
 		}
+		// clean up
 		state = null;
 	}
 	
@@ -254,7 +179,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 	
 	public WorldVariables getWorldVars() {
-		return worldVars;
+		return coupling.getWorldVars();
 	}
 	
 	/**
@@ -275,11 +200,11 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @return the belief node corresponding to gndAtom or null if no correspondence is found 
 	 */
 	public BeliefNode getVariable(GroundAtom gndAtom) {
-		return groundAtom2variable.get(gndAtom);
+		return coupling.getVariable(gndAtom);
 	}
 	
 	public int getVariableValue(BeliefNode var, PossibleWorld w) {
-		return variable2groundAtomLookup.get(var).getValue(w);
+		return coupling.getVariableValue(var, w);
 	}
 
 	/**
@@ -288,7 +213,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @return true if the variable is not an auxiliary variable that was created for a logical constraint but corresponds directly to a variable upon which the possible worlds are defined
 	 */
 	public boolean isRegularVariable(BeliefNode var) {
-		return variable2groundAtomLookup.containsKey(var);
+		return coupling.hasCoupling(var);
 	}
 	
 	/**
@@ -296,10 +221,14 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @return
 	 */
 	public Set<BeliefNode> getRegularVariables() {
-		return variable2groundAtomLookup.keySet();
+		return coupling.getCoupledVariables();
 	}
 	
 	public Set<GroundAtom> getMappedGroundAtoms() {
-		return groundAtom2variable.keySet();
+		return coupling.getCoupledGroundAtoms();
+	}
+	
+	public VariableLogicCoupling getCoupling() {
+		return coupling;
 	}
 }
