@@ -6,11 +6,15 @@
  */
 package edu.tum.cs.srl.bayesnets.inference;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.GibbsSampling;
+import edu.tum.cs.bayesnets.inference.SATIS_BSampler;
 import edu.tum.cs.bayesnets.inference.Sampler;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
+import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
+import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 
 /**
  * SAT-IS Extended (with hard constraints from CPDs) that, for every SAT-IS step, 
@@ -26,15 +30,15 @@ public class SATISExGibbs extends SATISEx {
 	
 	@Override
 	protected Sampler getSampler() {
-		return new SATIS_BSampler_Gibbs(gbln.getGroundNetwork());
+		return new SATIS_BSampler_Gibbs(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}	
 	
 	public class SATIS_BSampler_Gibbs extends SATIS_BSampler {
 
 		public GibbsSampling gibbsSampler;
 		
-		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn) {
-			super(bn);
+		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Iterable<BeliefNode> determinedVars) {
+			super(bn, sat, coupling, determinedVars);
 			gibbsSampler = new GibbsSampling(gbln.getGroundNetwork());
 		}
 		
