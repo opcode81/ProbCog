@@ -111,7 +111,10 @@ public class SampleSearch extends Sampler {
 				// kill the current node's exclusions
 				domExclusions.remove(nodeIdx); 
 				// add the previous node's setting as an exclusion
-				nodeIdx = nodeOrder[--i];
+				--i;
+				if(i < 0)
+					throw new Exception("Could not find a sample with non-zero probability. Most likely, the evidence specified has 0 probability.");
+				nodeIdx = nodeOrder[i];
 				boolean[] prevExcl = domExclusions.get(nodeIdx);
 				prevExcl[s.nodeDomainIndices[nodeIdx]] = true;
 				// proceed with previous node...				
