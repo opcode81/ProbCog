@@ -13,7 +13,7 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.tools.MutableDouble;
+import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class IJGP extends Sampler {
 
