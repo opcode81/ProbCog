@@ -31,7 +31,7 @@ public class InferenceResult {
 	}
 	
 	public String toString() {
-		return String.format("%.6f %s(%s)", probability, functionName, StringTool.join(", ", params));
+		return String.format("%.6f  %s(%s)", probability, functionName, StringTool.join(", ", params));
 	}
 	
 	public void print(PrintStream out) {
