@@ -24,7 +24,8 @@ public class MCSAT {
 	protected Random rand;
 	protected SampledDistribution dist;
 	protected double p = 0.9;
-	protected final boolean verbose = false;
+	protected boolean verbose = false, debug = false;
+	protected int infoInterval = 100;
 	
 	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) {		
 		this.kb = kb;
@@ -33,13 +34,27 @@ public class MCSAT {
 		this.rand = new Random();
 		this.dist = new SampledDistribution(vars);
 	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+	
+	public void setDebugMode(boolean active) {
+		this.debug = active;
+	}
+	
+	public void setInfoInterval(int interval) {
+		this.infoInterval = interval;
+	}
 
 	public void run(int steps) throws Exception {
-		if(verbose) {
+		if(debug && false) {
 			System.out.println("MC-SAT constraints:");
 			for(WeightedClause wc : kb)
 				System.out.println("  " + wc);
 		}
+		if(verbose) 
+			System.out.printf("MC-SAT sampling [p=%f]...\n", p);		
 		
 		// find initial state satisfying all hard constraints
 		Vector<WeightedClause> M = new Vector<WeightedClause>();
@@ -51,6 +66,7 @@ public class MCSAT {
 		}
 		PossibleWorld state = new PossibleWorld(vars);
 		SampleSAT sat = new SampleSAT(M, state, vars, db);
+		sat.setDebugMode(debug);
 		sat.setP(p);
 		sat.run();
 		
@@ -65,9 +81,9 @@ public class MCSAT {
 						M.addAll(e.getValue());
 				}
 			}
-			if(verbose || (i+1) % 100 == 0) {
+			if(verbose || (i+1) % infoInterval == 0) {
 				System.out.printf("  step %d: %d constraints to be satisfied\n", i+1, M.size());
-				if(verbose) {
+				if(debug) {
 					for(WeightedClause wc : M)
 						System.out.println("    " + wc);
 				}

@@ -87,6 +87,9 @@ public class MCSAT extends Sampler {
 	
 	@Override
 	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
+		sampler.setDebugMode(this.debug);
+		sampler.setVerbose(true);
+		sampler.setInfoInterval(infoInterval);
 		sampler.run(numSamples);
 		BeliefNetworkEx bn = gbln.getGroundNetwork();
 		SampledDistribution dist = new SampledDistribution(bn);
