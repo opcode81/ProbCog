@@ -74,6 +74,10 @@ public class WeightedSample {
 	public WeightedSample(BeliefNetworkEx bn) {
 		this(bn, new int[bn.bn.getNodes().length], 1.0, null, 0);
 	}
+	
+	public WeightedSample(BeliefNetworkEx bn, int[] domainIndices) {
+		this(bn, domainIndices, 1.0, null, 0);
+	}
 
 	/**
 	 * Extract a sub sample of this sample for the given nodes. The weight
