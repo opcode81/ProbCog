@@ -28,6 +28,8 @@ public class GibbsSampling extends Sampler {
 		// get initial setting with non-zero evidence probability
 		System.out.println("initial setting...");
 		WeightedSample s = bn.getWeightedSample(nodeOrder, evidenceDomainIndices, generator);
+		if(s == null)
+			throw new Exception("Could not find an initial state with non-zero probability in given number of trials.");
 		
 		// do Gibbs sampling
 		System.out.println("Gibbs sampling...");
