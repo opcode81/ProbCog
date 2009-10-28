@@ -224,10 +224,6 @@ public class GroundBLN extends AbstractGroundBLN {
 		return coupling.getCoupledVariables();
 	}
 	
-	public Set<GroundAtom> getMappedGroundAtoms() {
-		return coupling.getCoupledGroundAtoms();
-	}
-	
 	public VariableLogicCoupling getCoupling() {
 		return coupling;
 	}
