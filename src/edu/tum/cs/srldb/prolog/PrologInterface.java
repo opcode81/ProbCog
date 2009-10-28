@@ -13,6 +13,7 @@ import jpl.Query;
 import jpl.fli.Prolog;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.probcog.InferenceResult;
+import edu.tum.cs.probcog.Model;
 import edu.tum.cs.probcog.Server;
 
 /**
@@ -209,19 +210,34 @@ public class PrologInterface {
 			queryObjectTypes();
 
 			Server srldbServer = new Server(modelPool);
+			Model model = srldbServer.getModel(modelName);
 
-			// Generate evidences for all object already found on the table
+			// Generate evidence for all objects already found on the table
 			Vector<String> evidence = new Vector<String>();
 			evidence.add("takesPartIn(P,M)");
 
 			// Maybe we can figure out the type of the meal
 			// evidence.add("mealT(M,Breakfast)");
 
-			for (String instance : objectTypes.keySet()) {
-				evidence.add(String.format("usesAnyIn(P,%s,M)", objectTypes
-						.get(instance)));
-//				System.out.println(String.format("usesAnyIn(P,%s,M)",
-//						objectTypes.get(instance)));
+			// add evidence on utensils and consumed goods
+			for(String instance : objectTypes.keySet()) {
+				String objType = objectTypes.get(instance);
+				String constantType = model.getConstantType(objType);
+				String predicate = null;
+				if(constantType != null) {
+					if(constantType.equalsIgnoreCase("domUtensilT"))
+						predicate = "usesAnyIn";
+					else if(constantType.equalsIgnoreCase("objType_g"))
+						predicate = "consumesAnyIn";
+					if(predicate != null) { 
+						String evidenceAtom = String.format("%s(P,%s,M)", predicate, objType);  
+						evidence.add(evidenceAtom);
+					}
+					else
+						System.err.println("Warning: Evidence on instance '" + instance + "' not considered because it is neither a utensil nor a consumable object known to the model.");
+				}
+				else
+					System.err.println("Warning: Evidence on instance '" + instance + "' not considered because its type is not known to the model.");
 			}
 
 			// Generate queries: "usesAnyIn" for utensils, "consumesAnyIn" for
