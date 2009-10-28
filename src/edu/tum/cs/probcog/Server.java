@@ -63,6 +63,10 @@ public class Server {
 		return modelPool.getModel(modelName).getDomains();
 	}
 	
+	public Model getModel(String modelName) {
+		return modelPool.getModel(modelName);
+	}
+	
 	/**
 	 * translates a list of LISP-style tuples, such as (sitsAtIn ?PERSON ?SEATING-LOCATION M),
 	 * to regular query strings, such as "sitsAtIn(a1,a2,M)"
@@ -90,7 +94,7 @@ public class Server {
 	}
 	
 	/**
-	 * processes a query
+	 * processes a query by setting the evidence, instantiating the model and running the inference procedure
 	 * @param modelName the model to use
 	 * @param queries a collection of queries, i.e. either predicate/function names, partially grounded predicates/terms (variables in lower-case) or fully grounded predicates/terms
 	 * @param evidence a collection of arrays, where each array contains a predicate/function name followed by some arguments, and, in the case of a (non-boolean) function, the value as the last element
@@ -109,7 +113,7 @@ public class Server {
 	}
 	
 	/**
-	 * 
+	 * processes a query by setting the evidence, instantiating the model and running the inference procedure 
 	 * @param modelName
 	 * @param queries
 	 * @param evidence a list of evidence atoms, e.g. "foo(bar,baz)"; use an atom even if the variable is actually non-boolean, i.e. use "foo(bar,baz)" for "foo(bar)=baz" 
@@ -159,18 +163,37 @@ public class Server {
 			boolean testKnowRob = true;
 			boolean testLISP = false;
 			if(testKnowRob) {
+				String modelName = "tableSetting_fall09";
+				Model model = server.getModel(modelName);
 				// * evidence
 				Vector<String> evidence = new Vector<String>();
 				evidence.add("takesPartIn(P,M)");
-				evidence.add("usesAnyIn(P,Spoon,M)");
-				evidence.add("usesAnyIn(P,Bowl,M)");
-				evidence.add("usesAnyIn(P,DinnerPlate,M)"); // tests mapping (DinnerPlate is mapped to Plate internally)
+				String[] observedClasses = new String[]{"DinnerPlate", "Tea", "IceTea"};
+				for(String instance : observedClasses) {
+					String objType = instance;
+					String constantType = model.getConstantType(objType);
+					String predicate = null;
+					if(constantType != null) {
+						if(constantType.equalsIgnoreCase("domUtensilT"))
+							predicate = "usesAnyIn";
+						else if(constantType.equalsIgnoreCase("objType_g"))
+							predicate = "consumesAnyIn";
+						if(predicate != null) { 
+							String evidenceAtom = String.format("%s(P,%s,M)", predicate, objType);  
+							evidence.add(evidenceAtom);
+						}
+						else
+							System.err.println("Warning: Evidence on instance '" + instance + "' not considered because it is neither a utensil nor a consumable object known to the model.");
+					}
+					else
+						System.err.println("Warning: Evidence on instance '" + instance + "' not considered because its type is not known to the model.");
+				}
 				// * queries
 				Vector<String> queries = new Vector<String>();
 				queries.add("usesAnyIn");
 				queries.add("consumesAnyIn");
 				// * run inference
-				Vector<InferenceResult> results = server.query("tableSetting_fall09", queries, evidence);
+				Vector<InferenceResult> results = server.query(modelName, queries, evidence);
 				for(InferenceResult res : results) {
 					res.print(System.out);
 				}
