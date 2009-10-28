@@ -26,11 +26,12 @@ public class BLNModel extends Model {
 	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
 		super(modelName);
 		this.bln = new BayesianLogicNetwork(new ABL(blogFile, networkFile), logicFile);
+		db = new Database(bln.rbn);
 	}
 	
 	@Override
 	public void instantiate() throws Exception {
-		gbln = bln.instantiate(db);
+		gbln = bln.instantiate(db);		
 	}
 
 	@Override
@@ -127,5 +128,10 @@ public class BLNModel extends Model {
 			ret.add(tuple.toArray(new String[tuple.size()]));
 		}
 		return ret;
+	}
+
+	@Override
+	protected String _getConstantType(String constant) {
+		return db.getConstantType(constant);
 	}
 }

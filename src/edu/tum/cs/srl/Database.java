@@ -512,4 +512,18 @@ public class Database {
     public RelationalModel getModel() {
     	return this.model;
     }
+    
+    /**
+     * gets the type of the given constant by searching through the domains 
+     * @param constant
+     * @return the type name or null if the constant is unknown
+     */
+    public String getConstantType(String constant) {
+    	for(Entry<String, HashSet<String>> e : this.domains.entrySet()) {
+    		if(e.getValue().contains(constant)) {
+    			return e.getKey();
+    		}
+    	}
+    	return null;
+    }
 }

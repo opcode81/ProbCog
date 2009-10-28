@@ -37,11 +37,22 @@ public abstract class Model {
 	public abstract Vector<String[]> getDomains();
 
 	public void setEvidence(Iterable<String[]> evidence) throws Exception {
+		// map constants, filtering evidence where constants are mapped to null
+		Vector<String[]> newEvidence = new Vector<String[]>();
 		for(String[] s : evidence) {
-			for(int i = 1; i < s.length; i++)
+			boolean keep = true;
+			for(int i = 1; i < s.length; i++) {
 				s[i] = this.mapConstantToProbCog(s[i]);
+				if(s[i] == null) {
+					keep = false;
+					break;
+				}
+			}
+			if(keep)
+				newEvidence.add(s);
 		}
-		_setEvidence(evidence);
+		// actually set the evidence
+		_setEvidence(newEvidence);
 	}
 	
 	public java.util.Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
@@ -119,10 +130,24 @@ public abstract class Model {
 		String c2 = constantMapToProbCog.get(c);
 		if(c2 == null)
 			return c;
-		if(c2.length() == 0)
+		if(c2.length() == 0) // constant mapped to nothing
 			return null;
 		return c2;
 	}
+	
+	/**
+	 * gets the type of a given constant
+	 * @param constant
+	 * @return the type name of the constant or null if the constant is unknown (or mapped to nothing in ProbCog)
+	 */
+	public String getConstantType(String constant) {
+		constant = mapConstantToProbCog(constant);
+		if(constant == null)
+			return null;
+		return _getConstantType(constant);
+	}
+	
+	protected abstract String _getConstantType(String constant);
 	
 	public String getName() {
 		return name;
