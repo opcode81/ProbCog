@@ -48,7 +48,7 @@ public class SATIS extends BNSampler {
 			for(GroundLiteral lit : c.lits) {
 				BeliefNode var = gbln.getVariable(lit.gndAtom);
 				if(var == null)
-					throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + gbln.getMappedGroundAtoms());
+					throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + gbln.getCoupling().getCoupledGroundAtoms());
 				determinedVars.add(var);
 			}
 		}		
