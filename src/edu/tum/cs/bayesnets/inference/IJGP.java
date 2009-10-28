@@ -6,6 +6,8 @@
  */
 package edu.tum.cs.bayesnets.inference;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -13,18 +15,133 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class IJGP extends Sampler {
 
 	protected JoinGraph jg;
 	Vector<JoinGraph.Node> jgNodes;
-	protected BeliefNode[] nodes;
+	protected BeliefNode[] nodes; 
 
-	protected static class Cluster {
-		HashSet<BeliefNode> cpts;
-		HashSet<MessageFunction> functions;
+	public IJGP(BeliefNetworkEx bn) {
+		this(bn, 3);
+	}
+	
+	public IJGP(BeliefNetworkEx bn, int bound) {
+		super(bn);
+		nodes = bn.bn.getNodes();
+		jg = new JoinGraph(bn, bound);
+		jg.print(System.out);
+		jgNodes = jg.getTopologicalorder();
+		// construct join-graph
+	}
 
+	@Override
+	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+		// process observed variables
+		for (JoinGraph.Node n : jgNodes) {
+			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes()); // this is nonsense, but apparently required to avoid ConcurrentModificationException 
+			for (BeliefNode belNode : nodes) {
+				int nodeIdx = bn.getNodeIndex(belNode);
+				int domainIdx = evidenceDomainIndices[nodeIdx];
+				if (domainIdx > -1)
+					n.nodes.remove(belNode);
+			}
+		}		
+		
+		for(int step = 1; step <= this.numSamples; step++) {
+			// for every node in JG in order and back:
+			int s = jgNodes.size();			
+			for (int j = 0; j < 2*s; j++){
+				int i;
+				if (j < s)
+					i = j;
+				else
+					i = 2*s-j-1;
+				JoinGraph.Node u = jgNodes.get(i);	
+				for (JoinGraph.Node v : jgNodes.get(i).getNeighbors()){
+					// construct cluster_n
+					Cluster cluster_n = new Cluster(u);
+					cluster_n.excludeMessage(u.arcs.get(v).getInMessage(u));
+					// Include in cluster_H each function in cluster_n which scope does not contain variables in elim(u,v)
+					HashSet<BeliefNode> elim = new HashSet<BeliefNode>(jgNodes.get(i).nodes);			
+					elim.removeAll(u.getArcToNode(v).seperator);
+					Cluster cluster_H = cluster_n.getReducedCluster(elim);
+					// denote by cluster_A the remaining functions
+					Cluster cluster_A = cluster_n.clone();
+					cluster_A.subtractCluster(cluster_H);
+					// convert eliminator into varToSumOver
+					int[] varsToSumOver = new int[elim.size()];
+					Vector<BeliefNode> elimV = new Vector<BeliefNode>(elim);
+					for(int k = 0; k < elim.size(); k++)
+						varsToSumOver[k] = bn.getNodeIndex(elimV.get(k));
+					// create message function and send to v
+					MessageFunction m = new MessageFunction(u.getArcToNode(v).seperator, varsToSumOver, cluster_A);
+					u.getArcToNode(v).setOutMessage(u, m);			
+				}
+			}
+		}
+		
+		// compute probabilities and store results in distribution
+		System.out.println("reading results...");
+		this.jg.print(System.out);
+		this.createDistribution();
+		dist.Z = 1.0;
+		for (int i = 0; i < nodes.length; i++) {
+			if(evidenceDomainIndices[i] >= 0) {
+				dist.values[i][evidenceDomainIndices[i]] = 1.0;
+				continue;
+			}
+			// For every node X let u be a vertex in the join graph that X is in u
+			System.out.println(nodes[i]);
+			JoinGraph.Node u = null;
+			for (JoinGraph.Node node : jgNodes){
+				if(node.nodes.contains(nodes[i])){
+					u = node;
+					break;
+				}
+			}
+			if(u == null)
+				throw new Exception("Could not find vertex in join graph containing variable " + nodes[i].getName());
+			// compute sum for each domain value of i-th node
+			int domSize = dist.values[i].length;
+			double Z = 0.0;
+			int[] nodeDomainIndices = evidenceDomainIndices.clone();
+			for(int j = 0; j < domSize; j++) {
+				nodeDomainIndices[i] = j;
+				MutableDouble sum = new MutableDouble(0.0);
+				BeliefNode[] nodesToSumOver = u.nodes.toArray(new BeliefNode[u.nodes.size()]);
+				computeSum(0, nodesToSumOver, nodes[i], new Cluster(u), nodeDomainIndices, sum);
+				Z += (dist.values[i][j] = sum.value); 
+			}
+			// normalize
+			for(int j = 0; j < domSize; j++)
+				dist.values[i][j] /= Z;
+			dist.print(System.out);
+		}		
+		return dist;
+	}
+	
+	protected void computeSum(int i, BeliefNode[] nodes, BeliefNode excludedNode, Cluster u, int[] nodeDomainIndices, MutableDouble result) {
+		if(i == nodes.length) {
+			result.value += u.product(nodeDomainIndices);
+			return;
+		}
+		if(nodes[i] == excludedNode)
+			computeSum(i+1, nodes, excludedNode, u, nodeDomainIndices, result);
+		else {
+			for(int j = 0; j < nodes[i].getDomain().getOrder(); j++) {
+				nodeDomainIndices[this.getNodeIndex(nodes[i])] = j;
+				computeSum(i+1, nodes, excludedNode, u, nodeDomainIndices, result);
+			}
+		}
+	}
+
+	protected class Cluster implements Cloneable {
+		HashSet<BeliefNode> cpts = new HashSet<BeliefNode>();
+		HashSet<MessageFunction> functions = new HashSet<MessageFunction>();
+		
 		public Cluster(JoinGraph.Node n) {
 			cpts.addAll(n.nodes);
 			for (JoinGraph.Node nb : n.getNeighbors()) {
@@ -39,16 +156,17 @@ public class IJGP extends Sampler {
 				functions.remove(m);
 		}
 
-		public Cluster clone() {
-			return this.clone();
+		public Cluster clone() throws CloneNotSupportedException {
+			return (Cluster)super.clone();
 		}
 
-		public Cluster getReducedCluster(HashSet<BeliefNode> nodes) {
+		public Cluster getReducedCluster(HashSet<BeliefNode> nodes) throws CloneNotSupportedException {
 			// deletes all functions and arcs in the cluster whose scope
 			// contains the given nodes
 			Cluster redCluster = this.clone();
 			for (BeliefNode bn : nodes) {
-				for (BeliefNode n : cpts) {
+				HashSet<BeliefNode> foo = (HashSet<BeliefNode>)cpts.clone();
+				for (BeliefNode n : foo) {
 					BeliefNode[] domProd = n.getCPF().getDomainProduct();
 					for (int i = 0; i < domProd.length; i++) {
 						if (bn.equals(domProd[i])) {
@@ -68,87 +186,27 @@ public class IJGP extends Sampler {
 		public void subtractCluster(Cluster c2) {
 			// deletes all functions and arcs of the cluster that are also in
 			// cluster c2
-			for (BeliefNode n : c2.cpts) {
+			for (BeliefNode n : ((HashSet<BeliefNode>)c2.cpts.clone())) { // TODO nonsense
 				cpts.remove(n);
 			}
 			for (MessageFunction m : c2.functions) {
 				functions.remove(m);
 			}
 		}
-	}
-
-	public IJGP(BeliefNetworkEx bn, int bound) {
-		super(bn);
-		nodes = bn.bn.getNodes();
-		jg = new JoinGraph(bn, bound);
-		jgNodes = jg.getTopologicalorder();
-		// construct join-graph
-	}
-
-	@Override
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
-		// process observed variables
-		for (JoinGraph.Node n : jgNodes) {
-			for (BeliefNode belNode : n.nodes) {
-				int nodeIdx = bn.getNodeIndex(belNode);
-				int domainIdx = evidenceDomainIndices[nodeIdx];
-				if (domainIdx > -1)
-					n.nodes.remove(belNode);
-			}
-		}
-		// for every node in JG in order and back:
-		int s = jgNodes.size();
-		for (int j = 0; j < 2*s; j++){
-			int i;
-			if (j < s)
-				i = j;
-			else
-				i = s-j-1;
-			JoinGraph.Node u = jgNodes.get(i);	
-			for (JoinGraph.Node v : jgNodes.get(i).getNeighbors()){
-				// construct cluster_n
-				Cluster cluster_n = new Cluster(u);
-				cluster_n.excludeMessage(u.arcs.get(v).getInMessage(u));
-				// Include in cluster_H each function in cluster_n which scope does not contain variables in elim(u,v)
-				HashSet<BeliefNode> elim = new HashSet<BeliefNode>(jgNodes.get(i).nodes);			
-				elim.removeAll(u.getArcToNode(v).seperator);
-				Cluster cluster_H = cluster_n.getReducedCluster(elim);
-				// denote by cluster_A the remaining functions
-				Cluster cluster_A = cluster_n.clone();
-				cluster_A.subtractCluster(cluster_H);
-				// convert eliminator into varToSumOver
-				int[] varsToSumOver = new int[elim.size()];
-				Vector<BeliefNode> elimV = new Vector<BeliefNode>(elim);
-				for(int k = 0; k < elim.size(); i++)
-					varsToSumOver[k] = bn.getNodeIndex(elimV.get(i));
-				// create message function and send to v
-				MessageFunction m = new MessageFunction(u.getArcToNode(v).seperator, varsToSumOver, cluster_A);
-				u.getArcToNode(v).setOutMessage(u, m);			
-			}
-		}
 		
-		// compute probabilties and store results in distribution
-		System.out.println("reading results...");
-		this.createDistribution();
-		for (int i = 0; i < nodes.length; i++) {
-			// For every node X let u be a vertex in the join graph that X is in u
-			JoinGraph.Node u = null;
-			for (JoinGraph.Node node : jgNodes){
-				if(node.nodes.contains(nodes[i])){
-					u = node;
-					break;
-				}
+		public double product(int[] nodeDomainIndices) {
+			double ret = 1.0;
+			for(BeliefNode n : cpts) {
+				ret *= getCPTProbability(n, nodeDomainIndices);
 			}
-			// compute probability
-			// TODO
+			for(MessageFunction f : this.functions) {
+				ret *= f.compute(nodeDomainIndices);
+			}
+			return ret;
 		}
-		dist.Z = 1.0;
-		return dist;
-
-		// createDistribution();
-		// do it	
 	}
 
+	
 	protected class MessageFunction {
 
 		protected int[] varsToSumOver;
@@ -197,12 +255,13 @@ public class IJGP extends Sampler {
 		public BeliefNode idxVar;
 
 		public BucketVar(HashSet<BeliefNode> nodes) {
-			this.nodes = nodes;
-			this.parent = null;
+			this(nodes, null);
 		}
 
 		public BucketVar(HashSet<BeliefNode> nodes, MiniBucket parent) {
 			this.nodes = nodes;
+			if(nodes.size() == 0)
+				throw new RuntimeException("Must provide non-empty set of nodes.");			
 			this.parent = parent;
 		}
 
@@ -217,7 +276,7 @@ public class IJGP extends Sampler {
 		public BeliefNode getMaxNode(BeliefNetworkEx bn) {
 			// returns the BeliefNode of a bucket variable highest in the
 			// topological order
-			int maxInt = 0;
+			int maxInt = Integer.MIN_VALUE;
 			BeliefNode maxNode = null;
 			for (BeliefNode node : nodes) {
 				int newInt = bn.getNodeIndex(node);
@@ -241,7 +300,7 @@ public class IJGP extends Sampler {
 			this.items = new HashSet<BucketVar>();
 			this.bucket = bucket;
 			this.child = null;
-			this.parents = null;
+			this.parents = new HashSet<MiniBucket>();
 		}
 
 		public void addVar(BucketVar bv) {
@@ -265,13 +324,18 @@ public class IJGP extends Sampler {
 			vars.add(bv);
 		}
 
+		/**
+		 * create minibuckets of size bound
+		 * @param bound
+		 */
 		public void partition(int bound) {
 			int i = 0;
 			for (BucketVar bv : vars) {
-				if (i % bound == 0 && i != 0) {
+				if (i % bound == 0) { // create a new minibucket
 					minibuckets.add(new MiniBucket(this));
 				}
 				minibuckets.lastElement().addVar(bv);
+				i++;
 			}
 		}
 
@@ -285,8 +349,10 @@ public class IJGP extends Sampler {
 							nodes.add(bn);
 					}
 				}
-				BucketVar newBucketVar = new BucketVar(nodes, mb);
-				newVars.add(newBucketVar);
+				if(nodes.size() != 0) { // TODO check correctness
+					BucketVar newBucketVar = new BucketVar(nodes, mb);
+					newVars.add(newBucketVar);
+				}
 			}
 			return newVars;
 		}
@@ -322,6 +388,7 @@ public class IJGP extends Sampler {
 						.createScopeFunctions();
 				for (BucketVar bv : scopes) {
 					BeliefNode node = bv.getMaxNode(bn);
+					System.out.println(node);
 					bucketMap.get(node).addVar(bv);
 				}
 			}
@@ -372,8 +439,11 @@ public class IJGP extends Sampler {
 			}
 		}
 
-		protected Node merge(Node u, Node v) {
-			return null;
+		public void print(PrintStream out) {
+			int i = 0;
+			for(Node n : nodes) {
+				out.printf("Node%d: %s\n", i++, StringTool.join(", ", n.nodes));
+			}
 		}
 
 		public Vector<Node> getTopologicalorder() {
@@ -462,6 +532,10 @@ public class IJGP extends Sampler {
 
 			public Arc getArcToNode(Node n) {
 				return arcs.get(n);
+			}
+			
+			public Collection<BeliefNode> getNodes() {
+				return nodes;
 			}
 		}
 	}
