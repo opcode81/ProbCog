@@ -87,7 +87,7 @@ public class MaxWalkSAT {
         formula2satClause = new HashMap<Formula, HashSet<WeightedClause>>();
         rand = new Random();
 
-        evidenceHandler = new EvidenceHandler(vars, evidence);
+        evidenceHandler = new EvidenceHandler(vars, evidence.getEntries());
         this.evidence = evidenceHandler.getEvidence();
         evidenceHandler.setEvidenceInState(state);
 
