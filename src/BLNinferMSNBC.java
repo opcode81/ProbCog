@@ -21,7 +21,6 @@ import edu.tum.cs.srl.bayesnets.inference.CSPSampler;
 import edu.tum.cs.srl.bayesnets.inference.GibbsSampling;
 import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
 import edu.tum.cs.srl.bayesnets.inference.LiftedBackwardSampling;
-import edu.tum.cs.srl.bayesnets.inference.LikelihoodWeighting;
 import edu.tum.cs.srl.bayesnets.inference.SATIS;
 import edu.tum.cs.srl.bayesnets.inference.SATISEx;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
@@ -212,7 +211,7 @@ public class BLNinferMSNBC {
 					Sampler sampler = null;
 					switch(algo) {
 					case LikelihoodWeighting: 
-						sampler = new LikelihoodWeighting(gbln); break;
+						sampler = new BNSampler(gbln, edu.tum.cs.bayesnets.inference.LikelihoodWeighting.class); break;
 					case LWU: 
 						sampler = new BNSampler(gbln, LikelihoodWeightingWithUncertainEvidence.class); break;
 					case CSP: 
@@ -243,7 +242,8 @@ public class BLNinferMSNBC {
 						((BNSampler)sampler).setMaxTrials(maxTrials);
 						((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
 					}
-					Vector<InferenceResult> results = sampler.infer(queries, maxSteps, 100);
+					sampler.setNumSamples(maxSteps);
+					Vector<InferenceResult> results = sampler.infer(queries);
 					sw.stop();
 
 					for(InferenceResult res : results) {
