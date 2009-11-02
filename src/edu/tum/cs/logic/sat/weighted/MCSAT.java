@@ -65,7 +65,7 @@ public class MCSAT {
 			}
 		}
 		PossibleWorld state = new PossibleWorld(vars);
-		SampleSAT sat = new SampleSAT(M, state, vars, db);
+		SampleSAT sat = new SampleSAT(M, state, vars, db.getEntries());
 		sat.setDebugMode(debug);
 		sat.setP(p);
 		sat.run();

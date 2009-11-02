@@ -11,6 +11,7 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
+import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
@@ -56,7 +57,7 @@ public class SampleSAT {
 	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
 	 * @throws Exception
 	 */
-	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Database db) throws Exception {
+	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
 		this.state = state;
 		this.vars = vars;
 		rand = new Random();
@@ -504,7 +505,7 @@ public class SampleSAT {
 		ClausalKB ckb = new ClausalKB(gbln.getKB());
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		SampleSAT ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase());
+		SampleSAT ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
 		ss.run();
 		sw.stop();
 		/*System.out.println("SECOND RUN");

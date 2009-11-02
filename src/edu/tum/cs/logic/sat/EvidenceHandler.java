@@ -18,7 +18,7 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.Database.Variable;
+import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.util.datastruct.Map2Set;
 
 // TODO we could speed some of this up by explicitly keeping track of blocked and unblocked non-evidence vars 
@@ -32,23 +32,19 @@ public class EvidenceHandler {
 	protected WorldVariables vars;
 	protected Random rand;
 	
-	public EvidenceHandler(WorldVariables vars, Database db) throws Exception {
+	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
 		this.vars = vars;
 		this.rand = new Random();
 
-		if(verbose) {
-			System.out.println("evidence:");
-			db.print();
-		}
 		this.evidence = new HashMap<Integer,Boolean>();
 		evidenceBlocks = new HashSet<Block>();
 		blockExclusions = new Map2Set<Block,GroundAtom>();
-		for(Variable var : db.getEntries()) {
-			String strGndAtom = var.getPredicate(db.model);
+		for(AbstractVariable var : db) {
+			String strGndAtom = var.getPredicate();
 			GroundAtom gndAtom = vars.get(strGndAtom);
 			if(gndAtom == null)
 				throw new Exception("Evidence ground atom '" + strGndAtom + "' not in set of world variables.");
-			if(!var.isBoolean(db.model)) { // if the variable isn't boolean, it is mapped to a block, which we set in its entirety
+			if(!var.isBoolean()) { // if the variable isn't boolean, it is mapped to a block, which we set in its entirety
 				Block block = vars.getBlock(gndAtom.index);
 				if(block == null) 
 					throw new Exception(String.format("There is no variable block to which the non-boolean variable assignment '%s' can be mapped.", var.toString()));				

@@ -4,7 +4,7 @@ import java.io.PrintStream;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationalModel;
-import edu.tum.cs.srl.Database.Variable;
+import edu.tum.cs.srl.AbstractVariable;
 
 public class PossibleWorld implements IPossibleWorld {
 	
@@ -75,9 +75,8 @@ public class PossibleWorld implements IPossibleWorld {
     }
     
     public void setEvidence(Database db) {
-    	RelationalModel model = db.getModel();
-    	for(Variable var : db.getEntries()) {
-    		this.set(var.getPredicate(model), var.isTrue()); 
+    	for(AbstractVariable var : db.getEntries()) {
+    		this.set(var.getPredicate(), var.isTrue()); 
     	}
     }
 }
