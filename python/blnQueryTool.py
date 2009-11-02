@@ -92,7 +92,7 @@ class BLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood Weighting":"-lw", "Gibbs Sampling":"-gs", "EPIS-BN": "-epis", "Backward Sampling": "-bs", "Enumeration-Ask (exact)": "-ea", "Lifted Backward Sampling with Children": "-lbs", "SMILE Backward Sampling": "-sbs", "Backward Sampling with Priors": "-bsp", "Backward Sampling with Children":"-bsc", "Experimental": "-exp", "SAT-IS": "-satis", "SAT-IS Extended": "-satisex", "SAT-IS Extended/Gibbs":"-satisexg", "Likelihood Weighting with Uncertain Evidence": "-lwu", "MC-SAT": "-mcsat", "Pearl's algorithm":"-pearl", "Variable Elimination": "-elim"}
+        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN": "EPIS", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "Lifted Backward Sampling with Children": "LiftedBackwardSampling", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingChildren", "Experimental": "Experimental", "SAT-IS": "SATIS", "SAT-IS Extended": "SATISEx", "SAT-IS Extended/Gibbs":"SATISExGibbs", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim"}
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
@@ -208,7 +208,7 @@ class BLNQuery:
         
     def showBN(self):
         bif = self.selected_bif.get()
-        os.spawnl(os.P_NOWAIT, "/bin/sh", "/bin/sh", "-c", "bnj %s" % bif)
+        os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
         #os.system("bnj %s" % bif)
 
     def start(self):
@@ -256,7 +256,7 @@ class BLNQuery:
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
         
         # create command to execute
-        params = '%s -x "%s" -b "%s" -l "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, blog, bln, db, self.settings["query"], self.settings["params"])
+        params = '-ia %s -x "%s" -b "%s" -l "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, blog, bln, db, self.settings["query"].replace(" ", ""), self.settings["params"])
         if cwPreds != "":
             params += " -cw %s" % cwPreds
         #if self.settings["numChains"] != "":
