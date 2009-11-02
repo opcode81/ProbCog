@@ -28,7 +28,6 @@ public class BNJInference extends Sampler {
 	public SampledDistribution infer(int[] evidenceDomainIndices)
 			throws Exception {
 		// set evidence
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < evidenceDomainIndices.length; i++)
 			if(evidenceDomainIndices[i] != -1)
 				nodes[i].setEvidence(new DiscreteEvidence(evidenceDomainIndices[i]));

@@ -28,7 +28,6 @@ public class EnumerationAsk extends Sampler {
 	}
 	
 	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i) throws Exception {
-		BeliefNode[] nodes = bn.bn.getNodes();
 		//System.out.println("enum " + nodes[nodeOrder[i]].getName());
 		// if we have completed the world, we are done and can add the world as a sample
 		if(i == nodes.length) {

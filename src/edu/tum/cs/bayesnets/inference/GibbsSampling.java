@@ -14,7 +14,6 @@ public class GibbsSampling extends Sampler {
 	public GibbsSampling(BeliefNetworkEx bn) {
 		super(bn);
 		children = new HashMap<BeliefNode, BeliefNode[]>();
-		BeliefNode[] nodes = bn.bn.getNodes();		
 		for(int i = 0; i < nodes.length; i++) {
 			children.put(nodes[i], bn.bn.getChildren(nodes[i]));
 		}
@@ -51,7 +50,6 @@ public class GibbsSampling extends Sampler {
 	
 	public void gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {
 		// resample all of the (non-evidence) nodes
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int j = 0; j < nodes.length; j++)  {
 			// skip evidence nodes
 			if(evidenceDomainIndices[j] != -1)

@@ -86,7 +86,6 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 	protected void computePriors(int[] evidenceDomainIndices) {
 		priors = new HashMap<BeliefNode, double[]>();
 		int[] topOrder = bn.getTopologicalOrder();
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i : topOrder) {
 			BeliefNode node = nodes[i];
 			double[] dist = new double[node.getDomain().getOrder()];

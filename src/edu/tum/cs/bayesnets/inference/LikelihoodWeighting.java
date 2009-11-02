@@ -30,7 +30,7 @@ public class LikelihoodWeighting extends Sampler {
 					System.out.print("w=" + ret.weight);
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
 						if(evidenceDomainIndices[j] == -1) {
-							BeliefNode node = bn.bn.getNodes()[j];							
+							BeliefNode node = nodes[j];							
 							System.out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
 						}
 					System.out.println();
@@ -43,7 +43,6 @@ public class LikelihoodWeighting extends Sampler {
 	}
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
-		BeliefNode[] nodes = bn.bn.getNodes();
 		s.trials = 0;
 		boolean successful = false;
 loop:	while(!successful) {
