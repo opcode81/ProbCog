@@ -40,7 +40,7 @@ public class SATIS extends BNSampler {
 		// create SAT sampler
 		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
 		ClausalKB ckb = getClausalKB();
-		ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase());
+		ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
 		
 		// get the set of variables that is determined by the sat sampler
 		determinedVars = new HashSet<BeliefNode>();

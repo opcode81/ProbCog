@@ -8,6 +8,8 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 public abstract class Sampler {
 	protected boolean debug = false;
+	protected int numSamples = 1000;
+	protected int infoInterval = 100;
 	
 	public static Vector<InferenceResult> getResults(SampledDistribution dist, Iterable<String> queries) {
 		// generate patterns
@@ -37,7 +39,15 @@ public abstract class Sampler {
 			res.print();
 	}
 	
-	public abstract Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception;
+	public void setNumSamples(int n) {
+		numSamples = n;
+	}
+	
+	public void setInfoInterval(int n) {
+		infoInterval = n;
+	}
+	
+	public abstract Vector<InferenceResult> infer(Iterable<String> queries) throws Exception;
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();
@@ -45,5 +55,9 @@ public abstract class Sampler {
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+	
+	public SampledDistribution pollResults() throws Exception {
+		throw new Exception("Time-limited inference not supported by " + getAlgorithmName());
 	}
 }
