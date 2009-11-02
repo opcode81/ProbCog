@@ -24,6 +24,7 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.ClausalKB;
 import edu.tum.cs.logic.sat.Clause;
 import edu.tum.cs.logic.sat.SampleSAT;
+import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 
 public class SATIS_BSampler extends BackwardSampling {
@@ -37,6 +38,10 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * variables whose values are determined by the SAT sampler
 	 */
 	Iterable<BeliefNode> determinedVars;
+	/**
+	 * clausal KB of constraints that must be satisfied by the SAT sampler 
+	 */
+	ClausalKB ckb;
 	
 	/**
 	 * constructs a SAT-IS backward sampler with a given SAT sampler, a given logical coupling and a known set of variables affected by the SAT sampler
@@ -49,6 +54,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		super(bn);			
 		this.coupling = coupling;
 		this.sat = sat;
+		this.ckb = null; // not required for this construction method
 		this.determinedVars = determinedVars;
 	}
 	
@@ -56,13 +62,11 @@ public class SATIS_BSampler extends BackwardSampling {
 		super(bn);
 		// build the variable-logic coupling
 		coupling = new VariableLogicCoupling();
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(BeliefNode n : nodes) {
-			// TODO can we use boolean vars?
 			coupling.addBlockVariable(n, (Discrete)n.getDomain(), n.getName(), new String[0]);
 		}
 		// gather clausal KB based on deterministic constraints in CPTs
-		ClausalKB ckb = new ClausalKB();
+		ckb = new ClausalKB();
 		extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb);
 		// get the set of variables that is determined by the sat sampler
 		HashSet<BeliefNode> determinedVars = new HashSet<BeliefNode>();
@@ -76,8 +80,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		}
 		// construct the SAT sampler
 		WorldVariables worldVars = coupling.getWorldVars();
-		sat = null; // TODO build sat sampler based on evidence
-		//sat = new SampleSAT(ckb, new PossibleWorld(worldVars), worldVars, db);
+		sat = null; // SAT sampler is initialized based on evidence later (in prepareInference)
 	}
 	
 	/**
@@ -121,6 +124,40 @@ public class SATIS_BSampler extends BackwardSampling {
 		}
 	}
 	
+	protected void prepareInference(int[] evidenceDomainIndices) throws Exception {
+		super.prepareInference(evidenceDomainIndices);
+		
+		// build SAT sampler if we don't have it yet
+		if(this.sat == null) {
+			// build evidence database
+			Vector<PropositionalVariable> evidence = new Vector<PropositionalVariable>();
+			for(int i = 0; i < evidenceDomainIndices.length; i++)
+				if(evidenceDomainIndices[i] != -1) {
+					evidence.add(new PropositionalVariable(nodes[i].getName(), nodes[i].getDomain().getName(evidenceDomainIndices[i])));
+				}
+			// construct sampler
+			WorldVariables worldVars = this.coupling.getWorldVars();
+			sat = new SampleSAT(ckb, new PossibleWorld(worldVars), worldVars, evidence);
+		}
+	}
+	
+	protected static class PropositionalVariable extends AbstractVariable {
+
+		public PropositionalVariable(String varName, String value) {
+			super(varName, new String[0], value);			
+		}
+		
+		@Override
+		public String getPredicate() {
+			return this.functionName + "(" + value + ")";
+		}
+
+		@Override
+		public boolean isBoolean() {			
+			return false;
+		}				
+	}
+	
 	@Override
 	public void initSample(WeightedSample s) {
 		super.initSample(s);
@@ -141,7 +178,6 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @throws Exception 
 	 */
 	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
-		BeliefNode[] nodes = bn.bn.getNodes();
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();
