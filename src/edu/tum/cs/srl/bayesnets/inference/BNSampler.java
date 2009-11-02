@@ -8,7 +8,7 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 
 /**
- * Bayesian Network Sampler - reduces inference in relational models to standard Bayesian network inference in the ground network
+ * Bayesian Network Sampler - reduces inference in relational models to standard Bayesian network inference in the ground (auxiliary) network
  * @author jain
  *
  */
@@ -20,6 +20,7 @@ public class BNSampler extends Sampler {
 	 */
 	protected boolean skipFailedSteps;
 	protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
+	protected edu.tum.cs.bayesnets.inference.Sampler sampler;
 		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
 		this.gbln = gbln;
@@ -36,14 +37,14 @@ public class BNSampler extends Sampler {
 	}
 	
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
+	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// sample		
 		System.out.println("initializing...");
-		edu.tum.cs.bayesnets.inference.Sampler sampler = getSampler();
+		sampler = getSampler();
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
@@ -63,5 +64,9 @@ public class BNSampler extends Sampler {
 	@Override
 	public String getAlgorithmName() {
 		return "BNInference:" + samplerClass.getSimpleName();
+	}
+	
+	public SampledDistribution pollResults() throws CloneNotSupportedException {
+		return sampler.pollResults();
 	}
 }
