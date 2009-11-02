@@ -1,13 +1,19 @@
+import java.io.BufferedReader;
+import java.io.StringReader;
+import java.util.Arrays;
 import java.util.Vector;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.Algorithm;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.Sampler;
+import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.Stopwatch;
 
 
@@ -124,13 +130,35 @@ public class BNinfer {
 			}
 			
 			// read evidence database
-			/*Database db = new Database(blog);
-			db.readBLOGDB(dbFile);
-			if(cwPreds != null) {
-				for(String predName : cwPreds)
-					db.setClosedWorldPred(predName);
-			}*/
 			int[] evidenceDomainIndices = new int[nodes.length];
+			Arrays.fill(evidenceDomainIndices, -1);
+			for(int i = 0; i < nodes.length; i++) {
+				// read file content
+				String dbContent = FileUtil.readTextFile(dbFile);				
+				// remove comments
+				Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+				Matcher matcher = comments.matcher(dbContent);
+				dbContent = matcher.replaceAll("");
+				// read lines
+				BufferedReader br = new BufferedReader(new StringReader(dbContent));
+				String line;
+				while((line = br.readLine()) != null) {
+					line = line.trim();			
+					if(line.length() > 0) {
+						String[] entry = line.split("\\s*=\\s*");
+						if(entry.length != 2)
+							throw new Exception("Incorrectly formatted evidence entry: " + line);
+						BeliefNode node = bn.getNode(entry[0]);
+						if(node == null)
+							throw new Exception("Evidence node '" + entry[0] + "' not found in model.");
+						Discrete dom = (Discrete)node.getDomain();
+						int domidx = dom.findName(entry[1]);
+						if(domidx == -1)
+							throw new Exception("Value '" + entry[1] + "' not found in domain of node '" + entry[0] + "'");
+						evidenceDomainIndices[bn.getNodeIndex(node)] = domidx;
+					}
+				}
+			}
 			
 			// run inference
 			Stopwatch sw = new Stopwatch();
