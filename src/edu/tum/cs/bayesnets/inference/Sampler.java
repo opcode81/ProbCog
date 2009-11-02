@@ -13,6 +13,7 @@ public abstract class Sampler {
 	public SampledDistribution dist;
 	public HashMap<BeliefNode, Integer> nodeIndices;
 	public Random generator;
+	public BeliefNode[] nodes;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -31,8 +32,8 @@ public abstract class Sampler {
 	
 	public Sampler(BeliefNetworkEx bn) {	
 		this.bn = bn;
+		this.nodes = bn.bn.getNodes();
 		nodeIndices = new HashMap<BeliefNode, Integer>();
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			nodeIndices.put(nodes[i], i);
 		}
@@ -43,8 +44,17 @@ public abstract class Sampler {
 		this.dist = new SampledDistribution(bn);
 	}
 	
-	protected void addSample(WeightedSample s) {
+	protected synchronized void addSample(WeightedSample s) {
 		this.dist.addSample(s);
+	}
+	
+	/**
+	 * polls the results during time-limited inference
+	 * @return
+	 * @throws CloneNotSupportedException 
+	 */
+	public synchronized SampledDistribution pollResults() throws CloneNotSupportedException {
+		return dist.clone();
 	}
 	
 	/**
