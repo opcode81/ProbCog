@@ -23,7 +23,6 @@ public class IJGP extends Sampler {
 
 	protected JoinGraph jg;
 	Vector<JoinGraph.Node> jgNodes;
-	protected BeliefNode[] nodes; 
 
 	public IJGP(BeliefNetworkEx bn) {
 		this(bn, 3);
@@ -31,7 +30,6 @@ public class IJGP extends Sampler {
 	
 	public IJGP(BeliefNetworkEx bn, int bound) {
 		super(bn);
-		nodes = bn.bn.getNodes();
 		jg = new JoinGraph(bn, bound);
 		jg.print(System.out);
 		jgNodes = jg.getTopologicalorder();

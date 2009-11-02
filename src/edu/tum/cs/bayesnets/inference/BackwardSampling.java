@@ -118,7 +118,6 @@ public class BackwardSampling extends Sampler {
 	 * @throws Exception 
 	 */
 	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
-		BeliefNode[] nodes = bn.bn.getNodes();
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();

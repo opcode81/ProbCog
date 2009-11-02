@@ -2,7 +2,6 @@ package edu.tum.cs.bayesnets.inference;
 
 import java.io.FileNotFoundException;
 
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
@@ -45,7 +44,6 @@ public class SmileInference extends Sampler {
 		// store results in distribution
 		System.out.println("reading results...");
 		this.createDistribution();
-		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {			
 			double[] values = net.getNodeValue("N" + i);
 			dist.values[i] = values;

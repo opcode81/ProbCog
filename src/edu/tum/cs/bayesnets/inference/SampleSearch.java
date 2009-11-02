@@ -36,7 +36,7 @@ public class SampleSearch extends Sampler {
 					System.out.print("w=" + ret.weight);
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
 						if(evidenceDomainIndices[j] == -1) {
-							BeliefNode node = bn.bn.getNodes()[j];							
+							BeliefNode node = nodes[j];							
 							System.out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
 						}
 					System.out.println();
@@ -49,7 +49,6 @@ public class SampleSearch extends Sampler {
 	}
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
-		BeliefNode[] nodes = bn.bn.getNodes();
 		s.trials = 0;
 		s.weight = 1.0;
 		s.trials++;

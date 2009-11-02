@@ -14,7 +14,6 @@ public class LikelihoodWeightingWithUncertainEvidence extends LikelihoodWeightin
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
 		Random rand = new Random();
-		BeliefNode[] nodes = bn.bn.getNodes();
 		s.trials = 0;
 		boolean successful = false;
 loop:	while(!successful) {
