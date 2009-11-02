@@ -8,13 +8,14 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
+import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
-import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory.Algorithm;
 import edu.tum.cs.util.datastruct.Pair;
 
 public class BLNModel extends Model {
@@ -39,9 +40,10 @@ public class BLNModel extends Model {
 		Sampler sampler;
 		// determine inference method and instantiate sampler
 		String inferenceMethod = getParameter("inferenceMethod", "LikelihoodWeighting");		
-		sampler = BLNInferenceFactory.createSampler(Algorithm.valueOf(inferenceMethod), gbln);
+		sampler = Algorithm.valueOf(inferenceMethod).createSampler(gbln);
 		// run inference
-		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries, getIntParameter("numSamples", 1000), 100);
+		sampler.setNumSamples(getIntParameter("numSamples", 1000));
+		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries);
 		// store results in common InferenceResult format
 		Vector<InferenceResult> ret = new Vector<InferenceResult>();
 		for(edu.tum.cs.srl.bayesnets.inference.InferenceResult res : results) {
@@ -89,7 +91,7 @@ public class BLNModel extends Model {
 				for(int i = 0; i < params.length; i++)
 					params[i] = tuple[i+1];
 			}
-			db.addVariable(new Database.Variable(functionName, params, value));
+			db.addVariable(new Database.Variable(functionName, params, value, this.bln.rbn));
 		}
 	}
 
