@@ -17,7 +17,7 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.Database.Variable;
+import edu.tum.cs.srl.AbstractVariable;
 
 /**
  * Class that represents a grounded instance of a MLN-file
@@ -78,7 +78,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         			args[functionallyDeterminedArg] = value;
         			GroundAtom ga = new GroundAtom(sig.functionName, args.clone()); 
         			block.add(ga);
-        			Variable var = db.getVariable(ga.toString());
+        			AbstractVariable var = db.getVariable(ga.toString());
         			if(var != null && var.isTrue()) {
         				if(trueOne != null)
         					throw new Exception(String.format("The block the variable '%s' is in contains more than one true ground atom", ga.toString()));
@@ -89,7 +89,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         		if(trueOne != null) {
         			for(GroundAtom ga : block)
         				if(ga != trueOne && !db.contains(ga.toString()))
-        					db.addVariable(new Variable(ga.predicate, ga.args, "False"));
+        					db.addVariable(new Database.Variable(ga.predicate, ga.args, "False", mln));
         		}
         		// add the block to the set of vars
     			vars.addBlock(block);

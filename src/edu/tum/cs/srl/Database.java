@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
-import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,17 +39,17 @@ public class Database {
 	
 	/**
 	 * constructs an empty database for the given model
-	 * @param bn
+	 * @param model
 	 * @throws Exception 
 	 */
-	public Database(RelationalModel bn) throws Exception {
-		this.model = bn;
+	public Database(RelationalModel model) throws Exception {
+		this.model = model;
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String,String[]>>();
 		
 		// fill domains with guaranteed domain elements
-		for(Entry<String, String[]> e : bn.getGuaranteedDomainElements().entrySet()) {
+		for(Entry<String, String[]> e : model.getGuaranteedDomainElements().entrySet()) {
 			for(String element : e.getValue()) 
 				fillDomain(e.getKey(), element);
 		}
@@ -201,7 +199,7 @@ public class Database {
 			matcher = re_entry.matcher(line);
 			if(matcher.matches()) {
 				//String key = matcher.group(1) + "(" + matcher.group(2).replaceAll("\\s*", "") + ")";
-				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3));
+				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3), model);
 				//System.out.println(var.toString());				
 				addVariable(var, ignoreUndefinedNodes);
 				if(++numVars % 100 == 0 && verbose)
@@ -355,7 +353,7 @@ public class Database {
 		if(i == params.length) {
 			String varName = Signature.formatVarName(sig.functionName, params);
 			if(!this.contains(varName)) {				
-				Variable var = new Variable(sig.functionName, params.clone(), "False");
+				Variable var = new Variable(sig.functionName, params.clone(), "False", model);
 				this.addVariable(var);
 			}
 			return;
@@ -368,51 +366,6 @@ public class Database {
 			setClosedWorldPred(sig, i+1, params);
 		}
 	}	
-	
-	public static class Variable {
-		/**
-		 * the node name or function/predicate name
-		 */
-		public String functionName;
-		/**
-		 * the actual parameters of the function/predicate
-		 */
-		public String[] params;
-		public String value;
-		
-		public Variable(String functionName, String[] params, String value) {
-			this.functionName = functionName;
-			this.params = params;
-			this.value = value;
-		}
-		
-		public String toString() {
-			return getKeyString() + " = " + value;			
-		}
-		
-		public String getKeyString() {
-			return functionName + "(" + StringTool.join(",", params) + ")";
-		}
-		
-		/**
-		 * gets the predicate representation that corresponds to the assignment of this variable, i.e. for a(x)=v, return a(x,v) 
-		 * @return
-		 */
-		public String getPredicate(RelationalModel model) {
-			if(isBoolean(model))
-				return functionName + "(" + StringTool.join(",", params) + ")";
-			else				
-				return functionName + "(" + StringTool.join(",", params) + "," + value + ")";	
-		}
-
-		public boolean isBoolean(RelationalModel model) {
-			return model.getSignature(functionName).isBoolean();
-		}
-		
-		public boolean isTrue() {
-			return value.equalsIgnoreCase("True");
-		}
-	}
 	
 	public Signature getSignature(String functionName) {
 		return model.getSignature(functionName);
@@ -473,9 +426,9 @@ public class Database {
                 matcher = funcName.matcher(line);
                 matcher.find();
                 if (matcher.group(1).contains("!"))
-                    var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False");
+                    var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False", model);
                 else 
-                    var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True");
+                    var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True", model);
 			
                 addVariable(var, ignoreUndefinedNodes);
                 //if (++numVars % 100 == 0 && verbose) System.out.println("    " + numVars + " vars read\r");
@@ -525,5 +478,27 @@ public class Database {
     		}
     	}
     	return null;
+    }
+    
+    
+    public static class Variable extends edu.tum.cs.srl.AbstractVariable {
+    	
+    	RelationalModel model;
+    	
+    	public Variable(String functionName, String[] params, String value, RelationalModel model) {
+			super(functionName, params, value);
+			this.model = model;
+		}
+
+		public String getPredicate() {
+			if(isBoolean())
+				return functionName + "(" + StringTool.join(",", params) + ")";
+			else				
+				return functionName + "(" + StringTool.join(",", params) + "," + value + ")";	
+    	}
+
+		public boolean isBoolean() {
+			return model.getSignature(functionName).isBoolean();
+		}
     }
 }
