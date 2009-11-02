@@ -12,7 +12,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  * @author jain
  *
  */
-public class SampledDistribution {
+public class SampledDistribution implements Cloneable {
 	/**
 	 * an array of values representing the distribution, one for each node and each domain element:
 	 * values[i][j] is the value for the j-th domain element of the i-th node in the network
@@ -39,7 +39,7 @@ public class SampledDistribution {
 			values[i] = new double[nodes[i].getDomain().getOrder()];			
 	}
 	
-	public void addSample(WeightedSample s) {
+	public synchronized void addSample(WeightedSample s) {
 		if(s.weight == 0.0) {
 			throw new RuntimeException("Zero-weight sample was added to distribution.");
 		}
@@ -58,8 +58,9 @@ public class SampledDistribution {
 		steps++;
 	}
 	
-	public void print(PrintStream out) {			
-		for(int i = 0; i < bn.bn.getNodes().length; i++) {
+	public void print(PrintStream out) {
+		BeliefNode[] nodes = bn.bn.getNodes();
+		for(int i = 0; i < nodes.length; i++) {
 			printNodeDistribution(out, i);
 		}
 	}
@@ -80,5 +81,10 @@ public class SampledDistribution {
 	
 	public double getTrialsPerStep() {
 		return (double)trials/steps;
+	}
+	
+	@Override
+	public synchronized SampledDistribution clone() throws CloneNotSupportedException {
+		return (SampledDistribution)super.clone();
 	}
 }
