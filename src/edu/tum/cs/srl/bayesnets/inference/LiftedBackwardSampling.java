@@ -30,7 +30,7 @@ public class LiftedBackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries, int numSamples, int infoInterval) throws Exception {
+	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
 		
 		// compute node equivalence classes with respect to the "backward sampling
 		// with children" procedure		
