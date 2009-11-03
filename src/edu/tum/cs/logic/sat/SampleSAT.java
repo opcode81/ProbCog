@@ -37,17 +37,18 @@ public class SampleSAT {
 	protected EvidenceHandler evidenceHandler;
 	protected HashMap<Integer,Boolean> evidence;
 	protected boolean useUnitPropagation = false;
+	Iterable<? extends edu.tum.cs.logic.sat.Clause> kb;
 	
 	/**
 	 * SampleSAT's p parameter: probability of performing a random walk (WalkSAT-style) move rather than a simulated annealing-style move
 	 */
-	protected double pSampleSAT = 0.5;
+	protected double pSampleSAT = 0.9; // 0.5
 	
 	/**
 	 * WalkSAT's p parameter: random walk parameter, probability of non-greedy move (random flip in unsatisfied clause) rather than greedy (locally optimal) move.
 	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
 	 */
-	protected double pWalkSAT = 0.1;
+	protected double pWalkSAT = 0.0; // 0.5
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
@@ -60,17 +61,13 @@ public class SampleSAT {
 	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
 		this.state = state;
 		this.vars = vars;
+		this.kb = kb;
 		rand = new Random();
+		constraints = null;		
 		
 		// read evidence
 		evidenceHandler = new EvidenceHandler(vars, db);
 		evidence = evidenceHandler.getEvidence();
-		
-		// instantiate constraints
-		initConstraints(kb);
-
-		// set evidence in state
-		evidenceHandler.setEvidenceInState(state);
 	}
 	
 	public void setDebugMode(boolean active) {
@@ -87,20 +84,30 @@ public class SampleSAT {
 	}
 	
 	/**
-	 * prepares this sampler for a new set of constraints (Note: this method is called by the constructor; it only needs to be called explicitly when switching to a new set of constraints)
+	 * prepares this sampler for a new set of constraints. NOTE: This method only needs to be called explicitly when switching to a new set of constraints; not if the set of constraints passed at construction is to be used)
 	 * @param kb
+	 * @throws Exception 
 	 */
-	public void initConstraints(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb) {
+	public void initConstraints(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb) throws Exception {
+		// if constraints were previously instantiated, check whether a reinstantiation is allowed
+		if(constraints != null && useUnitPropagation)
+			throw new Exception("Resetting the set of constraints is not allowed when using unit propagation, because unit propagation extends the evidence database, which currently cannot be reversed.");
+		this.kb = kb;
+		
 		// initialize data structures for constraints (used during algorithm) 
 		unsatisfiedConstraints = new Vector<Constraint>();
 		bottlenecks = new HashMap<Integer,Vector<Constraint>>();		
+		
 		// build constraint data
 		constraints = new Vector<Constraint>();
 		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
 			constraints.add(new Clause(c.lits));
 		if(useUnitPropagation)
-			unitPropagation(); 
+			unitPropagation(); // may extend evidence
+		
+		// set evidence in state
+		evidenceHandler.setEvidenceInState(state);
 	}
 	
 	/**
@@ -173,9 +180,14 @@ public class SampleSAT {
 	
 	/**
 	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
+	 * @throws Exception 
 	 */
-	public void run() {	
-		// init
+	public void run() throws Exception {		
+		// instantiate constraints
+		if(constraints == null)
+			initConstraints(kb);
+
+		// gather constraint data
 		bottlenecks.clear();
 		unsatisfiedConstraints.clear();
 		if(debug) System.out.println("setting random state...");
@@ -198,8 +210,6 @@ public class SampleSAT {
 			makeMove();
 			step++;
 		}
-		/*System.out.println("SampleSAT finished");
-		System.exit(0);*/
 	}
 	
 	public PossibleWorld getState() {
@@ -367,7 +377,7 @@ public class SampleSAT {
 	}
 	
 	/**
-	 * sets the probability of a random walk move
+	 * sets the probability of a random walk (WalkSAT-style) move
 	 * @param p
 	 */
 	public void setP(double p) {
