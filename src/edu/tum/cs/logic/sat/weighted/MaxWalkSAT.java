@@ -20,9 +20,6 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.logic.sat.EvidenceHandler;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.mln.MarkovLogicNetwork;
-import edu.tum.cs.srl.mln.MarkovRandomField;
-import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 
 /**
