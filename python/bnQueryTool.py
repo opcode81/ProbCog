@@ -70,7 +70,7 @@ class BNQuery:
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
-        self.selected_db = FilePickEdit(self.frame, "*.blogdb", self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("db_rename", False), font=config.fixed_width_font)
+        self.selected_db = FilePickEdit(self.frame, "*.bndb", self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("db_rename", False), font=config.fixed_width_font)
         self.selected_db.grid(row=row,column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
