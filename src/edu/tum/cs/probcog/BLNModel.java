@@ -8,13 +8,11 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.Algorithm;
-import edu.tum.cs.srl.bayesnets.inference.BLNInferenceFactory;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.util.datastruct.Pair;
 
