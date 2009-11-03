@@ -44,7 +44,8 @@ public class SATIS_BSampler extends BackwardSampling {
 	ClausalKB ckb;
 	
 	/**
-	 * constructs a SAT-IS backward sampler with a given SAT sampler, a given logical coupling and a known set of variables affected by the SAT sampler
+	 * constructs a SAT-IS backward sampler with a given SAT sampler, a given logical coupling and a known set of variables affected by the SAT sampler.
+	 * This construction method is used for BLNs.
 	 * @param bn
 	 * @param sat the SAT sampler to use in each iteration
 	 * @param coupling the logical coupling of the BN's variables
@@ -58,6 +59,11 @@ public class SATIS_BSampler extends BackwardSampling {
 		this.determinedVars = determinedVars;
 	}
 	
+	/**
+	 * constructs a SAT-IS backward sampler for use with (propositional) Bayesian networks, creating a logical coupling and the SAT sampler automatically (using all deterministic constraints in CPTs).
+	 * @param bn
+	 * @throws Exception
+	 */
 	public SATIS_BSampler(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		// build the variable-logic coupling
@@ -79,7 +85,6 @@ public class SATIS_BSampler extends BackwardSampling {
 			}
 		}
 		// construct the SAT sampler
-		WorldVariables worldVars = coupling.getWorldVars();
 		sat = null; // SAT sampler is initialized based on evidence later (in prepareInference)
 	}
 	
@@ -139,6 +144,8 @@ public class SATIS_BSampler extends BackwardSampling {
 			WorldVariables worldVars = this.coupling.getWorldVars();
 			sat = new SampleSAT(ckb, new PossibleWorld(worldVars), worldVars, evidence);
 		}
+		// pass on parameters
+		sat.setDebugMode(this.debug);
 	}
 	
 	protected static class PropositionalVariable extends AbstractVariable {
@@ -159,7 +166,7 @@ public class SATIS_BSampler extends BackwardSampling {
 	}
 	
 	@Override
-	public void initSample(WeightedSample s) {
+	public void initSample(WeightedSample s) throws Exception {
 		super.initSample(s);
 		
 		// run SampleSAT to find a configuration that satisfies all logical constraints

@@ -233,8 +233,9 @@ public class BackwardSampling extends Sampler {
 	/**
 	 * gets one full sample of all of the nodes
 	 * @param s
+	 * @throws Exception 
 	 */
-	public void getSample(WeightedSample s) {
+	public void getSample(WeightedSample s) throws Exception {
 		int MAX_TRIALS = this.maxTrials;	
 loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// initialize sample
@@ -295,7 +296,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 		throw new RuntimeException("Maximum number of trials exceeded.");
 	}
 	
-	public void initSample(WeightedSample s) {
+	public void initSample(WeightedSample s) throws Exception {
 		s.nodeDomainIndices = evidenceDomainIndices.clone();
 		s.weight = 1.0;
 	}
