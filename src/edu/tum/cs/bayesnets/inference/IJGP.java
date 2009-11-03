@@ -36,7 +36,7 @@ public class IJGP extends Sampler {
 				bound = l;
 		}
 		jg = new JoinGraph(bn, bound);
-		jg.print(System.out);
+		//jg.print(System.out);
 		jgNodes = jg.getTopologicalorder();
 		// construct join-graph
 	}
@@ -55,15 +55,7 @@ public class IJGP extends Sampler {
 			throws Exception {
 		// process observed variables
 		for (JoinGraph.Node n : jgNodes) {
-			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes()); // this
-			// is
-			// nonsense,
-			// but
-			// apparently
-			// required
-			// to
-			// avoid
-			// ConcurrentModificationException
+			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes()); // this is nonsense, but apparently required to avoid ConcurrentModificationException
 			for (BeliefNode belNode : nodes) {
 				int nodeIdx = bn.getNodeIndex(belNode);
 				int domainIdx = evidenceDomainIndices[nodeIdx];
@@ -93,8 +85,20 @@ public class IJGP extends Sampler {
 					elim.removeAll(arc.seperator);
 					Cluster cluster_H = cluster_n.getReducedCluster(elim);
 					// denote by cluster_A the remaining functions
-					Cluster cluster_A = cluster_n.clone();
+					Cluster cluster_A = cluster_n.copy();
 					cluster_A.subtractCluster(cluster_H);
+					// DEBUG OUTPUT
+					if (false){
+						System.out.println("  Cluster: \n");
+						System.out.println(StringTool.join(", ", cluster_n.cpts));
+						System.out.println(StringTool.join(", ", cluster_n.functions));
+						System.out.println("  Cluster_A: \n");
+						System.out.println(StringTool.join(", ", cluster_A.cpts));
+						System.out.println(StringTool.join(", ", cluster_A.functions));
+						System.out.println("  Cluster_H: \n");
+						System.out.println(StringTool.join(", ", cluster_H.cpts));
+						System.out.println(StringTool.join(", ", cluster_H.functions));
+					}
 					// convert eliminator into varToSumOver
 					int[] varsToSumOver = new int[elim.size()];
 					Vector<BeliefNode> elimV = new Vector<BeliefNode>(elim);
@@ -102,7 +106,6 @@ public class IJGP extends Sampler {
 						varsToSumOver[k] = bn.getNodeIndex(elimV.get(k));
 					// create message function and send to v
 					MessageFunction m = new MessageFunction(u.getArcToNode(v).seperator, varsToSumOver,cluster_A);
-					System.out.println(m);
 					u.getArcToNode(v).setOutMessage(u, m);
 				}
 			}
@@ -152,6 +155,18 @@ public class IJGP extends Sampler {
 			for (int j = 0; j < domSize; j++)
 				dist.values[i][j] /= Z;
 		}
+		/// DEBUG OUTPUT
+		if (false){
+			jg.print(System.out);
+			for (JoinGraph.Node n : jg.nodes){
+				System.out.println(n);
+				System.out.println("  Arcs to: \n");
+				for (JoinGraph.Node nb : n.arcs.keySet()){
+					System.out.println("  " +nb);
+					System.out.println("  Message:" + n.arcs.get(nb).getOutMessage(n));
+				}
+			}
+		}
 		//dist.print(System.out);
 		return dist;
 	}
@@ -188,21 +203,31 @@ public class IJGP extends Sampler {
 					functions.add(m);
 			}
 		}
+		
+		public Cluster(){
+		}
 
 		public void excludeMessage(MessageFunction m) {
 			if (functions.contains(m))
 				functions.remove(m);
 		}
 
-		public Cluster clone() throws CloneNotSupportedException {
-			return (Cluster) super.clone();
+		public Cluster copy(){
+			Cluster copyCluster = new Cluster();
+			for(BeliefNode cpt : cpts){
+				copyCluster.cpts.add(cpt);
+			}
+			for(MessageFunction f : functions){
+				copyCluster.functions.add(f);
+			}
+			return copyCluster;
 		}
 
 		public Cluster getReducedCluster(HashSet<BeliefNode> nodes)
 				throws CloneNotSupportedException {
 			// deletes all functions and arcs in the cluster whose scope
 			// contains the given nodes
-			Cluster redCluster = this.clone();
+			Cluster redCluster = this.copy();
 			for (BeliefNode bn : nodes) {
 				HashSet<BeliefNode> foo = (HashSet<BeliefNode>) cpts.clone();
 				for (BeliefNode n : foo) {
@@ -240,12 +265,12 @@ public class IJGP extends Sampler {
 		public double product(int[] nodeDomainIndices) {
 			double ret = 1.0;
 			for (BeliefNode n : cpts) {
-				System.out.println("  " + n.getCPF().toString());
-				//ret *= getCPTProbability(n, nodeDomainIndices);
+				//System.out.println("  " + n.getCPF().toString());
+				ret *= getCPTProbability(n, nodeDomainIndices);
 			}
 			for (MessageFunction f : this.functions) {
-				System.out.println("  " + f);
-				//ret *= f.compute(nodeDomainIndices);
+				//System.out.println("  " + f);
+				ret *= f.compute(nodeDomainIndices);
 			}
 			return ret;
 		}
