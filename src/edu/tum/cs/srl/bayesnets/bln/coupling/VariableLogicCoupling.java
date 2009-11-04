@@ -78,6 +78,16 @@ public class VariableLogicCoupling {
 	public int getVariableValue(BeliefNode var, PossibleWorld w) {
 		return variable2groundAtomLookup.get(var).getValue(w);
 	}
+	
+	/**
+	 * sets the given variable value in the possible world
+	 * @param var
+	 * @param domIdx
+	 * @param w the logical state in which to set the value
+	 */
+	public void setVariableValue(BeliefNode var, int domIdx, PossibleWorld w) {
+		variable2groundAtomLookup.get(var).setValue(w, domIdx);
+	}
 
 	/**
 	 * 

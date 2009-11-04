@@ -21,6 +21,10 @@ public class BooleanVariable implements IVariableLogicCoupler {
 	public int getValue(PossibleWorld w) {			
 		return w.get(idxGndAtom) ? 0 : 1; // True is first element
 	}
+	
+	public void setValue(PossibleWorld w, int domIdx) {
+		w.set(idxGndAtom, domIdx == 0);
+	}
 
 	public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars) {
 		GroundAtom ga = worldVars.get(idxGndAtom);
