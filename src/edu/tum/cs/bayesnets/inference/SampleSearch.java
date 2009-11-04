@@ -30,17 +30,25 @@ public class SampleSearch extends Sampler {
 				System.out.println("  step " + i);			
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			if(ret != null) {
-				addSample(ret);
-				
 				if(false) { // debugging of weighting
 					System.out.print("w=" + ret.weight);
+					double prod = 1.0;
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
-						if(evidenceDomainIndices[j] == -1) {
+						if(true || evidenceDomainIndices[j] == -1) {
 							BeliefNode node = nodes[j];							
 							System.out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
+							double p = bn.getCPTProbability(node, s.nodeDomainIndices);
+							System.out.printf(" %f", p);
+							if(p == 0.0)
+								throw new Exception("Sample has 0 probability.");							
+							prod *= p;
+							if(prod == 0.0)
+								throw new Exception("Precision loss - product became 0");
 						}
 					System.out.println();
 				}
+				
+				addSample(ret);
 			}
 		}
 		sw.stop();
@@ -52,6 +60,7 @@ public class SampleSearch extends Sampler {
 		s.trials = 0;
 		s.weight = 1.0;
 		s.trials++;
+		HashMap<Integer,Double> evidenceProbs = new HashMap<Integer,Double>();
 		if(s.trials > this.maxTrials) {
 			if(!this.skipFailedSteps)
 				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
@@ -79,13 +88,13 @@ public class SampleSearch extends Sampler {
 						numex++;
 				System.out.printf("    step %d, node %d '%s' (%d/%d exclusions)\n", currentStep, i, nodes[nodeIdx].getName(), numex, excluded.length);
 			}
-			// for evidence nodes, adjust the weight
+			// for evidence nodes, we can continue if the evidence probability was non-zero
 			if(domainIdx >= 0) { 
 				s.nodeDomainIndices[nodeIdx] = domainIdx;
 				double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 				if(prob != 0.0) {
-					s.weight *= prob;
 					++i;
+					evidenceProbs.put(nodeIdx, prob);
 					continue;
 				}
 				else {
@@ -119,6 +128,9 @@ public class SampleSearch extends Sampler {
 				// proceed with previous node...				
 			} while(evidenceDomainIndices[nodeIdx] != -1);
 		}
+		// we found a sample, determine its weight
+		for(Double p : evidenceProbs.values())
+			s.weight *= p;
 		return s;
 	}
 	
