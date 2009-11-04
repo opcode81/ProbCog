@@ -48,7 +48,7 @@ public class SampleSAT {
 	 * WalkSAT's p parameter: random walk parameter, probability of non-greedy move (random flip in unsatisfied clause) rather than greedy (locally optimal) move.
 	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
 	 */
-	protected double pWalkSAT = 0.0; // 0.5
+	protected double pWalkSAT = 0.5; // 0.5
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
@@ -80,7 +80,6 @@ public class SampleSAT {
 	 */
 	public void enableUnitPropagation() {
 		useUnitPropagation = true;
-		throw new RuntimeException("not supported"); // TODO initConstraints is called by constructor
 	}
 	
 	/**
@@ -153,7 +152,7 @@ public class SampleSAT {
 			GAOccurrences.remove(lit.gndAtom.index);
 		}
 		int newSize = constraints.size();
-		if(debug) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
+		if(debug || true) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
 	}
 	
 	protected void addUnsatisfiedConstraint(Constraint c) {
@@ -197,18 +196,67 @@ public class SampleSAT {
 			c.initState();
 		
 		int step = 1;
-		while(unsatisfiedConstraints.size() > 0) {			
-			if(debug /*|| step % 10 == 0*/) {				
+		while(unsatisfiedConstraints.size() > 0) {
+			// debug code
+			if(debug) {				
 				System.out.println("SAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
 				if(true) {
-					//state.print();				
-					for(Constraint c : unsatisfiedConstraints) {
-						System.out.println("  unsatisfied: " + c);
+					//state.print();
+					if(unsatisfiedConstraints.size() < 30)
+						for(Constraint c : unsatisfiedConstraints) {
+							System.out.println("  unsatisfied: " + c);
+						}
+				}
+				//checkIntegrity();
+			}
+			
+			makeMove();
+			step++;
+		}
+	}
+	
+	/**
+	 * checks the integrity of internal data structures
+	 * @throws Exception 
+	 */
+	protected void checkIntegrity() throws Exception {		
+		// - are unsatisfied constraints really unsatisfied?
+		for(Constraint c : this.constraints) {
+			if(c instanceof Clause) {
+				Clause cl = (Clause)c;						
+				int numTrue = 0;
+				for(GroundLiteral lit : cl.lits)
+					if(lit.isTrue(state)) {
+						numTrue++;
+						if(!cl.trueOnes.contains(lit.gndAtom))
+							throw new Exception("Clause.trueOnes corrupted (1)");
+					}
+				if(numTrue != cl.trueOnes.size())
+					throw new Exception("Clause.trueOnes corrupted (2)");
+				boolean isTrue = numTrue > 0;
+				boolean contained = unsatisfiedConstraints.contains(c);
+				if(contained != !isTrue)
+					throw new Exception("Unsatisfied constraints corrupted");
+			}
+		}
+		// - are bottlenecks really bottlenecks?
+		for(java.util.Map.Entry<Integer,Vector<Constraint>> entry : bottlenecks.entrySet()) {
+			GroundAtom ga = this.vars.get(entry.getKey());
+			for(Constraint c : entry.getValue()) {
+				if(c instanceof Clause) {
+					Clause cl = (Clause)c;
+					boolean haveTrueOne = false;
+					for(GroundLiteral lit : cl.lits) {
+						if(lit.isTrue(state)) {
+							if(haveTrueOne) 
+								throw new Exception("Bottlenecks corrupted (1)");
+							if(lit.gndAtom != ga)
+								throw new Exception("Bottlenecks corrupted (2)");
+							haveTrueOne = true;
+						}
 					}
 				}
 			}
-			makeMove();
-			step++;
 		}
 	}
 	
@@ -216,6 +264,9 @@ public class SampleSAT {
 		return state;
 	}
 	
+	/**
+	 * sets a random state for non-evidence atoms
+	 */
 	protected void setRandomState() {
 		evidenceHandler.setRandomState(state);
 	}
@@ -247,7 +298,7 @@ public class SampleSAT {
 		while(!done) {
 			// randomly pick a ground atom to flip
 			int idxGA = rand.nextInt(vars.size());
-			GroundAtom gndAtom = vars.get(idxGA), gndAtom2 = null;
+			GroundAtom gndAtom = vars.get(idxGA);
 			// if it has evidence, skip it
 			if(evidence.containsKey(idxGA))
 				continue;
@@ -390,6 +441,7 @@ public class SampleSAT {
 		public abstract boolean flipSatisfies(GroundAtom gndAtom);
 		public abstract void handleFlip(GroundAtom gndAtom);
 		public abstract void initState();
+		public abstract boolean isTrue(PossibleWorld w);
 	}
 	
 	protected class Clause extends Constraint {
@@ -408,7 +460,14 @@ public class SampleSAT {
 				addGAOccurrence(gndAtom, this);
 			}
 		}
-
+		
+		public boolean isTrue(PossibleWorld w) {
+			for(GroundLiteral lit : lits)
+				if(lit.isTrue(w))
+					return true;
+			return false;
+		}
+		
 		@Override
 		public void satisfyGreedily() {
 			pickAndFlipVar(gndAtoms);
