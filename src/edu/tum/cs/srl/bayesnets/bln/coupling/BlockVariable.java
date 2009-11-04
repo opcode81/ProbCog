@@ -32,5 +32,13 @@ public class BlockVariable implements IVariableLogicCoupler {
 	public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars) {
 		GroundAtom ga = block.get(domIdx);
 		return new GroundLiteral(true, ga);
+	}
+
+	public void setValue(PossibleWorld w, int domIdx) {
+		int i = 0;
+		for(GroundAtom ga : block) {
+			w.set(ga, domIdx == i);
+			++i;
+		}
 	}		
 }
