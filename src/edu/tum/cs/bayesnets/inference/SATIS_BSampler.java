@@ -18,13 +18,16 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.util.TopologicalOrdering;
 import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.logic.Disjunction;
+import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
+import edu.tum.cs.logic.TrueFalse;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.ClausalKB;
 import edu.tum.cs.logic.sat.Clause;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.AbstractVariable;
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 
 public class SATIS_BSampler extends BackwardSampling {
@@ -73,7 +76,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		}
 		// gather clausal KB based on deterministic constraints in CPTs
 		ckb = new ClausalKB();
-		extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb);
+		extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb, null);
 		// get the set of variables that is determined by the sat sampler
 		HashSet<BeliefNode> determinedVars = new HashSet<BeliefNode>();
 		for(Clause c : ckb) {
@@ -93,9 +96,10 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @param bn
 	 * @param coupling
 	 * @param ckb the clausal KB to extend
+	 * @param db an evidence database with which to simplify the formulas obtained, or null if no simplification is to take place
 	 * @throws Exception
 	 */
-	public static void extendKBWithDeterministicConstraintsInCPTs(BeliefNetworkEx bn, VariableLogicCoupling coupling, ClausalKB ckb) throws Exception {
+	public static void extendKBWithDeterministicConstraintsInCPTs(BeliefNetworkEx bn, VariableLogicCoupling coupling, ClausalKB ckb, Database db) throws Exception {
 		int size = ckb.size();
 		System.out.print("gathering deterministic constraints from CPDs... ");
 		for(BeliefNode node : bn.bn.getNodes()) {
@@ -104,12 +108,12 @@ public class SATIS_BSampler extends BackwardSampling {
 			CPF cpf = node.getCPF();
 			BeliefNode[] domProd = cpf.getDomainProduct();
 			int[] addr = new int[domProd.length];
-			walkCPF4HardConstraints(coupling, cpf, addr, 0, ckb);
+			walkCPF4HardConstraints(coupling, cpf, addr, 0, ckb, db);
 		}
 		System.out.println((ckb.size()-size) + " constraints added");
 	}
 	
-	protected static void walkCPF4HardConstraints(VariableLogicCoupling coupling, CPF cpf, int[] addr, int i, ClausalKB ckb) throws Exception {
+	protected static void walkCPF4HardConstraints(VariableLogicCoupling coupling, CPF cpf, int[] addr, int i, ClausalKB ckb, Database db) throws Exception {
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		if(i == addr.length) {
 			double p = cpf.getDouble(addr);
@@ -119,13 +123,19 @@ public class SATIS_BSampler extends BackwardSampling {
 					lits[k] = coupling.getGroundLiteral(domProd[k], addr[k]);
 					lits[k].negate();
 				}
-				ckb.addFormula(new Disjunction(lits));
+				Formula f = new Disjunction(lits);
+				if(db != null) {
+					f = f.simplify(db);
+					if(f instanceof TrueFalse)
+						return;
+				}
+				ckb.addFormula(f);				
 			}
 			return;
 		}
 		for(int k = 0; k < domProd[i].getDomain().getOrder(); k++) {
 			addr[i] = k;
-			walkCPF4HardConstraints(coupling, cpf, addr, i+1, ckb);
+			walkCPF4HardConstraints(coupling, cpf, addr, i+1, ckb, db);
 		}
 	}
 	
