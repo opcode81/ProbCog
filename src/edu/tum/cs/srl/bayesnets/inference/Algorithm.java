@@ -30,7 +30,7 @@ public enum Algorithm {
 		EPIS("importance sampling based on evidence prepropagation [SMILE]", null, SmileEPIS.class), 
 		BackwardSampling("backward simulation", null, BackwardSampling.class),			 
 		BackwardSamplingPriors("backward simulation with prior bias", null, BackwardSamplingWithPriors.class), 
-		BackwardSamplingWithChildren("backward simulation with extended context", null, BackwardSamplingWithChildren.class),
+		BackwardSamplingChildren("backward simulation with extended context", null, BackwardSamplingWithChildren.class),
 		LiftedBackwardSampling("a lifted version of backw. sampling with ext. context", LiftedBackwardSampling.class, null),
 		SmileBackwardSampling("backward simulation [SMILE]", null, SmileBackwardSampling.class),						 
 		SATIS("SAT-IS: satisfiability-based importance sampling", SATIS.class, null), 
