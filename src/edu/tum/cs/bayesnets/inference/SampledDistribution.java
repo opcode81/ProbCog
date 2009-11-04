@@ -41,7 +41,7 @@ public class SampledDistribution implements Cloneable {
 	
 	public synchronized void addSample(WeightedSample s) {
 		if(s.weight == 0.0) {
-			throw new RuntimeException("Zero-weight sample was added to distribution.");
+			throw new RuntimeException("Zero-weight sample was added to distribution. Precision loss?");
 		}
 		Z += s.weight;
 		for(int i = 0; i < s.nodeIndices.length; i++) {
