@@ -21,6 +21,10 @@ public class BNSampler extends Sampler {
 	protected boolean skipFailedSteps;
 	protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass;
 	protected edu.tum.cs.bayesnets.inference.Sampler sampler;
+	/**
+	 * the evidence we are working on
+	 */
+	protected int[] evidenceDomainIndices;
 		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
 		this.gbln = gbln;
@@ -40,7 +44,7 @@ public class BNSampler extends Sampler {
 	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
-		int[] evidenceDomainIndices = gbln.getFullEvidence(evidence);
+		evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// sample		
 		System.out.println("initializing...");
