@@ -1046,4 +1046,56 @@ success:while (!successful) {
 		Discrete domain = (Discrete)node.getDomain();
 		return domain.findName(value);
 	}
+
+	/**
+	 * computes the prior distribution of each node
+	 * @param evidenceDomainIndices may be null, otherwise evidence to be "faked in"
+	 * @return
+	 */
+	public HashMap<BeliefNode, double[]> computePriors(int[] evidenceDomainIndices) {
+		HashMap<BeliefNode, double[]> priors = new HashMap<BeliefNode, double[]>();
+		BeliefNode[] nodes = bn.getNodes();
+		int[] topOrder = getTopologicalOrder();
+		for(int i : topOrder) {
+			BeliefNode node = nodes[i];
+			double[] dist = new double[node.getDomain().getOrder()];
+			int evidence = evidenceDomainIndices != null ? evidenceDomainIndices[i] : -1;
+			if(evidence >= 0) {
+				for(int j = 0; j < dist.length; j++)
+					dist[j] = evidence == j ? 1.0 : 0.0;
+			}
+			else {
+				CPF cpf = node.getCPF();
+				computePrior(priors, evidenceDomainIndices, cpf, 0, new int[cpf.getDomainProduct().length], dist);
+			}
+			priors.put(node, dist);
+		}
+		return priors;
+	}
+	
+	protected void computePrior(HashMap<BeliefNode, double[]> priors, int[] evidenceDomainIndices, CPF cpf, int i, int[] addr, double[] dist) {
+		BeliefNode[] domProd = cpf.getDomainProduct(); 
+		if(i == addr.length) {
+			double p = cpf.getDouble(addr); // p = P(node setting | parent configuration)
+			for(int j = 1; j < addr.length; j++) {
+				double[] parentPrior = priors.get(domProd[j]);
+				p *= parentPrior[addr[j]]; 
+			} // p = P(node setting, parent configuration)
+			dist[addr[0]] += p;
+			return;
+		}
+		BeliefNode node = domProd[i];
+		int nodeIdx = getNodeIndex(node);
+		if(evidenceDomainIndices[nodeIdx] >= 0) {
+			addr[i] = evidenceDomainIndices[nodeIdx];
+			computePrior(priors, evidenceDomainIndices, cpf, i+1, addr, dist);
+		}
+		else {
+			Domain dom = node.getDomain();
+			for(int j = 0; j < dom.getOrder(); j++) {
+				addr[i] = j;
+				computePrior(priors, evidenceDomainIndices, cpf, i+1, addr, dist);
+			}
+		}
+	}
 }
