@@ -21,7 +21,7 @@ public class SATISEx extends SATIS {
 		ClausalKB ckb = super.getClausalKB();
 		
 		// extend the KB with formulas based on a CPD analysis
-		SATIS_BSampler.extendKBWithDeterministicConstraintsInCPTs(gbln.getGroundNetwork(), gbln.getCoupling(), ckb);
+		SATIS_BSampler.extendKBWithDeterministicConstraintsInCPTs(gbln.getGroundNetwork(), gbln.getCoupling(), ckb, gbln.getDatabase());
 		
 		return ckb;
 	}
