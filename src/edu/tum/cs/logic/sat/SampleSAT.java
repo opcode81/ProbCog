@@ -76,7 +76,6 @@ public class SampleSAT {
 
 	/**
 	 * enables unit propagation when initializing the set of constraints
-	 * TODO unit propagation extends evidence so that initConstraints cannot be called multiple times when using unit propagation
 	 */
 	public void enableUnitPropagation() {
 		useUnitPropagation = true;
@@ -102,6 +101,8 @@ public class SampleSAT {
 		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
 			constraints.add(new Clause(c.lits));
+		
+		// preprocessing
 		if(useUnitPropagation)
 			unitPropagation(); // may extend evidence
 		
@@ -127,25 +128,29 @@ public class SampleSAT {
 			GroundLiteral lit = cl.getLiterals()[0]; 
 			evidence.put(lit.gndAtom.index, lit.isPositive);
 			Vector<Constraint> affected = GAOccurrences.get(lit.gndAtom.index);
-			if(affected != null)
+			if(affected != null) {
+				Vector<Clause> scheduledForRemoval = new Vector<Clause>();
 				for(Constraint c : affected) {
 					if(c instanceof Clause) {
 						Clause acl = (Clause)c;
 						for(GroundLiteral l : acl.getLiterals()) {
 							if(l.gndAtom.index == lit.gndAtom.index) {
 								if(l.isPositive == lit.isPositive) // the affected clause is always true because the unit clause appears as a subset
-									constraints.remove(acl);
+									scheduledForRemoval.add(acl); // schedule for removal to avoid ConcurrentModificationExceptions
 								else { // otherwise the literal in the clause is false and we can remove it
 									acl.removeLiteral(lit.gndAtom.index);
 									if(acl.size() == 1)
 										unitClauses.add(acl);
 									if(acl.size() == 0)
 										constraints.remove(acl);
-								}								
+								}
 							}
 						}
 					}
 				}
+				for(Clause acl : scheduledForRemoval)
+					removeClause(acl);
+			}
 			// remove the unit clause from the set of constraints
 			constraints.remove(cl);
 			// we no longer need the occurrences entry
@@ -153,6 +158,13 @@ public class SampleSAT {
 		}
 		int newSize = constraints.size();
 		if(debug || true) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
+	}
+	
+	protected void removeClause(Clause c) {
+		constraints.remove(c);
+		// remove dangling references
+		for(GroundLiteral lit : c.getLiterals()) 
+			GAOccurrences.get(lit.gndAtom.index).remove(c);
 	}
 	
 	protected void addUnsatisfiedConstraint(Constraint c) {
