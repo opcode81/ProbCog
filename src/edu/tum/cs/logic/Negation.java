@@ -44,6 +44,9 @@ public class Negation extends ComplexFormula {
                 TrueFalse tf = (TrueFalse) f;
                 return TrueFalse.getInstance(!tf.isTrue());
             }
+            else if(f instanceof GroundAtom) {
+            	return new GroundLiteral(false, (GroundAtom)f);
+            }
             throw new RuntimeException("CNF conversion of negation of " + children[0].getClass().getSimpleName() + " not handled.");
         }
     }
