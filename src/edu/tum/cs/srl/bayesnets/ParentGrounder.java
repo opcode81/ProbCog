@@ -260,7 +260,7 @@ public class ParentGrounder {
 	 * @return
 	 * @throws Exception 
 	 */
-	protected HashMap<String, String> generateParameterBindings(String[] actualParameters, Database db) throws Exception {
+	public HashMap<String, String> generateParameterBindings(String[] actualParameters, Database db) throws Exception {
 		HashMap<String, String> bindings = new HashMap<String, String>();
 		// add known bindings from main node 
 		for(int i = 0; i < mainNode.params.length; i++)
