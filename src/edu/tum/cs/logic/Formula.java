@@ -22,7 +22,7 @@ public abstract class Formula {
 	 * grounds this formula for a particular binding of its variables
 	 * @param binding		the variable binding
 	 * @param worldVars		the set of ground atoms (which is needed to return the ground versions of atoms)
-	 * @param db			a database containing a set of constants for each type that can be used to ground existentially quantified formulas
+	 * @param db			a database containing a set of constants for each type that can be used to ground quantified formulas (can be null if the formula does not contain any quantified variables)
 	 * @return
 	 * @throws Exception
 	 */
