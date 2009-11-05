@@ -57,7 +57,7 @@ public class Atom extends UngroundedFormula {
 			String value = binding.get(param);
 			if(value == null) { // if the binding contains no value for a parameter, it must be a constant
 				if(isVariable(param))
-					throw new Exception("Cannot ground " + toString() + " - variable " + param + " unbound.");
+					throw new Exception("Cannot ground " + toString() + " with binding "  + binding + " - variable " + param + " unbound.");
 				value = param;
 			}
 			sb.append(value);
