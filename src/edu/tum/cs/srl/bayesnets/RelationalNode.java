@@ -1,12 +1,19 @@
 package edu.tum.cs.srl.bayesnets;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.tum.cs.logic.Atom;
+import edu.tum.cs.logic.Equality;
+import edu.tum.cs.logic.Formula;
+import edu.tum.cs.logic.Literal;
+import edu.tum.cs.logic.Negation;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
@@ -23,11 +30,12 @@ public class RelationalNode extends ExtendedNode {
 	 */
 	public String[] params;
 	/**
-	 * noisy-or parameters, i.e. parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
+	 * additional parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
 	 */
 	public String[] addParams;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
 	public String parentMode, aggregator;
+	protected Vector<Integer> indicesOfConstantArgs = null;
 	
 	public static final String BUILTINPRED_EQUALS = "EQ";
 	public static final String BUILTINPRED_NEQUALS = "NEQ";
@@ -164,7 +172,7 @@ public class RelationalNode extends ExtendedNode {
 	 * @param constantValues  mapping of this node's arguments to constants; any subset/superset of arguments may be mapped; may be null
 	 * @return
 	 */
-	protected String toLiteral(int setting, HashMap<String,String> constantValues) {		
+	public String toLiteral(int setting, HashMap<String,String> constantValues) {		
 		// ** special built-in predicate with special logical translation
 		if(this.functionName.equals(BUILTINPRED_NEQUALS))
 			return String.format("!(%s=%s)", this.params[0], this.params[1]);
@@ -196,6 +204,34 @@ public class RelationalNode extends ExtendedNode {
 		}
 		sb.append(')');
 		return sb.toString();
+	}
+	
+	public Formula toFormula(int domIdx, Map<String,String> constantValues) {
+		// ** special built-in predicate with special logical translation
+		if(this.functionName.equals(BUILTINPRED_NEQUALS))
+			return new Negation(new Equality(this.params[0], this.params[1]));
+		if(this.functionName.equals(BUILTINPRED_EQUALS))
+			return new Equality(this.params[0], this.params[1]);
+		
+		// ** regular predicate
+		Vector<String> atomParams = new Vector<String>();
+		for(int i = 0; i < params.length; i++) {
+			String value = constantValues != null ? constantValues.get(params[i]) : null;
+			if(value == null)
+				atomParams.add(params[i]);
+			else
+				atomParams.add(value);
+		}
+		// add node value (negation as prefix or value of non-boolean variable as additional parameter)
+		String value = ((Discrete)node.getDomain()).getName(domIdx);
+		if(isBoolean()) {
+			boolean isTrue = !value.equalsIgnoreCase("false");
+			return new Literal(isTrue, new Atom(this.functionName, atomParams));
+		}
+		else {
+			atomParams.add(value);
+			return new Atom(this.functionName, atomParams);
+		}
 	}
 	
 	/**
@@ -354,10 +390,74 @@ public class RelationalNode extends ExtendedNode {
 			// the value of the current node is given directly as one of the main node's parameters, which has been grounded as this node's actual parameter
 			return actualParams[0];
 		}
-	}
+	}	
 	
 	public boolean isBuiltInPred() {
 		return functionName.equals(BUILTINPRED_EQUALS) || functionName.equals(BUILTINPRED_NEQUALS);
+	}
+	
+	/**
+	 * gets a collection of possible constant assignments (i.e. assignments to parents of this node that are constant nodes)
+	 * @return a vector of mappings from constant name to value
+	 */
+	public Vector<HashMap<String,String>> getConstantAssignments() {
+		RelationalNode mainNode = this;
+		// - so first get a list of parents that are constants
+		Vector<RelationalNode> constantParents = new Vector<RelationalNode>();
+		for(RelationalNode parent : this.getNetwork().getRelationalParents(mainNode)) {
+			if(parent.isConstant)
+				constantParents.add(parent);
+		}
+		// - get a set of possible value assignments to the constant nodes
+		Vector<HashMap<String, String>> constantAssignments = new Vector<HashMap<String, String>>();
+		if(constantParents.isEmpty())
+			constantAssignments.add(new HashMap<String,String>());
+		else
+			collectConstantAssignments(constantParents.toArray(new RelationalNode[0]), 0, new String[constantParents.size()], constantAssignments);
+		return constantAssignments;
+	}
+	
+	protected void collectConstantAssignments(RelationalNode[] constNodes, int i, String[] assignment, Vector<HashMap<String,String>> assignments) {
+		if(i == constNodes.length) {
+			HashMap<String,String> m = new HashMap<String,String>();
+			for(int j = 0; j < assignment.length; j++)
+				m.put(constNodes[j].getName(), assignment[j]);
+			assignments.add(m);
+		}
+		else {
+			Discrete dom = (Discrete)constNodes[i].node.getDomain();
+			for(int j = 0; j < dom.getOrder(); j++) {
+				assignment[i] = dom.getName(j);
+				collectConstantAssignments(constNodes, i+1, assignment, assignments);
+			}
+		}
+	}
+	
+	/**
+	 * gets all the parents of this node that are instances of RelationalNode
+	 * @return
+	 */
+	public Vector<RelationalNode> getRelationalParents() {
+		return bn.getRelationalParents(this);
+	}
+	
+	/**
+	 * gets the (ordered) vector of indices of parameters that correspond to constants (i.e. are grounded by a constant node)
+	 * @return
+	 */
+	public Vector<Integer> getIndicesOfConstantParams() {
+		if(indicesOfConstantArgs == null) {
+			indicesOfConstantArgs = new Vector<Integer>();
+			HashSet<String> constantArgs = new HashSet<String>();
+			for(RelationalNode parent : getRelationalParents()) {
+				if(parent.isConstant)
+					constantArgs.add(parent.functionName);
+			}
+			for(int i = 0; i < params.length; i++)
+				if(constantArgs.contains(params[i]))
+					indicesOfConstantArgs.add(i);
+		}
+		return indicesOfConstantArgs;
 	}
 }
 
