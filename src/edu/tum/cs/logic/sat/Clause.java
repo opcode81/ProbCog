@@ -3,6 +3,7 @@ package edu.tum.cs.logic.sat;
 import edu.tum.cs.logic.ComplexFormula;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
+import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.srl.Database;
@@ -17,7 +18,7 @@ public class Clause extends ComplexFormula {
 		if(f instanceof GroundLiteral) {
 			lits = new GroundLiteral[1];
 			lits[0] = (GroundLiteral)f;
-		}
+		}		
 		else if(f instanceof Disjunction) {
 			Disjunction d = (Disjunction)f;
 			lits = new GroundLiteral[d.children.length];
@@ -27,6 +28,10 @@ public class Clause extends ComplexFormula {
 				else
 					throw new Exception("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName() + "; only GroundLiterals allowed.");
 			}
+		}
+		else if(f instanceof GroundAtom) {
+			lits = new GroundLiteral[1];
+			lits[0] = new GroundLiteral(true, (GroundAtom)f);
 		}
 		else
 			throw new Exception("Instance of type " + f.getClass().getSimpleName() + " cannot be treated as a clause");
