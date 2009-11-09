@@ -11,6 +11,7 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
+import edu.tum.cs.util.datastruct.ArraySlice;
 
 public class BlockVariable implements IVariableLogicCoupler {
 	protected Block block;
@@ -40,5 +41,9 @@ public class BlockVariable implements IVariableLogicCoupler {
 			w.set(ga, domIdx == i);
 			++i;
 		}
-	}		
+	}	
+	
+	public Iterable<String> getOriginalParams() {
+		return new ArraySlice<String>(block.get(0).args, 0, -1);
+	}
 }

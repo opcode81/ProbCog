@@ -109,6 +109,13 @@ public class VariableLogicCoupling {
 	public Set<GroundAtom> getCoupledGroundAtoms() {
 		return groundAtom2variable.keySet();
 	}
-
-
+	
+	/**
+	 * gets the original parameters of the non-logical variable
+	 * @param var
+	 * @return
+	 */
+	public Iterable<String> getOriginalParams(BeliefNode var) {
+		return variable2groundAtomLookup.get(var).getOriginalParams();
+	}
 }
