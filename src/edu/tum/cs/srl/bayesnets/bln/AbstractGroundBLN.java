@@ -23,6 +23,7 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
@@ -258,7 +259,7 @@ public abstract class AbstractGroundBLN {
 		// - other case: use combination function
 		else { 
 			// determine if auxiliary nodes need to be used and connect the parents appropriately			
-			if(relNode.aggregator.charAt(0) != '=') {
+			if(!relNode.aggregator.isFunctional) {
 				// create auxiliary nodes, one for each set of parents
 				Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
 				int k = 0; 
@@ -290,14 +291,14 @@ public abstract class AbstractGroundBLN {
 				mainNode.getCPF().buildZero(domprod.toArray(new BeliefNode[domprod.size()]), false);
 			}
 			// apply combination function
-			String combFunc = relNode.aggregator;
+			Aggregator combFunc = relNode.aggregator;
 			CPFFiller filler;
-			if(combFunc.equals("=OR") || combFunc.equals("OR")) {
+			if(combFunc == Aggregator.FunctionalOr || combFunc == Aggregator.NoisyOr) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
 				// set filler
-				if(combFunc.equals("=OR"))
+				if(combFunc == Aggregator.FunctionalOr)
 					filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
 				else
 					filler = new CPFFiller_OR(mainNode);
@@ -305,7 +306,7 @@ public abstract class AbstractGroundBLN {
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
 			filler.fill();
-			cpfIDs.put(mainNode, combFunc);
+			cpfIDs.put(mainNode, combFunc.getFunctionSyntax()); // TODO does this make sense?
 		}
 		
 		return mainNode;

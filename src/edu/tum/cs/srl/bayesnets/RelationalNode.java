@@ -10,7 +10,10 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.logic.Atom;
+import edu.tum.cs.logic.Biimplication;
+import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Equality;
+import edu.tum.cs.logic.Exist;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.Literal;
 import edu.tum.cs.logic.Negation;
@@ -30,15 +33,57 @@ public class RelationalNode extends ExtendedNode {
 	 */
 	public String[] params;
 	/**
-	 * additional parameters that are free in some parents (which must consequently be grounded in an auxiliary parent node, and all aux. parents must be combined via noisy-or)
+	 * additional parameters that are free in some parents, necessitating the use of an aggregator
 	 */
 	public String[] addParams;
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
-	public String parentMode, aggregator;
+	/**
+	 * specification of an aggregation to handle a variable number of parent sets
+	 */
+	public Aggregator aggregator;
+	/**
+	 * an additional parameterization of the aggregation method
+	 */
+	public String parentMode;
 	protected Vector<Integer> indicesOfConstantArgs = null;
+	
+	/**
+	 * a parent grounder used to instantiate variables (which is created on demand)
+	 */
+	protected ParentGrounder parentGrounder = null;
 	
 	public static final String BUILTINPRED_EQUALS = "EQ";
 	public static final String BUILTINPRED_NEQUALS = "NEQ";
+	
+	public static enum Aggregator {
+		FunctionalOr(true, "=OR"),
+		NoisyOr(false, "OR"),
+		Average(false, "AVG");
+		
+		public boolean isFunctional;
+		protected String syntax;
+		
+		private Aggregator(boolean isFunctional, String syntax) {		
+			this.isFunctional = isFunctional;
+			this.syntax = syntax;
+		}
+		
+		public String toString() {
+			return super.toString() + "(\"" + syntax + "\")";		
+		}
+		
+		public String getFunctionSyntax() {
+			return syntax;
+		}
+		
+		public static Aggregator fromSyntax(String syntax) throws Exception {
+			for(Aggregator a : Aggregator.values())
+				if(a.syntax.equals(syntax))
+					return a;
+			throw new Exception("There is no aggregator for '" + syntax + "'");
+		}
+	}
+	
 	
 	/**
 	 * extracts the node name (function/predicate name) from a variable name (which contains arguments)
@@ -49,6 +94,7 @@ public class RelationalNode extends ExtendedNode {
 		if(varName.contains("("))
 			return varName.substring(0, varName.indexOf('('));
 		return varName;
+		
 	}
 	
 	public static Pair<String, String[]> parse(String variable) {
@@ -75,11 +121,13 @@ public class RelationalNode extends ExtendedNode {
 		}
 		// preprocessing: special child node that has a variable number of parents
 		// - aggregator as prefix
+		aggregator = null;
 		Pattern aggPat = Pattern.compile("(=?[A-Z]+):.*");
 		Matcher m = aggPat.matcher(name);
 		if(m.matches()) {
-			aggregator = m.group(1);
-			name = name.substring(aggregator.length()+1);
+			String aggFunction = m.group(1);
+			aggregator = Aggregator.fromSyntax(aggFunction);
+			name = name.substring(aggFunction.length()+1);
 		}
 		// - free variables and how they are treated as postfix
 		int sepPos = name.indexOf('|');
@@ -133,6 +181,10 @@ public class RelationalNode extends ExtendedNode {
 		return this.node.getName();
 	}
 	
+	/**
+	 * gets the index of the corresponding belief node in the RBN
+	 * @return
+	 */
 	public int getNodeIndex() {
 		return this.index;
 	}
@@ -172,7 +224,7 @@ public class RelationalNode extends ExtendedNode {
 	 * @param constantValues  mapping of this node's arguments to constants; any subset/superset of arguments may be mapped; may be null
 	 * @return
 	 */
-	public String toLiteral(int setting, HashMap<String,String> constantValues) {		
+	public String toLiteralString(int setting, HashMap<String,String> constantValues) {		
 		// ** special built-in predicate with special logical translation
 		if(this.functionName.equals(BUILTINPRED_NEQUALS))
 			return String.format("!(%s=%s)", this.params[0], this.params[1]);
@@ -206,7 +258,29 @@ public class RelationalNode extends ExtendedNode {
 		return sb.toString();
 	}
 	
+	/**
+	 * returns a logical representation of this node for a particular setting of it
+	 * @param domIdx the setting given by a domain index (for aggregated nodes, this paremeter is ignored)
+	 * @param constantValues a mapping of constant parents of this node to values (may be null)
+	 * @return a formula (for regular nodes, it will be an atom; for aggregated nodes, it can be a complex formula), null if no translation could be made
+	 */
 	public Formula toFormula(int domIdx, Map<String,String> constantValues) {
+		if(this.hasAggregator()) {
+			if(aggregator == Aggregator.FunctionalOr) {
+				// this <=> exist parameters: conjunction of parents
+				Vector<Formula> parents = new Vector<Formula>();
+				for(RelationalNode parent : this.getRelationalParents()) {
+					parents.add(parent.toFormula(0, constantValues)); // 0=true					
+				}
+				return new Biimplication(this.toLiteral(0, constantValues), new Exist(this.addParams, new Conjunction(parents)));
+			}
+			return null;
+		}
+		else
+			return toLiteral(domIdx, constantValues);
+	}
+	
+	public Formula toLiteral(int domIdx, Map<String,String> constantValues) {
 		// ** special built-in predicate with special logical translation
 		if(this.functionName.equals(BUILTINPRED_NEQUALS))
 			return new Negation(new Equality(this.params[0], this.params[1]));
@@ -231,7 +305,7 @@ public class RelationalNode extends ExtendedNode {
 		else {
 			atomParams.add(value);
 			return new Atom(this.functionName, atomParams);
-		}
+		}		
 	}
 	
 	/**
@@ -242,17 +316,10 @@ public class RelationalNode extends ExtendedNode {
 	}
 	
 	/**
-	 * @return true if this node is a noisy or node, i.e. a node where the probability value is computed using a noisy disjunctive combination of the probability values of its parents  
-	 */
-	public boolean isNoisyOr() {
-		return aggregator != null && aggregator.equals("OR");
-	}
-	
-	/**
 	 * @return true if the node has a conditional probability distribution given as a CPT
 	 */
 	public boolean hasCPT() {
-		return !isNoisyOr();
+		return aggregator == null || !aggregator.isFunctional;
 	}
 	
 	/**
@@ -335,6 +402,11 @@ public class RelationalNode extends ExtendedNode {
 		return null;
 	}
 	
+	/**
+	 * @deprecated use toLiteralString
+	 * @return
+	 * @throws Exception
+	 */
 	public String toAtom() throws Exception {
 		if(!isBoolean())
 			throw new Exception("Cannot convert non-Boolean node to atom without specifying setting");
@@ -346,8 +418,8 @@ public class RelationalNode extends ExtendedNode {
 	 */
 	public void setLabel() {
 		StringBuffer buf = new StringBuffer();
-		if(this.aggregator != null && this.aggregator.length() > 0)
-			buf.append(aggregator + ":");
+		if(this.aggregator != null)
+			buf.append(aggregator.getFunctionSyntax() + ":");
 		buf.append(getCleanName());
 		if(this.addParams != null && this.addParams.length > 0) {
 			buf.append("|");
@@ -458,6 +530,23 @@ public class RelationalNode extends ExtendedNode {
 					indicesOfConstantArgs.add(i);
 		}
 		return indicesOfConstantArgs;
+	}
+	
+	public ParentGrounder getParentGrounder() throws Exception {
+		if(parentGrounder != null)
+			return parentGrounder;
+		return (parentGrounder = new ParentGrounder(this.bn, this));
+	}
+	
+	/**
+	 * gets a complete parameter binding (including functionally determined parameters needed in paretns) for a given vector of actual parameters for this node 
+	 * @param actualParams
+	 * @param db an evidence database (containing, e.g. the evidence predicates for functional lookups)
+	 * @return
+	 * @throws Exception 
+	 */
+	public HashMap<String,String> getParameterBinding(String[] actualParams, Database db) throws Exception {
+		return getParentGrounder().generateParameterBindings(actualParams, db);
 	}
 }
 
