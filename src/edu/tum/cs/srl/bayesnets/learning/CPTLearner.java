@@ -16,6 +16,7 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.StringTool;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
@@ -76,7 +77,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		if(false) {
 			// TODO the code in this block does not yet consider the possibility of decision nodes as parents
 			// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights		
-			if(node.aggregator != null && node.aggregator.equals("AVG") && node.parentMode != null && node.parentMode.equals("CP")) {
+			if(node.aggregator == Aggregator.Average && node.parentMode != null && node.parentMode.equals("CP")) {
 				// create a vector of counts/probabilities
 				// first get the number of configurations that are possible for each parent
 				int dim = 1;

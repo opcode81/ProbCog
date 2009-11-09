@@ -14,6 +14,7 @@ import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.CPT2MLNFormulas.CPT2Rules;
+import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 import edu.tum.cs.util.StringTool;
@@ -44,22 +45,36 @@ public class SATISEx extends SATIS {
 			Map2D<RelationalNode, String, Vector<Formula>> constraints = new Map2D<RelationalNode, String, Vector<Formula>>();
 			int numFormulas = 0;
 			int numZeros = 0;
+			int numDirectTranslations = 0;
 			RelationalBeliefNetwork rbn = this.gbln.getRBN();
 			for(RelationalNode relNode : rbn.getRelationalNodes()) {
 				if(!relNode.isFragment())
 					continue;
 				//System.out.println(relNode);
-				CPT2Rules cpt2rules = new CPT2Rules(relNode);
-				numZeros += cpt2rules.getZerosInCPT();				
+				CPT2Rules cpt2rules = null;									
 				for(HashMap<String,String> constantAssignment : relNode.getConstantAssignments()) {
-					// create formulas from rules					
 					Vector<Formula> v = new Vector<Formula>();
-					Rule[] rules = cpt2rules.learnRules(constantAssignment);					
-					for(Rule rule : rules) {
-						if(cpt2rules.getProbability(rule) == 0.0) {
-							Formula f = cpt2rules.getConjunction(rule, constantAssignment);
-							v.add(f);
-							numFormulas++;
+					if(relNode.hasAggregator()) {
+						Formula f = relNode.toFormula(0, constantAssignment);
+						if(f == null)
+							throw new Exception("Relational node " + relNode + " could not be translated to a formula");
+						// TODO could fall back to direct reading of CPT in ground network
+						v.add(f);			
+						numDirectTranslations++;
+					}
+					else {
+						if(cpt2rules == null) {
+							cpt2rules = new CPT2Rules(relNode);
+							numZeros += cpt2rules.getZerosInCPT();
+						}
+						// create formulas from rules							
+						Rule[] rules = cpt2rules.learnRules(constantAssignment);					
+						for(Rule rule : rules) {
+							if(cpt2rules.getProbability(rule) == 0.0) {
+								Formula f = cpt2rules.getConjunction(rule, constantAssignment);
+								v.add(new Negation(f));
+								numFormulas++;
+							}
 						}
 					}
 					// create key for this constant assignment
@@ -71,7 +86,7 @@ public class SATISEx extends SATIS {
 					constraints.put(relNode, constantKey, v);
 				}				
 			}
-			System.out.printf("reduced %d zeros in CPTs to %d formulas\n", numZeros, numFormulas);
+			System.out.printf("reduced %d zeros in CPTs to %d formulas; %d direct translations\n", numZeros, numFormulas, numDirectTranslations);
 			
 			// ground the constraints for the actual variables
 			System.out.println("grounding constraints...");
@@ -79,7 +94,7 @@ public class SATISEx extends SATIS {
 			int sizeBefore = ckb.size();
 			for(BeliefNode node : gbln.getRegularVariables()) { 
 				RelationalNode template = gbln.getTemplateOf(node);
-				System.out.println(node + " from " + template);
+				//System.out.println(node + " from " + template);
 				Iterable<String> params = coupling.getOriginalParams(node);
 				// get the constant key
 				StringBuffer sb = new StringBuffer();
@@ -94,17 +109,16 @@ public class SATISEx extends SATIS {
 				// check if there are any hard constraints for this template
 				Vector<Formula> vf = constraints.get(template, constantKey);
 				if(vf != null) {
-					// construct the variable binding
+					// get parameter binding				
 					i = 0;
-					String[] actualParams = new String[template.params.length];
-					System.out.println(StringTool.join(" ", params));
+					String[] actualParams = new String[template.params.length];						
 					for(String param : params)
-						actualParams[i++] = param;
-					ParentGrounder pg = new ParentGrounder(gbln.getRBN(), template);
-					HashMap<String,String> binding = pg.generateParameterBindings(actualParams, gbln.getDatabase());					
+						actualParams[i++] = param;				
+					HashMap<String,String> binding = template.getParameterBinding(actualParams, gbln.getDatabase());				
 					// ground the formulas and add them to the KB
 					for(Formula f : vf) {
-						Formula gf = new Negation(f.ground(binding, coupling.getWorldVars(), null));
+						//System.out.println("grounding " + f + " with " + binding);
+						Formula gf = f.ground(binding, coupling.getWorldVars(), gbln.getDatabase());
 						Formula gfs = gf.simplify(gbln.getDatabase());
 						if(gfs instanceof TrueFalse) {
 							TrueFalse tf = (TrueFalse)gfs;
@@ -116,7 +130,7 @@ public class SATISEx extends SATIS {
 					}
 				}
 			}
-			System.out.printf("added %d constraints from CPTs\n", ckb.size()-sizeBefore);
+			System.out.printf("added %d constraints\n", ckb.size()-sizeBefore);
 		}
 		else 
 			SATIS_BSampler.extendKBWithDeterministicConstraintsInCPTs(gbln.getGroundNetwork(), gbln.getCoupling(), ckb, gbln.getDatabase());

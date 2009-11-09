@@ -73,7 +73,7 @@ public class CPT2MLNFormulas {
 						RelationalNode node = cpt2rules.getRelationalNode(c);
 						if(node == mainNode)
 							haveMainNode = true;
-						String literal = node.toLiteral(rbn.getDomainIndex(node.node, c.getValue()), constantAssignment);
+						String literal = node.toLiteralString(rbn.getDomainIndex(node.node, c.getValue()), constantAssignment);
 						if(lits++ > 0)
 							conjunction.append(" ^ ");
 						conjunction.append(literal);
@@ -84,14 +84,14 @@ public class CPT2MLNFormulas {
 						if(parent.isPrecondition) {
 							if(lits++ > 0)
 								conjunction.append(" ^ ");
-							conjunction.append(parent.toLiteral(rbn.getDomainIndex(parent.node, "True"), constantAssignment));
+							conjunction.append(parent.toLiteralString(rbn.getDomainIndex(parent.node, "True"), constantAssignment));
 						}
 					}
 					// if we did not come across the main node above, create one variant of the conjunction for each possible setting
 					Vector<String> conjunctions = new Vector<String>();
 					if(!haveMainNode) {
 						for(int i = 0; i < mainNode.node.getDomain().getOrder(); i++) {
-							conjunctions.add(conjunction.toString() + " ^ " + mainNode.toLiteral(i, null));
+							conjunctions.add(conjunction.toString() + " ^ " + mainNode.toLiteralString(i, null));
 						}
 					}
 					else
@@ -296,7 +296,7 @@ public class CPT2MLNFormulas {
 			return relNodes.get(c.getAttribute());
 		}
 		
-		public Formula getConjunction(Rule rule, Map<String,String> constantAssignment) {
+		public Formula getConjunction(Rule rule, Map<String,String> constantAssignment) throws Exception {
 			boolean haveMainNode = false;
 			Vector<Formula> conjuncts = new Vector<Formula>();
 			for(Condition c : rule.getAntecedent()) {

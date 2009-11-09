@@ -18,6 +18,7 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.srldb.Database;
@@ -42,10 +43,6 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	protected Map<String, Collection<RelationKey>> relationKeys;
 	
 	/**
-	 * a mapping of nodes to their corresponding parent grounders (which are created on demand)
-	 */
-	protected Map<RelationalNode, ParentGrounder> parentGrounders;
-	/**
 	 * a set of functions/predicates that are required to be fully specified in the evidence
 	 */
 	protected HashSet<String> evidenceFunctions = new HashSet<String>();
@@ -60,7 +57,6 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
-		parentGrounders = new HashMap<RelationalNode, ParentGrounder>();
 		guaranteedDomElements = new HashMap<String, String[]>();
 		// store node data		
 		BeliefNode[] nodes = bn.getNodes();
@@ -404,9 +400,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			if(node.isConstant || node.isAuxiliary)
 				continue;
 			CPT2MLNFormulas converter = new CPT2MLNFormulas(node);
+			
 			// write auxiliary definitions and formulas required by certain node types
 			if(node.aggregator != null && node.parentMode != null) {
-				if(node.aggregator.equals("AVG") && node.parentMode.equals("CP")) { // average of conditional probabilities
+				if(node.aggregator == Aggregator.Average && node.parentMode.equals("CP")) { // average of conditional probabilities
 					// get the relation that is responsible for grounding the free parameters
 					RelationalNode rel = node.getFreeParamGroundingParent();
 					if(rel == null)
@@ -422,10 +419,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					// write the formula connecting the influence predicate to the regular relation: if the relation does not hold, there is no influence 
 					out.println("!" + rel.getCleanName() + " => !" + Signature.formatVarName(influenceRelation, rel.params) + ".");
 				}
-				else if(node.aggregator.equals("OR")) { // noisy or
+				else if(node.aggregator == Aggregator.NoisyOr) { // noisy or
 					
 				}
 			}
+			
 			// write conditional probability distribution
 			if(node.hasCPT()) {
 				out.println("// CPT for " + node.getName());
@@ -445,7 +443,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				out.println("// </group>\n");
 			}
 			else {
-				if(node.isNoisyOr()) {
+				if(node.aggregator == Aggregator.NoisyOr) {
 					out.print(writer.formatAsAtom(node.getCleanName()) + " <=> ");
 					int k = 0;
 					for(RelationalNode parent : node.getParents()) {
@@ -488,7 +486,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				if(!rn.isConstant) {
 					if(j > 0)
 						sb.append(" ^ ");
-					sb.append(rn.toLiteral(addr[j], constantValues));
+					sb.append(rn.toLiteralString(addr[j], constantValues));
 				}
 			}
 			if(precondition != null) {
@@ -528,12 +526,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	public ParentGrounder getParentGrounder(RelationalNode node) throws Exception {
-		ParentGrounder pg = this.parentGrounders.get(node);
-		if(pg == null) {
-			pg = new ParentGrounder(this, node);
-			parentGrounders.put(node, pg);
-		}
-		return pg;
+		return node.getParentGrounder();
 	}
 	
 	public void addRelationKey(RelationKey k) {
