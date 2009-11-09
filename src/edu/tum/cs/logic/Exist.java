@@ -1,6 +1,9 @@
 package edu.tum.cs.logic;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -20,6 +23,10 @@ public class Exist extends UngroundedFormula {
 		this.vars = vars;
 		this.f = f;
 		this.var2domName = new HashMap<String, String>();
+	}
+	
+	public Exist(String[] vars, Formula f) {
+		this(Arrays.asList(vars), f);
 	}
 	
 	public String toString() {
