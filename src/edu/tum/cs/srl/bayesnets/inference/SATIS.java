@@ -48,7 +48,7 @@ public class SATIS extends BNSampler {
 		ClausalKB ckb = getClausalKB();
 		//ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
 		ss = new SampleSATPriors(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
-		//ss.enableUnitPropagation();
+		ss.enableUnitPropagation();
 		
 		// get the set of variables that is determined by the sat sampler
 		determinedVars = new HashSet<BeliefNode>();
