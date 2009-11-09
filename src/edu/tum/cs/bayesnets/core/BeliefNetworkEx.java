@@ -1049,7 +1049,7 @@ success:while (!successful) {
 
 	/**
 	 * computes the prior distribution of each node
-	 * @param evidenceDomainIndices may be null, otherwise evidence to be "faked in"
+	 * @param evidenceDomainIndices may be null, otherwise evidence to be "faked in" (domain index for each of the nodes, -1 for no evidence). The prior of an evidence node is then calculated as 1 and nodes lower in the topology will consider the evidence in their priors.
 	 * @return
 	 */
 	public HashMap<BeliefNode, double[]> computePriors(int[] evidenceDomainIndices) {
