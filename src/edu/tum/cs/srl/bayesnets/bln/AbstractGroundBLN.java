@@ -11,11 +11,9 @@ import java.util.Map.Entry;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
-import edu.ksu.cis.bnj.ver3.inference.approximate.sampling.AIS;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
@@ -64,6 +62,10 @@ public abstract class AbstractGroundBLN {
 	 * maps an instantiated ground node to a string identifying the CPF template that was used to create it
 	 */
 	protected HashMap<BeliefNode, String> cpfIDs;
+	/**
+	 * maps a ground node (in the ground network) to the template node in the fragment network it was instantiated from 
+	 */
+	protected HashMap<BeliefNode, RelationalNode> groundNode2TemplateNode;
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
 		init(bln, db);
@@ -81,6 +83,7 @@ public abstract class AbstractGroundBLN {
 		this.bln = bln;
 		this.db = db;		
 		cpfIDs = new HashMap<BeliefNode, String>();
+		groundNode2TemplateNode = new HashMap<BeliefNode, RelationalNode>();
 	}
 
 	/**
@@ -107,28 +110,19 @@ public abstract class AbstractGroundBLN {
 		System.out.println("  regular nodes");
 		RelationalBeliefNetwork rbn = bln.rbn;
 		
-		// get an ordering of the functions in which to ground atoms - based on the topological ordering of the nodes in the RBN
-		// and collect the RelationalNodes that can be used as templates to ground variables for the various functions
-		int[] order = rbn.getTopologicalOrder();
-		HashSet<String> handledFunctions = new HashSet<String>();
-		Vector<String> functionOrder = new Vector<String>();
+		// collect the RelationalNodes that can be used as templates to ground variables for the various functions		
 		functionTemplates = new HashMap<String, Vector<RelationalNode>>();
-		for(int i = 0; i < order.length; i++) {
-			int nodeNo = order[i];
-			ExtendedNode extNode = rbn.getExtendedNode(nodeNo);
+		BeliefNode[] nodes = rbn.bn.getNodes();
+		for(int i = 0; i < nodes.length; i++) {
+			ExtendedNode extNode = rbn.getExtendedNode(i);
 			// determine if the node can be used to instantiate a variable
 			if(!(extNode instanceof RelationalNode)) 
 				continue;
 			RelationalNode relNode = (RelationalNode)extNode;			
 			if(!relNode.isFragment()) // nodes that do not correspond to fragments can be ignored
 				continue;
-			// keep track of handled functions and add to the list of functions
-			String f = relNode.getFunctionName();
-			if(!handledFunctions.contains(f)) {
-				functionOrder.add(f);
-				handledFunctions.add(f);
-			}
 			// remember that this node can be instantiated using this relational node
+			String f = relNode.getFunctionName();
 			Vector<RelationalNode> v = functionTemplates.get(f);
 			if(v == null) {
 				v = new Vector<RelationalNode>();
@@ -137,10 +131,10 @@ public abstract class AbstractGroundBLN {
 			v.add(relNode);
 		}
 		
-		// go through all function names in order and generate all groundings for each of them
+		// go through all function names and generate all groundings for each of them
 		instantiatedVariables = new HashSet<String>();
 		subCPFCache = new HashMap<String, Value[]>();
-		for(String functionName : functionOrder) {
+		for(String functionName : functionTemplates.keySet()) {
 			System.out.println("    " + functionName);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
 			for(String[] params : parameterSets) 
@@ -242,6 +236,7 @@ public abstract class AbstractGroundBLN {
 
 		// add the node itself to the network				
 		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
+		groundNode2TemplateNode.put(mainNode, relNode);
 		onAddGroundAtomNode(relNode, actualParams, mainNode);
 
 		// add edges from the parents
@@ -635,5 +630,18 @@ public abstract class AbstractGroundBLN {
 	
 	public void setDebugMode(boolean enabled) {
 		this.debug = enabled;
+	}
+	
+	public RelationalBeliefNetwork getRBN() {
+		return bln.rbn;
+	}
+	
+	/**
+	 * gets the template (fragment variable) used to instantiate the given ground node
+	 * @param node
+	 * @return
+	 */
+	public RelationalNode getTemplateOf(BeliefNode node) {
+		return this.groundNode2TemplateNode.get(node);
 	}
 }
