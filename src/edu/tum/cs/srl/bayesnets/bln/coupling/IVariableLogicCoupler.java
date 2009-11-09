@@ -13,4 +13,5 @@ public interface IVariableLogicCoupler {
 	public int getValue(PossibleWorld w);		
 	public void setValue(PossibleWorld w, int domIdx);
 	public GroundLiteral getGroundLiteral(int domIdx, WorldVariables worldVars);
+	public Iterable<String> getOriginalParams();
 }
