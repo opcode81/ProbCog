@@ -107,14 +107,18 @@ public class IJGP extends Sampler {
 					// create message function and send to v
 					MessageFunction m = new MessageFunction(u.getArcToNode(v).seperator, varsToSumOver,cluster_A);
 					u.getArcToNode(v).setOutMessage(u, m);
+					for (MessageFunction mf : cluster_H.functions){
+						u.getArcToNode(v).setOutMessage(u, mf);
+					}
+					/*for (BeliefNode n : cluster_H.cpts){
+						v.functions.add(n.getCPF());
+					}*/
 				}
 			}
 		}
 
 		// compute probabilities and store results in distribution
-		System.out.println("reading results...");
-		this.jg.print(System.out);
-		//System.out.println();
+		System.out.println("computing results...");
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
@@ -190,7 +194,7 @@ public class IJGP extends Sampler {
 		}
 	}
 
-	protected class Cluster implements Cloneable {
+	protected class Cluster {
 		HashSet<BeliefNode> cpts = new HashSet<BeliefNode>();
 		HashSet<MessageFunction> functions = new HashSet<MessageFunction>();
 
@@ -198,18 +202,20 @@ public class IJGP extends Sampler {
 			for (CPF cpf : n.functions)
 				cpts.add(cpf.getDomainProduct()[0]);
 			for (JoinGraph.Node nb : n.getNeighbors()) {
-				MessageFunction m = n.arcs.get(nb).getInMessage(n);
-				if (m != null)
-					functions.add(m);
+				HashSet<MessageFunction> m = n.arcs.get(nb).getInMessage(n);
+				if (!m.isEmpty())
+					functions.addAll(m);
 			}
 		}
 		
 		public Cluster(){
 		}
 
-		public void excludeMessage(MessageFunction m) {
-			if (functions.contains(m))
-				functions.remove(m);
+		public void excludeMessage(HashSet<MessageFunction> m) {
+			for (MessageFunction mf : m){
+				if (functions.contains(mf))
+					functions.remove(mf);
+			}
 		}
 
 		public Cluster copy(){
@@ -599,16 +605,13 @@ public class IJGP extends Sampler {
 		}
 
 		public static class Arc {
-			Vector<Node> nodes = new Vector<Node>();
 			HashSet<BeliefNode> seperator = new HashSet<BeliefNode>();
 			// messages between Nodes
-			MessageFunction messageN0N1 = null;
-			MessageFunction messageN1N0 = null;
+			Vector<Node> nodes = new Vector<Node>();
+			HashMap<Node,HashSet<MessageFunction>> outMessage = new HashMap<Node,HashSet<MessageFunction>>();
 
 			public Arc(Node n0, Node n1) {
 				if (n0 != n1) {
-					nodes.add(n0);
-					nodes.add(n1);
 					// create separator
 					if (n0.mb.bucket == n1.mb.bucket)
 						seperator.add(n0.mb.bucket.bucketNode);
@@ -618,8 +621,13 @@ public class IJGP extends Sampler {
 								seperator.add(bn);
 						}
 					}
+					// arc informations
+					nodes.add(n0);
+					nodes.add(n1);
 					n0.addArc(n1, this);
 					n1.addArc(n0, this);
+					outMessage.put(n0, new HashSet<MessageFunction>());
+					outMessage.put(n1, new HashSet<MessageFunction>());
 				}
 			}
 
@@ -629,27 +637,15 @@ public class IJGP extends Sampler {
 			}
 
 			public void setOutMessage(Node n, MessageFunction m) {
-				int idx = nodes.indexOf(n);
-				if (idx == 0)
-					messageN0N1 = m;
-				else
-					messageN1N0 = m;
+				outMessage.get(n).add(m);
 			}
 
-			public MessageFunction getOutMessage(Node n) {
-				int idx = nodes.indexOf(n);
-				if (idx == 0)
-					return (messageN0N1);
-				else
-					return (messageN1N0);
+			public HashSet<MessageFunction> getOutMessage(Node n) {
+				return outMessage.get(n);
 			}
 
-			public MessageFunction getInMessage(Node n) {
-				int idx = nodes.indexOf(n);
-				if (idx == 0)
-					return (messageN1N0);
-				else
-					return (messageN0N1);
+			public HashSet<MessageFunction> getInMessage(Node n) {
+				return this.getOutMessage(this.getNeighbor(n));
 			}
 
 		}
