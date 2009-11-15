@@ -38,11 +38,17 @@ public class IJGP extends Sampler {
 			if (l > bound)
 				bound = l;
 		}
+		// construct join-graph
 		jg = new JoinGraph(bn, bound);
 		jg.writeDOT(new File("jg.dot"));
-		// jg.print(System.out);
+		//jg.print(System.out);
 		jgNodes = jg.getTopologicalorder();
-		// construct join-graph
+		System.out.println("Topological Order: ");
+		for (int i = 0; i < jgNodes.size(); i++){
+			System.out.println(jgNodes.get(i).getShortName());
+		}
+		System.out.println("\n");
+		
 	}
 
 	/*
@@ -56,15 +62,7 @@ public class IJGP extends Sampler {
 			throws Exception {
 		// process observed variables
 		for (JoinGraph.Node n : jgNodes) {
-			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes()); // this
-																				// is
-																				// nonsense,
-																				// but
-																				// apparently
-																				// required
-																				// to
-																				// avoid
-																				// ConcurrentModificationException
+			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes());
 			for (BeliefNode belNode : nodes) {
 				int nodeIdx = bn.getNodeIndex(belNode);
 				int domainIdx = evidenceDomainIndices[nodeIdx];
@@ -88,7 +86,7 @@ public class IJGP extends Sampler {
 					Cluster cluster_u = new Cluster(u);
 					Arc arc = u.getArcToNode(v);
 					// turn cluster_u into cluster_v(u)
-					cluster_u.excludeMessage(arc.getInMessage(u));
+					cluster_u.excludeMessagesFrom(v);
 					// Include in cluster_H each function in cluster_u which
 					// scope does not contain variables in elim(u,v)
 					HashSet<BeliefNode> elim = new HashSet<BeliefNode>(u.nodes);
@@ -110,16 +108,15 @@ public class IJGP extends Sampler {
 						varsToSumOver[k++] = bn.getNodeIndex(n);
 					// create message function and send to v
 					MessageFunction m = new MessageFunction(
-							u.getArcToNode(v).separator, varsToSumOver,
+							arc.separator, varsToSumOver,
 							cluster_A);
-					u.getArcToNode(v).addOutMessage(u, m);
+					arc.addOutMessage(u, m);
 					for (MessageFunction mf : cluster_H.functions) {
-						u.getArcToNode(v).addOutMessage(u, mf);
+						arc.addOutMessage(u, mf);
 					}
-					/*
-					 * for (BeliefNode n : cluster_H.cpts){
-					 * v.functions.add(n.getCPF()); }
-					 */
+					for (BeliefNode n : cluster_H.cpts){
+						arc.addCPTOutMessage(u,n); 
+					}
 				}
 			}
 		}
@@ -166,19 +163,6 @@ public class IJGP extends Sampler {
 			for (int j = 0; j < domSize; j++)
 				dist.values[i][j] /= Z;
 		}
-		// / DEBUG OUTPUT
-		if (false) {
-			jg.print(System.out);
-			for (JoinGraph.Node n : jg.nodes) {
-				System.out.println(n);
-				System.out.println("  Arcs to: \n");
-				for (JoinGraph.Node nb : n.arcs.keySet()) {
-					System.out.println("  " + nb);
-					System.out.println("  Message:"
-							+ n.arcs.get(nb).getOutMessages(n));
-				}
-			}
-		}
 		// dist.print(System.out);
 		return dist;
 	}
@@ -205,16 +189,22 @@ public class IJGP extends Sampler {
 	protected class Cluster {
 		HashSet<BeliefNode> cpts = new HashSet<BeliefNode>();
 		HashSet<MessageFunction> functions = new HashSet<MessageFunction>();
+		JoinGraph.Node node;
 
 		public Cluster(JoinGraph.Node n) {
+			this.node = n;
 			// add to the cluster all CPTs of the given node
 			for (CPF cpf : n.functions)
 				cpts.add(cpf.getDomainProduct()[0]);
 			// add all incoming messages of n
 			for (JoinGraph.Node nb : n.getNeighbors()) {
-				HashSet<MessageFunction> m = n.arcs.get(nb).getInMessage(n);
+				JoinGraph.Arc arc = n.arcs.get(nb);
+				HashSet<MessageFunction> m = arc.getInMessage(n);
 				if (!m.isEmpty())
 					functions.addAll(m);
+				HashSet<BeliefNode> bn = arc.getCPTInMessage(n);
+				if (!bn.isEmpty())
+					cpts.addAll(bn);
 			}
 		}
 
@@ -229,10 +219,15 @@ public class IJGP extends Sampler {
 			return sb.toString();
 		}
 
-		public void excludeMessage(HashSet<MessageFunction> m) {
-			for (MessageFunction mf : m) {
+		public void excludeMessagesFrom(JoinGraph.Node n) {
+			JoinGraph.Arc arc = node.arcs.get(n);
+			for (MessageFunction mf : arc.getInMessage(node)) {
 				if (functions.contains(mf))
 					functions.remove(mf);
+			}
+			for (BeliefNode bn : arc.getCPTInMessage(node)) {
+				if (cpts.contains(bn))
+					functions.remove(bn);
 			}
 		}
 
@@ -633,8 +628,28 @@ public class IJGP extends Sampler {
 		}
 
 		public Vector<Node> getTopologicalorder() {
-			// implement
-			return new Vector<Node>(nodes);
+			Vector<Node> topOrder = new Vector<Node>();
+			HashSet<Node> nodesLeft = new HashSet<Node>(nodes);		
+			for (Node n : nodes){
+				if (n.mb.parents.isEmpty()){
+					topOrder.add(n);
+					nodesLeft.remove(n);
+				}
+			}
+			int j = 0;
+			while(!nodesLeft.isEmpty() && j == 0){
+				HashSet<Node> removeNodes = new HashSet<Node>();
+				for (Node n : nodesLeft){
+					for (int i = 0; i < topOrder.size(); i++){
+						if (n.mb.parents.contains(topOrder.get(i).mb)){
+							topOrder.insertElementAt(n, i+1);
+							removeNodes.add(n);
+						}
+					}
+				}
+				nodesLeft.removeAll(removeNodes);
+			}
+			return topOrder;
 		}
 
 		public static class Arc {
@@ -642,6 +657,7 @@ public class IJGP extends Sampler {
 			// messages between Nodes
 			Vector<Node> nodes = new Vector<Node>();
 			HashMap<Node, HashSet<MessageFunction>> outMessage = new HashMap<Node, HashSet<MessageFunction>>();
+			HashMap<Node, HashSet<BeliefNode>> outCPTMessage = new HashMap<Node, HashSet<BeliefNode>>();
 
 			public Arc(Node n0, Node n1) {
 				if (n0 != n1) {
@@ -660,6 +676,8 @@ public class IJGP extends Sampler {
 					n1.addArc(n0, this);
 					outMessage.put(n0, new HashSet<MessageFunction>());
 					outMessage.put(n1, new HashSet<MessageFunction>());
+					outCPTMessage.put(n0, new HashSet<BeliefNode>());
+					outCPTMessage.put(n1, new HashSet<BeliefNode>());
 				} else
 					throw new RuntimeException("1-node loop in graph");
 			}
@@ -679,6 +697,17 @@ public class IJGP extends Sampler {
 
 			public HashSet<MessageFunction> getInMessage(Node n) {
 				return this.getOutMessages(this.getNeighbor(n));
+			}
+			public void addCPTOutMessage(Node n, BeliefNode bn) {
+				outCPTMessage.get(n).add(bn);
+			}
+
+			public HashSet<BeliefNode> getCPTOutMessages(Node n) {
+				return outCPTMessage.get(n);
+			}
+
+			public HashSet<BeliefNode> getCPTInMessage(Node n) {
+				return this.getCPTOutMessages(this.getNeighbor(n));
 			}
 
 		}
