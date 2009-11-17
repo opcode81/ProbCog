@@ -256,6 +256,10 @@ public class BeliefNetworkEx {
 		return bn.getNodes()[idx];
 	}
 	
+	public BeliefNode getNode(int idx) {
+		return bn.getNodes()[idx];
+	}
+	
 	/**
 	 * get the index (into the BeliefNetwork's array of nodes) of the node with the given name
 	 * @param name	the name of the node
