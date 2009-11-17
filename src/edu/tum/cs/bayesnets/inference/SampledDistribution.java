@@ -1,10 +1,12 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.inference.BasicSampledDistribution;
 
 /**
  * class that allows the incremental construction of a probability distribution from (weighted) samples
@@ -12,16 +14,8 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  * @author jain
  *
  */
-public class SampledDistribution implements Cloneable {
-	/**
-	 * an array of values representing the distribution, one for each node and each domain element:
-	 * values[i][j] is the value for the j-th domain element of the i-th node in the network
-	 */
-	public double[][] values;
-	/**
-	 * the normalization constant that applies to each of the distribution values
-	 */
-	public double Z;
+public class SampledDistribution extends BasicSampledDistribution implements Cloneable, Serializable {
+	private static final long serialVersionUID = 1L;
 	/**
 	 * the belief network for which we are representing a distribution
 	 */
@@ -33,6 +27,7 @@ public class SampledDistribution implements Cloneable {
 	
 	public SampledDistribution(BeliefNetworkEx bn) {
 		this.bn = bn;
+		this.Z = 0.0;
 		BeliefNode[] nodes = bn.bn.getNodes();
 		values = new double[nodes.length][];
 		for(int i = 0; i < nodes.length; i++)
@@ -58,18 +53,8 @@ public class SampledDistribution implements Cloneable {
 		steps++;
 	}
 	
-	public void print(PrintStream out) {
-		BeliefNode[] nodes = bn.bn.getNodes();
-		for(int i = 0; i < nodes.length; i++) {
-			printNodeDistribution(out, i);
-		}
-	}
-	
-	public double getProbability(int nodeIdx, int domainIdx) {
-		return values[nodeIdx][domainIdx] / Z;
-	}
-	
-	public void printNodeDistribution(PrintStream out, int index) {
+	@Override
+	public void printVariableDistribution(PrintStream out, int index) {
 		BeliefNode node = bn.bn.getNodes()[index];
 		out.println(node.getName() + ":");
 		Discrete domain = (Discrete)node.getDomain();
@@ -86,5 +71,20 @@ public class SampledDistribution implements Cloneable {
 	@Override
 	public synchronized SampledDistribution clone() throws CloneNotSupportedException {
 		return (SampledDistribution)super.clone();
+	}
+
+	@Override
+	public String[] getDomain(int idx) {
+		return BeliefNetworkEx.getDiscreteDomainAsArray(bn.getNode(idx));
+	}
+
+	@Override
+	public String getVariableName(int idx) {
+		return bn.getNode(idx).getName();
+	}
+
+	@Override
+	public int getVariableIndex(String name) {
+		return bn.getNodeIndex(name);
 	}
 }
