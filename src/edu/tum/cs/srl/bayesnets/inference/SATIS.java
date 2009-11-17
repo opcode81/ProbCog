@@ -48,6 +48,7 @@ public class SATIS extends BNSampler {
 		ClausalKB ckb = getClausalKB();
 		//ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
 		ss = new SampleSATPriors(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
+		paramHandler.addSubhandler(ss.getParameterHandler());
 		ss.enableUnitPropagation();
 		
 		// get the set of variables that is determined by the sat sampler
@@ -59,7 +60,7 @@ public class SATIS extends BNSampler {
 					throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + gbln.getCoupling().getCoupledGroundAtoms());
 				determinedVars.add(var);
 			}
-		}		
+		}	
 	}
 	
 	protected ClausalKB getClausalKB() throws Exception {
