@@ -2,7 +2,6 @@ package edu.tum.cs.srl.bayesnets.inference;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
@@ -30,7 +29,7 @@ public class LiftedBackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		
 		// compute node equivalence classes with respect to the "backward sampling
 		// with children" procedure		
@@ -75,9 +74,9 @@ public class LiftedBackwardSampling extends Sampler {
 		sampler.setInfoInterval(infoInterval);
 		//sampler.setMaxTrials(maxTrials);
 		//sampler.setSkipFailedSteps(skipFailedSteps);
-		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
+		SampledDistribution dist = sampler.infer();
 		
-		return getResults(dist, queries);
+		return dist;
 	}
 	
 	/**
@@ -314,10 +313,10 @@ public class LiftedBackwardSampling extends Sampler {
 			super.prepareInference(evidenceDomainIndices);
 		}
 		
-		public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+		public SampledDistribution infer() throws Exception {
 			probSW = new Stopwatch();
 			distSW = new Stopwatch();
-			SampledDistribution d = super.infer(evidenceDomainIndices);
+			SampledDistribution d = super.infer();
 			System.out.println("prob time: " + probSW.getElapsedTimeSecs());
 			System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
 			System.out.println("dist time: " + distSW.getElapsedTimeSecs());
