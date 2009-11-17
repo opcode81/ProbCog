@@ -55,9 +55,9 @@ public abstract class BasicSampledDistribution implements Serializable {
 	}
 	
 	/**
-	 * gets the mean squared error
-	 * @param d
-	 * @return
+	 * gets the mean squared error of another distribution d, assuming that values of this distribution are correct
+	 * @param d the other distribution
+	 * @return the mean squared error (across all entries of the distribution)
 	 * @throws Exception
 	 */
 	public double getMSE(BasicSampledDistribution d) throws Exception {

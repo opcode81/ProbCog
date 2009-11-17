@@ -15,6 +15,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 
+/**
+ * generally usable representation of a distribution that can be written to a file.
+ * Any BasicSampledDistribution can be converted to this type of object.
+ * @author jain
+ */
 public class GeneralSampledDistribution extends BasicSampledDistribution implements Serializable {
 
 	private static final long serialVersionUID = 1L;
