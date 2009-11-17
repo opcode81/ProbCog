@@ -88,7 +88,26 @@ public class SATIS_BSampler extends BackwardSampling {
 			}
 		}
 		// construct the SAT sampler
-		sat = null; // SAT sampler is initialized based on evidence later (in prepareInference)
+		sat = null; // SAT sampler is initialized based on evidence later (in setEvidence)
+	}
+	
+	@Override
+	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
+		super.setEvidence(evidenceDomainIndices);
+		// build SAT sampler if we don't have it yet
+		if(this.sat == null) {
+			// build evidence database
+			Vector<PropositionalVariable> evidence = new Vector<PropositionalVariable>();
+			for(int i = 0; i < evidenceDomainIndices.length; i++)
+				if(evidenceDomainIndices[i] != -1) {
+					evidence.add(new PropositionalVariable(nodes[i].getName(), nodes[i].getDomain().getName(evidenceDomainIndices[i])));
+				}
+			// construct sampler
+			WorldVariables worldVars = this.coupling.getWorldVars();
+			sat = new SampleSAT(ckb, new PossibleWorld(worldVars), worldVars, evidence);
+		}
+		// pass on parameters
+		sat.setDebugMode(this.debug);
 	}
 	
 	/**
@@ -137,25 +156,6 @@ public class SATIS_BSampler extends BackwardSampling {
 			addr[i] = k;
 			walkCPF4HardConstraints(coupling, cpf, addr, i+1, ckb, db);
 		}
-	}
-	
-	protected void prepareInference(int[] evidenceDomainIndices) throws Exception {
-		super.prepareInference(evidenceDomainIndices);
-		
-		// build SAT sampler if we don't have it yet
-		if(this.sat == null) {
-			// build evidence database
-			Vector<PropositionalVariable> evidence = new Vector<PropositionalVariable>();
-			for(int i = 0; i < evidenceDomainIndices.length; i++)
-				if(evidenceDomainIndices[i] != -1) {
-					evidence.add(new PropositionalVariable(nodes[i].getName(), nodes[i].getDomain().getName(evidenceDomainIndices[i])));
-				}
-			// construct sampler
-			WorldVariables worldVars = this.coupling.getWorldVars();
-			sat = new SampleSAT(ckb, new PossibleWorld(worldVars), worldVars, evidence);
-		}
-		// pass on parameters
-		sat.setDebugMode(this.debug);
 	}
 	
 	protected static class PropositionalVariable extends AbstractVariable {

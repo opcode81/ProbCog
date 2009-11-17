@@ -12,7 +12,8 @@ public class LikelihoodWeighting extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	@Override
+	public SampledDistribution infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();

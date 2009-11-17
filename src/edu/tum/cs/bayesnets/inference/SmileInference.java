@@ -26,7 +26,7 @@ public class SmileInference extends Sampler {
 	//	new java.io.File("temp.net").delete();
 	}
 
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		net.setBayesianAlgorithm(algorithmID);
 		net.setSampleCount(numSamples);
 		

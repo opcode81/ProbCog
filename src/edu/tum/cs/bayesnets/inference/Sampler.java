@@ -8,12 +8,13 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
-public abstract class Sampler {
+public abstract class Sampler implements ITimeLimitedInference {
 	public BeliefNetworkEx bn;
 	public SampledDistribution dist;
 	public HashMap<BeliefNode, Integer> nodeIndices;
 	public Random generator;
 	public BeliefNode[] nodes;
+	public int[] evidenceDomainIndices;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -54,6 +55,8 @@ public abstract class Sampler {
 	 * @throws CloneNotSupportedException 
 	 */
 	public synchronized SampledDistribution pollResults() throws CloneNotSupportedException {
+		if(dist == null)
+			return null;
 		return dist.clone();
 	}
 	
@@ -152,7 +155,11 @@ public abstract class Sampler {
 		this.skipFailedSteps = canSkip;
 	}
 	
-	public abstract SampledDistribution infer(int[] evidenceDomainIndices) throws Exception;
+	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
+		this.evidenceDomainIndices = evidenceDomainIndices;
+	}
+	
+	public abstract SampledDistribution infer() throws Exception;
 	
 	/**
 	 * samples forward, i.e. samples a value for 'node' given its parents

@@ -26,7 +26,6 @@ public class BackwardSampling extends Sampler {
 	protected Vector<BeliefNode> backwardSampledNodes;
 	protected Vector<BeliefNode> forwardSampledNodes;
 	protected HashSet<BeliefNode> outsideSamplingOrder;
-	protected int[] evidenceDomainIndices;
 	protected int currentStep;
 	
 	protected static class BackSamplingDistribution {
@@ -208,7 +207,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {		
+	public SampledDistribution infer() throws Exception {		
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
