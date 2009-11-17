@@ -47,7 +47,11 @@ public abstract class Sampler {
 		infoInterval = n;
 	}
 	
-	public abstract Vector<InferenceResult> infer(Iterable<String> queries) throws Exception;
+	public abstract SampledDistribution infer() throws Exception;
+	
+	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+		return getResults(infer(), queries);
+	}
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();
@@ -55,9 +59,5 @@ public abstract class Sampler {
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
-	}
-	
-	public SampledDistribution pollResults() throws Exception {
-		throw new Exception("Time-limited inference not supported by " + getAlgorithmName());
 	}
 }
