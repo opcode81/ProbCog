@@ -165,7 +165,8 @@ public class BNinfer {
 			sw.start();
 			// - create sampler 
 			Sampler sampler = algo.createSampler(bn);
-			// - set options
+			// - set evidence and options
+			sampler.setEvidence(evidenceDomainIndices);
 			sampler.setDebugMode(debug);
 			sampler.setMaxTrials(maxTrials);
 			sampler.setSkipFailedSteps(skipFailedSteps);
@@ -179,7 +180,7 @@ public class BNinfer {
 				results = tli.run();*/				
 			}
 			else				
-				dist = sampler.infer(evidenceDomainIndices);			
+				dist = sampler.infer();			
 			sw.stop();
 			
 			// print results
