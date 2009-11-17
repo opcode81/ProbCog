@@ -92,7 +92,7 @@ class BLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN": "EPIS", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "Lifted Backward Sampling with Children": "LiftedBackwardSampling", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingChildren", "Experimental": "Experimental", "SAT-IS": "SATIS", "SAT-IS Extended": "SATISEx", "SAT-IS Extended/Gibbs":"SATISExGibbs", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim"}
+        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN": "EPIS", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "Lifted Backward Sampling with Children": "LiftedBackwardSampling", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingChildren", "Experimental": "Experimental", "SAT-IS": "SATIS", "SAT-IS Extended": "SATISEx", "SAT-IS Extended/Gibbs":"SATISExGibbs", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP"}
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
@@ -101,6 +101,54 @@ class BLNQuery:
         self.selected_method.set(stored_method) 
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(method_names))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
+        self.selected_method.trace("w", self.changedMethod)        
+
+        # inference duration parameters
+        row += 1
+        frame = Frame(self.frame)
+        frame.grid(row=row, column=1, sticky="NEW")
+        col = 0        
+        # steps
+        # - checkbox
+        self.use_max_steps = var = IntVar()
+        self.cb_max_steps = cb = Checkbutton(frame, text="Max. steps/info interval:", variable=var)
+        cb.grid(row=0, column=col, sticky="W")
+        var.set(self.settings.get("useMaxSteps", 1))
+        # - max step entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.maxSteps = var = StringVar(master)
+        var.set(self.settings.get("maxSteps", ""))
+        self.entry_steps = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")        
+        # - interval entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.infoInterval = var = StringVar(master)
+        var.set(self.settings.get("infoInterval", "100"))
+        self.entry_infoInterval = Entry(frame, textvariable = var)
+        self.entry_infoInterval.grid(row=0, column=col, sticky="NEW")
+        # time
+        # - checkbox
+        col += 1
+        self.use_time_limit = var = IntVar()
+        self.cb_time = cb = Checkbutton(frame, text="Time limit/inverval (s):", variable=var)
+        cb.grid(row=0, column=col, sticky="E")
+        var.set(self.settings.get("useTimeLimit", 0))
+        # - time limit entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.timeLimit = var = StringVar(master)
+        var.set(self.settings.get("timeLimit", "10.0"))
+        self.entry_time_limit = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")
+        # - time interval entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.timeInterval = var = StringVar(master)
+        var.set(self.settings.get("timeInterval", "1"))
+        self.entry_time_interval = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")        
 
         # queries
         row += 1
@@ -108,14 +156,6 @@ class BLNQuery:
         self.query = StringVar(master)
         self.query.set(self.settings.get("query", "foo"))
         Entry(self.frame, textvariable = self.query).grid(row=row, column=1, sticky="NEW")
-
-        # max. number of steps
-        row += 1
-        Label(self.frame, text="Max. steps: ").grid(row=row, column=0, sticky=E)
-        self.maxSteps = StringVar(master)
-        self.maxSteps.set(self.settings.get("maxSteps", ""))
-        self.entry_steps = Entry(self.frame, textvariable = self.maxSteps)
-        self.entry_steps.grid(row=row, column=1, sticky="NEW")
 
         # closed-world predicates
         row += 1
@@ -148,24 +188,30 @@ class BLNQuery:
         self.cb_open_world = Checkbutton(self.frame, text="Apply open-world assumption to all predicates", variable=self.open_world)
         self.cb_open_world.grid(row=row, column=1, sticky=W)
         self.open_world.set(self.settings.get("openWorld", 1))
+        '''
 
-        # output filename
+        # output distribution filename
         row += 1
-        Label(self.frame, text="Output: ").grid(row=row, column=0, sticky="NE")
+        Label(self.frame, text="Output dist.: ").grid(row=row, column=0, sticky="NE")
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # - filename
         self.output_filename = StringVar(master)
         self.output_filename.set(self.settings.get("output_filename", ""))
-        self.entry_ouconfig.tput_filename = Entry(frame, textvariable = self.output_filename)
+        self.entry_output_filename = Entry(frame, textvariable = self.output_filename)
         self.entry_output_filename.grid(row=0, column=0, sticky="NEW")
         # - save option
         self.save_results = IntVar()
         self.cb_save_results = Checkbutton(frame, text="save", variable=self.save_results)
         self.cb_save_results.grid(row=0, column=1, sticky=W)
         self.save_results.set(self.settings.get("saveResults", 0))
-        '''
+
+        # reference distribution filename
+        row += 1
+        Label(self.frame, text="Reference dist.:").grid(row=row, column=0, sticky="NE")
+        self.selected_refdist = FilePick(self.frame, ["*.dist"], self.settings.get("reference_distribution", ""), None, font=config.fixed_width_font, allowNone=True)
+        self.selected_refdist.grid(row=row, column=1, sticky="NWES")
 
         # start button
         row += 1
@@ -174,7 +220,9 @@ class BLNQuery:
 
         self.initialized = True
         
+        self.setOutputFilename()
         self.setGeometry()
+    
     
     def setGeometry(self):
         g = self.settings.get("geometry")
@@ -183,10 +231,11 @@ class BLNQuery:
 
     def changedBLN(self, name):
         self.bln_filename = name
-        self.setOutputFilename()
+        #self.setOutputFilename()
     
     def changedBIF(self, name):
-        pass
+        self.bif_filename = name
+        self.setOutputFilename()
     
     def changedBLOG(self, name):
         pass
@@ -198,13 +247,16 @@ class BLNQuery:
         query = self.settings["queryByDB"].get(name)
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
+            
+    def changedMethod(self, name, *args):        
+        self.setOutputFilename()
         
     def setOutputFilename(self):
-        pass
-        #if not self.initialized or not hasattr(self, "db_filename") or not hasattr(self, "mln_filename"):
-        #    return
-        #fn = config.query_output_filename(self.mln_filename, self.db_filename)
-        #self.output_filename.set(fn)
+        if not self.initialized or not hasattr(self, "bif_filename") or not hasattr(self, "db_filename") or not hasattr(self, "selected_method"):
+            return
+        method = self.methods[self.selected_method.get()]
+        fn = "%s-%s-%s.dist" % (os.path.splitext(self.bif_filename)[0], os.path.splitext(self.db_filename)[0], method)
+        self.output_filename.set(fn)
         
     def showBN(self):
         bif = self.selected_bif.get()
@@ -220,8 +272,10 @@ class BLNQuery:
         bln_text = self.selected_bln.get_text()
         db_text = self.selected_db.get_text()
         method = self.selected_method.get()
-        params = self.params.get()
+        addparams = self.params.get().strip()
+        outfile = self.output_filename.get()
         cwPreds = self.cwPreds.get().strip().replace(" ", "")
+        refdist = self.selected_refdist.get().strip()
         
         # update settings
         self.settings["bln"] = bln
@@ -232,15 +286,21 @@ class BLNQuery:
         self.settings["db"] = db
         self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
         self.settings["method"] = method
-        self.settings["params"] = params
-        self.settings["query"] = self.query.get()
-        #self.settings["output_filename"] = output
+        self.settings["useMaxSteps"] = self.use_max_steps.get()
+        self.settings["maxSteps"] = self.maxSteps.get()
+        self.settings["infoInterval"] = self.infoInterval.get()
+        self.settings["useTimeLimit"] = self.use_time_limit.get()
+        self.settings["timeLimit"] = self.timeLimit.get()
+        self.settings["timeInterval"] = self.timeInterval.get()
+        self.settings["params"] = addparams
+        self.settings["query"] = self.query.get()        
         #self.settings["openWorld"] = self.open_world.get()
         self.settings["cwPreds"] = cwPreds
-        self.settings["maxSteps"] = self.maxSteps.get()
         #self.settings["numChains"] = self.numChains.get()
         self.settings["geometry"] = self.master.winfo_geometry()
-        #self.settings["saveResults"] = self.save_results.get()
+        self.settings["output_filename"] = outfile
+        self.settings["reference_distribution"] = refdist
+        self.settings["saveResults"] = self.save_results.get()
        
         # write query to settings
         self.settings["queryByDB"][db] = self.settings["query"]
@@ -256,14 +316,24 @@ class BLNQuery:
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
         
         # create command to execute
-        params = '-ia %s -x "%s" -b "%s" -l "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, blog, bln, db, self.settings["query"].replace(" ", ""), self.settings["params"])
+        params = ["-ia", self.methods[method], '-x "%s"' % bif, '-b "%s"' % blog, '-l "%s"' % bln, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
+        if addparams != "":
+            params.append(addparams)
         if cwPreds != "":
-            params += " -cw %s" % cwPreds
+            params.append('-cw "%s"' % cwPreds)
         #if self.settings["numChains"] != "":
         #    params += " %s %s" % (usage["numChains"], self.settings["numChains"])
-        if self.settings["maxSteps"] != "":
-            params += " -maxSteps %s" % (self.settings["maxSteps"])
-        command = 'BLNinfer %s' % params
+        if self.settings["useMaxSteps"]:
+            params.append("-maxSteps %s" % (self.settings["maxSteps"]))
+            params.append("-infoInterval %s" % self.settings["infoInterval"])
+        if self.settings["useTimeLimit"]:
+            params.append("-t %s" % self.settings["timeLimit"])
+            params.append("-infoTime %s" % self.settings["timeInterval"])
+        if self.settings["saveResults"] and outfile != "":
+            params.append('-od "%s"' % outfile)
+        if refdist != "":
+            params.append('-cd "%s"' % refdist)
+        command = 'BLNinfer %s' % " ".join(params)
 
         # execute 
         print "\nstarting BLNinfer..."
