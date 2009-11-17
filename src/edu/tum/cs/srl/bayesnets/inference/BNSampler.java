@@ -1,9 +1,9 @@
 package edu.tum.cs.srl.bayesnets.inference;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Vector;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 
@@ -12,7 +12,7 @@ import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
  * @author jain
  *
  */
-public class BNSampler extends Sampler {
+public class BNSampler extends Sampler implements ITimeLimitedInference {
 	AbstractGroundBLN gbln;
 	protected int maxTrials;
 	/**
@@ -41,24 +41,25 @@ public class BNSampler extends Sampler {
 	}
 	
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
-		// sample		
-		System.out.println("initializing...");
+		// initialize sampler		
+		System.out.println("initializing...");		
 		sampler = getSampler();
+		sampler.setEvidence(evidenceDomainIndices);
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
 		sampler.setMaxTrials(maxTrials);
 		sampler.setSkipFailedSteps(skipFailedSteps);
-		System.out.printf("running %s...\n", sampler.getAlgorithmName());
-		SampledDistribution dist = sampler.infer(evidenceDomainIndices);
 		
-		// determine query nodes and print their distributions		
-		return getResults(dist, queries);
+		// run inference
+		System.out.printf("running %s...\n", sampler.getAlgorithmName());
+		SampledDistribution dist = sampler.infer();
+		return dist;
 	}
 	
 	protected edu.tum.cs.bayesnets.inference.Sampler getSampler() throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
