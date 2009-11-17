@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.HashMap;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -17,7 +18,6 @@ import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.srl.bayesnets.inference.BNSampler;
-import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.srl.bayesnets.inference.TimeLimitedInference;
 import edu.tum.cs.util.Stopwatch;
@@ -40,6 +40,7 @@ public class BLNinfer {
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
+			boolean useMaxSteps = false;
 			int maxTrials = 5000;
 			int infoInterval = 100;
 			Algorithm algo = Algorithm.LikelihoodWeighting;
@@ -53,6 +54,7 @@ public class BLNinfer {
 			double timeLimit = 10.0, infoIntervalTime = 1.0;
 			boolean timeLimitedInference = false;
 			String outputDistFile = null, referenceDistFile = null;
+			HashMap<String,String> params = new HashMap<String,String>();
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -78,8 +80,10 @@ public class BLNinfer {
 					usePython = true;				
 				else if(args[i].equals("-cw"))
 					cwPreds = args[++i].split(",");		
-				else if(args[i].equals("-maxSteps"))
+				else if(args[i].equals("-maxSteps")) {
 					maxSteps = Integer.parseInt(args[++i]);
+					useMaxSteps = true;
+				}
 				else if(args[i].equals("-maxTrials"))
 					maxTrials = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-ia")) {
@@ -103,9 +107,15 @@ public class BLNinfer {
 				else if(args[i].equals("-od"))
 					outputDistFile = args[++i];	
 				else if(args[i].equals("-cd"))
-					referenceDistFile = args[++i];	
+					referenceDistFile = args[++i];
+				else if(args[i].startsWith("-p")) { // algorithm-specific parameter
+					String[] pair = args[i].substring(2).split("=");
+					if(pair.length != 2)
+						throw new Exception("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
+					params.put(pair[0], pair[1]);
+				}
 				else
-					System.err.println("Warning: unknown option " + args[i] + " ignored!");
+					throw new Exception("Unknown option " + args[i]);
 			}			
 			if(networkFile == null || dbFile == null || declsFile == null || logicFile == null || query == null) {
 				System.out.println("\n usage: BLNinfer <arguments>\n\n" +
@@ -116,7 +126,7 @@ public class BLNinfer {
 						             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
 						             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
 						             "   options:\n\n" +
-									 "     -maxSteps #      the maximum number of steps to take (default: 1000)\n" +
+									 "     -maxSteps #      the maximum number of steps to take (default: 1000 for non-time-limited inf.)\n" +
 									 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
 									 "     -infoInterval #  the number of steps after which to output a status message\n" +
 									 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +	
@@ -126,13 +136,14 @@ public class BLNinfer {
 				for(Algorithm a : Algorithm.values()) 
 					System.out.printf("                        %-28s  %s\n", a.toString(), a.getDescription());				
 				System.out.println(
+									 "     -p<key>=<value>  set algorithm-specific parameter\n" +
 							         "     -debug           debug mode with additional outputs\n" + 
 							         "     -s               show ground network in editor\n" +
 							         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
 							         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
 							         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
-							         "     -od <file>       save sampled output distribution to file\n" +
-							         "     -cd <file>       compare results to reference distribution in file\n" + 
+							         "     -od <file>       save output distribution to file\n" +
+							         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
 							         "     -py              use Python-based logic engine [deprecated]\n");
 				System.exit(1);
 			}			
@@ -216,13 +227,16 @@ public class BLNinfer {
 			}
 			sampler.setNumSamples(maxSteps);
 			sampler.setInfoInterval(infoInterval);
+			sampler.handleParams(params);
 			// - run inference
 			SampledDistribution dist;
 			if(timeLimitedInference) {
 				if(!(sampler instanceof ITimeLimitedInference)) 
 					throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");					
-				ITimeLimitedInference tliSampler = (ITimeLimitedInference) sampler; 
-				sampler.setNumSamples(Integer.MAX_VALUE);
+				ITimeLimitedInference tliSampler = (ITimeLimitedInference) sampler;
+				if(!useMaxSteps)				
+					sampler.setNumSamples(Integer.MAX_VALUE);
+				sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
 				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, queries, timeLimit, infoIntervalTime);
 				tli.setReferenceDistribution(referenceDist);
 				dist = tli.run();
