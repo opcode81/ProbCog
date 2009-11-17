@@ -3,7 +3,6 @@ import java.io.FileWriter;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
@@ -14,10 +13,11 @@ import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.srl.bayesnets.ABL;
-import edu.tum.cs.srl.bayesnets.bln.*;
+import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
+import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
+import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.srl.bayesnets.inference.BNSampler;
-import edu.tum.cs.srl.bayesnets.inference.CSPSampler;
 import edu.tum.cs.srl.bayesnets.inference.GibbsSampling;
 import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
 import edu.tum.cs.srl.bayesnets.inference.LiftedBackwardSampling;
@@ -214,8 +214,6 @@ public class BLNinferMSNBC {
 						sampler = new BNSampler(gbln, edu.tum.cs.bayesnets.inference.LikelihoodWeighting.class); break;
 					case LWU: 
 						sampler = new BNSampler(gbln, LikelihoodWeightingWithUncertainEvidence.class); break;
-					case CSP: 
-						sampler = new CSPSampler(gbln); break;
 					case GibbsSampling:	
 						sampler = new GibbsSampling(gbln); break;
 					case EPIS:
