@@ -58,7 +58,7 @@ public class IJGP extends Sampler {
 	 */
 
 	@Override
-	public SampledDistribution infer(int[] evidenceDomainIndices)
+	public SampledDistribution infer()
 			throws Exception {
 		// process observed variables
 		for (JoinGraph.Node n : jgNodes) {
