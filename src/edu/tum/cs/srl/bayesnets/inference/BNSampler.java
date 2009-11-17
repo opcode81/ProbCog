@@ -26,9 +26,10 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	 */
 	protected int[] evidenceDomainIndices;
 		
-	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) {
+	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) throws Exception {
 		this.gbln = gbln;
 		maxTrials = 5000;
+		this.paramHandler.add("maxTrials", "setMaxTrials");
 		this.samplerClass = samplerClass;
 	}
 	
