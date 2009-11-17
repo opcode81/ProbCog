@@ -17,7 +17,7 @@ public class SampleSearch extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();

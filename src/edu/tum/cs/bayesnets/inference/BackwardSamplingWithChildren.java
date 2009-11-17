@@ -249,10 +249,10 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		super.prepareInference(evidenceDomainIndices);
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		probSW = new Stopwatch();
 		distSW = new Stopwatch();
-		SampledDistribution d = super.infer(evidenceDomainIndices);
+		SampledDistribution d = super.infer();
 		System.out.println("prob time: " + probSW.getElapsedTimeSecs());
 		System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
 		System.out.println("dist time: " + distSW.getElapsedTimeSecs());

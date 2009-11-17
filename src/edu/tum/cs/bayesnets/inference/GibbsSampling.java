@@ -20,7 +20,7 @@ public class GibbsSampling extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		createDistribution();		
 

@@ -14,7 +14,7 @@ public class EnumerationAsk extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution infer(int[] evidenceDomainIndices) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		numPruned = 0;
 		createDistribution();
