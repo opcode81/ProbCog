@@ -3,9 +3,12 @@ package edu.tum.cs.logic.sat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.PossibleWorld;
@@ -25,7 +28,7 @@ import edu.tum.cs.util.StringTool;
  * 
  * @author jain
  */
-public class SampleSAT {
+public class SampleSAT implements IParameterHandler {
 	protected HashMap<Integer,Vector<Constraint>> bottlenecks;
 	protected HashMap<Integer,Vector<Constraint>> GAOccurrences;
 	protected PossibleWorld state;
@@ -38,7 +41,7 @@ public class SampleSAT {
 	protected HashMap<Integer,Boolean> evidence;
 	protected boolean useUnitPropagation = false;
 	Iterable<? extends edu.tum.cs.logic.sat.Clause> kb;
-	
+	protected ParameterHandler paramHandler;
 	/**
 	 * SampleSAT's p parameter: probability of performing a random walk (WalkSAT-style) move rather than a simulated annealing-style move
 	 */
@@ -49,6 +52,7 @@ public class SampleSAT {
 	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
 	 */
 	protected double pWalkSAT = 0.5; // 0.5
+	
 	
 	/**
 	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
@@ -64,6 +68,11 @@ public class SampleSAT {
 		this.kb = kb;
 		rand = new Random();
 		constraints = null;		
+		
+		// parameter handling
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("pSampleSAT", "setPSampleSAT");
+		paramHandler.add("pWalkSAT", "setPWalkSAT");
 		
 		// read evidence
 		evidenceHandler = new EvidenceHandler(vars, db);
@@ -443,8 +452,16 @@ public class SampleSAT {
 	 * sets the probability of a random walk (WalkSAT-style) move
 	 * @param p
 	 */
-	public void setP(double p) {
+	public void setPSampleSAT(double p) {
 		this.pSampleSAT = p;
+	}
+	
+	/**
+	 * sets the probability of a random move (rather than a greedy move) in WalkSAT moves
+	 * @param p
+	 */
+	public void setPWalkSAT(double p) {
+		this.pWalkSAT = p;
 	}
 	
 	protected abstract class Constraint {
@@ -594,5 +611,17 @@ public class SampleSAT {
 		System.out.println("done");
 		state.print();
 		System.out.println("time taken: " + sw.getElapsedTimeSecs());		
+	}
+
+	public void handleParams(Map<String, String> params) throws Exception {
+		paramHandler.handle(params);
+	}
+
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
+	}
+	
+	public String getAlgorithmName() {
+		return String.format("SampleSAT[%f;%f]", pSampleSAT, pWalkSAT);
 	}
 }

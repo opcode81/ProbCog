@@ -20,9 +20,4 @@ public class WalkSAT extends SampleSAT {
 	protected void makeMove() {
 		walkSATMove();
 	}
-	
-	@Override
-	public void setP(double p) {
-		pWalkSAT = p;
-	}
 }
