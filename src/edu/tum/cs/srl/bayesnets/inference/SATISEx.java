@@ -10,14 +10,11 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.TrueFalse;
 import edu.tum.cs.logic.sat.ClausalKB;
-import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.CPT2MLNFormulas.CPT2Rules;
-import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
-import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Map2D;
 
 /**
@@ -55,7 +52,7 @@ public class SATISEx extends SATIS {
 				for(HashMap<String,String> constantAssignment : relNode.getConstantAssignments()) {
 					Vector<Formula> v = new Vector<Formula>();
 					if(relNode.hasAggregator()) {
-						Formula f = relNode.toFormula(0, constantAssignment);
+						Formula f = relNode.toFormula(constantAssignment);
 						if(f == null)
 							throw new Exception("Relational node " + relNode + " could not be translated to a formula");
 						// TODO could fall back to direct reading of CPT in ground network

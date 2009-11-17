@@ -86,7 +86,7 @@ public class MCSAT extends Sampler {
 	}
 	
 	@Override
-	public Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public SampledDistribution infer() throws Exception {
 		sampler.setDebugMode(this.debug);
 		sampler.setVerbose(true);
 		sampler.setInfoInterval(infoInterval);
@@ -104,7 +104,7 @@ public class MCSAT extends Sampler {
 		}
 		dist.Z = 1.0;
 		dist.trials = dist.steps = numSamples;
-		return getResults(dist, queries);	
+		return dist;	
 	}
 
 }
