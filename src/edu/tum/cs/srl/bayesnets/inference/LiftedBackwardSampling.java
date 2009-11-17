@@ -24,7 +24,7 @@ public class LiftedBackwardSampling extends Sampler {
 	 */
 	HashMap<BeliefNode,Integer> node2class = new HashMap<BeliefNode, Integer>();
 	
-	public LiftedBackwardSampling(AbstractGroundBLN gbln) {
+	public LiftedBackwardSampling(AbstractGroundBLN gbln) throws Exception {
 		this.gbln = gbln;
 	}
 	
