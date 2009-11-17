@@ -2,6 +2,8 @@ package edu.tum.cs.srl.mln;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,6 +12,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry.Entry;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.parser.ParseException;
@@ -20,6 +24,7 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.tools.JythonInterpreter;
 import edu.tum.cs.util.FileUtil;
+import edu.tum.cs.util.StringTool;
 
 /**
  * represents a Markov logic network
@@ -27,8 +32,7 @@ import edu.tum.cs.util.FileUtil;
  */
 public class MarkovLogicNetwork implements RelationalModel {
 
-    File mlnFile;
-    ArrayList<Formula> formulas;
+    protected File mlnFile;
     protected HashMap<Formula, Double> formula2weight;
     /**
      * maps a predicate name to its signature
@@ -37,7 +41,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     /**
      * maps domain/type names to a list of guaranteed domain elements
      */
-    protected HashMap<String, String[]> decDomains;
+    protected HashMap<String, String[]> guaranteedDomainElements;
     /**
      * mapping from predicate name to index of argument that is functionally determined
      */
@@ -45,29 +49,52 @@ public class MarkovLogicNetwork implements RelationalModel {
     double sumAbsWeights = 0;
 
     /**
-     * constructs an MLN
+     * constructs a Markov logic network from an MLN file
      * @param mlnFileLoc location of the MLN-file
-     * @param makelist if true, a list of grounded formulas would be generated through the grounding
-     * @param gc an optional Callback-function (if not null), which is applied to every grounded formula
      * @throws Exception 
      */
     public MarkovLogicNetwork(String mlnFileLoc) throws Exception {
-        mlnFile = new File(mlnFileLoc);
+    	this();
+        read(mlnFile = new File(mlnFileLoc));
+    }
+    
+    /**
+     * constructs an empty MLN
+     */
+    public MarkovLogicNetwork() {
+    	mlnFile = null;
         signatures = new HashMap<String, Signature>();
         functionalPreds = new HashMap<String, Integer>();        
-        decDomains = new HashMap<String, String[]>();
-        formulas = new ArrayList<Formula>();
+        guaranteedDomainElements = new HashMap<String, String[]>();
         formula2weight = new HashMap<Formula, Double>();
-        read(mlnFile);
     }
     
     /**
      * adds a predicate signature to this model 
-     * @param predicateName name of the predicate
      * @param sig signature of this predicate
      */
-    public void addSignature(String predicateName, Signature sig) {
-        signatures.put(predicateName, sig);
+    public void addSignature(Signature sig) {
+        signatures.put(sig.functionName, sig);
+    }
+    
+    public void addFormula(Formula f, double weight) {
+    	this.formula2weight.put(f, weight);
+    }
+    
+    public void addHardFormula(Formula f) {
+    	addFormula(f, getHardWeight());
+    }
+    
+    public void addFunctionalDependency(String predicateName, Integer index) {
+    	this.functionalPreds.put(predicateName, index);
+    }
+    
+    public void addGuaranteedDomainElements(String domain, String[] elements) {
+    	this.guaranteedDomainElements.put(domain, elements);
+    }
+    
+    public Set<Formula> getFormulas() {
+    	return formula2weight.keySet();
     }
 
     /**
@@ -81,25 +108,10 @@ public class MarkovLogicNetwork implements RelationalModel {
 
     /**
      * gets the functionally determined argument of a functional predicate 
-     * @return the index of the argument that is functionally determined
+     * @return the index of the argument that is functionally determined or null if there is no such argument
      */
     public Integer getFunctionallyDeterminedArgument(String predicateName) {
         return this.functionalPreds.get(predicateName);
-    }
-
-    /**
-     * Method that return the position of a column in a given Array
-     * @param column name of column (position of this column will be searched)
-     * @param stringArray array to search for the given column
-     * @return returns an integer that represents position of the column in the given array
-     */
-    public int getPosinArray(String column, String[] stringArray) {
-        int c = -1;
-        for (int i = 0; i <= stringArray.length - 1; i++) {
-            if (column.equals(stringArray[i]))
-                return i;
-        }
-        return c;
     }
 
     /**
@@ -117,7 +129,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     }
 
     /**
-     * Method parses a MLN-file
+     * reads the contents of an MLN file
      * @throws Exception 
      */
     public void read(File mlnFile) throws Exception {
@@ -158,7 +170,6 @@ public class MarkovLogicNetwork implements RelationalModel {
                 catch(ParseException e) {
                 	throw new Exception("The hard formula '" + strF + "' could not be parsed: " + e.toString());
                 }
-                formulas.add(f);
                 hardFormulas.add(f);
                 continue;
             } 
@@ -183,7 +194,7 @@ public class MarkovLogicNetwork implements RelationalModel {
                     }
                 }
                 sig = new Signature(predName, "boolean", argTypes);
-                addSignature(predName, sig);
+                addSignature(sig);
                 continue;
             }
             
@@ -198,7 +209,7 @@ public class MarkovLogicNetwork implements RelationalModel {
                 if (mat.find() && mat2.find()) {
                     String domarg = mat2.group(0).substring(1, mat2.group(0).length() - 1);
                     String[] cont = domarg.trim().split("\\s*,\\s*");
-                    decDomains.put(mat.group(0), cont);
+                    addGuaranteedDomainElements(mat.group(0), cont);
                 }
                 continue;
             }
@@ -233,20 +244,18 @@ public class MarkovLogicNetwork implements RelationalModel {
             catch(ParseException e) {
             	throw new Exception("The formula '" + strF + "' could not be parsed: " + e.toString());
             }
-            formulas.add(f);
-            formula2weight.put(f, weight);
+            addFormula(f, weight);
             sumAbsWeights += Math.abs(weight);
         }
         
         // assign weights to hard constraints
         double hardWeight = getHardWeight();
         for (Formula f : hardFormulas)
-            formula2weight.put(f, hardWeight);
+            addFormula(f, hardWeight);
     }
 
     /**
-     * returns the weight used for hard constraints
-     * @return
+     * @return the weight used for hard constraints
      */
     public double getHardWeight() {
         return sumAbsWeights + 100;
@@ -291,7 +300,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @return a mapping from domain names to arrays of elements
      */
     public HashMap<String, String[]> getGuaranteedDomainElements() {
-        return decDomains;
+        return guaranteedDomainElements;
     }
 
     /**
@@ -320,5 +329,35 @@ public class MarkovLogicNetwork implements RelationalModel {
      */
 	public Taxonomy getTaxonomy() {
 		return null;
+	}
+	
+	public void write(PrintStream out) {
+		MLNWriter writer = new MLNWriter(out);
+		
+		// domain declarations
+		if(this.guaranteedDomainElements.size() > 0) {
+			out.println("// domain declarations");
+			for(java.util.Map.Entry<String,String[]> e : this.getGuaranteedDomainElements().entrySet()) {
+				writer.writeDomainDecl(e.getKey(), e.getValue());			
+			}
+			out.println();
+		}
+		
+		// predicate declarations
+		out.println("// predicate declarations");
+		for(Signature sig : this.getSignatures()) {
+			writer.writePredicateDecl(sig, this.getFunctionallyDeterminedArgument(sig.functionName));
+		}
+		out.println();
+		
+		out.println("// formulas");
+		for(Formula f : getFormulas()) {
+			double w = formula2weight.get(f);
+			out.printf("%f  %s\n", w, f.toString());
+		}
+	}
+	
+	public void write(File f) throws FileNotFoundException {
+		write(new PrintStream(f));
 	}
 }

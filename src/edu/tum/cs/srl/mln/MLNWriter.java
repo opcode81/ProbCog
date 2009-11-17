@@ -2,6 +2,9 @@ package edu.tum.cs.srl.mln;
 
 import java.io.PrintStream;
 
+import edu.tum.cs.srl.Signature;
+import edu.tum.cs.util.StringTool;
+
 public class MLNWriter {
 	protected java.io.PrintStream out;
 	
@@ -9,19 +12,29 @@ public class MLNWriter {
 		this.out = out;
 	}
 	
-	public void writePredicateDecl(String predName, String[] types) {
+	public void writeDomainDecl(String domName, String[] elems) {
+		out.printf("%s = {%s}\n", formatAsTypeName(domName), StringTool.join(", ", elems));
+	}
+	
+	public void writePredicateDecl(String predName, String[] types, Integer functionallyDeterminedArg) {
 		out.print(formatAsPredName(predName));
 		out.print('(');
 		for(int i = 0; i < types.length; i++) {
 			if(i > 0)
 				out.print(", ");
 			out.print(formatAsTypeName(types[i]));
+			if(functionallyDeterminedArg != null && i == functionallyDeterminedArg)
+				out.print("!");			
 		}
 		out.println(')');
 	}
 	
+	public void writePredicateDecl(Signature sig, Integer functionallyDeterminedArg) {
+		writePredicateDecl(sig.functionName, sig.argTypes, functionallyDeterminedArg);
+	}
+	
 	/**
-	 * 
+	 * @deprecated mutual exclusiveness and exhaustiveness is now declared directly in the predicate declaration 
 	 * @param predName
 	 * @param params
 	 * @param detParams parameters that are functionally determined by the others
