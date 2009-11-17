@@ -247,4 +247,9 @@ public class SATIS_BSampler extends BackwardSampling {
 		
 		System.out.println("node ordering: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
 	}
+	
+	@Override
+	public String getAlgorithmName() {
+		return String.format("SATIS_BSampler[%s]", sat.getAlgorithmName());
+	}
 }
