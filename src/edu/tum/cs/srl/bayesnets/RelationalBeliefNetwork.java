@@ -1,6 +1,7 @@
 package edu.tum.cs.srl.bayesnets;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
@@ -305,6 +307,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	/**
+	 * @deprecated
 	 * converts the network to a Markov logic network
 	 * @param out  the stream to write to
 	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
@@ -411,7 +414,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					// add predicate declaration for influence factor
 					String influenceRelation = String.format("inflfac_%s_%s", node.getFunctionName(), rel.getFunctionName());
 					Signature sig = rel.getSignature();
-					writer.writePredicateDecl(influenceRelation, sig.argTypes);
+					writer.writePredicateDecl(influenceRelation, sig.argTypes, null);
 					// write mutual exclusiveness and exhaustiveness definition
 					writer.writeMutexDecl(influenceRelation, rel.params, node.addParams);
 					// add a precondition that must be added to each CPT formula
@@ -466,7 +469,140 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			}
 		}
 	}
+
+	/**
+	 * converts the network to a Markov logic network
+	 * @param out  the stream to write to
+	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
+	 * @param numericWeights whether to print weighs as numbers (if false, print as log(x))
+	 * @throws Exception
+	 */
+	public void toMLN(MLNConverter converter, boolean declarationsOnly, boolean compactFormulas) throws Exception {
+		
+		// domain declarations
+		for(java.util.Map.Entry<String, String[]> e : this.getGuaranteedDomainElements().entrySet()) {
+			converter.addGuaranteedDomainElements(e.getKey(), e.getValue());
+		}
+		
+		// predicate declarations
+		for(Signature sig : this.getSignatures()) {
+			Signature mlnSig = sig;
+			if(!mlnSig.isBoolean()) {
+				String[] argTypes = new String[sig.argTypes.length+1];
+				for(int i = 0; i < sig.argTypes.length; i++)
+					argTypes[i] = sig.argTypes[i];
+				argTypes[argTypes.length-1] = sig.returnType;
+				mlnSig = new Signature(sig.functionName, "Boolean", argTypes);
+				converter.addFunctionalDependency(sig.functionName, argTypes.length-1);
+			}
+			converter.addSignature(mlnSig);
+		}
+		
+		if(declarationsOnly)
+			return;
+		
+		// write formulas (and auxiliary predicate definitions for special nodes) 
+		int[] order = getTopologicalOrder();
+		for(int i = 0; i < order.length; i++) {
+			RelationalNode node = getRelationalNode(order[i]);			
+
+			if(!node.isFragment())
+				continue;
+			
+			// TODO auxiliary definitions and formulas required by certain node types??
+			
+			// write conditional probability distribution
+			if(!node.hasAggregator()) {
+				converter.beginCPT(node);			
+				
+				CPT2MLNFormulas cptconverter = new CPT2MLNFormulas(node);
+				if(compactFormulas) { 
+					// convert using decision trees for compactness
+					throw new RuntimeException("Compact formulas not yet supported");
+				}
+				else {
+					// old method: direct conversion
+					CPF cpf = node.node.getCPF();
+					int[] addr = new int[cpf.getDomainProduct().length];
+					walkCPD_MLNformulas(converter, cpf, addr, 0, cptconverter.getPrecondition(), true);
+				}				
+
+				converter.endCPT();
+			}
+			// for aggregators, consider specific conversion
+			else {
+				Formula f = node.toFormula(null);
+				if(f == null)
+					throw new Exception("Don't know how to generate a formula for " + node);
+				converter.addHardFormula(f);
+			}
+		}
+	}
+
+	protected void walkCPD_MLNformulas(MLNConverter converter, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws Exception {
+		BeliefNode[] nodes = cpf.getDomainProduct();
+		if(i == addr.length) { // we have a complete address
+			// collect values of constants in order to replace references to them in the individual predicates 
+			HashMap<String,String> constantValues = new HashMap<String,String>();
+			for(int j = 0; j < addr.length; j++) {
+				RelationalNode rn = getRelationalNode(nodes[j]);
+				if(rn.isConstant) {
+					String value = ((Discrete)rn.node.getDomain()).getName(addr[j]);
+					constantValues.put(rn.functionName, value);
+				}
+			}
+			// for each element of the address obtain the corresponding literal/predicate
+			StringBuffer sb = new StringBuffer();
+			for(int j = 0; j < addr.length; j++) {
+				RelationalNode rn = getRelationalNode(nodes[j]);
+				if(!rn.isConstant) {
+					if(j > 0)
+						sb.append(" ^ ");
+					sb.append(rn.toLiteralString(addr[j], constantValues));
+				}
+			}
+			if(precondition != null) {
+				sb.append(" ^ " + precondition);
+			}
+			// get the weight
+			double weight = Math.log(cpf.getDouble(addr));
+			if(Double.isInfinite(weight)) weight = -100.0;
+			// print weight and formula
+			Formula f = Formula.fromString(sb.toString());
+			converter.addFormula(f, weight);
+		}
+		else { // the address is yet incomplete -> consider all ways of setting the next e
+			// if the node is a necessary precondition for the child node, there is only one possible setting (True)
+			RelationalNode node = getRelationalNode(nodes[i]);
+			Discrete dom = (Discrete)node.node.getDomain();
+			if(node.isPrecondition) {
+				addr[i] = dom.findName("True");
+				if(addr[i] == -1)
+					addr[i] = dom.findName("true");
+				if(addr[i] == -1)
+					throw new Exception("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
+				walkCPD_MLNformulas(converter, cpf, addr, i+1, precondition, numericWeights);
+			}
+			// otherwise consider all domain elements
+			else {
+				for(int j = 0; j < dom.getOrder(); j++) {
+					addr[i] = j;
+					walkCPD_MLNformulas(converter, cpf, addr, i+1, precondition, numericWeights);
+				}
+			}
+		}
+	}
 	
+	/**
+	 * @deprecated
+	 * @param out
+	 * @param cpf
+	 * @param addr
+	 * @param i
+	 * @param precondition
+	 * @param numericWeights
+	 * @throws Exception
+	 */
 	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address

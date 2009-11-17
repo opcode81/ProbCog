@@ -169,6 +169,9 @@ public class RelationalNode extends ExtendedNode {
 		return !isConstant && !isAuxiliary && !isBuiltInPred();
 	}
 	
+	/**
+	 * @return the full name/label of this node
+	 */
 	public String toString() {
 		return getName();		
 	}
@@ -259,27 +262,31 @@ public class RelationalNode extends ExtendedNode {
 	}
 	
 	/**
-	 * returns a logical representation of this node for a particular setting of it
-	 * @param domIdx the setting given by a domain index (for aggregated nodes, this paremeter is ignored)
+	 * returns a logical representation of the semantics of this node (only applicable to nodes with aggregators!)
 	 * @param constantValues a mapping of constant parents of this node to values (may be null)
-	 * @return a formula (for regular nodes, it will be an atom; for aggregated nodes, it can be a complex formula), null if no translation could be made
+	 * @return a formula that corresponds to the semantics of this node or null if no translation could be made
+	 * @throws Exception 
 	 */
-	public Formula toFormula(int domIdx, Map<String,String> constantValues) {
-		if(this.hasAggregator()) {
-			if(aggregator == Aggregator.FunctionalOr) {
-				// this <=> exist parameters: conjunction of parents
-				Vector<Formula> parents = new Vector<Formula>();
-				for(RelationalNode parent : this.getRelationalParents()) {
-					parents.add(parent.toFormula(0, constantValues)); // 0=true					
-				}
-				return new Biimplication(this.toLiteral(0, constantValues), new Exist(this.addParams, new Conjunction(parents)));
-			}
+	public Formula toFormula(Map<String,String> constantValues) throws Exception {
+		if(!hasAggregator())
 			return null;
+		if(aggregator == Aggregator.FunctionalOr) {
+			// this <=> exist parameters: conjunction of parents
+			Vector<Formula> parents = new Vector<Formula>();
+			for(RelationalNode parent : this.getRelationalParents()) {
+				parents.add(parent.toLiteral(0, constantValues)); // 0=true					
+			}
+			return new Biimplication(this.toLiteral(0, constantValues), new Exist(this.addParams, new Conjunction(parents)));
 		}
-		else
-			return toLiteral(domIdx, constantValues);
+		return null;
 	}
 	
+	/**
+	 * generates a logical representation of what it means to set this node to the given domain index
+	 * @param domIdx
+	 * @param constantValues
+	 * @return a logical formula (e.g. literal or (negated) equality statement)
+	 */
 	public Formula toLiteral(int domIdx, Map<String,String> constantValues) {
 		// ** special built-in predicate with special logical translation
 		if(this.functionName.equals(BUILTINPRED_NEQUALS))

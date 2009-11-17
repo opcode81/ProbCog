@@ -304,7 +304,7 @@ public class CPT2MLNFormulas {
 				if(node == mainNode)
 					haveMainNode = true;
 				int value = rbn.getDomainIndex(node.node, c.getValue());
-				Formula literal = node.toFormula(value, constantAssignment);
+				Formula literal = node.toLiteral(value, constantAssignment);
 				conjuncts.add(literal);
 			}
 			return new Conjunction(conjuncts);
