@@ -5,11 +5,21 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 
-public abstract class Sampler {
+public abstract class Sampler implements IParameterHandler {
 	protected boolean debug = false;
 	protected int numSamples = 1000;
 	protected int infoInterval = 100;
+	protected ParameterHandler paramHandler;
+	
+	public Sampler() throws Exception {
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("maxSteps", "setNumSamples");
+		paramHandler.add("infoInterval", "setInfoInterval");
+		paramHandler.add("debug", "setDebugMode");
+	}
 	
 	public static Vector<InferenceResult> getResults(SampledDistribution dist, Iterable<String> queries) {
 		// generate patterns
@@ -59,5 +69,13 @@ public abstract class Sampler {
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+	
+	public void handleParams(java.util.Map<String,String> params) throws Exception {
+		paramHandler.handle(params);
+	}
+	
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }
