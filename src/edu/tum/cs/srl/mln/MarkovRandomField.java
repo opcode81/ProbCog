@@ -120,7 +120,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      */
     protected void groundFormulas(boolean makelist, GroundingCallback gc) throws Exception {
         weightedFormulas = new Vector<WeightedFormula>();
-        for(Formula form : mln.formulas) {
+        for(Formula form : mln.getFormulas()) {
         	Double weight = mln.formula2weight.get(form);
         	if(weight == null)
         		throw new Exception(String.format("MLN does not contain assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
