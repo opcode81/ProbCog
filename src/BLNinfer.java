@@ -1,9 +1,14 @@
+import java.io.File;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
+import edu.tum.cs.bayesnets.inference.SampledDistribution;
+import edu.tum.cs.inference.BasicSampledDistribution;
+import edu.tum.cs.inference.GeneralSampledDistribution;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -47,6 +52,7 @@ public class BLNinfer {
 			boolean removeDeterministicCPTEntries = false;
 			double timeLimit = 10.0, infoIntervalTime = 1.0;
 			boolean timeLimitedInference = false;
+			String outputDistFile = null, referenceDistFile = null;
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -94,6 +100,10 @@ public class BLNinfer {
 					if(i+1 < args.length && !args[i+1].startsWith("-"))
 						timeLimit = Double.parseDouble(args[++i]);					
 				}
+				else if(args[i].equals("-od"))
+					outputDistFile = args[++i];	
+				else if(args[i].equals("-cd"))
+					referenceDistFile = args[++i];	
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -116,15 +126,17 @@ public class BLNinfer {
 				for(Algorithm a : Algorithm.values()) 
 					System.out.printf("                        %-28s  %s\n", a.toString(), a.getDescription());				
 				System.out.println(
-							         "     -py              use Python-based logic engine\n" +
 							         "     -debug           debug mode with additional outputs\n" + 
 							         "     -s               show ground network in editor\n" +
 							         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
 							         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
-							         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n");
+							         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
+							         "     -od <file>       save sampled output distribution to file\n" +
+							         "     -cd <file>       compare results to reference distribution in file\n" + 
+							         "     -py              use Python-based logic engine [deprecated]\n");
 				System.exit(1);
 			}			
-
+			
 			// determine queries
 			Pattern comma = Pattern.compile("\\s*,\\s*");
 			String[] candQueries = comma.split(query);
@@ -185,6 +197,12 @@ public class BLNinfer {
 				gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
 			}
 			
+			// read reference distribution if any
+			GeneralSampledDistribution referenceDist = null;
+			if(referenceDistFile != null) {
+				referenceDist = GeneralSampledDistribution.fromFile(new File(referenceDistFile));
+			}
+			
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
@@ -199,19 +217,40 @@ public class BLNinfer {
 			sampler.setNumSamples(maxSteps);
 			sampler.setInfoInterval(infoInterval);
 			// - run inference
-			Vector<InferenceResult> results;
+			SampledDistribution dist;
 			if(timeLimitedInference) {
+				if(!(sampler instanceof ITimeLimitedInference)) 
+					throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");					
+				ITimeLimitedInference tliSampler = (ITimeLimitedInference) sampler; 
 				sampler.setNumSamples(Integer.MAX_VALUE);
-				TimeLimitedInference tli = new TimeLimitedInference(sampler, queries, timeLimit, infoIntervalTime);
-				results = tli.run();
+				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, queries, timeLimit, infoIntervalTime);
+				tli.setReferenceDistribution(referenceDist);
+				dist = tli.run();
+				if(referenceDist != null)
+					System.out.println("MSEs: " + tli.getMSEs());				
 			}
-			else				
-				results = sampler.infer(queries);			
+			else {
+				dist = sampler.infer();
+			}
 			sw.stop();
 			
 			// print results
-			for(InferenceResult res : results)
-				res.print();
+			Sampler.printResults(dist, queries);
+			
+			// save output distribution
+			if(outputDistFile != null) {
+				GeneralSampledDistribution gdist = dist.toGeneralDistribution();
+				File f=  new File(outputDistFile);
+				gdist.write(f);		
+				GeneralSampledDistribution gdist2 = GeneralSampledDistribution.fromFile(f);
+				gdist2.print(System.out);
+			}
+			
+			// compare distributions
+			if(referenceDist != null) {				
+				System.out.println("comparing to reference distribution...");
+				compareDistributions(referenceDist, dist);
+			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -227,5 +266,10 @@ public class BLNinfer {
 				n--;
 		}
 		return n == 0;
+	}
+	
+	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2) throws Exception {
+		double mse = d1.getMSE(d2);
+		System.out.println("MSE: " + mse);
 	}
 }
