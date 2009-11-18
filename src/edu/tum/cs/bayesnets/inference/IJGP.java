@@ -40,15 +40,7 @@ public class IJGP extends Sampler {
 		}
 		// construct join-graph
 		jg = new JoinGraph(bn, bound);
-		jg.writeDOT(new File("jg.dot"));
-		//jg.print(System.out);
-		jgNodes = jg.getTopologicalorder();
-		System.out.println("Topological Order: ");
-		for (int i = 0; i < jgNodes.size(); i++){
-			System.out.println(jgNodes.get(i).getShortName());
-		}
-		System.out.println("\n");
-		
+		jg.writeDOT(new File("jg.dot"));		
 	}
 
 	/*
@@ -60,6 +52,12 @@ public class IJGP extends Sampler {
 	@Override
 	public SampledDistribution infer()
 			throws Exception {
+		// Create topological order
+		jgNodes = jg.getTopologicalorder();
+		System.out.println("Topological Order: ");
+		for (int i = 0; i < jgNodes.size(); i++){
+			System.out.println(jgNodes.get(i).getShortName());
+		}		
 		// process observed variables
 		for (JoinGraph.Node n : jgNodes) {
 			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes());
@@ -70,26 +68,32 @@ public class IJGP extends Sampler {
 					n.nodes.remove(belNode);
 			}
 		}
+		System.out.println("\n");		
 		for (int step = 1; step <= this.numSamples; step++) {
-			// for every node in JG in order and back:
+			// for every node in JG in topological order and back:
 			int s = jgNodes.size();
+			boolean direction = true;
 			for (int j = 0; j < 2 * s; j++) {
 				int i;
 				if (j < s)
 					i = j;
-				else
+				else{
 					i = 2 * s - j - 1;
+					direction = false;
+				}
 				JoinGraph.Node u = jgNodes.get(i);
-				//System.out.println(u);
+				int topIndex = jgNodes.indexOf(u);
 				for (JoinGraph.Node v : u.getNeighbors()) {
-					// construct cluster(u)
-					Cluster cluster_u = new Cluster(u);
+					if ((direction && jgNodes.indexOf(v) < topIndex) || (!direction && jgNodes.indexOf(v) > topIndex)){
+						continue;
+					}
 					Arc arc = u.getArcToNode(v);
-					// turn cluster_u into cluster_v(u)
-					cluster_u.excludeMessagesFrom(v);
+					// construct cluster_v(u)
+					Cluster cluster_u = new Cluster(u,v);
 					// Include in cluster_H each function in cluster_u which
 					// scope does not contain variables in elim(u,v)
 					HashSet<BeliefNode> elim = new HashSet<BeliefNode>(u.nodes);
+					//System.out.println(" Node " + u.getShortName() + " and node " +v.getShortName() + " have separator " + StringTool.join(", ", arc.separator));
 					elim.removeAll(arc.separator);
 					Cluster cluster_H = cluster_u.getReducedCluster(elim);
 					// denote by cluster_A the remaining functions
@@ -126,6 +130,7 @@ public class IJGP extends Sampler {
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
+			System.out.println(nodes[i].getName());
 			if (evidenceDomainIndices[i] >= 0) {
 				dist.values[i][evidenceDomainIndices[i]] = 1.0;
 				continue;
@@ -170,6 +175,7 @@ public class IJGP extends Sampler {
 	protected void computeSum(int i, BeliefNode[] varsToSumOver,
 			BeliefNode excludedNode, Cluster u, int[] nodeDomainIndices,
 			MutableDouble result) {
+		System.out.println(i);
 		if (i == varsToSumOver.length) {
 			result.value += u.product(nodeDomainIndices);
 			return;
@@ -191,20 +197,41 @@ public class IJGP extends Sampler {
 		HashSet<MessageFunction> functions = new HashSet<MessageFunction>();
 		JoinGraph.Node node;
 
-		public Cluster(JoinGraph.Node n) {
-			this.node = n;
+		public Cluster(JoinGraph.Node u) {
+			// Constructor for cluster(u)
+			this.node = u;
 			// add to the cluster all CPTs of the given node
-			for (CPF cpf : n.functions)
+			for (CPF cpf : u.functions)
 				cpts.add(cpf.getDomainProduct()[0]);
 			// add all incoming messages of n
-			for (JoinGraph.Node nb : n.getNeighbors()) {
-				JoinGraph.Arc arc = n.arcs.get(nb);
-				HashSet<MessageFunction> m = arc.getInMessage(n);
+			for (JoinGraph.Node nb : u.getNeighbors()) {
+				JoinGraph.Arc arc = u.arcs.get(nb);
+				HashSet<MessageFunction> m = arc.getInMessage(u);
 				if (!m.isEmpty())
 					functions.addAll(m);
-				HashSet<BeliefNode> bn = arc.getCPTInMessage(n);
+				HashSet<BeliefNode> bn = arc.getCPTInMessage(u);
 				if (!bn.isEmpty())
 					cpts.addAll(bn);
+			}
+		}
+		
+		public Cluster(JoinGraph.Node u, JoinGraph.Node v){
+			// Constructor for cluster_v(u)
+			this.node = u;
+			// add to the cluster all CPTs of the given node
+			for (CPF cpf : u.functions)
+				cpts.add(cpf.getDomainProduct()[0]);
+			// add all incoming messages of n
+			for (JoinGraph.Node nb : u.getNeighbors()) {
+				if (!nb.equals(v)){
+					JoinGraph.Arc arc = u.arcs.get(nb);
+					HashSet<MessageFunction> m = arc.getInMessage(u);
+					if (!m.isEmpty())
+						functions.addAll(m);
+					HashSet<BeliefNode> bn = arc.getCPTInMessage(u);
+					if (!bn.isEmpty())
+						cpts.addAll(bn);
+				}
 			}
 		}
 
@@ -335,7 +362,7 @@ public class IJGP extends Sampler {
 				compute(varsToSumOver, i + 1, nodeDomainIndices, sum);
 			}
 		}
-
+		
 		public String toString() {
 			StringBuffer sb = new StringBuffer("MF[");
 			sb.append("scope: " + StringTool.join(", ", scope));
@@ -574,8 +601,8 @@ public class IJGP extends Sampler {
 			nodes = new HashSet<Node>();
 			// apply procedure schematic mini-bucket(bound)
 			SchematicMiniBucket smb = new SchematicMiniBucket(bn, bound);
-			System.out.println("\nJoin graph decomposition:");
-			smb.print(System.out);
+			//System.out.println("\nJoin graph decomposition:");
+			//smb.print(System.out);
 			Vector<MiniBucket> minibuckets = smb.getMiniBuckets();
 			// associate each minibucket with a node
 			// System.out.println("\nJoin graph nodes:");
@@ -585,6 +612,12 @@ public class IJGP extends Sampler {
 				// System.out.println(newNode);
 				nodes.add(newNode);
 				bucket2node.put(mb, newNode);
+			}
+			// copy parent structure
+			for (MiniBucket mb : minibuckets){
+				for (MiniBucket p : mb.parents){
+					bucket2node.get(mb).parents.add(bucket2node.get(p));
+				}
 			}
 			// keep the arcs and label them by regular separator
 			for (MiniBucket mb : minibuckets) {
@@ -629,25 +662,29 @@ public class IJGP extends Sampler {
 
 		public Vector<Node> getTopologicalorder() {
 			Vector<Node> topOrder = new Vector<Node>();
-			HashSet<Node> nodesLeft = new HashSet<Node>(nodes);		
+			HashSet<Node> nodesLeft = new HashSet<Node>();
+			nodesLeft.addAll(nodes);
 			for (Node n : nodes){
-				if (n.mb.parents.isEmpty()){
+				if (n.parents.isEmpty()){
 					topOrder.add(n);
 					nodesLeft.remove(n);
 				}
 			}
-			int j = 0;
-			while(!nodesLeft.isEmpty() && j == 0){
+			//System.out.println("Start topological order with " +StringTool.join(", ", topOrder));
+			int i = 0;
+			while(!nodesLeft.isEmpty() && i < 10){
 				HashSet<Node> removeNodes = new HashSet<Node>();
+				//System.out.println(" Current order: " +StringTool.join(", ", topOrder));
 				for (Node n : nodesLeft){
-					for (int i = 0; i < topOrder.size(); i++){
-						if (n.mb.parents.contains(topOrder.get(i).mb)){
-							topOrder.insertElementAt(n, i+1);
-							removeNodes.add(n);
-						}
+					//System.out.println("   - Check for " + n.getShortName() + " with parents " + StringTool.join(", ", n.mb.parents));
+					if (topOrder.containsAll(n.parents)){
+						//System.out.println("    -- Can be inserted!");
+						topOrder.add(n);
+						removeNodes.add(n);
 					}
-				}
+				}		
 				nodesLeft.removeAll(removeNodes);
+				//i++;
 			}
 			return topOrder;
 		}
@@ -716,10 +753,12 @@ public class IJGP extends Sampler {
 			MiniBucket mb;
 			Vector<CPF> functions = new Vector<CPF>();
 			HashSet<BeliefNode> nodes = new HashSet<BeliefNode>();
+			HashSet<Node> parents;
 			HashMap<Node, Arc> arcs = new HashMap<Node, Arc>();
-
+			
 			public Node(MiniBucket mb) {
 				this.mb = mb;
+				this.parents = new HashSet<Node>();
 				for (BucketVar var : mb.items) {
 					nodes.addAll(var.nodes);
 					if (var.cpf != null)
