@@ -86,8 +86,9 @@ public class IJGP extends Sampler {
 				for (JoinGraph.Node v : u.getNeighbors()) {
 					if ((direction && jgNodes.indexOf(v) < topIndex) || (!direction && jgNodes.indexOf(v) > topIndex)){
 						continue;
-					}
+					}					
 					Arc arc = u.getArcToNode(v);
+					arc.clearOutMessages(u);
 					// construct cluster_v(u)
 					Cluster cluster_u = new Cluster(u,v);
 					// Include in cluster_H each function in cluster_u which
@@ -175,7 +176,7 @@ public class IJGP extends Sampler {
 	protected void computeSum(int i, BeliefNode[] varsToSumOver,
 			BeliefNode excludedNode, Cluster u, int[] nodeDomainIndices,
 			MutableDouble result) {
-		System.out.println(i);
+		//System.out.println(i);
 		if (i == varsToSumOver.length) {
 			result.value += u.product(nodeDomainIndices);
 			return;
@@ -746,7 +747,10 @@ public class IJGP extends Sampler {
 			public HashSet<BeliefNode> getCPTInMessage(Node n) {
 				return this.getCPTOutMessages(this.getNeighbor(n));
 			}
-
+			
+			public void clearOutMessages(Node n) {
+				outMessage.get(n).clear();				
+			}
 		}
 
 		public static class Node {
