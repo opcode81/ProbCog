@@ -40,7 +40,7 @@ public class IJGP extends Sampler {
 		}
 		// construct join-graph
 		jg = new JoinGraph(bn, bound);
-		jg.writeDOT(new File("jg.dot"));		
+		jg.writeDOT(new File("jg.dot"));
 	}
 
 	/*
@@ -50,14 +50,13 @@ public class IJGP extends Sampler {
 	 */
 
 	@Override
-	public SampledDistribution infer()
-			throws Exception {
+	public SampledDistribution infer() throws Exception {
 		// Create topological order
 		jgNodes = jg.getTopologicalorder();
 		System.out.println("Topological Order: ");
-		for (int i = 0; i < jgNodes.size(); i++){
+		for (int i = 0; i < jgNodes.size(); i++) {
 			System.out.println(jgNodes.get(i).getShortName());
-		}		
+		}
 		// process observed variables
 		for (JoinGraph.Node n : jgNodes) {
 			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes());
@@ -68,7 +67,7 @@ public class IJGP extends Sampler {
 					n.nodes.remove(belNode);
 			}
 		}
-		System.out.println("\n");		
+		System.out.println("\n");
 		for (int step = 1; step <= this.numSamples; step++) {
 			// for every node in JG in topological order and back:
 			int s = jgNodes.size();
@@ -77,24 +76,28 @@ public class IJGP extends Sampler {
 				int i;
 				if (j < s)
 					i = j;
-				else{
+				else {
 					i = 2 * s - j - 1;
 					direction = false;
 				}
 				JoinGraph.Node u = jgNodes.get(i);
+				System.out.println("Handling number " + i + " of " + s + ": " + u.getShortName() + "\n");
 				int topIndex = jgNodes.indexOf(u);
 				for (JoinGraph.Node v : u.getNeighbors()) {
-					if ((direction && jgNodes.indexOf(v) < topIndex) || (!direction && jgNodes.indexOf(v) > topIndex)){
+					if ((direction && jgNodes.indexOf(v) < topIndex)
+							|| (!direction && jgNodes.indexOf(v) > topIndex)) {
 						continue;
 					}					
 					Arc arc = u.getArcToNode(v);
 					arc.clearOutMessages(u);
 					// construct cluster_v(u)
-					Cluster cluster_u = new Cluster(u,v);
+					Cluster cluster_u = new Cluster(u, v);
 					// Include in cluster_H each function in cluster_u which
 					// scope does not contain variables in elim(u,v)
 					HashSet<BeliefNode> elim = new HashSet<BeliefNode>(u.nodes);
-					//System.out.println(" Node " + u.getShortName() + " and node " +v.getShortName() + " have separator " + StringTool.join(", ", arc.separator));
+					// System.out.println(" Node " + u.getShortName() +
+					// " and node " +v.getShortName() + " have separator " +
+					// StringTool.join(", ", arc.separator));
 					elim.removeAll(arc.separator);
 					Cluster cluster_H = cluster_u.getReducedCluster(elim);
 					// denote by cluster_A the remaining functions
@@ -112,15 +115,16 @@ public class IJGP extends Sampler {
 					for (BeliefNode n : elim)
 						varsToSumOver[k++] = bn.getNodeIndex(n);
 					// create message function and send to v
-					MessageFunction m = new MessageFunction(
-							arc.separator, varsToSumOver,
-							cluster_A);
+					MessageFunction m = new MessageFunction(arc.separator,
+							varsToSumOver, cluster_A);
+					m.calcuSave(evidenceDomainIndices.clone());
 					arc.addOutMessage(u, m);
 					for (MessageFunction mf : cluster_H.functions) {
+						mf.calcuSave(evidenceDomainIndices.clone());
 						arc.addOutMessage(u, mf);
 					}
-					for (BeliefNode n : cluster_H.cpts){
-						arc.addCPTOutMessage(u,n); 
+					for (BeliefNode n : cluster_H.cpts) {
+						arc.addCPTOutMessage(u, n);
 					}
 				}
 			}
@@ -131,7 +135,7 @@ public class IJGP extends Sampler {
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
-			System.out.println(nodes[i].getName());
+			System.out.println("Computing: " + nodes[i].getName() + "\n");
 			if (evidenceDomainIndices[i] >= 0) {
 				dist.values[i][evidenceDomainIndices[i]] = 1.0;
 				continue;
@@ -176,7 +180,6 @@ public class IJGP extends Sampler {
 	protected void computeSum(int i, BeliefNode[] varsToSumOver,
 			BeliefNode excludedNode, Cluster u, int[] nodeDomainIndices,
 			MutableDouble result) {
-		//System.out.println(i);
 		if (i == varsToSumOver.length) {
 			result.value += u.product(nodeDomainIndices);
 			return;
@@ -215,8 +218,8 @@ public class IJGP extends Sampler {
 					cpts.addAll(bn);
 			}
 		}
-		
-		public Cluster(JoinGraph.Node u, JoinGraph.Node v){
+
+		public Cluster(JoinGraph.Node u, JoinGraph.Node v) {
 			// Constructor for cluster_v(u)
 			this.node = u;
 			// add to the cluster all CPTs of the given node
@@ -224,7 +227,7 @@ public class IJGP extends Sampler {
 				cpts.add(cpf.getDomainProduct()[0]);
 			// add all incoming messages of n
 			for (JoinGraph.Node nb : u.getNeighbors()) {
-				if (!nb.equals(v)){
+				if (!nb.equals(v)) {
 					JoinGraph.Arc arc = u.arcs.get(nb);
 					HashSet<MessageFunction> m = arc.getInMessage(u);
 					if (!m.isEmpty())
@@ -302,7 +305,7 @@ public class IJGP extends Sampler {
 			// deletes all functions and arcs of the cluster that are also in
 			// cluster c2
 			for (BeliefNode n : ((HashSet<BeliefNode>) c2.cpts.clone())) { // TODO
-																			// nonsense
+				// nonsense
 				cpts.remove(n);
 			}
 			for (MessageFunction m : ((HashSet<MessageFunction>) c2.functions
@@ -328,6 +331,7 @@ public class IJGP extends Sampler {
 	protected class MessageFunction {
 
 		protected int[] varsToSumOver;
+		protected MessageTable table;
 		HashSet<BeliefNode> cpts;
 		Iterable<MessageFunction> childFunctions;
 		HashSet<BeliefNode> scope;
@@ -338,12 +342,39 @@ public class IJGP extends Sampler {
 			this.varsToSumOver = varsToSumOver;
 			this.cpts = cluster.cpts;
 			this.childFunctions = cluster.functions;
+			this.table = null;
+		}
+
+		public void calcuSave(int[] nodeDomainIndices) {
+			table = new MessageTable(new Vector<BeliefNode>(scope), 0);
+			int[] scopeToSumOver = new int[scope.size()];
+			int k = 0;
+			for (BeliefNode n : scope)
+				scopeToSumOver[k++] = bn.getNodeIndex(n);
+			calcuSave(scopeToSumOver, 0, nodeDomainIndices.clone());
+		}
+
+		public void calcuSave(int[] scopeToSumOver, int i, int[] nodeDomainIndices) {
+			if (i == scope.size()) {
+				table.addEntry(nodeDomainIndices, compute(nodeDomainIndices));
+				return;
+			} else {
+				int idxVar = scopeToSumOver[i];
+				for (int v = 0; v < nodes[idxVar].getDomain().getOrder(); v++) {
+					nodeDomainIndices[idxVar] = v;
+					calcuSave(scopeToSumOver, i + 1, nodeDomainIndices);
+				}
+			}
 		}
 
 		public double compute(int[] nodeDomainIndices) {
-			MutableDouble result = new MutableDouble(0.0);
-			compute(varsToSumOver, 0, nodeDomainIndices.clone(), result);
-			return result.value;
+			if (!table.containsEntry(nodeDomainIndices)) {
+				MutableDouble sum = new MutableDouble(0.0);
+				compute(varsToSumOver, 0, nodeDomainIndices, sum);
+				return sum.value;
+			} else {
+				return table.getEntry(nodeDomainIndices);
+			}
 		}
 
 		protected void compute(int[] varsToSumOver, int i,
@@ -363,7 +394,7 @@ public class IJGP extends Sampler {
 				compute(varsToSumOver, i + 1, nodeDomainIndices, sum);
 			}
 		}
-		
+
 		public String toString() {
 			StringBuffer sb = new StringBuffer("MF[");
 			sb.append("scope: " + StringTool.join(", ", scope));
@@ -378,6 +409,79 @@ public class IJGP extends Sampler {
 			sb.append(StringTool.join("; ", this.childFunctions));
 			sb.append("]");
 			return sb.toString();
+		}
+
+		protected class MessageTable {
+
+			protected Vector<BeliefNode> scope;
+			protected boolean leaf;
+			protected MessageTable[] map;
+			protected Double[] result;
+
+			public MessageTable(Vector<BeliefNode> scope, int i) {
+				int domSize = scope.get(i).getDomain().getOrder();
+				this.map = new MessageTable[domSize];
+				this.scope = scope;
+				if (i == scope.size() - 1) {
+					leaf = true;
+					result = new Double[domSize];
+				} else {
+					leaf = false;
+					result = null;
+					for (int j = 0; j < scope.get(i).getDomain().getOrder(); j++) {
+						map[j] = new MessageTable(scope, i + 1);
+					}
+				}
+			}
+
+			public void addEntry(int[] domainIndices, double entry) {
+				addEntry(domainIndices, 0, entry);
+			}
+
+			public void addEntry(int[] domainIndices, int i, double entry) {
+				if (i != scope.size() - 1) {
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					map[idx].addEntry(domainIndices, i + 1, entry);
+				} else {
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					result[idx] = entry;
+				}
+			}
+
+			public double getEntry(int[] domainIndices) {
+				return getEntry(domainIndices, 0);
+			}
+
+			public double getEntry(int[] domainIndices, int i) {
+				if (i != scope.size() - 1) {
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					return map[idx].getEntry(domainIndices, i + 1);
+				} 
+				else {
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					return result[idx];
+				}
+			}
+			
+			public boolean containsEntry(int[] domainIndices){
+				return containsEntry(domainIndices, 0);
+			}
+			
+			public boolean containsEntry(int[] domainIndices, int i){
+				if (i != scope.size() - 1){
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					if (map[idx] == null){
+						return false;
+					}
+					else{
+						return map[idx].containsEntry(domainIndices, i+1);
+					}
+				}
+				else{
+					int idx = domainIndices[bn.getNodeIndex(scope.get(i))];
+					return (result[idx] != null);
+				}
+			}
 		}
 	}
 
@@ -415,9 +519,9 @@ public class IJGP extends Sampler {
 			// topological order
 			BeliefNode maxNode = null;
 			int[] topOrder = bn.getTopologicalOrder();
-			for (int i = topOrder.length - 1; i > -1; i--){
-				for (BeliefNode node : nodes){
-					if (bn.getNodeIndex(node) == topOrder[i]){
+			for (int i = topOrder.length - 1; i > -1; i--) {
+				for (BeliefNode node : nodes) {
+					if (bn.getNodeIndex(node) == topOrder[i]) {
 						return node;
 					}
 				}
@@ -500,7 +604,7 @@ public class IJGP extends Sampler {
 					}
 				}
 				if (count.size() + newNodes > bound) { // create a new
-														// minibucket
+					// minibucket
 					minibuckets.add(new MiniBucket(this));
 					count.clear();
 					count.addAll(bv.nodes);
@@ -602,8 +706,8 @@ public class IJGP extends Sampler {
 			nodes = new HashSet<Node>();
 			// apply procedure schematic mini-bucket(bound)
 			SchematicMiniBucket smb = new SchematicMiniBucket(bn, bound);
-			//System.out.println("\nJoin graph decomposition:");
-			//smb.print(System.out);
+			// System.out.println("\nJoin graph decomposition:");
+			// smb.print(System.out);
 			Vector<MiniBucket> minibuckets = smb.getMiniBuckets();
 			// associate each minibucket with a node
 			// System.out.println("\nJoin graph nodes:");
@@ -615,8 +719,8 @@ public class IJGP extends Sampler {
 				bucket2node.put(mb, newNode);
 			}
 			// copy parent structure
-			for (MiniBucket mb : minibuckets){
-				for (MiniBucket p : mb.parents){
+			for (MiniBucket mb : minibuckets) {
+				for (MiniBucket p : mb.parents) {
 					bucket2node.get(mb).parents.add(bucket2node.get(p));
 				}
 			}
@@ -665,27 +769,30 @@ public class IJGP extends Sampler {
 			Vector<Node> topOrder = new Vector<Node>();
 			HashSet<Node> nodesLeft = new HashSet<Node>();
 			nodesLeft.addAll(nodes);
-			for (Node n : nodes){
-				if (n.parents.isEmpty()){
+			for (Node n : nodes) {
+				if (n.parents.isEmpty()) {
 					topOrder.add(n);
 					nodesLeft.remove(n);
 				}
 			}
-			//System.out.println("Start topological order with " +StringTool.join(", ", topOrder));
+			// System.out.println("Start topological order with "
+			// +StringTool.join(", ", topOrder));
 			int i = 0;
-			while(!nodesLeft.isEmpty() && i < 10){
+			while (!nodesLeft.isEmpty() && i < 10) {
 				HashSet<Node> removeNodes = new HashSet<Node>();
-				//System.out.println(" Current order: " +StringTool.join(", ", topOrder));
-				for (Node n : nodesLeft){
-					//System.out.println("   - Check for " + n.getShortName() + " with parents " + StringTool.join(", ", n.mb.parents));
-					if (topOrder.containsAll(n.parents)){
-						//System.out.println("    -- Can be inserted!");
+				// System.out.println(" Current order: " +StringTool.join(", ",
+				// topOrder));
+				for (Node n : nodesLeft) {
+					// System.out.println("   - Check for " + n.getShortName() +
+					// " with parents " + StringTool.join(", ", n.mb.parents));
+					if (topOrder.containsAll(n.parents)) {
+						// System.out.println("    -- Can be inserted!");
 						topOrder.add(n);
 						removeNodes.add(n);
 					}
-				}		
+				}
 				nodesLeft.removeAll(removeNodes);
-				//i++;
+				// i++;
 			}
 			return topOrder;
 		}
@@ -736,6 +843,7 @@ public class IJGP extends Sampler {
 			public HashSet<MessageFunction> getInMessage(Node n) {
 				return this.getOutMessages(this.getNeighbor(n));
 			}
+
 			public void addCPTOutMessage(Node n, BeliefNode bn) {
 				outCPTMessage.get(n).add(bn);
 			}
@@ -749,7 +857,8 @@ public class IJGP extends Sampler {
 			}
 			
 			public void clearOutMessages(Node n) {
-				outMessage.get(n).clear();				
+				outMessage.get(n).clear();
+				outCPTMessage.get(n).clear();
 			}
 		}
 
@@ -759,7 +868,7 @@ public class IJGP extends Sampler {
 			HashSet<BeliefNode> nodes = new HashSet<BeliefNode>();
 			HashSet<Node> parents;
 			HashMap<Node, Arc> arcs = new HashMap<Node, Arc>();
-			
+
 			public Node(MiniBucket mb) {
 				this.mb = mb;
 				this.parents = new HashSet<Node>();
