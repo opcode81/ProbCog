@@ -54,6 +54,8 @@ public class MCSAT extends Sampler {
 		// clean up
 		hardConstraintsInCPTs = null;
 		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(kb, gbln.getWorldVars(), gbln.getDatabase());
+		// parameter handling
+		paramHandler.addSubhandler(sampler.getParameterHandler());
 	}
 	
 	protected void walkCPT4ClauseCollection(CPF cpf, BeliefNode[] domProd, int[] domainIndices, int i) throws Exception {

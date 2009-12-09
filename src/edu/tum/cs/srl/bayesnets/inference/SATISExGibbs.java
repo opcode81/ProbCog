@@ -42,7 +42,7 @@ public class SATISExGibbs extends SATISEx {
 			gibbsSampler = new GibbsSampling(gbln.getGroundNetwork());
 		}
 		
-		public void onAddedSample(WeightedSample s) {
+		public void onAddedSample(WeightedSample s) throws Exception {
 			for(int i = 0; i < 9; i++) {
 				gibbsSampler.gibbsStep(this.evidenceDomainIndices, s);
 				addSample(s);

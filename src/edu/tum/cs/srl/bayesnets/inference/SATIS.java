@@ -34,22 +34,30 @@ public class SATIS extends BNSampler {
 	 * the set of nodes whose values are determined by the SAT sampler (because they are part of a hard logical constraint)
 	 */
 	HashSet<BeliefNode> determinedVars;
+	boolean unitPropagation = false;
 	
 	public SATIS(GroundBLN bln) throws Exception {
 		super(bln, SATIS_BSampler.class);
-		gbln = bln;		
-		initSATSampler();
+		gbln = bln;
+		this.paramHandler.add("unitPropagation", "setUnitPropagation");
+
+		// create SAT sampler
+		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
+		//ss = new SampleSAT(state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
+		ss = new SampleSATPriors(state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
+		paramHandler.addSubhandler(ss.getParameterHandler());
+	}
+	
+	public void setUnitPropagation(boolean enabled) {
+		unitPropagation = enabled;
 	}
 	
 	protected void initSATSampler() throws Exception {
 		System.out.println("initializing SAT sampler...");
-		// create SAT sampler
-		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
+				
+		if(unitPropagation) ss.enableUnitPropagation();		
 		ClausalKB ckb = getClausalKB();
-		//ss = new SampleSAT(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
-		ss = new SampleSATPriors(ckb, state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
-		paramHandler.addSubhandler(ss.getParameterHandler());
-		ss.enableUnitPropagation();
+		ss.initConstraints(ckb);
 		
 		// get the set of variables that is determined by the sat sampler
 		determinedVars = new HashSet<BeliefNode>();
@@ -68,18 +76,27 @@ public class SATIS extends BNSampler {
 	}
 	
 	@Override
-	protected Sampler getSampler() {
+	protected Sampler getSampler() throws Exception {
+		initSATSampler();
 		return new SATIS_BSampler(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}
 	
+	/**
+	 * SampleSAT samples uniformly from the set of solutions.
+	 * If there is a large number of solutions and many of them are improbable, then
+	 * the sampled distribution may be dominated by a few high-probability worlds that
+	 * were sampled. To prevent this, we use the prior to initialize random variables,
+	 * thus introducing a slight bias towards worlds with higher probability.
+	 * @author jain
+	 */
 	protected class SampleSATPriors extends SampleSAT {
 
 		BeliefNetworkEx bn;
 		HashMap<BeliefNode, double[]> priors = null;
 		Random generator;
 		
-		public SampleSATPriors(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db, BeliefNetworkEx bn) throws Exception {
-			super(kb, state, vars, db);
+		public SampleSATPriors(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db, BeliefNetworkEx bn) throws Exception {
+			super(state, vars, db);
 			this.bn = bn;
 			generator = new Random();
 		}
