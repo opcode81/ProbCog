@@ -76,4 +76,32 @@ public abstract class BasicSampledDistribution implements Serializable {
 		}
 		return sum / cnt;
 	}
+
+	/**
+	 * gets the mean error of another distribution d, assuming that values of this distribution are correct
+	 * @param d the other distribution
+	 * @return the mean squared error (across all entries of the distribution)
+	 * @throws Exception
+	 */
+	public double getME(BasicSampledDistribution d) throws Exception {
+		int cnt = 0;
+		double sum = 0;
+		for(int i = 0; i < values.length; i++) {
+			String varName = this.getVariableName(i);
+			String[] dom = this.getDomain(i);
+			int i2 = d.getVariableIndex(varName);
+			if(i2 < 0) 
+				throw new Exception("Variable " + this.getVariableName(i) + " has no correspondence in second distribution");
+			for(int j = 0; j < values[i].length; j++) {
+				double correct = getProbability(i, j);
+				double actual = d.getProbability(i2, j);
+				double error = Math.abs(correct - actual);
+				if(error != 0.0) System.out.printf("%s=%s: %f %f -> %f\n", varName, dom[j], correct, actual, error);				
+				//error *= error;
+				sum += error;
+				cnt++;
+			}
+		}
+		return sum / cnt;
+	}
 }
