@@ -250,6 +250,6 @@ public class SATIS_BSampler extends BackwardSampling {
 	
 	@Override
 	public String getAlgorithmName() {
-		return String.format("SATIS_BSampler[%s]", sat.getAlgorithmName());
+		return String.format("%s[%s]", getClass().getSimpleName(), sat.getAlgorithmName());
 	}
 }
