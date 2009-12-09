@@ -45,7 +45,14 @@ public abstract class Sampler implements ITimeLimitedInference {
 		this.dist = new SampledDistribution(bn);
 	}
 	
-	protected synchronized void addSample(WeightedSample s) {
+	protected synchronized void addSample(WeightedSample s) throws Exception {
+		// security check: in debug mode, check if sample respects evidence
+		if(debug) {
+			for(int i = 0; i < evidenceDomainIndices.length; i++)
+				if(evidenceDomainIndices[i] >= 0 && s.nodeDomainIndices[i] != evidenceDomainIndices[i])
+					throw new Exception("Attempted to add sample to distribution that does not respect evidence");
+		}
+		// add to distribution
 		this.dist.addSample(s);
 	}
 	
