@@ -5,7 +5,7 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 
-public class ExtendedNode {
+public abstract class ExtendedNode {
 	/**
 	 * a reference to the BeliefNode that this node extends
 	 */
