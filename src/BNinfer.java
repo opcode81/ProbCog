@@ -81,7 +81,7 @@ public class BNinfer {
 						             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
 						             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
 						             "   options:\n\n" +
-									 "     -maxSteps #      the maximum number of steps to take (default: 1000)\n" +
+									 "     -maxSteps #      the maximum number of steps to take, where applicable (default: 1000)\n" +
 									 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
 									 "     -infoInterval #  the number of steps after which to output a status message\n" +
 									 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +	
