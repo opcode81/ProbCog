@@ -104,11 +104,13 @@ public class BLNinfer {
 					if(i+1 < args.length && !args[i+1].startsWith("-"))
 						timeLimit = Double.parseDouble(args[++i]);					
 				}
+				else if(args[i].equals("-infoTime")) 
+					infoIntervalTime = Double.parseDouble(args[++i]);
 				else if(args[i].equals("-od"))
 					outputDistFile = args[++i];	
 				else if(args[i].equals("-cd"))
 					referenceDistFile = args[++i];
-				else if(args[i].startsWith("-p")) { // algorithm-specific parameter
+				else if(args[i].startsWith("-p") || args[i].startsWith("--")) { // algorithm-specific parameter
 					String[] pair = args[i].substring(2).split("=");
 					if(pair.length != 2)
 						throw new Exception("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
@@ -136,7 +138,7 @@ public class BLNinfer {
 				for(Algorithm a : Algorithm.values()) 
 					System.out.printf("                        %-28s  %s\n", a.toString(), a.getDescription());				
 				System.out.println(
-									 "     -p<key>=<value>  set algorithm-specific parameter\n" +
+									 "     --<key>=<value>  set algorithm-specific parameter\n" +
 							         "     -debug           debug mode with additional outputs\n" + 
 							         "     -s               show ground network in editor\n" +
 							         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
@@ -263,7 +265,7 @@ public class BLNinfer {
 			// compare distributions
 			if(referenceDist != null) {				
 				System.out.println("comparing to reference distribution...");
-				compareDistributions(referenceDist, dist);
+				compareDistributions(referenceDist, dist, true);
 			}
 		}
 		catch(Exception e) {
@@ -282,8 +284,10 @@ public class BLNinfer {
 		return n == 0;
 	}
 	
-	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2) throws Exception {
+	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2, boolean all) throws Exception {
 		double mse = d1.getMSE(d2);
 		System.out.println("MSE: " + mse);
+		double me = d1.getME(d2);
+		System.out.println("ME: " + me);
 	}
 }
