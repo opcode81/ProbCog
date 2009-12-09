@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.Vector;
 
 public class ParameterHandler {
+	/**
+	 * maps parameter names to ParameterMapping objects that can apply them
+	 */
 	protected java.util.HashMap<String, ParameterMapping> mappings;
 	protected Object owner;
 	protected Vector<ParameterHandler> subhandlers;
@@ -29,20 +32,20 @@ public class ParameterHandler {
 				if(paramTypes.length != 1)
 					continue;
 				mappings.put(paramName, new ParameterMapping(m));
-				return;
+				return;  
 			}
 		}
 		throw new Exception("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
 	}
 	
-	public void addSubhandler(ParameterHandler h) {
+	public void addSubhandler(ParameterHandler h) throws Exception {
 		subhandlers.add(h);
 	}
 	
 	public void handle(Map<String, String> params) throws Exception {
 		for(java.util.Map.Entry<String, String> e : params.entrySet()) {
 			if(!handle(e.getKey(), e.getValue()))
-				System.err.println("WARNING: parameter " + e.getKey() + " unhandled!");
+				throw new Exception("Parameter " + e.getKey() + " unhandled! Known parameters: " + this.getHandledParameters().toString());
 		}
 	}
 	
@@ -57,6 +60,19 @@ public class ParameterHandler {
 			if(h.handle(paramName, value))
 				handled = true;
 		return handled;
+	}
+	
+	public Vector<String> getHandledParameters() {
+		Vector<String> ret = new Vector<String>();
+		getHandledParameters(ret);
+		return ret; 
+	}
+	
+	protected void getHandledParameters(Vector<String> ret) {
+		for(String param : mappings.keySet())
+			ret.add(param);
+		for(ParameterHandler h : subhandlers)
+			h.getHandledParameters(ret);
 	}
 	
 	protected class ParameterMapping {
@@ -76,11 +92,15 @@ public class ParameterHandler {
 				setterMethod.invoke(owner, Integer.parseInt(value));
 				return;
 			}
+			if(paramType == Boolean.class || paramType == boolean.class) {
+				setterMethod.invoke(owner, Boolean.parseBoolean(value));
+				return;
+			}
 			if(paramType == String.class) {
 				setterMethod.invoke(owner, value);
 				return;
 			}
-			throw new Exception("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName());
+			throw new Exception("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
 		}
 	}
 }
