@@ -24,19 +24,28 @@ import edu.tum.cs.util.datastruct.Map2D;
  * @author jain
  */
 public class SATISEx extends SATIS {
+	/**
+	 * whether to exploit context-specific independence (CSI) when extending the KB
+	 */
+	boolean exploitCSI = false;
 
 	public SATISEx(GroundBLN bln) throws Exception {
 		super(bln);
+		this.paramHandler.add("useCSI", "useCSI");
+	}
+	
+	public void useCSI(boolean active) {
+		exploitCSI = active;
 	}
 	
 	@Override
 	protected ClausalKB getClausalKB() throws Exception {
 		ClausalKB ckb = super.getClausalKB();
 		
-		// extend the KB with formulas based on a CPD analysis
-		boolean exploitCSI = true; // whether to exploit context-specific independence (CSI)
-		if(exploitCSI) {
-			
+		// extend the KB with formulas based on a CPD analysis		
+		if(!exploitCSI)
+			SATIS_BSampler.extendKBWithDeterministicConstraintsInCPTs(gbln.getGroundNetwork(), gbln.getCoupling(), ckb, gbln.getDatabase());
+		else {			
 			// gather the hard constraints for each fragment
 			System.out.println("CSI analysis...");
 			Map2D<RelationalNode, String, Vector<Formula>> constraints = new Map2D<RelationalNode, String, Vector<Formula>>();
@@ -129,8 +138,6 @@ public class SATISEx extends SATIS {
 			}
 			System.out.printf("added %d constraints\n", ckb.size()-sizeBefore);
 		}
-		else 
-			SATIS_BSampler.extendKBWithDeterministicConstraintsInCPTs(gbln.getGroundNetwork(), gbln.getCoupling(), ckb, gbln.getDatabase());
 		
 		return ckb;
 	}
