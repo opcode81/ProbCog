@@ -90,4 +90,20 @@ public class DecisionNode extends ExtendedNode {
 		// call other implementation
 		return isTrue(varBinding, new PossibleWorldFromDatabase(this.bn, db, closedWorld), worldVars, db);
 	}
+	
+	@Override
+	public String toString() {
+		if(operator != null) {
+			Collection<DecisionNode> parents = this.getDecisionParents();
+			switch(operator) {
+			case Negation:
+				return "!(" + parents.iterator().next().toString() + ")";		
+			default:
+				throw new RuntimeException("Operator not handled");
+			}
+		}
+		else {
+			return this.formula.toString();
+		}	
+	}
 }
