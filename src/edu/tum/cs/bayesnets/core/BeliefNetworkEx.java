@@ -1102,4 +1102,17 @@ success:while (!successful) {
 			}
 		}
 	}
+	
+	/**
+	 * gets the probability of the possible world given by the vector of domain indices
+	 * @param nodeDomainIndices domain indices for each of the node's random variables
+	 * @return
+	 */
+	public double getWorldProbability(int[] nodeDomainIndices) {
+		BeliefNode[] nodes = bn.getNodes();
+		double ret = 1.0;
+		for(int i = 0; i < nodes.length; i++)
+			ret *= getCPTProbability(nodes[i], nodeDomainIndices);
+		return ret;
+	}
 }
