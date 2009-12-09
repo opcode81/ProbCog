@@ -55,7 +55,6 @@ public class SampleSAT implements IParameterHandler {
 	
 	
 	/**
-	 * reads the evidence, sets the evidence in the random state and initializes this sampler for the set of constraints given in kb
 	 * @param kb a collection of clauses to satisfy (such as a ClausalKB)
 	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
 	 * @param vars the set of variables the SAT problem is defined on
@@ -78,6 +77,17 @@ public class SampleSAT implements IParameterHandler {
 		evidenceHandler = new EvidenceHandler(vars, db);
 		evidence = evidenceHandler.getEvidence();
 	}
+
+	/**
+	 * initializes the sampler without a set of constraints 
+	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
+	 * @param vars the set of variables the SAT problem is defined on
+	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
+	 * @throws Exception
+	 */
+	public SampleSAT(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception { 
+		this(null, state, vars, db);
+	}
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
@@ -91,7 +101,7 @@ public class SampleSAT implements IParameterHandler {
 	}
 	
 	/**
-	 * prepares this sampler for a new set of constraints. NOTE: This method only needs to be called explicitly when switching to a new set of constraints; not if the set of constraints passed at construction is to be used)
+	 * prepares this sampler for a new set of constraints. NOTE: This method only needs to be called explicitly when switching to a new set of constraints or when using the construction method without the KB
 	 * @param kb
 	 * @throws Exception 
 	 */
@@ -622,6 +632,6 @@ public class SampleSAT implements IParameterHandler {
 	}
 	
 	public String getAlgorithmName() {
-		return String.format("SampleSAT[%f;%f]", pSampleSAT, pWalkSAT);
+		return String.format("%s[%f;%f]", this.getClass().getSimpleName(), pSampleSAT, pWalkSAT);
 	}
 }
