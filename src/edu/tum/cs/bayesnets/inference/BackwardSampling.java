@@ -267,8 +267,11 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			//System.out.println("after forward: weight = " + s.weight);
 			// nodes outside the sampling order: adjust weight
 			for(BeliefNode node : outsideSamplingOrder) {
-				s.weight *= this.getCPTProbability(node, s.nodeDomainIndices);
+				double p = this.getCPTProbability(node, s.nodeDomainIndices);
+				s.weight *= p;
 				if(s.weight == 0.0) {
+					if(p != 0.0)
+						throw new Exception("Precision loss in weight calculation");
 					// error diagnosis					
 					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					if(debug && this instanceof BackwardSamplingWithPriors) {
@@ -308,6 +311,6 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 		return true;
 	}
 	
-	protected void onAddedSample(WeightedSample s) {		
+	protected void onAddedSample(WeightedSample s) throws Exception {		
 	}
 }
