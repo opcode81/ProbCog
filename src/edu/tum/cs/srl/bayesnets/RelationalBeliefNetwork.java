@@ -1,7 +1,6 @@
 package edu.tum.cs.srl.bayesnets;
 
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -504,7 +503,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		// write formulas (and auxiliary predicate definitions for special nodes) 
 		int[] order = getTopologicalOrder();
 		for(int i = 0; i < order.length; i++) {
-			RelationalNode node = getRelationalNode(order[i]);			
+			ExtendedNode extNode = getExtendedNode(order[i]);
+			if(!(extNode instanceof RelationalNode))
+				continue;
+			RelationalNode node = (RelationalNode) extNode;			
 
 			if(!node.isFragment())
 				continue;
@@ -545,20 +547,32 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			// collect values of constants in order to replace references to them in the individual predicates 
 			HashMap<String,String> constantValues = new HashMap<String,String>();
 			for(int j = 0; j < addr.length; j++) {
-				RelationalNode rn = getRelationalNode(nodes[j]);
-				if(rn.isConstant) {
-					String value = ((Discrete)rn.node.getDomain()).getName(addr[j]);
-					constantValues.put(rn.functionName, value);
+				ExtendedNode extNode = getExtendedNode(nodes[j]);
+				if(extNode instanceof RelationalNode) {
+					RelationalNode rn = getRelationalNode(nodes[j]);
+					if(rn.isConstant) {
+						String value = ((Discrete)rn.node.getDomain()).getName(addr[j]);
+						constantValues.put(rn.functionName, value);
+					}
 				}
 			}
 			// for each element of the address obtain the corresponding literal/predicate
 			StringBuffer sb = new StringBuffer();
 			for(int j = 0; j < addr.length; j++) {
-				RelationalNode rn = getRelationalNode(nodes[j]);
-				if(!rn.isConstant) {
-					if(j > 0)
+				String conjunct = null;
+				ExtendedNode extNode = getExtendedNode(nodes[j]);
+				if(extNode instanceof DecisionNode) {
+					conjunct = extNode.toString();
+				}
+				else {
+					RelationalNode rn = (RelationalNode)extNode;
+					if(!rn.isConstant)
+						conjunct = rn.toLiteralString(addr[j], constantValues);					
+				}
+				if(conjunct != null) {
+					if(sb.length() > 0)
 						sb.append(" ^ ");
-					sb.append(rn.toLiteralString(addr[j], constantValues));
+					sb.append(conjunct);
 				}
 			}
 			if(precondition != null) {
@@ -568,19 +582,38 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			double weight = Math.log(cpf.getDouble(addr));
 			if(Double.isInfinite(weight)) weight = -100.0;
 			// print weight and formula
-			Formula f = Formula.fromString(sb.toString());
+			Formula f;
+			try {
+				f = Formula.fromString(sb.toString());
+			}
+			catch(Error e) {
+				System.err.println("Error parsing formula: " + sb.toString());
+				throw e;				
+			}
+			catch(Exception e) {
+				System.err.println("Error parsing formula: " + sb.toString());
+				throw e;
+			}
 			converter.addFormula(f, weight);
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			// if the node is a necessary precondition for the child node, there is only one possible setting (True)
-			RelationalNode node = getRelationalNode(nodes[i]);
-			Discrete dom = (Discrete)node.node.getDomain();
-			if(node.isPrecondition) {
+			boolean isPrecondition = false;
+			ExtendedNode extNode = getExtendedNode(nodes[i]);
+			RelationalNode node;
+			if(extNode instanceof DecisionNode) 
+				isPrecondition = true;
+			else {
+				node = (RelationalNode) extNode;
+				isPrecondition = node.isPrecondition;
+			}
+			Discrete dom = (Discrete)extNode.node.getDomain();
+			if(isPrecondition) {
 				addr[i] = dom.findName("True");
 				if(addr[i] == -1)
 					addr[i] = dom.findName("true");
 				if(addr[i] == -1)
-					throw new Exception("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
+					throw new Exception("Domain of necessary precondition " + extNode + " must contain either 'True' or 'true'!");
 				walkCPD_MLNformulas(converter, cpf, addr, i+1, precondition, numericWeights);
 			}
 			// otherwise consider all domain elements
