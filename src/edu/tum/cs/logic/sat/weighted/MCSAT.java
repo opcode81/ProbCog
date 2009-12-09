@@ -6,33 +6,41 @@
  */
 package edu.tum.cs.logic.sat.weighted;
 
+import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.Database;
 
-public class MCSAT {
+public class MCSAT implements IParameterHandler {
 
 	protected WeightedClausalKB kb;
 	protected WorldVariables vars;
 	protected Database db; 
 	protected Random rand;
 	protected SampledDistribution dist;
-	protected double p = 0.9;
 	protected boolean verbose = false, debug = false;
 	protected int infoInterval = 100;
+	protected ParameterHandler paramHandler;
+	protected SampleSAT sat;
 	
-	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) {		
+	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) throws Exception {		
 		this.kb = kb;
 		this.vars = vars;
 		this.db = db;
 		this.rand = new Random();
 		this.dist = new SampledDistribution(vars);
+		this.paramHandler = new ParameterHandler(this);
+		PossibleWorld state = new PossibleWorld(vars);
+		sat = new SampleSAT(state, vars, db.getEntries());				
+		paramHandler.addSubhandler(sat.getParameterHandler());
 	}
 	
 	public void setVerbose(boolean verbose) {
@@ -54,7 +62,7 @@ public class MCSAT {
 				System.out.println("  " + wc);
 		}
 		if(verbose) 
-			System.out.printf("MC-SAT sampling [p=%f]...\n", p);		
+			System.out.printf("%s sampling...\n", this.getAlgorithmName());		
 		
 		// find initial state satisfying all hard constraints
 		Vector<WeightedClause> M = new Vector<WeightedClause>();
@@ -63,11 +71,9 @@ public class MCSAT {
 			if(wf.isHard) {
 				M.addAll(e.getValue());
 			}
-		}
-		PossibleWorld state = new PossibleWorld(vars);
-		SampleSAT sat = new SampleSAT(M, state, vars, db.getEntries());
+		}		
 		sat.setDebugMode(debug);
-		sat.setPSampleSAT(p);
+		sat.initConstraints(M);
 		sat.run();
 		
 		// actual MC-SAT sampling
@@ -101,14 +107,14 @@ public class MCSAT {
 	}
 	
 	public void setP(double p) {
-		this.p = p;
+		sat.setPSampleSAT(p);
 	}
 	
 	public double getResult(GroundAtom ga) {
 		return dist.getResult(ga.index);
 	}
 	
-	public class SampledDistribution{
+	public static class SampledDistribution{
 		public double[] sums;
 		public double Z;
 		
@@ -137,5 +143,16 @@ public class MCSAT {
 			return sums[indx];
 		}
 	}
+
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
+	}
+
+	public void handleParams(Map<String, String> params) throws Exception {
+		paramHandler.handle(params);		
+	}
 	
+	public String getAlgorithmName() {
+		return String.format("%s[%s]", this.getClass().getSimpleName(), sat.getAlgorithmName());
+	}
 }
