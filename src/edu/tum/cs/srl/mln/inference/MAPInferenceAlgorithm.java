@@ -7,12 +7,11 @@
 package edu.tum.cs.srl.mln.inference;
 
 import edu.tum.cs.logic.IPossibleWorld;
-import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 
 public abstract class MAPInferenceAlgorithm extends InferenceAlgorithm {
 
-	public MAPInferenceAlgorithm(MarkovRandomField mrf) {
+	public MAPInferenceAlgorithm(MarkovRandomField mrf) throws Exception {
 		super(mrf);
 	}
 
