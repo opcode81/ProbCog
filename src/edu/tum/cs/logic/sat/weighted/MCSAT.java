@@ -43,6 +43,10 @@ public class MCSAT implements IParameterHandler {
 		paramHandler.addSubhandler(sat.getParameterHandler());
 	}
 	
+	public WeightedClausalKB getKB() {
+		return kb;
+	}
+	
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
 	}
@@ -56,11 +60,13 @@ public class MCSAT implements IParameterHandler {
 	}
 
 	public void run(int steps) throws Exception {
-		if(debug && false) {
-			System.out.println("MC-SAT constraints:");
+		if(debug) {
+			System.out.println("\nMC-SAT constraints:");
 			for(WeightedClause wc : kb)
 				System.out.println("  " + wc);
+			System.out.println();
 		}
+		verbose = verbose || debug;
 		if(verbose) 
 			System.out.printf("%s sampling...\n", this.getAlgorithmName());		
 		
@@ -88,7 +94,7 @@ public class MCSAT implements IParameterHandler {
 				}
 			}
 			if(verbose || (i+1) % infoInterval == 0) {
-				System.out.printf("  step %d: %d constraints to be satisfied\n", i+1, M.size());
+				System.out.printf("MC-SAT step %d: %d constraints to be satisfied\n", i+1, M.size());
 				if(debug) {
 					for(WeightedClause wc : M)
 						System.out.println("    " + wc);
