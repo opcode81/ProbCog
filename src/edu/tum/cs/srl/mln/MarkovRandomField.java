@@ -7,7 +7,6 @@ package edu.tum.cs.srl.mln;
 
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
@@ -15,9 +14,9 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
+import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.AbstractVariable;
 
 /**
  * Class that represents a grounded instance of a MLN-file
@@ -28,6 +27,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     public MarkovLogicNetwork mln;
     protected Vector<WeightedFormula> weightedFormulas;
     protected WorldVariables vars;
+    /**
+     * whether to simplify grounded formulas based on evidence
+     */
+    protected final boolean simplifyGroundedFormulas = true;
     
     /**
      * @param mln a Markov logic network
@@ -123,9 +126,9 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         for(Formula form : mln.getFormulas()) {
         	Double weight = mln.formula2weight.get(form);
         	if(weight == null)
-        		throw new Exception(String.format("MLN does not contain assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
+        		throw new Exception(String.format("MLN does not assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
         	boolean isHard = weight.equals(mln.getHardWeight());
-            for(Formula gf : form.getAllGroundings(db, vars, true)) {
+            for(Formula gf : form.getAllGroundings(db, vars, simplifyGroundedFormulas)) {
             	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
                 if(makelist)
                     weightedFormulas.add(wf);
