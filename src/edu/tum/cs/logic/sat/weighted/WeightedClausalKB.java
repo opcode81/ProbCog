@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.TrueFalse;
+import edu.tum.cs.logic.sat.Clause.TautologyException;
 
 /**
  * A knowledge base of weighted clauses that is built up from general weighted formulas (retaining a mapping from formulas to clauses and vice versa) 
@@ -59,11 +60,18 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
         if(cnf instanceof Conjunction) { // conjunction of clauses
             Conjunction c = (Conjunction) cnf;
             int numChildren = c.children.length;
-            for(Formula child : c.children)
-                addClause(wf, new WeightedClause(child, wf.weight / numChildren, wf.isHard));
+            for(Formula child : c.children) {
+            	try {
+            		addClause(wf, new WeightedClause(child, wf.weight / numChildren, wf.isHard));
+            	}
+            	catch(TautologyException e) {}
+            }
         } 
         else if(!(cnf instanceof TrueFalse)) { // clause
-            addClause(wf, new WeightedClause(cnf, wf.weight, wf.isHard));
+            try {
+            	addClause(wf, new WeightedClause(cnf, wf.weight, wf.isHard));
+            }
+            catch(TautologyException e) {}
         }
     }
     
@@ -108,7 +116,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     public void print() {
         int i = 0;
         for (WeightedClause c : this)
-            System.out.printf("%4d  %s\n", ++i, c.weight + " " + c.toString());
+            System.out.printf("%4d  %s\n", ++i, c.toString());
     }
 
     /**
