@@ -22,11 +22,20 @@ public class Clause extends ComplexFormula {
 		else if(f instanceof Disjunction) {
 			Disjunction d = (Disjunction)f;
 			lits = new GroundLiteral[d.children.length];
+			// add each child of the disjunction
 			for(int i = 0; i < lits.length; i++) {
+				// the child must be a ground literal
 				if(d.children[i] instanceof GroundLiteral)
 					lits[i] = (GroundLiteral)d.children[i];
 				else
 					throw new Exception("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName() + "; only GroundLiterals allowed.");
+				// check if we previously added the negative literal or the same literal
+				for(int j = 0; j < i; j++)
+					if(lits[i].gndAtom == lits[j].gndAtom) {
+						if(lits[i].isPositive != lits[j].isPositive)
+							throw new TautologyException(d);
+						throw new Exception("Tried to create SAT clause from disjunction with duplicate ground atoms: " + d);
+					}
 			}
 		}
 		else if(f instanceof GroundAtom) {
@@ -35,6 +44,14 @@ public class Clause extends ComplexFormula {
 		}
 		else
 			throw new Exception("Instance of type " + f.getClass().getSimpleName() + " cannot be treated as a clause");
+	}
+	
+	public static class TautologyException extends Exception {
+		private static final long serialVersionUID = 1L;
+
+		public TautologyException(Disjunction d) {
+			super("Tried to create SAT clause from tautology: " + d);
+		}
 	}
 
 	@Override
