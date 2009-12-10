@@ -19,7 +19,7 @@ public class ParameterHandler {
 	protected Object owner;
 	protected Vector<ParameterHandler> subhandlers;
 	
-	public ParameterHandler(IParameterHandler owner) throws SecurityException, NoSuchMethodException {
+	public ParameterHandler(IParameterHandler owner) {
 		mappings = new HashMap<String, ParameterMapping>();
 		subhandlers = new Vector<ParameterHandler>();
 		this.owner = owner;
