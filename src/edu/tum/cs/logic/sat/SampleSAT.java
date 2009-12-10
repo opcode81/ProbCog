@@ -238,7 +238,7 @@ public class SampleSAT implements IParameterHandler {
 							System.out.println("  unsatisfied: " + c);
 						}
 				}
-				//checkIntegrity();
+				checkIntegrity();
 			}
 			
 			makeMove();
@@ -280,11 +280,13 @@ public class SampleSAT implements IParameterHandler {
 					for(GroundLiteral lit : cl.lits) {
 						if(lit.isTrue(state)) {
 							if(haveTrueOne) 
-								throw new Exception("Bottlenecks corrupted (1)");
+								throw new Exception("Bottlenecks corrupted: Clause " + cl + " contains a second true literal.");
 							if(lit.gndAtom != ga)
-								throw new Exception("Bottlenecks corrupted (2)");
+								throw new Exception("Bottlenecks corrupted: Clause " + cl + " contains a true literal that isn't the bottleneck.");							
 							haveTrueOne = true;
 						}
+						if(lit.gndAtom == ga && !lit.isTrue(state))
+							throw new Exception("Bottlenecks corrupted: Clause " + cl + " has " + ga + " as a bottleneck but contains a literal with " + ga + " that is false; it is likely that the clause is a tautology which should never have bottlenecks.");
 					}
 				}
 			}
@@ -566,6 +568,8 @@ public class SampleSAT implements IParameterHandler {
 			if(trueOnes.size() == 0)
 				addUnsatisfiedConstraint(this);
 			// if there is exactly one true literal, it is a bottleneck
+			// (unless the clause also contains the negated literal, 
+			// but a sat.Clause guarantees that this cannot be the case)
 			else if(trueOnes.size() == 1) 
 				addBottleneck(trueOnes.iterator().next(), this);			
 		}
