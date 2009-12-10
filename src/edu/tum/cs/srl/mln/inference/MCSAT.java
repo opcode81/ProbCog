@@ -20,6 +20,7 @@ public class MCSAT extends InferenceAlgorithm {
 		super(mrf);
 		WeightedClausalKB wckb = new WeightedClausalKB(mrf, true);
 		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(wckb, mrf.getWorldVariables(), mrf.getDb());
+		paramHandler.addSubhandler(sampler.getParameterHandler());
 	}
 
 	@Override
@@ -30,12 +31,12 @@ public class MCSAT extends InferenceAlgorithm {
 	@Override
 	public ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps)
 			throws Exception {
+		sampler.setDebugMode(debug);
 		sampler.run(maxSteps);
 		return getResults(queries);
 	}
 	
-	public void setP(double p) {
-		sampler.setP(p);
+	public String getAlgorithmName() {
+		return sampler.getAlgorithmName();
 	}
-
 }
