@@ -5,9 +5,12 @@
 package edu.tum.cs.srl.mln.inference;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 
@@ -16,15 +19,23 @@ import edu.tum.cs.srl.mln.MarkovRandomField;
  * @author jain
  *
  */
-public abstract class InferenceAlgorithm {
+public abstract class InferenceAlgorithm implements IParameterHandler {
 	
 	protected MarkovRandomField mrf;
+	protected ParameterHandler paramHandler;
+	protected boolean debug = false;	
 	
-	public InferenceAlgorithm(MarkovRandomField mrf) {
+	public InferenceAlgorithm(MarkovRandomField mrf) throws Exception {
 		this.mrf = mrf;
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("debug", "setDebugMode");
 	}
 	
-	public abstract double getResult(GroundAtom ga);
+	public void setDebugMode(boolean active) {
+		debug = active;
+	}
+	
+	public abstract double getResult(GroundAtom ga);	
 	
 	public ArrayList<InferenceResult> getResults(Iterable<String> queries) {
 		// generate patterns
@@ -56,5 +67,13 @@ public abstract class InferenceAlgorithm {
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();
+	}
+
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
+	}
+
+	public void handleParams(Map<String, String> params) throws Exception {
+		paramHandler.handle(params);	
 	}
 }
