@@ -22,7 +22,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	
 	protected PossibleWorld state;
 
-	public Toulbar2MAPInference(MarkovRandomField mrf) {
+	public Toulbar2MAPInference(MarkovRandomField mrf) throws Exception {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
 	}
