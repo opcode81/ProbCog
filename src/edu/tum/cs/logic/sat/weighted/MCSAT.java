@@ -19,6 +19,10 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.Database;
 
+/**
+ * MC-SAT inference algorithm (Poon and Domingos 2006) 
+ * @author jain
+ */
 public class MCSAT implements IParameterHandler {
 
 	protected WeightedClausalKB kb;
@@ -71,6 +75,7 @@ public class MCSAT implements IParameterHandler {
 			System.out.printf("%s sampling...\n", this.getAlgorithmName());		
 		
 		// find initial state satisfying all hard constraints
+		if(verbose) System.out.println("finding initial state...");
 		Vector<WeightedClause> M = new Vector<WeightedClause>();
 		for(Entry<WeightedFormula, Vector<WeightedClause>> e : kb.getFormulasAndClauses()) {
 			WeightedFormula wf = e.getKey();
@@ -93,7 +98,7 @@ public class MCSAT implements IParameterHandler {
 						M.addAll(e.getValue());
 				}
 			}
-			if(verbose || (i+1) % infoInterval == 0) {
+			if(verbose && (i+1) % infoInterval == 0) {
 				System.out.printf("MC-SAT step %d: %d constraints to be satisfied\n", i+1, M.size());
 				if(debug) {
 					for(WeightedClause wc : M)
