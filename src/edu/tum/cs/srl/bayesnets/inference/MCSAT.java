@@ -104,6 +104,11 @@ public class MCSAT extends Sampler {
 					dist.values[idx][k] = 1-dist.values[idx][k];
 			}
 		}
+		for(BeliefNode n : gbln.getAuxiliaryVariables()) {
+			int idx = bn.getNodeIndex(n);
+			dist.values[idx][0] = 1.0;
+			dist.values[idx][1] = 0.0;
+		}
 		dist.Z = 1.0;
 		dist.trials = dist.steps = numSamples;
 		return dist;	
