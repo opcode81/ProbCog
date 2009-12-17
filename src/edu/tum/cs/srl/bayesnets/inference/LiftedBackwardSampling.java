@@ -12,6 +12,7 @@ import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
+import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.datastruct.Cache2D;
 import edu.tum.cs.util.datastruct.MutableDouble;
@@ -24,7 +25,7 @@ public class LiftedBackwardSampling extends Sampler {
 	 */
 	HashMap<BeliefNode,Integer> node2class = new HashMap<BeliefNode, Integer>();
 	
-	public LiftedBackwardSampling(AbstractGroundBLN gbln) throws Exception {
+	public LiftedBackwardSampling(GroundBLN gbln) throws Exception {
 		this.gbln = gbln;
 	}
 	
@@ -72,6 +73,7 @@ public class LiftedBackwardSampling extends Sampler {
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
+		sampler.setEvidence(evidenceDomainIndices);
 		//sampler.setMaxTrials(maxTrials);
 		//sampler.setSkipFailedSteps(skipFailedSteps);
 		SampledDistribution dist = sampler.infer();
@@ -86,9 +88,17 @@ public class LiftedBackwardSampling extends Sampler {
 	 */
 	protected class Sampler extends BackwardSamplingWithPriors {
 
+		// TODO I think there are problems with the probability caches here, because using the CPFID alone ignores the fact that the priors may be different since nodes with the same CPFID may have differently instantiated ancestors
+		// Could solve this problem by using a 3D cache that includes the prior of the node
+		
 		protected Cache2D<String, Integer, Double> probCache;
+		/**
+		 * cache of backward sampling distributions
+		 */
 		protected Cache2D<Integer, Long, BackSamplingDistribution> distCache;
 		protected Stopwatch probSW, distSW;
+		protected boolean useDistributionCache = true;
+		protected boolean useProbabilityCache = false;
 		
 		public class BackSamplingDistribution extends edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors.BackSamplingDistribution {
 			
@@ -163,7 +173,7 @@ public class LiftedBackwardSampling extends Sampler {
 			
 			protected double getProb(BeliefNode node, int[] nodeDomainIndices) {
 				CPF cpf = node.getCPF();
-				final boolean debugCache = false;
+				boolean debugCache = debug;
 				probSW.start();
 				// get the key in the CPF-specific cache
 				Double cacheValue = null;
@@ -183,20 +193,25 @@ public class LiftedBackwardSampling extends Sampler {
 					return cpf.getDouble(addr);
 				}
 				// check if we already have the value in the cache
-				Double value = cacheValue = probCache.get(gbln.getCPFID(node), key);
-				if(!debugCache && value != null) {
+				Double value = null;
+				if(useProbabilityCache)
+					value = cacheValue = probCache.get(gbln.getCPFID(node), key);
+				if(value != null) {
 					probSW.stop();
-					return value;					
+					if(!debugCache)
+						return value;					
 				}
-				// not in the cache, so calculate the value
+				// (not in the cache, so) calculate the value
 				MutableDouble p = new MutableDouble(0.0);
 				getProb(cpf, 0, addr, nodeDomainIndices, p);
 				// store in cache
-				probCache.put(p.value);
+				if(useProbabilityCache) {
+					probCache.put(p.value);
+					if(cacheValue != null && p.value != cacheValue) {
+						throw new RuntimeException("Probability cache mismatch");
+					}
+			    }
 				// return value
-				if(cacheValue != null && p.value != cacheValue) {
-					throw new RuntimeException("cache mismatch");
-				}
 				probSW.stop();
 				return p.value;
 			}
@@ -246,11 +261,10 @@ public class LiftedBackwardSampling extends Sampler {
 		@Override
 		protected BackSamplingDistribution getBackSamplingDistribution(BeliefNode node, WeightedSample s) {
 			BackSamplingDistribution d;
-			long key = 0;
-			final boolean useCache = true;
+			long key = 0;			
 			distSW.start();
 			
-			if(useCache) { 
+			if(useDistributionCache) { 
 				// calculate key		
 				BeliefNode[] domProd = node.getCPF().getDomainProduct();
 				// - consider node itself and all parents			
@@ -295,7 +309,7 @@ public class LiftedBackwardSampling extends Sampler {
 			d.construct(node, s.nodeDomainIndices);
 			
 			// store in cache
-			if(useCache)
+			if(useDistributionCache)
 				distCache.put(d); 
 			
 			distSW.stop();
