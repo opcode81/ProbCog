@@ -38,9 +38,9 @@ public abstract class AbstractGroundBLN {
 	 */
 	protected AbstractBayesianLogicNetwork bln;
 	/**
-	 * list of auxiliary node names contained in the ground Bayesian network (null if the network is not an auxiliary network)
+	 * list of auxiliary nodes contained in the ground Bayesian network (null if the network is not an auxiliary network)
 	 */
-	protected Vector<String> hardFormulaNodes;
+	protected Vector<BeliefNode> hardFormulaNodes;
 	/**
 	 * the file from which the evidence database was loaded (if any)
 	 */
@@ -150,7 +150,7 @@ public abstract class AbstractGroundBLN {
 		// add auxiliary variables for formulaic constraints
 		if(addAuxiliaryVars) {
 			System.out.println("  formulaic nodes");
-			hardFormulaNodes = new Vector<String>();
+			hardFormulaNodes = new Vector<BeliefNode>();
 			groundFormulaicNodes();
 		}
 		
@@ -325,9 +325,9 @@ public abstract class AbstractGroundBLN {
 	 * @return a pair containing the node added and the array of parent nodes
 	 * @throws Exception
 	 */
-	public Pair<BeliefNode, BeliefNode[]> addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws Exception {
-		hardFormulaNodes.add(nodeName);
-		BeliefNode node = groundBN.addNode(nodeName);		
+	public Pair<BeliefNode, BeliefNode[]> addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws Exception {		
+		BeliefNode node = groundBN.addNode(nodeName);
+		hardFormulaNodes.add(node);
 		BeliefNode[] parents = new BeliefNode[parentGAs.size()];
 		int i = 0;
 		for(String strGA : parentGAs) {
@@ -595,7 +595,7 @@ public abstract class AbstractGroundBLN {
 	
 	/**
 	 * adds to the given evidence the evidence that is implied by the hard formulaic constraints (since all of them must be true)
-	 * @param evidence 
+	 * @param evidence an array of 2-element arrays containing node name and value
 	 * @return a list of domain indices for each node in the network (-1 for no evidence)
 	 */
 	public int[] getFullEvidence(String[][] evidence) {
@@ -606,8 +606,8 @@ public abstract class AbstractGroundBLN {
 		}
 		{
 			int i = evidence.length;
-			for(String node : hardFormulaNodes) {
-				fullEvidence[i][0] = node;
+			for(BeliefNode node : hardFormulaNodes) {
+				fullEvidence[i][0] = node.getName();
 				fullEvidence[i][1] = "True";
 				i++;
 			}
@@ -644,5 +644,13 @@ public abstract class AbstractGroundBLN {
 	 */
 	public RelationalNode getTemplateOf(BeliefNode node) {
 		return this.groundNode2TemplateNode.get(node);
+	}
+	
+	/**
+	 * gets the collection of auxiliary nodes (nodes added for hard formula constraints) contained in this network 
+	 * @return
+	 */
+	public Vector<BeliefNode> getAuxiliaryVariables() {
+		return this.hardFormulaNodes;
 	}
 }
