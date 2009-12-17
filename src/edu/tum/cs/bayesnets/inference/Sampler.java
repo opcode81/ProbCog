@@ -43,6 +43,7 @@ public abstract class Sampler implements ITimeLimitedInference {
 	
 	protected void createDistribution() {
 		this.dist = new SampledDistribution(bn);
+		dist.setDebugMode(debug);
 	}
 	
 	protected synchronized void addSample(WeightedSample s) throws Exception {

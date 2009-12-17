@@ -1,7 +1,6 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.io.PrintStream;
-import java.io.Serializable;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -14,8 +13,7 @@ import edu.tum.cs.inference.BasicSampledDistribution;
  * @author jain
  *
  */
-public class SampledDistribution extends BasicSampledDistribution implements Cloneable, Serializable {
-	private static final long serialVersionUID = 1L;
+public class SampledDistribution extends BasicSampledDistribution implements Cloneable {
 	/**
 	 * the belief network for which we are representing a distribution
 	 */
@@ -24,6 +22,8 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	 * values that may be used by certain algorithms to store the number of steps involved in creating the distribution
 	 */
 	public int trials, steps;
+	protected double maxWeight = 0.0;
+	protected boolean debug = true;
 	
 	public SampledDistribution(BeliefNetworkEx bn) {
 		this.bn = bn;
@@ -38,7 +38,19 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 		if(s.weight == 0.0) {
 			throw new RuntimeException("Zero-weight sample was added to distribution. Precision loss?");
 		}
-		Z += s.weight;
+		
+		// update normalization constant and maximum weight
+		Z += s.weight;		
+		if(maxWeight < s.weight)
+			maxWeight = s.weight;
+		
+		// debug info
+		if(debug) {
+			double prob = bn.getWorldProbability(s.nodeDomainIndices);
+			System.out.printf("sample weight: %s (%.2f%%); max weight: %s (%.2f%%); prob: %s\n", s.weight, s.weight*100/Z, maxWeight, maxWeight*100/Z, prob);
+		}
+		
+		// update distribution values
 		for(int i = 0; i < s.nodeIndices.length; i++) {
 			try {
 				values[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
@@ -49,6 +61,8 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 				throw e;
 			}
 		}
+		
+		// update number of steps and trials
 		trials += s.trials;
 		steps++;
 	}
@@ -86,5 +100,9 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	@Override
 	public int getVariableIndex(String name) {
 		return bn.getNodeIndex(name);
+	}
+
+	public void setDebugMode(boolean active) {
+		debug = active;
 	}
 }
