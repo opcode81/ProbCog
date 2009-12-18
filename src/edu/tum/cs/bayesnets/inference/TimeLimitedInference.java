@@ -21,25 +21,24 @@ public class TimeLimitedInference {
 	protected double time, interval;
 	protected InferenceThread thread;
 	protected BasicSampledDistribution referenceDistribution = null;
-	protected BasicSampledDistribution.MeanSquaredError MSE = null;
 	/**
 	 * mean-squared errors
 	 */	
 	protected Vector<Double> MSEs = null;
-	protected Vector<DistributionEntryComparison> comparers;
+	protected Vector<Class<? extends DistributionEntryComparison>> comparisonClasses;
 
 	public TimeLimitedInference(ITimeLimitedInference inference, Iterable<String> queries, double time, double interval) {
 		this.inference = inference;
 		this.queries = queries;
 		this.time = time;
 		this.interval = interval;
-		comparers = new Vector<DistributionEntryComparison>();
+		comparisonClasses = new Vector<Class<? extends DistributionEntryComparison>>();
 	}
 	
 	public void setReferenceDistribution(BasicSampledDistribution dist) {
 		referenceDistribution = dist;		
-		comparers.add(MSE = new BasicSampledDistribution.MeanSquaredError(dist));
-		comparers.add(new BasicSampledDistribution.HellingerDistance(dist));
+		comparisonClasses.add(BasicSampledDistribution.MeanSquaredError.class);
+		comparisonClasses.add(BasicSampledDistribution.HellingerDistance.class);
 		MSEs = new Vector<Double>();
 	}
 	
@@ -58,14 +57,14 @@ public class TimeLimitedInference {
 				Thread.sleep((int)(1000*interval));
 				System.out.println("polling results after " + sw.getElapsedTimeSecs() + "s...");
 				SampledDistribution dist = pollResults(false);
-				System.out.printf("%d samples taken\n", dist.steps);
+				if(dist != null) System.out.printf("%d samples taken\n", dist.steps);
 				if(referenceDistribution != null) {
 					double mse;
 					if(dist == null)
 						mse = Double.POSITIVE_INFINITY;
-					else {
-						doComparison(dist);
-						mse = MSE.getResult();
+					else {						
+						DistributionComparison dc = doComparison(dist);
+						mse = dc.getResult(MeanSquaredError.class);
 					}
 					MSEs.add(mse);					
 				}
@@ -78,12 +77,13 @@ public class TimeLimitedInference {
 		return results;
 	}
 	
-	protected void doComparison(BasicSampledDistribution dist) throws Exception {
-		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(this.referenceDistribution, dist);
-		for(DistributionEntryComparison dec : comparers) 
-			dc.addEntryComparison(dec);
+	protected DistributionComparison doComparison(BasicSampledDistribution dist) throws Exception {
+		DistributionComparison dc = new DistributionComparison(this.referenceDistribution, dist);
+		for(Class<? extends DistributionEntryComparison> c : comparisonClasses) 
+			dc.addEntryComparison(c);
 		dc.compare();		
 		dc.printResults();
+		return dc;
 	}
 	
 	public SampledDistribution pollResults(boolean print) throws Exception {
