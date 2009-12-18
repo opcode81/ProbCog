@@ -10,6 +10,8 @@ import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
+import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
+import edu.tum.cs.inference.BasicSampledDistribution.DistributionEntryComparison;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -265,7 +267,7 @@ public class BLNinfer {
 			// compare distributions
 			if(referenceDist != null) {				
 				System.out.println("comparing to reference distribution...");
-				compareDistributions(referenceDist, dist, true);
+				compareDistributions(referenceDist, dist);
 			}
 		}
 		catch(Exception e) {
@@ -284,10 +286,12 @@ public class BLNinfer {
 		return n == 0;
 	}
 	
-	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2, boolean all) throws Exception {
-		double mse = d1.getMSE(d2);
-		System.out.println("MSE: " + mse);
-		double me = d1.getME(d2);
-		System.out.println("ME: " + me);
+	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2) throws Exception {
+		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(d1, d2);
+		dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
+		dc.addEntryComparison(new BasicSampledDistribution.MeanSquaredError(d1));
+		dc.addEntryComparison(new BasicSampledDistribution.HellingerDistance(d1));
+		dc.compare();		
+		dc.printResults();
 	}
 }
