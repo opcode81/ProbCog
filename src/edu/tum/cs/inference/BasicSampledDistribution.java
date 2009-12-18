@@ -7,6 +7,7 @@
 package edu.tum.cs.inference;
 
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Vector;
 
 public abstract class BasicSampledDistribution {
@@ -93,6 +94,10 @@ public abstract class BasicSampledDistribution {
 			processors.add(c);
 		}
 		
+		public void addEntryComparison(Class<? extends DistributionEntryComparison> c) throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+			addEntryComparison(c.getConstructor(BasicSampledDistribution.class).newInstance(referenceDist));
+		}
+		
 		public void compare() throws Exception {
 			for(int i = 0; i < referenceDist.values.length; i++) {
 				String varName = referenceDist.getVariableName(i);
@@ -111,6 +116,14 @@ public abstract class BasicSampledDistribution {
 		public void printResults() {
 			for(DistributionEntryComparison dec : processors)
 				dec.printResult();
+		}
+		
+		public double getResult(Class<? extends DistributionEntryComparison> c) throws Exception {
+			for(DistributionEntryComparison p : processors)
+				if(c.isInstance(p)) {
+					return p.getResult();
+				}
+			throw new Exception(c.getSimpleName() + " was not processed in this comparison");
 		}
 	}
 		
