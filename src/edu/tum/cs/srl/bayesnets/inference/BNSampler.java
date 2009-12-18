@@ -1,7 +1,5 @@
 package edu.tum.cs.srl.bayesnets.inference;
 
-import java.lang.reflect.InvocationTargetException;
-
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
@@ -73,6 +71,8 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	public SampledDistribution pollResults() throws CloneNotSupportedException {
+		if(sampler == null)
+			return null;
 		return sampler.pollResults();
 	}
 }
