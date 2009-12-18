@@ -1,4 +1,5 @@
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
@@ -36,7 +37,7 @@ public class MLNinfer {
 			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
 			boolean debug = false;
-			String param = null;
+			HashMap<String,String> params = new HashMap<String,String>();
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -46,8 +47,6 @@ public class MLNinfer {
 					query = args[++i];
 				else if(args[i].equals("-e"))
 					dbFile = args[++i];				
-				else if(args[i].equals("-p"))
-					param = args[++i];				
 				else if(args[i].equals("-cw"))
 					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
@@ -62,6 +61,12 @@ public class MLNinfer {
 					algo = Algorithm.Toulbar2;
 				else if(args[i].equals("-debug"))
 					debug = true;
+				else if(args[i].startsWith("-p") || args[i].startsWith("--")) { // algorithm-specific parameter
+					String[] pair = args[i].substring(2).split("=");
+					if(pair.length != 2)
+						throw new Exception("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
+					params.put(pair[0], pair[1]);
+				}
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
@@ -71,7 +76,6 @@ public class MLNinfer {
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
 									 "    -t2              algorithm: Toulbar2 branch & bound\n" +
-									 "    -p <value>       sets an algorithm parameter (applicable for mws)\n" +
 							         "    -debug           debug mode with additional outputs\n" 
 //							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
 									 );
@@ -121,20 +125,17 @@ public class MLNinfer {
 			switch(algo) {
 			case MCSAT:
 				infer = new MCSAT(mrf);
-				if(param != null)
-					((MCSAT)infer).setP(Double.parseDouble(param));
 				break;
 			case MaxWalkSAT:
 			case MaxWalkSATRooms:
-				MaxWalkSAT mws = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class : MaxWalkSATRoom.class); 
-				if(param != null)
-					mws.setP(Double.parseDouble(param));
-				infer = mws;
+				infer = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class : MaxWalkSATRoom.class); 
 				break;
 			case Toulbar2:
 				infer = new Toulbar2MAPInference(mrf);
 				break;
 			}			
+			infer.setDebugMode(debug);
+			infer.handleParams(params);
 			System.out.printf("algorithm: %s, steps: %d\n", infer.getAlgorithmName(), maxSteps);
 			List<InferenceResult> results = infer.infer(queries, maxSteps);
 	        sw.stop();
