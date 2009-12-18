@@ -227,7 +227,7 @@ public class BLNinferMSNBC {
 					case Experimental:
 						sampler = new BNSampler(gbln, BackwardSamplingWithChildren.class); break;
 					case LiftedBackwardSampling:
-						sampler = new LiftedBackwardSampling(gbln); break;
+						sampler = new LiftedBackwardSampling((GroundBLN)gbln); break;
 					case SATIS:
 						sampler = new SATIS((GroundBLN)gbln); break;
 					case SATISEx:
