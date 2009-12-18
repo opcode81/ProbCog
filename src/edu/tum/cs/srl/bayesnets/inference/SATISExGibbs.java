@@ -23,13 +23,20 @@ import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
  * @author jain
  */
 public class SATISExGibbs extends SATISEx {
+	protected int gibbsSteps = 9;
 
 	public SATISExGibbs(GroundBLN bln) throws Exception {
-		super(bln);	
+		super(bln);
+		this.paramHandler.add("gibbsSteps", "setNumGibbsSteps");
+	}
+	
+	public void setNumGibbsSteps(int n) {
+		gibbsSteps = n;
 	}
 	
 	@Override
-	protected Sampler getSampler() {
+	protected Sampler getSampler() throws Exception {
+		initSATSampler();
 		return new SATIS_BSampler_Gibbs(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}	
 	
@@ -43,7 +50,7 @@ public class SATISExGibbs extends SATISEx {
 		}
 		
 		public void onAddedSample(WeightedSample s) throws Exception {
-			for(int i = 0; i < 9; i++) {
+			for(int i = 0; i < gibbsSteps; i++) {
 				gibbsSampler.gibbsStep(this.evidenceDomainIndices, s);
 				addSample(s);
 				currentStep++;
