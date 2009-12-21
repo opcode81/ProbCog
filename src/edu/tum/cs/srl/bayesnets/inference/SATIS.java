@@ -43,8 +43,8 @@ public class SATIS extends BNSampler {
 
 		// create SAT sampler
 		PossibleWorld state = new PossibleWorld(gbln.getWorldVars());
-		//ss = new SampleSAT(state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
-		ss = new SampleSATPriors(state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
+		ss = new SampleSAT(state, gbln.getWorldVars(), gbln.getDatabase().getEntries());
+		//ss = new SampleSATPriors(state, gbln.getWorldVars(), gbln.getDatabase().getEntries(), gbln.getGroundNetwork());
 		paramHandler.addSubhandler(ss.getParameterHandler());
 	}
 	
@@ -55,9 +55,10 @@ public class SATIS extends BNSampler {
 	protected void initSATSampler() throws Exception {
 		System.out.println("initializing SAT sampler...");
 				
-		if(unitPropagation) ss.enableUnitPropagation();		
+		if(unitPropagation) ss.enableUnitPropagation();
+		this.ss.setDebugMode(debug);
 		ClausalKB ckb = getClausalKB();
-		ss.initConstraints(ckb);
+		ss.initConstraints(ckb);		
 		
 		// get the set of variables that is determined by the sat sampler
 		determinedVars = new HashSet<BeliefNode>();
@@ -77,7 +78,7 @@ public class SATIS extends BNSampler {
 	
 	@Override
 	protected Sampler getSampler() throws Exception {
-		initSATSampler();
+		initSATSampler();		
 		return new SATIS_BSampler(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}
 	
