@@ -1,42 +1,60 @@
 package edu.tum.cs.bayesnets.inference;
 
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.Stopwatch;
 
 public class EnumerationAsk extends Sampler {
 	int[] nodeOrder;
-	int numPruned;
+	int numPathsPruned;
+	double numWorldsPruned, numWorldsCounted;
+	Stopwatch timer;
+	/**
+	 * total number of possible worlds
+	 */
+	double numTotalWorlds;
 	
 	public EnumerationAsk(BeliefNetworkEx bn) {
 		super(bn);
 		nodeOrder = bn.getTopologicalOrder();
+		numTotalWorlds = bn.getNumWorlds();
 	}
 	
 	public SampledDistribution infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
-		numPruned = 0;
+		numPathsPruned = 0;
+		numWorldsPruned = numWorldsCounted = 0;
 		createDistribution();
-		System.out.println("enumerating worlds...");
+		System.out.printf("enumerating %s worlds...\n", numTotalWorlds);
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
-		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0); 
+		timer = new Stopwatch();
+		timer.start();		
+		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0, 1); 
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPruned));
+		System.out.println(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPathsPruned));
 		return dist;
 	}
 	
-	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i) throws Exception {
-		//System.out.println("enum " + nodes[nodeOrder[i]].getName());
+	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws Exception {
+		//System.out.printf("enum %s, domain size = %d\n", nodes[nodeOrder[i]].getName(), nodes[nodeOrder[i]].getDomain().getOrder());
+		// status messages
+		if(timer.getElapsedTimeSecs() > 1) {
+			double numDone = numWorldsCounted+numWorldsPruned;
+			System.out.printf(" ~ %.4f%% done (%s worlds handled, %d paths pruned)\r", 100.0*numDone/numTotalWorlds, numDone, numPathsPruned);  
+			timer = new Stopwatch();
+			timer.start();			
+		}
 		// if we have completed the world, we are done and can add the world as a sample
 		if(i == nodes.length) {
 			//System.out.println("counting sample");
 			addSample(s);
+			numWorldsCounted++;
 			return;
 		}
-		// otherwise continue
+		// otherwise continue		 
 		int nodeIdx = nodeOrder[i];
+		combinationsHandled *= nodes[nodeOrder[i]].getDomain().getOrder();
 		int domainIdx = evidenceDomainIndices[nodeIdx];
 		// for evidence nodes, adjust the weight
 		if(domainIdx >= 0) { 
@@ -45,10 +63,11 @@ public class EnumerationAsk extends Sampler {
 			s.weight *= prob;
 			if(prob == 0.0) { // we have reached zero, so we can save us the trouble of further ramifications
 				//System.out.println("zero reached");
-				numPruned++;
+				numPathsPruned++;
+				numWorldsPruned += numTotalWorlds / combinationsHandled; 
 				return;
 			}			
-			enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1);
+			enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1, combinationsHandled);
 		} 
 		// for non-evidence nodes, consider all settings
 		else {
@@ -61,11 +80,12 @@ public class EnumerationAsk extends Sampler {
 				double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 				if(prob == 0.0) {
 					//System.out.println("zero reached");
-					numPruned++;
+					numPathsPruned++;
+					numWorldsPruned += numTotalWorlds / combinationsHandled;
 					continue;
 				}
 				s.weight = weight * prob;
-				enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1);
+				enumerateWorlds(s, nodeOrder, evidenceDomainIndices, i+1, combinationsHandled);
 			}
 		}			
 	}

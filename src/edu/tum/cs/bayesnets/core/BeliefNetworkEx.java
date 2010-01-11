@@ -1115,4 +1115,18 @@ success:while (!successful) {
 			ret *= getCPTProbability(nodes[i], nodeDomainIndices);
 		return ret;
 	}
+	
+	public BeliefNode[] getNodes() {
+		return bn.getNodes();
+	}
+	
+	/**
+	 * gets the total number of possible worlds
+	 */
+	public double getNumWorlds() {
+		double num = 1;
+		for(BeliefNode n : getNodes())
+			num *= n.getDomain().getOrder();
+		return num;
+	}
 }
