@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Vector;
@@ -11,8 +12,11 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.Algorithm;
+import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.Sampler;
+import edu.tum.cs.bayesnets.inference.TimeLimitedInference;
+import edu.tum.cs.inference.GeneralSampledDistribution;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.Stopwatch;
 
@@ -36,6 +40,8 @@ public class BNinfer {
 			boolean removeDeterministicCPTEntries = false;
 			double timeLimit = 10.0, infoIntervalTime = 1.0;
 			boolean timeLimitedInference = false;
+			boolean useMaxSteps = false;
+			String outputDistFile = null, referenceDistFile = null;
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
@@ -49,8 +55,10 @@ public class BNinfer {
 					removeDeterministicCPTEntries = true;				
 				else if(args[i].equals("-skipFailedSteps"))
 					skipFailedSteps = true;				
-				else if(args[i].equals("-maxSteps"))
+				else if(args[i].equals("-maxSteps")) {
 					maxSteps = Integer.parseInt(args[++i]);
+					useMaxSteps = true;
+				}
 				else if(args[i].equals("-maxTrials"))
 					maxTrials = Integer.parseInt(args[++i]);
 				else if(args[i].equals("-ia")) {
@@ -71,11 +79,15 @@ public class BNinfer {
 					if(i+1 < args.length && !args[i+1].startsWith("-"))
 						timeLimit = Double.parseDouble(args[++i]);					
 				}
+				else if(args[i].equals("-od"))
+					outputDistFile = args[++i];	
+				else if(args[i].equals("-cd"))
+					referenceDistFile = args[++i];
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
 			if(networkFile == null || dbFile == null || query == null) {
-				System.out.println("\n usage: BLNinfer <arguments>\n\n" +
+				System.out.println("\n usage: BNinfer <arguments>\n\n" +
 						             "   required arguments:\n\n" +
 						             "     -n <network file>         fragment network (XML-BIF or PMML)\n" + 
 						             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
@@ -91,8 +103,11 @@ public class BNinfer {
 				for(Algorithm a : Algorithm.values()) 
 					System.out.printf("                        %-28s  %s\n", a.toString(), a.getDescription());				
 				System.out.println(
-							         "     -debug           debug mode with additional outputs\n" + 
+							         "     -od <file>       save output distribution to file\n" +
+							         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
+									 "     -debug           debug mode with additional outputs\n" + 
 							         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n");
+				
 				System.exit(1);
 			}			
 
@@ -160,6 +175,12 @@ public class BNinfer {
 				}
 			}
 			
+			// read reference distribution if any
+			GeneralSampledDistribution referenceDist = null;
+			if(referenceDistFile != null) {
+				referenceDist = GeneralSampledDistribution.fromFile(new File(referenceDistFile));
+			}
+			
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
@@ -175,16 +196,43 @@ public class BNinfer {
 			// - run inference
 			SampledDistribution dist = null; 
 			if(timeLimitedInference) {
-				/*sampler.setNumSamples(Integer.MAX_VALUE);
-				TimeLimitedInference tli = new TimeLimitedInference(sampler, queries, timeLimit, infoIntervalTime);
-				results = tli.run();*/				
+				if(!(sampler instanceof ITimeLimitedInference)) 
+					throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");					
+				ITimeLimitedInference tliSampler = (ITimeLimitedInference) sampler;
+				if(!useMaxSteps)				
+					sampler.setNumSamples(Integer.MAX_VALUE);
+				sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
+				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, queries, timeLimit, infoIntervalTime);
+				tli.setReferenceDistribution(referenceDist);
+				dist = tli.run();
+				if(referenceDist != null)
+					System.out.println("MSEs: " + tli.getMSEs());				
 			}
 			else				
 				dist = sampler.infer();			
 			sw.stop();
 			
 			// print results
-			dist.print(System.out);
+			for(String qq : queries) {
+				int varIdx = bn.getNodeIndex(qq);
+				if(varIdx != -1)
+					dist.printVariableDistribution(System.out, varIdx);
+			}
+			
+			// save output distribution
+			if(outputDistFile != null) {
+				GeneralSampledDistribution gdist = dist.toGeneralDistribution();
+				File f=  new File(outputDistFile);
+				gdist.write(f);		
+				GeneralSampledDistribution gdist2 = GeneralSampledDistribution.fromFile(f);
+				gdist2.print(System.out);
+			}
+			
+			// compare distributions
+			if(referenceDist != null) {				
+				System.out.println("comparing to reference distribution...");
+				BLNinfer.compareDistributions(referenceDist, dist);
+			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
