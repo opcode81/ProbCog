@@ -7,6 +7,7 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Vector;
@@ -40,7 +41,7 @@ public class SATIS_BSampler extends BackwardSampling {
 	/**
 	 * variables whose values are determined by the SAT sampler
 	 */
-	Iterable<BeliefNode> determinedVars;
+	Collection<BeliefNode> determinedVars;
 	/**
 	 * clausal KB of constraints that must be satisfied by the SAT sampler 
 	 */
@@ -54,7 +55,7 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @param coupling the logical coupling of the BN's variables
 	 * @param determinedVars the set of variables affected by the SAT sampler, i.e. the variables that will be set if the SAT sampler is run
 	 */
-	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Iterable<BeliefNode> determinedVars) {
+	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) {
 		super(bn);			
 		this.coupling = coupling;
 		this.sat = sat;
@@ -78,7 +79,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		ckb = new ClausalKB();
 		extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb, null);
 		// get the set of variables that is determined by the sat sampler
-		HashSet<BeliefNode> determinedVars = new HashSet<BeliefNode>();
+		determinedVars = new HashSet<BeliefNode>();
 		for(Clause c : ckb) {
 			for(GroundLiteral lit : c.lits) {
 				BeliefNode var = coupling.getVariable(lit.gndAtom);
@@ -184,8 +185,12 @@ public class SATIS_BSampler extends BackwardSampling {
 		PossibleWorld state = sat.getState();
 		
 		// apply the state found by SampleSAT to the sample 
-		for(BeliefNode var : determinedVars) { 	
-			s.nodeDomainIndices[this.getNodeIndex(var)] = coupling.getVariableValue(var, state);
+		for(BeliefNode var : determinedVars) {
+			int domIdx = coupling.getVariableValue(var, state);
+			s.nodeDomainIndices[this.getNodeIndex(var)] = domIdx;
+			/*if(true) {				
+				System.out.printf("%s = %s\n", var.toString(), var.getDomain().getName(domIdx));
+			}*/
 		}
 	}
 	
