@@ -168,10 +168,14 @@ class BLNQuery:
         # additional parameters
         row += 1
         Label(self.frame, text="Add. params: ").grid(row=row, column=0, sticky="NE")
+        self.paramsDict = self.settings.get("params", {})
+        if type(self.paramsDict) == str:
+            self.paramsDict = {stored_method: self.paramsDict}
         self.params = StringVar(master)
-        self.params.set(self.settings.get("params", ""))
+        self.params.set(self.paramsDict.get(stored_method, ""))
         self.entry_params = Entry(self.frame, textvariable = self.params)
         self.entry_params.grid(row=row, column=1, sticky="NEW")
+        self.setAddParams()
 
         '''
         # number of chains
@@ -223,6 +227,8 @@ class BLNQuery:
         self.setOutputFilename()
         self.setGeometry()
     
+    def setAddParams(self):
+        self.params.set(self.paramsDict.get(self.selected_method.get(), self.params.get()))
     
     def setGeometry(self):
         g = self.settings.get("geometry")
@@ -248,7 +254,8 @@ class BLNQuery:
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
             
-    def changedMethod(self, name, *args):        
+    def changedMethod(self, name, *args):
+        self.setAddParams()
         self.setOutputFilename()
         
     def setOutputFilename(self):
@@ -273,6 +280,7 @@ class BLNQuery:
         db_text = self.selected_db.get_text()
         method = self.selected_method.get()
         addparams = self.params.get().strip()
+        self.paramsDict[method] = addparams
         outfile = self.output_filename.get()
         cwPreds = self.cwPreds.get().strip().replace(" ", "")
         refdist = self.selected_refdist.get().strip()
@@ -292,7 +300,7 @@ class BLNQuery:
         self.settings["useTimeLimit"] = self.use_time_limit.get()
         self.settings["timeLimit"] = self.timeLimit.get()
         self.settings["timeInterval"] = self.timeInterval.get()
-        self.settings["params"] = addparams
+        self.settings["params"] = self.paramsDict
         self.settings["query"] = self.query.get()        
         #self.settings["openWorld"] = self.open_world.get()
         self.settings["cwPreds"] = cwPreds
@@ -325,7 +333,7 @@ class BLNQuery:
         #    params += " %s %s" % (usage["numChains"], self.settings["numChains"])
         if self.settings["useMaxSteps"]:
             params.append("-maxSteps %s" % (self.settings["maxSteps"]))
-            params.append("-infoInterval %s" % self.settings["infoInterval"])
+        params.append("-infoInterval %s" % self.settings["infoInterval"])
         if self.settings["useTimeLimit"]:
             params.append("-t %s" % self.settings["timeLimit"])
             params.append("-infoTime %s" % self.settings["timeInterval"])
@@ -347,10 +355,13 @@ class BLNQuery:
         self.master.deiconify()
         self.setGeometry()
         
-        # reload the files (in case they changed)
+        # update GUI
+        # - reload files (in case they changed)
         self.selected_bln.reloadFile()
         self.selected_db.reloadFile()
         self.selected_blog.reloadFile()
+        # - update lists of files
+        self.selected_refdist.updateList()
 
 # -- main app --
 
