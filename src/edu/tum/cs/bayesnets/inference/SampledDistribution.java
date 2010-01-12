@@ -24,11 +24,12 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	public int trials, steps;
 	protected double maxWeight = 0.0;
 	protected boolean debug = true;
+	protected BeliefNode[] nodes;
 	
 	public SampledDistribution(BeliefNetworkEx bn) {
 		this.bn = bn;
 		this.Z = 0.0;
-		BeliefNode[] nodes = bn.bn.getNodes();
+		nodes = bn.bn.getNodes();
 		values = new double[nodes.length][];
 		for(int i = 0; i < nodes.length; i++)
 			values[i] = new double[nodes[i].getDomain().getOrder()];			
@@ -47,6 +48,9 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 		// debug info
 		if(debug) {
 			double prob = bn.getWorldProbability(s.nodeDomainIndices);
+			/*for(int i = 0; i < nodes.length; i++) {
+				System.out.printf(" %s = %s\n", nodes[i].getName(), nodes[i].getDomain().getName(s.nodeDomainIndices[i]));
+			}*/
 			System.out.printf("sample weight: %s (%.2f%%); max weight: %s (%.2f%%); prob: %s\n", s.weight, s.weight*100/Z, maxWeight, maxWeight*100/Z, prob);
 		}
 		
@@ -56,7 +60,6 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 				values[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
 			}
 			catch(ArrayIndexOutOfBoundsException e) {
-				BeliefNode[] nodes = bn.bn.getNodes();
 				System.err.println("Error: Node " + nodes[s.nodeIndices[i]].getName() + " was not sampled correctly.");
 				throw e;
 			}
@@ -69,7 +72,7 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	
 	@Override
 	public void printVariableDistribution(PrintStream out, int index) {
-		BeliefNode node = bn.bn.getNodes()[index];
+		BeliefNode node = nodes[index];
 		out.println(node.getName() + ":");
 		Discrete domain = (Discrete)node.getDomain();
 		for(int j = 0; j < domain.getOrder(); j++) {
