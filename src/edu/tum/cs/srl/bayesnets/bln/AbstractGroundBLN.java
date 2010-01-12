@@ -358,6 +358,7 @@ public abstract class AbstractGroundBLN {
 	 * @throws Exception 
 	 */
 	protected void connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws Exception {
+		HashSet<BeliefNode> handledTargetParents = new HashSet<BeliefNode>();
 		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
 			RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
 			if(relParent == srcRelNode)
@@ -374,7 +375,10 @@ public abstract class AbstractGroundBLN {
 				continue;
 			}
 			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
+			if(handledTargetParents.contains(parent))
+				throw new Exception("Error instantiating " + targetNode + " from " + srcRelNode + ": Duplicate parent " + parent);
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
+			handledTargetParents.add(parent);
 			groundBN.bn.connect(parent, targetNode);
 			if(src2targetParent != null) src2targetParent.put(relParent.node, parent);
 		}
@@ -410,9 +414,9 @@ public abstract class AbstractGroundBLN {
 			//System.out.println("Parent corresponding to " + srcDomainProd[i].getName() + " is " + targetParent);			
 			if(targetParent != null) {
 				if(handledParents.contains(targetParent))
-					continue;
+					throw new Exception("Cannot instantiate " + targetNode + " using template " + srcRelNode + ": Duplicate parent " + targetParent);
 				if(j >= targetDomainProd.length)
-					throw new Exception("Domain product of " + targetNode + " too small; size = " + targetDomainProd.length + "; tried to add " + targetParent + "; already added " + StringTool.join(",", targetDomainProd));
+					throw new Exception("Domain product of " + targetNode + " too small; size = " + targetDomainProd.length + "; tried to add " + targetParent + "; already added " + StringTool.join(",", targetDomainProd));				
 				targetDomainProd[j++] = targetParent;
 				handledParents.add(targetParent);
 			}
