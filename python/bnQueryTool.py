@@ -60,7 +60,7 @@ class BNQuery:
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # file picker
-        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedNetwork, font=config.fixed_width_font)
+        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml", "*.erg"], self.settings.get("bif", ""), self.changedNetwork, font=config.fixed_width_font)
         self.selected_bif.grid(row=0, column=0, sticky="NWES")
         frame.rowconfigure(0, weight=1)
         # show button
@@ -78,7 +78,7 @@ class BNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN": "EPIS", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingChildren", "Experimental": "Experimental", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP"}
+        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN":"EPIS", "SAT-IS":"SATIS", "SampleSearch":"SampleSearch", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingWithChildren", "Experimental": "Experimental", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP"}
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
@@ -87,6 +87,7 @@ class BNQuery:
         self.selected_method.set(stored_method) 
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(method_names))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
+        self.selected_method.trace("w", self.changedMethod)        
 
         # queries
         row += 1
@@ -95,55 +96,87 @@ class BNQuery:
         self.query.set(self.settings.get("query", "foo"))
         Entry(self.frame, textvariable = self.query).grid(row=row, column=1, sticky="NEW")
 
-        # max. number of steps
+        # inference duration parameters
         row += 1
-        Label(self.frame, text="Max. steps: ").grid(row=row, column=0, sticky=E)
-        self.maxSteps = StringVar(master)
-        self.maxSteps.set(self.settings.get("maxSteps", ""))
-        self.entry_steps = Entry(self.frame, textvariable = self.maxSteps)
-        self.entry_steps.grid(row=row, column=1, sticky="NEW")
+        frame = Frame(self.frame)
+        frame.grid(row=row, column=1, sticky="NEW")
+        col = 0        
+        # steps
+        # - checkbox
+        self.use_max_steps = var = IntVar()
+        self.cb_max_steps = cb = Checkbutton(frame, text="Max. steps/info interval:", variable=var)
+        cb.grid(row=0, column=col, sticky="W")
+        var.set(self.settings.get("useMaxSteps", 1))
+        # - max step entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.maxSteps = var = StringVar(master)
+        var.set(self.settings.get("maxSteps", ""))
+        self.entry_steps = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")        
+        # - interval entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.infoInterval = var = StringVar(master)
+        var.set(self.settings.get("infoInterval", "100"))
+        self.entry_infoInterval = Entry(frame, textvariable = var)
+        self.entry_infoInterval.grid(row=0, column=col, sticky="NEW")
+        # time
+        # - checkbox
+        col += 1
+        self.use_time_limit = var = IntVar()
+        self.cb_time = cb = Checkbutton(frame, text="Time limit/inverval (s):", variable=var)
+        cb.grid(row=0, column=col, sticky="E")
+        var.set(self.settings.get("useTimeLimit", 0))
+        # - time limit entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.timeLimit = var = StringVar(master)
+        var.set(self.settings.get("timeLimit", "10.0"))
+        self.entry_time_limit = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")
+        # - time interval entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.timeInterval = var = StringVar(master)
+        var.set(self.settings.get("timeInterval", "1"))
+        self.entry_time_interval = entry = Entry(frame, textvariable = var)
+        entry.grid(row=0, column=col, sticky="NEW")    
 
         # additional parameters
         row += 1
         Label(self.frame, text="Add. params: ").grid(row=row, column=0, sticky="NE")
+        self.paramsDict = self.settings.get("params", {})
+        if type(self.paramsDict) == str:
+            self.paramsDict = {stored_method: self.paramsDict}
         self.params = StringVar(master)
-        self.params.set(self.settings.get("params", ""))
+        self.params.set(self.paramsDict.get(stored_method, ""))
         self.entry_params = Entry(self.frame, textvariable = self.params)
         self.entry_params.grid(row=row, column=1, sticky="NEW")
+        self.setAddParams()
 
-        '''
-        # number of chains
+        # output distribution filename
         row += 1
-        Label(self.frame, text="Num. chains: ").grid(row=row, column=0, sticky="NE")
-        self.numChains = StringVar(master)
-        self.numChains.set(self.settings.get("numChains", ""))
-        self.entry_chains = Entry(self.frame, textvariable = self.numChains)
-        self.entry_chains.grid(row=row, column=1, sticky="NEW")
-
-        # all preds open-world
-        row += 1
-        self.open_world = IntVar()
-        self.cb_open_world = Checkbutton(self.frame, text="Apply open-world assumption to all predicates", variable=self.open_world)
-        self.cb_open_world.grid(row=row, column=1, sticky=W)
-        self.open_world.set(self.settings.get("openWorld", 1))
-
-        # output filename
-        row += 1
-        Label(self.frame, text="Output: ").grid(row=row, column=0, sticky="NE")
+        Label(self.frame, text="Output dist.: ").grid(row=row, column=0, sticky="NE")
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # - filename
         self.output_filename = StringVar(master)
         self.output_filename.set(self.settings.get("output_filename", ""))
-        self.entry_ouconfig.tput_filename = Entry(frame, textvariable = self.output_filename)
+        self.entry_output_filename = Entry(frame, textvariable = self.output_filename)
         self.entry_output_filename.grid(row=0, column=0, sticky="NEW")
         # - save option
         self.save_results = IntVar()
         self.cb_save_results = Checkbutton(frame, text="save", variable=self.save_results)
         self.cb_save_results.grid(row=0, column=1, sticky=W)
         self.save_results.set(self.settings.get("saveResults", 0))
-        '''
+
+        # reference distribution filename
+        row += 1
+        Label(self.frame, text="Reference dist.:").grid(row=row, column=0, sticky="NE")
+        self.selected_refdist = FilePick(self.frame, ["*.dist"], self.settings.get("reference_distribution", ""), None, font=config.fixed_width_font, allowNone=True)
+        self.selected_refdist.grid(row=row, column=1, sticky="NWES")
 
         # start button
         row += 1
@@ -158,9 +191,13 @@ class BNQuery:
         g = self.settings.get("geometry")
         if g is None: return
         self.master.geometry(g)
+        
+    def setAddParams(self):
+        self.params.set(self.paramsDict.get(self.selected_method.get(), self.params.get()))
 
     def changedNetwork(self, name):
-        pass
+        self.bif_filename = name
+        self.setOutputFilename()    
     
     def changedDB(self, name):
         self.db_filename = name
@@ -169,13 +206,17 @@ class BNQuery:
         query = self.settings["queryByDB"].get(name)
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
+            
+    def changedMethod(self, name, *args):
+        #self.setAddParams()
+        self.setOutputFilename()
         
     def setOutputFilename(self):
-        pass
-        #if not self.initialized or not hasattr(self, "db_filename") or not hasattr(self, "mln_filename"):
-        #    return
-        #fn = config.query_output_filename(self.mln_filename, self.db_filename)
-        #self.output_filename.set(fn)
+        if not self.initialized or not hasattr(self, "bif_filename") or not hasattr(self, "db_filename") or not hasattr(self, "selected_method"):
+            return
+        method = self.methods[self.selected_method.get()]
+        fn = "%s-%s-%s.dist" % (os.path.splitext(self.bif_filename)[0], os.path.splitext(self.db_filename)[0], method)
+        self.output_filename.set(fn)
         
     def showBN(self):
         bif = self.selected_bif.get()
@@ -188,21 +229,35 @@ class BNQuery:
         db = self.selected_db.get()
         db_text = self.selected_db.get_text()
         method = self.selected_method.get()
-        params = self.params.get()        
+        params = self.params.get()
+        addparams = self.params.get().strip()
+        self.paramsDict[method] = addparams
+        outfile = self.output_filename.get()
+        refdist = self.selected_refdist.get().strip()
         
         # update settings
         self.settings["bif"] = bif
         self.settings["db"] = db
         self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
         self.settings["method"] = method
-        self.settings["params"] = params
+        self.settings["params"] = self.paramsDict
         self.settings["query"] = self.query.get()
         #self.settings["output_filename"] = output
         #self.settings["openWorld"] = self.open_world.get()
+        
+        self.settings["useMaxSteps"] = self.use_max_steps.get()
         self.settings["maxSteps"] = self.maxSteps.get()
+        self.settings["infoInterval"] = self.infoInterval.get()
+        self.settings["useTimeLimit"] = self.use_time_limit.get()
+        self.settings["timeLimit"] = self.timeLimit.get()
+        self.settings["timeInterval"] = self.timeInterval.get()
+        
         #self.settings["numChains"] = self.numChains.get()
         self.settings["geometry"] = self.master.winfo_geometry()
-        #self.settings["saveResults"] = self.save_results.get()
+        
+        self.settings["output_filename"] = outfile
+        self.settings["reference_distribution"] = refdist
+        self.settings["saveResults"] = self.save_results.get()
        
         # write query to settings
         self.settings["queryByDB"][db] = self.settings["query"]
@@ -218,12 +273,21 @@ class BNQuery:
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
         
         # create command to execute
-        params = '-ia %s -n "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, db, self.settings["query"].replace(" ", ""), self.settings["params"])
-        #if self.settings["numChains"] != "":
-        #    params += " %s %s" % (usage["numChains"], self.settings["numChains"])
-        if self.settings["maxSteps"] != "":
-            params += " -maxSteps %s" % (self.settings["maxSteps"])
-        command = 'BNinfer %s' % params
+        #params = '-ia %s -n "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, db, self.settings["query"].replace(" ", ""), self.settings["params"])
+        params = ["-ia", self.methods[method], '-n "%s"' % bif, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
+        if self.settings["useMaxSteps"]:
+            params.append("-maxSteps %s" % (self.settings["maxSteps"]))
+        params.append("-infoInterval %s" % self.settings["infoInterval"])
+        if self.settings["useTimeLimit"]:
+            params.append("-t %s" % self.settings["timeLimit"])
+            params.append("-infoTime %s" % self.settings["timeInterval"])
+        if self.settings["saveResults"] and outfile != "":
+            params.append('-od "%s"' % outfile)
+        if refdist != "":
+            params.append('-cd "%s"' % refdist)            
+        if addparams != "":
+            params.append(addparams)
+        command = 'BNinfer %s' % " ".join(params)
 
         # execute 
         print "\nstarting BNinfer..."
@@ -239,6 +303,8 @@ class BNQuery:
         
         # reload the files (in case they changed)
         self.selected_db.reloadFile()
+        # update lists of files
+        self.selected_refdist.updateList()
 
 # -- main app --
 
