@@ -11,6 +11,7 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
@@ -18,13 +19,14 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
 import edu.tum.cs.logic.sat.weighted.WeightedClause;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
+import edu.tum.cs.logic.sat.weighted.MCSAT.GroundAtomDistribution;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 
 /**
  * MC-SAT inference for Bayesian logic networks 
  * @author jain
  */
-public class MCSAT extends Sampler {
+public class MCSAT extends Sampler implements ITimeLimitedInference {
 
 	protected GroundBLN gbln;
 	protected WeightedClausalKB kb;
@@ -92,14 +94,19 @@ public class MCSAT extends Sampler {
 		sampler.setDebugMode(this.debug);
 		sampler.setVerbose(true);
 		sampler.setInfoInterval(infoInterval);
-		sampler.run(numSamples);
+		GroundAtomDistribution gad = sampler.run(numSamples);		
+		return getSampledDistribution(gad);	
+	}
+	
+	protected SampledDistribution getSampledDistribution(GroundAtomDistribution gad) {
+		gad.normalize();
 		BeliefNetworkEx bn = gbln.getGroundNetwork();
 		SampledDistribution dist = new SampledDistribution(bn);
 		for(BeliefNode n : gbln.getRegularVariables()) {
 			int idx = bn.getNodeIndex(n);
 			for(int k = 0; k < n.getDomain().getOrder(); k++) {
 				GroundLiteral lit = gbln.getGroundLiteral(n, k);
-				dist.values[idx][k] = sampler.getResult(lit.gndAtom);
+				dist.values[idx][k] = gad.getResult(lit.gndAtom.index);
 				if(!lit.isPositive)
 					dist.values[idx][k] = 1-dist.values[idx][k];
 			}
@@ -110,8 +117,11 @@ public class MCSAT extends Sampler {
 			dist.values[idx][1] = 0.0;
 		}
 		dist.Z = 1.0;
-		dist.trials = dist.steps = numSamples;
-		return dist;	
+		dist.trials = dist.steps = gad.numSamples;
+		return dist;
 	}
 
+	public SampledDistribution pollResults() throws Exception {		
+		return getSampledDistribution(sampler.pollResults());
+	}
 }
