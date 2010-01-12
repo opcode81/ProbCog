@@ -29,7 +29,7 @@ public class MCSAT implements IParameterHandler {
 	protected WorldVariables vars;
 	protected Database db; 
 	protected Random rand;
-	protected SampledDistribution dist;
+	protected GroundAtomDistribution dist;
 	protected boolean verbose = false, debug = false;
 	protected int infoInterval = 100;
 	protected ParameterHandler paramHandler;
@@ -40,7 +40,7 @@ public class MCSAT implements IParameterHandler {
 		this.vars = vars;
 		this.db = db;
 		this.rand = new Random();
-		this.dist = new SampledDistribution(vars);
+		this.dist = new GroundAtomDistribution(vars);
 		this.paramHandler = new ParameterHandler(this);
 		PossibleWorld state = new PossibleWorld(vars);
 		sat = new SampleSAT(state, vars, db.getEntries());				
@@ -63,7 +63,7 @@ public class MCSAT implements IParameterHandler {
 		this.infoInterval = interval;
 	}
 
-	public void run(int steps) throws Exception {
+	public GroundAtomDistribution run(int steps) throws Exception {
 		if(debug) {
 			System.out.println("\nMC-SAT constraints:");
 			for(WeightedClause wc : kb)
@@ -112,25 +112,29 @@ public class MCSAT implements IParameterHandler {
 				sat.getState().print();
 			}
 			
-			dist.addSample(sat.getState(), 1.0);
+			synchronized(dist) {
+				dist.addSample(sat.getState(), 1.0);
+			}
 		}
-		dist.normalize();
+		synchronized(dist) {
+			dist.normalize();
+		}
+		
+		return dist;
 	}
 	
 	public void setP(double p) {
 		sat.setPSampleSAT(p);
 	}
 	
-	public double getResult(GroundAtom ga) {
-		return dist.getResult(ga.index);
-	}
-	
-	public static class SampledDistribution{
+	public static class GroundAtomDistribution implements Cloneable {
 		public double[] sums;
 		public double Z;
+		public int numSamples;
 		
-		public SampledDistribution(WorldVariables vars){
+		public GroundAtomDistribution(WorldVariables vars){
 			this.Z = 0.0;
+			this.numSamples = 0;
 			this.sums = new double[vars.size()];
 		}
 		
@@ -141,18 +145,37 @@ public class MCSAT implements IParameterHandler {
 				}
 			}
 			Z += weight;
+			numSamples++;
 		}
 		
 		public void normalize(){
-			for(int i = 0; i < sums.length; i++){
-				sums[i] /= Z;
+			if(Z != 1.0) {
+				for(int i = 0; i < sums.length; i++){
+					sums[i] /= Z;
+				}
+				Z = 1.0;
 			}
-			Z = 1.0;
 		}
 		
 		public double getResult(int indx){
 			return sums[indx];
 		}
+		
+		public GroundAtomDistribution clone() throws CloneNotSupportedException {
+			return (GroundAtomDistribution)super.clone();
+		}
+	}
+
+	public double getResult(GroundAtom ga) {
+		return dist.getResult(ga.index);
+	}
+	
+	public GroundAtomDistribution pollResults() throws CloneNotSupportedException {
+		GroundAtomDistribution ret = null;
+		synchronized(dist) {
+			ret = this.dist.clone();
+		}
+		return ret;
 	}
 
 	public ParameterHandler getParameterHandler() {
