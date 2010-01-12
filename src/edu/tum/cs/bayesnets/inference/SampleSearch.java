@@ -60,15 +60,9 @@ public class SampleSearch extends Sampler {
 		s.trials = 0;
 		s.weight = 1.0;
 		s.trials++;
-		HashMap<Integer,Double> evidenceProbs = new HashMap<Integer,Double>();
-		if(s.trials > this.maxTrials) {
-			if(!this.skipFailedSteps)
-				throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
-			else
-				return null;
-		}
+		double[] samplingProb = new double[nodeOrder.length];
 		// assign values to the nodes in order
-		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();  
+		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
 			if(i == -1)
 				throw new Exception("It appears that the evidence is constradictory.");
@@ -91,10 +85,10 @@ public class SampleSearch extends Sampler {
 			// for evidence nodes, we can continue if the evidence probability was non-zero
 			if(domainIdx >= 0) { 
 				s.nodeDomainIndices[nodeIdx] = domainIdx;
+				samplingProb[nodeIdx] = 1.0;
 				double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 				if(prob != 0.0) {
 					++i;
-					evidenceProbs.put(nodeIdx, prob);
 					continue;
 				}
 				else {
@@ -104,8 +98,10 @@ public class SampleSearch extends Sampler {
 			} 
 			// for non-evidence nodes, do forward sampling
 			else {
-				domainIdx = sampleForward(nodes[nodeIdx], s.nodeDomainIndices, excluded);
-				if(domainIdx >= 0) {
+				SampledAssignment sa = sampleForward(nodes[nodeIdx], s.nodeDomainIndices, excluded);
+				if(sa != null) {
+					domainIdx = sa.domIdx;
+					samplingProb[nodeIdx] = sa.probability;				
 					s.nodeDomainIndices[nodeIdx] = domainIdx;
 					++i;
 					continue;
@@ -114,6 +110,7 @@ public class SampleSearch extends Sampler {
 					System.out.println("      impossible case; backtracking...");
 			}
 			// if we get here, we need to backtrack to the last non-evidence node
+			// TODO better: backtrack to last (non-evidence) parent of current node
 			s.trials++;
 			do {
 				// kill the current node's exclusions
@@ -129,9 +126,19 @@ public class SampleSearch extends Sampler {
 			} while(evidenceDomainIndices[nodeIdx] != -1);
 		}
 		// we found a sample, determine its weight
-		for(Double p : evidenceProbs.values())
-			s.weight *= p;
+		for(int i = 0; i < this.nodes.length; i++) {
+			s.weight *= getCPTProbability(nodes[i], s.nodeDomainIndices) / samplingProb[i];
+		}
 		return s;
+	}
+	
+	protected class SampledAssignment {
+		public int domIdx;
+		public double probability;
+		public SampledAssignment(int domainIdx, double p) {
+			domIdx = domainIdx;
+			probability = p;
+		}
 	}
 	
 	/**
@@ -141,7 +148,7 @@ public class SampleSearch extends Sampler {
 	 * @return  the index of the domain element of 'node' that is sampled, or -1 if sampling is impossible because all entries in the relevant column are 0
 	 * TODO should use loopy bp/ijgp to initialize importance distributions rather than sampling from prior  
 	 */
-	protected int sampleForward(BeliefNode node, int[] nodeDomainIndices, boolean[] excluded) {
+	protected SampledAssignment sampleForward(BeliefNode node, int[] nodeDomainIndices, boolean[] excluded) {
 		CPF cpf = node.getCPF();
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		int[] addr = new int[domProd.length];
@@ -167,7 +174,8 @@ public class SampleSearch extends Sampler {
 		}
 		// if the column contains only zeros, it is an impossible case -> cannot sample
 		if(sum == 0)
-			return -1;
-		return sample(cpt_entries, sum, generator);
+			return null;
+		int domIdx = sample(cpt_entries, sum, generator);
+		return new SampledAssignment(domIdx, cpt_entries[domIdx]/sum);
 	}
 }
