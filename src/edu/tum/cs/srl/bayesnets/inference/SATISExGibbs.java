@@ -6,6 +6,8 @@
  */
 package edu.tum.cs.srl.bayesnets.inference;
 
+import java.util.Collection;
+
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.GibbsSampling;
@@ -44,7 +46,7 @@ public class SATISExGibbs extends SATISEx {
 
 		public GibbsSampling gibbsSampler;
 		
-		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Iterable<BeliefNode> determinedVars) {
+		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) {
 			super(bn, sat, coupling, determinedVars);
 			gibbsSampler = new GibbsSampling(gbln.getGroundNetwork());
 		}
