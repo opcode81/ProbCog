@@ -267,8 +267,11 @@ class BLNQuery:
         
     def showBN(self):
         bif = self.selected_bif.get()
-        os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
-        #os.system("bnj %s" % bif)
+        if "win" in sys.platform:
+            os.system("bnj %s" % bif)
+        else:
+            os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
+        
 
     def start(self):
         # get mln, db, qf and output filename
