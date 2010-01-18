@@ -87,8 +87,9 @@ public class learnBLOG {
 			Vector<Database> dbs = new Vector<Database>();
 			Pattern p = Pattern.compile( dbFile );
 			File directory = new File(dbFile).getParentFile();
-			if(directory == null)
+			if(directory == null || !directory.exists())
 				directory = new File(".");
+			System.out.printf("Searching in %s...\n", directory);
 			for (File file : directory.listFiles()) { 
 				if(p.matcher(file.getName()).matches()) {
 					Database db = new Database(bn);
