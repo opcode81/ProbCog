@@ -27,20 +27,29 @@ public class IJGP extends Sampler {
 	Vector<JoinGraph.Node> jgNodes;
 	protected BeliefNode[] nodes;
 	protected final boolean debug = false;
+	protected int ibound;
+	protected boolean verbose = true;
 
 	public IJGP(BeliefNetworkEx bn) throws FileNotFoundException {
 		super(bn);
 		this.nodes = bn.bn.getNodes();
 		// detect minimum bound
-		int bound = Integer.MIN_VALUE;
+		ibound = 1;
 		for (BeliefNode n : nodes) {
 			int l = n.getCPF().getDomainProduct().length;
-			if (l > bound)
-				bound = l;
+			if (l > ibound)
+				ibound = l;
 		}
 		// construct join-graph
-		jg = new JoinGraph(bn, bound);
-		jg.writeDOT(new File("jg.dot"));
+		if(verbose)
+			System.out.printf("constructing join-graph with i-bound %d...\n", ibound);
+		jg = new JoinGraph(bn, ibound);
+		//jg.writeDOT(new File("jg.dot"));
+	}
+	
+	@Override
+	public String getAlgorithmName() {
+		return String.format("IJGP[i-bound %d]");
 	}
 
 	/*
@@ -52,12 +61,16 @@ public class IJGP extends Sampler {
 	@Override
 	public SampledDistribution infer() throws Exception {
 		// Create topological order
+		if(verbose) System.out.println("determining order...");
 		jgNodes = jg.getTopologicalorder();
-		System.out.println("Topological Order: ");
-		for (int i = 0; i < jgNodes.size(); i++) {
-			System.out.println(jgNodes.get(i).getShortName());
+		if(debug) {
+			System.out.println("Topological Order: ");
+			for (int i = 0; i < jgNodes.size(); i++) {
+				System.out.println(jgNodes.get(i).getShortName());
+			}
 		}
 		// process observed variables
+		if(verbose) System.out.println("processing observed variables...");
 		for (JoinGraph.Node n : jgNodes) {
 			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes());
 			for (BeliefNode belNode : nodes) {
@@ -67,8 +80,9 @@ public class IJGP extends Sampler {
 					n.nodes.remove(belNode);
 			}
 		}
-		System.out.println("\n");
+		System.out.printf("running propagation (%d steps)...\n", this.numSamples);
 		for (int step = 1; step <= this.numSamples; step++) {
+			System.out.printf("step %d\n", step);
 			// for every node in JG in topological order and back:
 			int s = jgNodes.size();
 			boolean direction = true;
@@ -81,7 +95,7 @@ public class IJGP extends Sampler {
 					direction = false;
 				}
 				JoinGraph.Node u = jgNodes.get(i);
-				System.out.println("Handling number " + i + " of " + s + ": " + u.getShortName() + "\n");
+				//System.out.printf("step %d, %d/%d: %-60s\r", step, j, 2*s, u.getShortName());
 				int topIndex = jgNodes.indexOf(u);
 				for (JoinGraph.Node v : u.getNeighbors()) {
 					if ((direction && jgNodes.indexOf(v) < topIndex)
@@ -135,7 +149,7 @@ public class IJGP extends Sampler {
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
-			System.out.println("Computing: " + nodes[i].getName() + "\n");
+			//System.out.println("Computing: " + nodes[i].getName() + "\n");
 			if (evidenceDomainIndices[i] >= 0) {
 				dist.values[i][evidenceDomainIndices[i]] = 1.0;
 				continue;
