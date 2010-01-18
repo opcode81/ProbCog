@@ -33,7 +33,11 @@ import os
 from fnmatch import fnmatch
 #import keyword
 
-class SyntaxHighlightingText(ScrolledText):
+class ScrolledText2(ScrolledText):
+    def __init__(self, root, change_hook = None):
+        ScrolledText.__init__(self,root,wrap=NONE,bd=0,width=80,height=25,undo=1,maxundo=50,padx=0,pady=0,background="white",foreground="black")
+
+class SyntaxHighlightingText(ScrolledText2):
     # syntax highlighting definitions
     tags = {'com': dict(foreground='#aaa'), # comment
             'mlcom': dict(foreground='#aaa'), # multi-line comment
@@ -51,7 +55,7 @@ class SyntaxHighlightingText(ScrolledText):
 
     # constructor
     def __init__(self, root, change_hook = None):
-        ScrolledText.__init__(self,root,wrap=NONE,bd=0,width=80,height=25,undo=1,maxundo=50,padx=0,pady=0,background="white",foreground="black")
+        ScrolledText2.__init__(self,root,change_hook)
         # Non-wrapping, no border, undo turned on, max undo 50
         self.text = self # For the methods taken from IDLE
         self.root = root
@@ -384,7 +388,7 @@ class FilePickEdit(Frame):
         else:
             self.save_name.set(self.picked_name.get())
     
-    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None):
+    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None, coloring=True):
         '''
             file_mask: file mask (e.g. "*.foo") or list of file masks (e.g. ["*.foo", "*.abl"])
         '''
@@ -418,7 +422,10 @@ class FilePickEdit(Frame):
         self.save_button.grid(row=0, column=1, sticky="E")
         # editor
         row += 1
-        self.editor = SyntaxHighlightingText(self, self.onEdit)
+        if coloring:
+            self.editor = SyntaxHighlightingText(self, self.onEdit)
+        else:
+            self.editor = ScrolledText2(self, self.onEdit)
         if font != None:
             self.editor.configure(font=font)
         if edit_height is not None:
@@ -486,7 +493,7 @@ class FilePickEdit(Frame):
                 self.list.destroy()
                 self.makelist()
             # set it as the new pick
-            self.picked_name.set(filename)
+            #self.picked_name.set(filename)
             self.save_edit.configure(state=DISABLED)
         return filename
 
@@ -498,12 +505,6 @@ class FilePickEdit(Frame):
 
 
 class FilePick(Frame):
-
-    def onSelChange(self, name, index=0, mode=0):
-        filename = self.picked_name.get()
-        if self.user_onChange != None:
-            self.user_onChange(filename)
-
     def __init__(self, master, file_mask, default_file, user_onChange = None, font = None, dirs = (".", ), allowNone = False):
         ''' file_mask: file mask or list of file masks '''
         self.master = master
@@ -514,14 +515,29 @@ class FilePick(Frame):
         self.file_extension = ""
         if "." in file_mask:
             self.file_extension = file_mask[file_mask.rfind('.'):]
-        # read filenames
-        self.files = []
-        if allowNone:
-            self.files.append("")
         if type(file_mask) != list:
             file_mask = [file_mask]
-        for fm in file_mask:
-            for dir in dirs:
+        self.file_masks = file_mask
+        self.allowNone = allowNone
+        self.dirs = dirs
+        # create list of files
+        self.updateList()
+        # pick default if applicable
+        self.set(default_file)
+    
+    def onSelChange(self, name, index=0, mode=0):
+        filename = self.picked_name.get()
+        if self.user_onChange != None:
+            self.user_onChange(filename)
+
+    def updateList(self):
+        prev_sel = self.get()
+        # get list of files (paths)
+        self.files = []
+        if self.allowNone:
+            self.files.append("")
+        for fm in self.file_masks:
+            for dir in self.dirs:
                 try: 
                     for filename in os.listdir(dir):
                         if fnmatch(filename, fm):
@@ -533,20 +549,13 @@ class FilePick(Frame):
                 except:
                     pass
         self.files.sort()
-        if len(self.files) == 0: self.files.append("(no %s files found)" % file_mask)
-        # create list
-        self.picked_name = StringVar(self)
-        self.makelist()
-        # pick default if applicable
-        if default_file in self.files:
-            if not havePMW:
-                self.picked_name.set(default_file) # default value
-            else:
-                self.list.selectitem(default_file)
-                self.onSelChange(default_file)
-                pass
-        
-    def makelist(self):
+        if len(self.files) == 0: self.files.append("(no %s files found)" %  self.file_masks)
+        # create list object        
+        self._makelist()
+        # reselect
+        self.set(prev_sel)
+    
+    def _makelist(self):
         if havePMW:
             self.list = Pmw.ComboBox(self,
                     selectioncommand = self.onSelChange,
@@ -556,10 +565,22 @@ class FilePick(Frame):
             self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
             self.picked_name = self.list            
         else:
+            self.picked_name = StringVar(self)
             self.list = apply(OptionMenu, (self, self.picked_name) + tuple(self.files))
             self.list.grid(row=0, column=0, sticky="NEW")
             self.picked_name.trace("w", self.onSelChange)
 
+    def set(self, filename):
+        default_file = filename
+        if default_file in self.files:
+            if not havePMW:
+                self.picked_name.set(default_file) # default value
+            else:
+                self.list.selectitem(default_file)
+                self.onSelChange(default_file)
+                pass
+
     def get(self):
-        filename = self.picked_name.get()
-        return filename
+        if not hasattr(self, 'picked_name'):
+            return None
+        return self.picked_name.get()
