@@ -37,6 +37,8 @@ public class Database {
 	protected HashMap<String,String> entity2type;
 	protected HashMap<String,MultiIterator<String>> multiDomains;
 	
+	protected boolean debug = true; 
+	
 	/**
 	 * constructs an empty database for the given model
 	 * @param model
@@ -108,6 +110,7 @@ public class Database {
 	}
 	
 	public void addVariable(Variable var, boolean ignoreUndefinedFunctions) throws Exception {
+		//if(debug) System.out.println("adding var " + var);
 		// fill domains
 		Signature sig = model.getSignature(var.functionName);
 		if(sig == null) {
@@ -229,6 +232,7 @@ public class Database {
 	 * @throws Exception 
 	 */
 	protected void fillDomain(String type, String value) throws Exception {
+		//if(debug) System.out.printf("  adding %s to domain %s\n", value, type);
 		// if we are working with a taxonomy, we need to check whether we
 		// previously assigned the value to a super-type of type
 		// and if so, reassign it to the sub-type
@@ -237,10 +241,12 @@ public class Database {
 			if(prevType != null) {
 				if(prevType.equals(type))
 					return;
-				if(taxonomy.query_isa(type, prevType)) 
+				if(taxonomy.query_isa(type, prevType)) // new type is sub-type --> reassign
 					domains.get(prevType).remove(value);					
-				else
+				else if(taxonomy.query_isa(prevType, type)) // new type is supertype --> do nothing (old assignment was more specific)
 					return;
+				else
+					;//System.err.printf("Warning: Entity " + value + " belongs to at least two types (%s, %s) which have no taxonomic relationship; functional mapping of entities to types not well-defined if domains are not merged.");
 			}
 			entity2type.put(value, type);
 		}
@@ -274,9 +280,13 @@ public class Database {
 					if(dom2.contains(value)) { // replace all occurrences of the j-th domain by the i-th
 						if(verbose)
 							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap (both contain " + value + "). Merging...");
-						this.model.replaceType(domNames.get(j), domNames.get(i));
+						String targetDomName = domNames.get(i);
+						this.model.replaceType(domNames.get(j), targetDomName);
+						// add all elements of j-th domain to the i-th
 						dom1.addAll(dom2);
 						doms.set(j, dom1);
+						for(String v : dom2)
+							entity2type.put(v, targetDomName);
 						break;
 					}
 				}
