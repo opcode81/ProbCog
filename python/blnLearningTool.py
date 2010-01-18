@@ -83,20 +83,6 @@ class BLNLearn:
         # evidence database selection
         row += 1
         Label(self.frame, text="Training Data: ").grid(row=row, column=0, sticky=NE)
-        # frame
-        frame = Frame(self.frame)
-        frame.grid(row=row, column=1, sticky="NEW")
-        frame.columnconfigure(0, weight=1)
-        # database pick        
-        #self.selected_db = FilePickEdit(self.frame, "*.blogdb", self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("db_rename", False), font=config.fixed_width_font)
-        self.selected_db = FilePick(self.frame, "*.blogdb", self.settings.get("db", ""), self.changedDB, font=config.fixed_width_font)
-        self.selected_db.grid(row=row,column=1, sticky="NWES")
-        #self.frame.rowconfigure(row, weight=1)
-        # editor field
-        
-        # inference duration parameters
-        row += 1
-        Label(self.frame, text="Training Data: ").grid(row=row, column=0, sticky=NE)
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         col = 0        
@@ -107,39 +93,21 @@ class BLNLearn:
         #cb.grid(row=0, column=col, sticky="W")
         Label(frame, text="Single:").grid(row=0, column=col, sticky="W")
         #var.set(self.settings.get("useMaxSteps", 1))
-        # - max step entry
+        # - database selection
         col += 1
         frame.columnconfigure(col, weight=1)
         self.selected_db = FilePick(frame, "*.blogdb", self.settings.get("db", ""), self.changedDB, font=config.fixed_width_font)
-        self.selected_db.grid(row=row,column=1, sticky="NWES")
-        # - interval entry
+        self.selected_db.grid(row=0,column=1, sticky="NWES")
+        # - label
+        col += 1
+        Label(frame, text="OR Pattern:").grid(row=0, column=col, sticky="W")
+        # - pattern entry
         col += 1
         frame.columnconfigure(col, weight=1)
-        self.infoInterval = var = StringVar(master)
-        var.set(self.settings.get("infoInterval", "100"))
-        self.entry_infoInterval = Entry(frame, textvariable = var)
-        self.entry_infoInterval.grid(row=0, column=col, sticky="NEW")
-        # time
-        # - checkbox
-        col += 1
-        self.use_time_limit = var = IntVar()
-        self.cb_time = cb = Checkbutton(frame, text="Time limit/inverval (s):", variable=var)
-        cb.grid(row=0, column=col, sticky="E")
-        var.set(self.settings.get("useTimeLimit", 0))
-        # - time limit entry
-        col += 1
-        frame.columnconfigure(col, weight=1)
-        self.timeLimit = var = StringVar(master)
-        var.set(self.settings.get("timeLimit", "10.0"))
-        self.entry_time_limit = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")
-        # - time interval entry
-        col += 1
-        frame.columnconfigure(col, weight=1)
-        self.timeInterval = var = StringVar(master)
-        var.set(self.settings.get("timeInterval", "1"))
-        self.entry_time_interval = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")
+        self.pattern = var = StringVar(master)
+        var.set(self.settings.get("pattern", ""))
+        self.entry_pattern = Entry(frame, textvariable = var)
+        self.entry_pattern.grid(row=0, column=col, sticky="NEW")
 
         # method selection
         #row += 1
@@ -259,6 +227,7 @@ class BLNLearn:
         blog = self.selected_blog.get()
         bif = self.selected_bif.get()
         db = self.selected_db.get()
+        pattern = self.pattern.get()
         #bln_text = self.selected_bln.get_text()
         #method = self.selected_method.get()
         params = self.params.get()
@@ -273,6 +242,7 @@ class BLNLearn:
         self.settings["blog"] = blog
         self.settings["blog_rename"] = self.selected_blog.rename_on_edit.get()
         self.settings["db"] = db
+        self.settings["pattern"] = pattern
         #self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
         #self.settings["method"] = method
         self.settings["params"] = params
@@ -293,7 +263,10 @@ class BLNLearn:
         self.master.withdraw()
         
         # create command to execute
-        params = '-x "%s" -b "%s" -t "%s" -ob "%s" -ox "%s"' % (bif, blog, db, output, netOutput)
+        traindb = db
+        if pattern != "":
+            traindb = pattern
+        params = '-x "%s" -b "%s" -t "%s" -ob "%s" -ox "%s"' % (bif, blog, traindb, output, netOutput)
         #if cwPreds != "":
         #    params += " -cw %s" % cwPreds
         if self.settings["learnDomains"]: params += " -d"
