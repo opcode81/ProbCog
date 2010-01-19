@@ -4,7 +4,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
-public class InferenceResult {
+public class InferenceResult implements Comparable<InferenceResult> {
 	public String varName;
 	public String[] domainElements;
 	public double[] probabilities;
@@ -26,5 +26,9 @@ public class InferenceResult {
 		System.err.println(varName + ":");
 		for(int i = 0; i < domainElements.length; i++)
 			System.err.println(String.format("  %.4f %s", probabilities[i], domainElements[i]));
+	}
+
+	public int compareTo(InferenceResult o) {
+		return varName.compareTo(o.varName);
 	}
 }
