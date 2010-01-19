@@ -1,5 +1,7 @@
 package edu.tum.cs.srl.bayesnets.inference;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -45,7 +47,9 @@ public abstract class Sampler implements IParameterHandler {
 	}
 	
 	public static void printResults(SampledDistribution dist, Iterable<String> queries) {
-		for(InferenceResult res : getResults(dist, queries))
+		ArrayList<InferenceResult> results = new ArrayList<InferenceResult>(getResults(dist, queries));		
+		Collections.sort(results);
+		for(InferenceResult res : results)
 			res.print();
 	}
 	
