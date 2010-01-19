@@ -118,4 +118,8 @@ public class ABL extends BLOGModel {
 			e.printStackTrace();
 		}		
 	}
+	
+	public void write(PrintStream out) throws Exception {
+		super.writeDeclarations(out);
+	}
 }
