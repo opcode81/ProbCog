@@ -76,7 +76,7 @@ class MLNQuery:
         # mln selection
         row += 1
         Label(self.frame, text="MLN: ").grid(row=row, column=0, sticky=NE)
-        self.selected_mln = FilePickEdit(self.frame, config.query_mln_filemask, self.settings.get("mln", ""), 22, self.changedMLN, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font)
+        self.selected_mln = FilePickEdit(self.frame, config.query_mln_filemask, self.settings.get("mln", ""), 22, self.changedMLN, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.selected_mln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
         
@@ -88,7 +88,7 @@ class MLNQuery:
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
-        self.selected_db = FilePickEdit(self.frame, config.query_db_filemask, self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font)
+        self.selected_db = FilePickEdit(self.frame, config.query_db_filemask, self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.selected_db.grid(row=row,column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 

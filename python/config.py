@@ -1,19 +1,21 @@
 # configuration script for the MLN query & parameter learning tools
+# 
+#   If you want to use PyMLNs with the Alchemy System (http://alchemy.cs.washington.edu),
+#   set the path where it is installed on your system in the alchemy_versions dictionary below.
+#
+#   Depending on your naming convention for mln and database files, you may need to change
+#      query_db_filemask, query_mln_filemask, learnwts_mln_filemask and learnwts_db_filemask
+#   to suit your needs.
+# 
+#   You can use os.getenv("VARIABLE") to retrieve the value of an environment variable
 
 import os
-
-# Note:
-#   Most settings need not be changed to use PyMLNs.
-#   Depending on your naming convention for mln and database files, you may, however need to change
-#      query_db_filemask, query_mln_filemask, learnwts_mln_filemask and learnwts_db_filemask
-#   to suit your need.
-#   You can use os.getenv("VARIABLE") to retrieve the value of an environment variable
 
 # --- settings for both tools ---
 
 fixed_width_font = ("Lucida Console", -12) # name of font and size (if negative, in pixels)
 editor = os.getenv("EDITOR") # your favorite editor with which output files should be opened, e.g. "kate" or "vi"
-
+coloring = True # whether to use syntax highlighting in editors (slow when using large files)
 
 # --- settings for the parameter learning tool ---
 
@@ -62,12 +64,13 @@ default_infer_usage = old_usage # the usage that is to apply when the "usage" of
 #   a dictionary with at least the key "path" set to the Alchemy root or bin directory.
 #   The dictionary can additionally set "usage" to one of the above mappings
 alchemy_versions = {#"Alchemy - current (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
-                    "Alchemy - January 2007 (AMD64)": os.getenv("ALCHEMY_JAN07"),
+                    "Alchemy - July 2009 (AMD64)": {"path": "/usr/wiss/jain/work/code/alchemy-2009-07-07/bin", "usage": new_usage},
+                    #"Alchemy - January 2007 (AMD64)": os.getenv("ALCHEMY_JAN07"),
                     "Alchemy - June 2008 (AMD64)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
                     "Alchemy - June 2008 (i386)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
-                    "Alchemy - January 2007 (i386)": os.getenv("ALCHEMY_JAN07_32"),
+                    #"Alchemy - January 2007 (i386)": os.getenv("ALCHEMY_JAN07_32"),
                     #"Alchemy - January 2007/dev (i386)": os.getenv("ALCHEMY_JAN07_32")+"_dev",
-		    "Alchemy - February 2008 (i386)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-02-07/bin/i386", "usage": new_usage}
+		    #"Alchemy - February 2008 (i386)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-02-07/bin/i386", "usage": new_usage}
                     #"dev" : os.getenv("ALCHEMY_HOME_DEV"),
                     #"old" : os.getenv("ALCHEMY_HOME_OLD"),
                     #"snapshot dev" : os.getenv("ALCHEMY_HOME_NEW"),
