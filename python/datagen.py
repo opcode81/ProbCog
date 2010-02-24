@@ -593,7 +593,7 @@ class SelCond(SelOne):
         
     def pick(self):
         if self.decider.decide():
-            return SelOne.pick()
+            return SelOne.pick(self)
         else:
             return []
 
