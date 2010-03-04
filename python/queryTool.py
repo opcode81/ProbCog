@@ -52,6 +52,7 @@ class MLNQuery:
         self.master = master
         self.settings = settings
         if not "queryByDB" in self.settings: self.settings["queryByDB"] = {}
+        if not "emlnByDB" in self.settings: self.settings["emlnByDB"] = {}
 
         self.frame = Frame(master)
         self.frame.pack(fill=BOTH, expand=1)
@@ -79,16 +80,25 @@ class MLNQuery:
         self.selected_mln = FilePickEdit(self.frame, config.query_mln_filemask, self.settings.get("mln", ""), 22, self.changedMLN, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.selected_mln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
-        
+        # option: convert to Alchemy format
         self.convert_to_alchemy = IntVar()
         self.cb_convert_to_alchemy = Checkbutton(self.selected_mln.options_frame, text="convert to Alchemy format", variable=self.convert_to_alchemy)
         self.cb_convert_to_alchemy.pack(side=LEFT)
         self.convert_to_alchemy.set(self.settings.get("convertAlchemy", 0))
-
+        # option: use model extension
+        self.use_emln = IntVar()
+        self.cb_use_emln = Checkbutton(self.selected_mln.options_frame, text="use model extension", variable=self.use_emln)
+        self.cb_use_emln.pack(side=LEFT)
+        self.use_emln.set(self.settings.get("useEMLN", 0))
+        self.use_emln.trace("w", self.onChangeUseEMLN)
+        # mln extension selection
+        self.selected_emln = FilePickEdit(self.selected_mln, "*.emln", None, 12, self.changedMLN, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
+        self.onChangeUseEMLN()
+        
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
-        self.selected_db = FilePickEdit(self.frame, config.query_db_filemask, self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
+        self.selected_db = FilePickEdit(self.frame, config.query_db_filemask, self.settings.get("db", ""), 12, self.changedDB, rename_on_edit=self.settings.get("emln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.selected_db.grid(row=row,column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
@@ -175,7 +185,7 @@ class MLNQuery:
         start_button.grid(row=row, column=1, sticky="NEW")
 
         self.initialized = True
-        self.onChangeEngine()
+        self.onChangeEngine()        
         
         self.setGeometry()
     
@@ -201,7 +211,17 @@ class MLNQuery:
                 f.close()
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
-        
+        # select EMLN
+        emln = self.settings["emlnByDB"].get(name)
+        if not emln is None:
+            self.selected_emln.set(emln)        
+    
+    def onChangeUseEMLN(self, *args):
+        if self.use_emln.get() == 0:
+            self.selected_emln.grid_forget()
+        else:
+            self.selected_emln.grid(row=self.selected_mln.row+1, column=0, sticky="NWES")
+    
     def onChangeEngine(self, name = None, index = None, mode = None):
         # enable/disable controls
         engineName = self.selected_engine.get()
@@ -243,6 +263,7 @@ class MLNQuery:
         #try:
             # get mln, db, qf and output filename
             mln = self.selected_mln.get()
+            emln = self.selected_emln.get()
             db = self.selected_db.get()
             qf = self.selected_qf.get()
             mln_text = self.selected_mln.get_text()
@@ -260,26 +281,26 @@ class MLNQuery:
             self.settings["method%d" % int(self.numEngine)] = method
             self.settings["params%d" % int(self.numEngine)] = params
             self.settings["query"] = self.query.get()
+            self.settings["queryByDB"][db] = self.settings["query"]
+            self.settings["emlnByDB"][db] = emln
             self.settings["engine"] = self.selected_engine.get()
             self.settings["qf"] = qf
             self.settings["output_filename"] = output
             self.settings["openWorld"] = self.open_world.get()
             self.settings["cwPreds"] = self.cwPreds.get()
             self.settings["convertAlchemy"] = self.convert_to_alchemy.get()
+            self.settings["useEMLN"] = self.use_emln.get()
             self.settings["maxSteps"] = self.maxSteps.get()
             self.settings["numChains"] = self.numChains.get()
             self.settings["geometry"] = self.master.winfo_geometry()
             self.settings["saveResults"] = self.save_results.get()
-            # write query
-            # - to file
+            # write query to file
             write_query_file = False
             if write_query_file:
                 query_file = "%s.query" % db
                 f = file(query_file, "w")
                 f.write(self.settings["query"])
                 f.close()
-            # - to settings
-            self.settings["queryByDB"][db] = self.settings["query"]
             # write settings
             pickle.dump(self.settings, file(configname, "w+"))
             # hide main window
@@ -287,6 +308,11 @@ class MLNQuery:
             # some information
             print "\n--- query ---\n%s" % self.settings["query"]
             print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
+            # MLN input files
+            input_files = [mln]            
+            if settings["useEMLN"] == 1: # using extended model                
+                input_files.append(emln)
+            print input_files
             # engine
             haveOutFile = False
             if self.settings["engine"] == "internal": # internal engine
@@ -303,7 +329,7 @@ class MLNQuery:
                             query = ""
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
                     # create MLN and evidence conjunction
-                    mln = MLN.MLN(mln, verbose=True, defaultInferenceMethod=MLN.InferenceMethods._byName.get(method))
+                    mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods._byName.get(method))
                     evidence = MLN.evidence2conjunction(mln.combineDB(db, verbose=True))
                     # set closed-world predicates
                     cwPreds = map(str.strip, self.settings["cwPreds"].split(","))
@@ -338,6 +364,8 @@ class MLNQuery:
                     sys.stderr.write("Error: %s\n" % str(e))
                     traceback.print_tb(tb)
             elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
+                if self.settings["useEMLN"] == 1:
+                    raise Exception("Model extensions not supported by J-MLNs")
                 # create command to execute
                 params = ' -i "%s" -e "%s" -q "%s" %s %s' % (mln, db, self.settings["query"], self.jmlns_methods[method], params)
                 if self.settings["maxSteps"] != "":
@@ -359,13 +387,13 @@ class MLNQuery:
                 # explicitly convert MLN to Alchemy format, i.e. resolve weights that are arithm. expressions (on request) -> create temporary file
                 if self.settings["convertAlchemy"]:
                     print "\n--- temporary MLN ---\n"
-                    mlnObject = MLN.MLN(mln)
+                    mlnObject = MLN.MLN(input_files)
                     infile = mln[:mln.rfind(".")]+".alchemy.mln"
                     f = file(infile, "w")
                     mlnObject.write(f)
                     f.close()
                     mlnObject.write(sys.stdout)
-                    print "\n---"
+                    print "\n---"                
                 # get alchemy version-specific data
                 alchemy_version = self.alchemy_versions[self.selected_engine.get()]
                 print alchemy_version
@@ -376,7 +404,6 @@ class MLNQuery:
                 if "usage" in alchemy_version:
                     usage = alchemy_version["usage"]
                 # parse additional parameters for input files
-                input_files = [infile]
                 add_params = params.split()
                 i = 0
                 while i < len(add_params):
