@@ -247,7 +247,7 @@ class MLN:
 
     # constructs an MLN object
     #   filename: the name of a .mln file
-    def __init__(self, filename, defaultInferenceMethod = InferenceMethods.MCSAT, parameterType = 'weights', verbose=False):
+    def __init__(self, filename_or_list, defaultInferenceMethod = InferenceMethods.MCSAT, parameterType = 'weights', verbose=False):
         t_start = time.time()
         self.domains = {}
         self.predicates = {}
@@ -264,9 +264,14 @@ class MLN:
         self.closedWorldPreds = []
         formulatemplates = []
         # read MLN file
-        f = file(filename)
-        text = f.read()
-        f.close()
+        text = ""
+        if not type(filename_or_list) == list:
+            filename_or_list = [filename_or_list]
+        for filename in filename_or_list:
+            print filename
+            f = file(filename)
+            text += f.read()
+            f.close()
         # replace some meta-directives in comments
         text = re.compile(r'//\s*<group>\s*$', re.MULTILINE).sub("#group", text)
         text = re.compile(r'//\s*</group>\s*$', re.MULTILINE).sub("#group.", text)
@@ -701,8 +706,7 @@ class MLN:
         return self.gibbsSampler.infer(what, given, verbose=verbose, **args)
 
     def inferMCSAT(self, what, given = None, verbose = True, **args):
-        self.printGroundFormulas(exp)
-        if not hasattr(self, "mcsat"):
+        if not hasattr(self, "mcsat") or True:
             self.mcsat = MCSAT(self, verbose = args.get("details", False))
         result = self.mcsat.infer(what, given, verbose=verbose, **args)
         return result
@@ -831,6 +835,8 @@ class MLN:
                             formula.weight += math.log(f)
                             diff = abs(p-pnew)
                             print "  [%d] changed weight of %s from %f to %f (diff = %f)" % (step, strFormula(formula), old_weight, formula.weight, diff)
+                            #p = self.inferExact(str(gndFormula), verbose=False)
+                            #print " %f " % (p-pnew)
                             gotit = True
                             maxdiff = max(maxdiff, diff)
                             # recalculate world values (for exact inference)
@@ -2412,6 +2418,11 @@ class MCSAT(MCMCInference):
         self.debugLevel = debugLevel
         t_start = time.time()
         details = verbose and details
+        # print CNF KB
+        if self.debug:
+            print "\nCNF KB:"
+            self.mln.printGroundFormulas()
+            print
         # set the random seed if it was given
         if randomSeed != None:
             random.seed(randomSeed)
@@ -3196,9 +3207,11 @@ if __name__ == '__main__':
             mln.combine({"person": ["Steve", "Pete"], "drink": ["C1", "T1", "T2"]})
             mln.writeDotFile("test.dot")
         elif test == "MCSAT":
-            mln = MLN("wts.blog.meal_goods.mln", verbose=True)
+            os.chdir("/usr/wiss/jain/work/code/SRLDB/models/daimler")
+            mln = MLN("daimler2.mln", verbose=True)
             query = ("personT", "q3.db", 30)
             query = ("utensilT", "q10.db", 5)
+            query = ("req(A)", "empty.db", 10)
             evidence = evidence2conjunction(mln.combineDB(query[1], verbose=True))
             mcsat = MCSAT(mln, verbose=True)
             mcsat.infer(query[0], evidence, debug=False, randomSeed=0, verbose=True, details=True, maxSteps=query[2], shortOutput=True)
