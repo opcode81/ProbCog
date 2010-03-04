@@ -453,14 +453,18 @@ class FilePickEdit(Frame):
         self.save_edit.grid(row=0, column=0, sticky="WE")
         self.save_name.trace("w", self.onSaveChange)
         # pick default if applicable
-        if default_file in self.files:
+        self.select(default_file)
+        self.row = row
+    
+    def select(self, filename):
+        ''' selects the item given by filename '''
+        if filename in self.files:
             if not havePMW:
-                self.picked_name.set(default_file) # default value
+                self.picked_name.set(filename) # default value
             else:
-                self.list.selectitem(default_file)
-                self.onSelChange(default_file)
-                pass
-        
+                self.list.selectitem(filename)
+                self.onSelChange(filename)
+    
     def makelist(self):
         if havePMW:
             self.list = Pmw.ComboBox(self.list_frame,
@@ -477,6 +481,9 @@ class FilePickEdit(Frame):
 
     def save(self):
         self.get()
+        
+    def set(self, selected_item):
+        self.select(selected_item)
     
     def get(self):
         filename = self.save_name.get()
@@ -493,7 +500,7 @@ class FilePickEdit(Frame):
                 self.list.destroy()
                 self.makelist()
             # set it as the new pick
-            #self.picked_name.set(filename)
+            self.select(filename)
             self.save_edit.configure(state=DISABLED)
         return filename
 
