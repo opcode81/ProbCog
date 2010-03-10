@@ -114,7 +114,7 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 
 POSSWORLDS_BLOCKING = True
 
-DYNAMIC_SCALING_THRESHOLD = 0.01 # maximum difference between desired and computed probability
+DYNAMIC_SCALING_THRESHOLD = 0.1 # maximum difference between desired and computed probability
 DYNAMIC_SCALING_MAX_STEPS = 20 # maximum number of iterations
 
 class InferenceMethods:
@@ -306,7 +306,7 @@ class MLN:
                 # probability requirement
                 m = re.match(r"P\((.*?)\)\s*=\s*([\.\de]+)", line)
                 if m != None:
-                    self.probreqs.append((strFormula(FOL.parseFormula(m.group(1))), m.group(2)))
+                    self.probreqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": m.group(2)})
                     continue
                 # mutex constraint
                 if re.search(r"[a-z_][-_'a-zA-Z0-9]*\!", line) != None: 
@@ -515,13 +515,13 @@ class MLN:
             # recursive descent to ground further variables
             self._groundFormula(formula, dict(variables), assignment, idxFormula)
 
-    def _createFormulaGroundings(self):
+    def _createFormulaGroundings(self, verbose=True):
         '''this is the method that creates the ground MRF'''
         self.gndFormulas = []
         self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
-        print "grounding formulas..."
+        if verbose: print "grounding formulas..."
         for idxFormula, formula in enumerate(self.formulas):
-            print "  %s" % strFormula(formula)
+            if verbose: print "  %s" % strFormula(formula)
             #vars = formula.getVariables(self)
             #self._groundFormula(formula, vars, {}, idxFormula)
             for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
@@ -547,10 +547,12 @@ class MLN:
         # get list of formula indices where we must negate
         negate = []
         if allPositive:
-            for idxFormula,f in enumerate(self.formulas):
-                if f.weight < 0:
+            for idxFormula,formula in enumerate(self.formulas):
+                if formula.weight < 0:
                     negate.append(idxFormula)
-                    f.weight *= -1
+                    f = FOL.Negation([formula])
+                    self.formulas[idxFormula] = f 
+                    f.weight = -formula.weight
         # get CNF version of each ground formula
         gndFormulas = []
         for gf in self.gndFormulas:
@@ -809,43 +811,69 @@ class MLN:
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-        # apply probability constraints (if any)
-        if len(self.probreqs) > 0:
-            print "applying dynamic scaling... "
-            step = 1
-            maxdiff = 1
-            while step <= DYNAMIC_SCALING_MAX_STEPS and maxdiff >= DYNAMIC_SCALING_THRESHOLD:
-                maxdiff = 0
-                for req in self.probreqs:
-                    gotit = False
-                    for formula in self.formulas:
-                        if strFormula(formula) == req[0]:
-                            # instantiate a ground formula
-                            vars = formula.getVariables(self)
-                            groundVars = {}
-                            for varName, domName in vars.iteritems():
-                                groundVars[varName] = self.domains[domName][0]
-                            gndFormula = formula.ground(self, groundVars)
-                            # calculate probability of that ground formula
-                            p = self.infer(str(gndFormula), verbose=False)
-                            # get the scaling factor and apply it
-                            pnew = float(req[1])
-                            f = pnew * (1-p) / p / (1-pnew)
-                            old_weight = formula.weight 
-                            formula.weight += math.log(f)
-                            diff = abs(p-pnew)
-                            print "  [%d] changed weight of %s from %f to %f (diff = %f)" % (step, strFormula(formula), old_weight, formula.weight, diff)
-                            #p = self.inferExact(str(gndFormula), verbose=False)
-                            #print " %f " % (p-pnew)
-                            gotit = True
-                            maxdiff = max(maxdiff, diff)
-                            # recalculate world values (for exact inference)
-                            if self.defaultInferenceMethod == InferenceMethods.exact:
-                                self._calculateWorldValues()
-                            break
-                    if not gotit:
-                        raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req[0])
-                step += 1
+        #self._satisfyProbReqs()
+        
+    def _satisfyProbReqs(self, evidence = None):
+        ''' applies probability constraints (if any), dynamically modifying weights '''
+        if len(self.probreqs) == 0:
+            return
+        if evidence != None:
+            given = evidence2conjunction(evidence)
+            print "applying dynamic scaling to achieve fixed posteriors... "
+        else:
+            given = None
+            print "applying dynamic scaling to achieve fixed priors... "
+        # determine relevant formulas
+        for req in self.probreqs:
+            gotit = False
+            for idxFormula, formula in enumerate(self.formulas):
+                if strFormula(formula) == req["expr"]:
+                    # instantiate a ground formula
+                    vars = formula.getVariables(self)
+                    groundVars = {}
+                    for varName, domName in vars.iteritems():
+                        groundVars[varName] = self.domains[domName][0]
+                    gndFormula = formula.ground(self, groundVars)
+                    gotit = True
+                    req["gndExpr"] = str(gndFormula)
+                    req["idxFormula"] = idxFormula
+                    break
+            if not gotit:
+                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req[0])
+        # iterative algorithm
+        step = 1
+        maxdiff = 1
+        while step <= DYNAMIC_SCALING_MAX_STEPS and maxdiff >= DYNAMIC_SCALING_THRESHOLD:
+            maxdiff = 0
+            for req in self.probreqs:
+                # calculate probability of the expression (ground formula)
+                if False: # use default inference method
+                    p = self.infer(str(gndFormula), verbose=False)
+                else: # use MCSAT
+                    oldFormulas = list(self.formulas) # store old set of formulas because MCSAT changes them (negations!)
+                    p = self.inferMCSAT(req["gndExpr"], given=given, verbose=False, maxSteps=500)
+                    self.formulas = oldFormulas # restore set of formulas
+                    self._createFormulaGroundings(False)                                    
+                # get the scaling factor and apply it
+                formula = self.formulas[req["idxFormula"]]
+                pnew = float(req["p"])
+                precision = 1e-3
+                if p == 0.0: p = precision
+                if p == 1.0: p = 1-precision
+                f = pnew * (1-p) / p / (1-pnew)
+                old_weight = formula.weight
+                formula.weight += logx(f)
+                diff = abs(p-pnew)
+                print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight)
+                #p = self.inferExact(str(gndFormula), verbose=False)
+                #print " %f " % (p-pnew)
+                self.write(file("debug%d.mln" % step, "w"))
+                gotit = True
+                maxdiff = max(maxdiff, diff)
+                # recalculate world values (for exact inference)
+                if self.defaultInferenceMethod == InferenceMethods.exact:
+                    self._calculateWorldValues()
+            step += 1
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -932,6 +960,9 @@ class MLN:
                 for i in block:
                     if i != idx:
                         self._setEvidence(i, False)
+        
+        self._satisfyProbReqs(evidence)
+        
         return evidence
 
     def combineDBDomain(self, dbfile, requestDomain):
