@@ -257,6 +257,7 @@ class MLN:
         self.domDecls = []
         self.evidenceBackup = {}
         self.probreqs = []
+        self.softEvidence = []
         self.evidence = {}
         self.defaultInferenceMethod = defaultInferenceMethod
         self.parameterType = parameterType
@@ -306,8 +307,13 @@ class MLN:
                 # probability requirement
                 m = re.match(r"P\((.*?)\)\s*=\s*([\.\de]+)", line)
                 if m != None:
-                    self.probreqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": m.group(2)})
+                    self.probreqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": float(m.group(2))})
                     continue
+                # soft evidence
+                m = re.match(r"SE\((.*?)\)\s*=\s*([\.\de]+)", line)
+                if m != None:
+                    self.softEvidence.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": float(m.group(2))})
+                    continue                
                 # mutex constraint
                 if re.search(r"[a-z_][-_'a-zA-Z0-9]*\!", line) != None: 
                     pred = parsePredicate(line)
@@ -856,7 +862,7 @@ class MLN:
                     self._createFormulaGroundings(False)                                    
                 # get the scaling factor and apply it
                 formula = self.formulas[req["idxFormula"]]
-                pnew = float(req["p"])
+                pnew = req["p"]
                 precision = 1e-3
                 if p == 0.0: p = precision
                 if p == 1.0: p = 1-precision
@@ -916,6 +922,11 @@ class MLN:
             l = l.strip()
             if l == "":
                 continue
+            # soft evidence
+            if l[0] in "0123456789":
+                s = l.find(" ")
+                self.softEvidence.append({"expr": l[s+1:], "p": float(l[:s])})
+                continue                
             # domain declaration
             if "{" in l:
                 domName, constants = parseDomDecl(l)
@@ -961,7 +972,7 @@ class MLN:
                     if i != idx:
                         self._setEvidence(i, False)
         
-        self._satisfyProbReqs(evidence)
+        #self._satisfyProbReqs(evidence)
         
         return evidence
 
@@ -2260,6 +2271,12 @@ class MCMCInference(Inference):
                 results.append(float(self.numTrue[i]) / self.numSteps)
             return results
     
+        def currentlyTrue(self, formula):
+            ''' returns 1 if the given formula is true in the current state, 0 otherwise '''
+            if formula.isTrue(self.state):
+                return 1
+            return 0
+        
             
     class ChainGroup:
         def __init__(self, inferObject):
@@ -2287,6 +2304,13 @@ class MCMCInference(Inference):
             self.var = var
             self.results = results
             return results
+        
+        def currentlyTrue(self, formula):
+            ''' returns the fraction of chains in which the given formula is currently true '''
+            t = 0.0 
+            for c in self.chains:
+                t += c.currentlyTrue(formula)
+            return t / len(self.chains)
         
         def printResults(self, shortOutput = False):
             # determine maximum query length to beautify output
@@ -2441,6 +2465,18 @@ class MCSAT(MCMCInference):
                 self.clauses.append(lits)
                 # next clause index
                 idxClause += 1
+        # add clauses for soft evidence atoms
+        for se in self.mln.softEvidence:
+            se["numTrue"] = 0.0
+            gndAtom = self.mln.gndAtoms.get(se["expr"].replace(" ", ""))            
+            if gndAtom is None: raise Exception("Soft evidence atom '%s' corresponds to no ground atom" % se["expr"])
+            se["gndAtom"] = gndAtom
+            self.clauses.append([FOL.GroundLit(gndAtom, False)])
+            se["idxClausePositive"] = idxClause
+            idxClause += 1
+            self.clauses.append([FOL.GroundLit(gndAtom, True)])
+            se["idxClauseNegative"] = idxClause
+            idxClause += 1
     
     def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5):
         '''
@@ -2469,6 +2505,7 @@ class MCSAT(MCMCInference):
             print "initializing %d chain(s)..." % numChains
         # create chains
         chainGroup = MCMCInference.ChainGroup(self)
+        self.chainGroup = chainGroup
         mln = self.mln
         self.wt = mln._weights()
         for i in range(numChains):
@@ -2501,26 +2538,39 @@ class MCSAT(MCMCInference):
         if debug: print
         if infoInterval is None: infoInterval = {True:1, False:10}[debug]
         if resultsInterval is None: resultsInterval = {True:1, False:50}[debug]
-        step = 1
-        while step <= maxSteps:
+        self.step = 1
+        while self.step <= maxSteps:
+            # take one step in each chain
             for chain in chainGroup.chains:
                 if debug: 
-                    print "step %d..." % step
+                    print "step %d..." % self.step
                 # choose a subset of the satisfied formulas and sample a state that satisfies them
                 numSatisfied = self._satisfySubset(chain)
                 # update chain counts
                 chain.update()
                 # print progress
-                if details and step % infoInterval == 0:
-                    print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (step, numSatisfied, self._getElapsedTime())
+                if details and self.step % infoInterval == 0:
+                    print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()),
+                    if len(self.mln.softEvidence) > 0:
+                        se_mean, se_max = 0.0, 0.0
+                        for se in self.mln.softEvidence:
+                            dev = abs((se["numTrue"] / self.step) - se["p"])
+                            se_max = max(se_max, dev)
+                            se_mean += dev
+                        print "  SE dev. mean=%f, max=%f" % (se_mean/len(self.mln.softEvidence), se_max),
+                    print
                     if debug:
                         self.mln.printState(chain.state)
                         print
-            if details and step % resultsInterval == 0 and step != maxSteps:
+            # update soft evidence counts
+            for se in self.mln.softEvidence:
+                se["numTrue"] += self.chainGroup.currentlyTrue(se["gndAtom"])
+            # outputs
+            if details and self.step % resultsInterval == 0 and self.step != maxSteps:
                 chainGroup.getResults()
                 chainGroup.printResults(shortOutput=True)
                 if debug: print
-            step += 1
+            self.step += 1
         # get results
         return chainGroup.getResults()
     
@@ -2541,6 +2591,27 @@ class MCSAT(MCMCInference):
                             NLC.append(gf)
                         if self.debug and self.debugLevel >= 3:
                             print "  to satisfy:", strFormula(gf)
+        # add soft evidence constraints
+        for se in self.mln.softEvidence:
+            p = se["numTrue"] / self.step
+            if se["gndAtom"].isTrue(chain.state):
+                #print "true case"
+                add = False
+                if p < se["p"]:
+                    add = True
+                #else:
+                #    add = random.uniform(0,1) < se["p"]
+                if add:
+                    M.append(se["idxClausePositive"])
+            else:
+                #print "false case"
+                add = False
+                if p > se["p"]:
+                    add = True
+                #else:
+                #    add = random.uniform(0,1) < se["p"]
+                if add:
+                    M.append(se["idxClauseNegative"])
         # (uniformly) sample a state that satisfies them
         t1 = time.time()
         ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2, p=self.p)
@@ -2972,7 +3043,6 @@ class SampleSAT:
             if constraint.flipSatisfies(idxGA):                
                 delta += 1
         return delta
-
 
 # !!! TODO: Write MaxWalkSat: satisfy a maximally large sum of weights of formulas in CNF, because SAWalkSat often fails to satisfy all hard clauses
 # (or modify SAWalkSat to consider in its sum only hard weights, but it will probably require more steps because it doesn't exploit clausal structure)
