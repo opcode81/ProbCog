@@ -310,7 +310,7 @@ class MLNQuery:
             print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
             # MLN input files
             input_files = [mln]            
-            if settings["useEMLN"] == 1: # using extended model                
+            if settings["useEMLN"] == 1 and emln != "": # using extended model                
                 input_files.append(emln)
             print input_files
             # engine
@@ -393,6 +393,7 @@ class MLNQuery:
                     mlnObject.write(f)
                     f.close()
                     mlnObject.write(sys.stdout)
+                    input_files = [infile]
                     print "\n---"                
                 # get alchemy version-specific data
                 alchemy_version = self.alchemy_versions[self.selected_engine.get()]
