@@ -312,7 +312,7 @@ class MLN:
                 # soft evidence
                 m = re.match(r"SE\((.*?)\)\s*=\s*([\.\de]+)", line)
                 if m != None:
-                    self.softEvidence.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": float(m.group(2))})
+                    self.softEvidence.append({"expr": strFormula(FOL.parseFormula(m.group(1))).replace(" ", ""), "p": float(m.group(2))})
                     continue                
                 # mutex constraint
                 if re.search(r"[a-z_][-_'a-zA-Z0-9]*\!", line) != None: 
@@ -817,7 +817,7 @@ class MLN:
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-        #self._satisfyProbReqs()
+        self._satisfyProbReqs()
         
     def _satisfyProbReqs(self, evidence = None):
         ''' applies probability constraints (if any), dynamically modifying weights '''
@@ -925,8 +925,8 @@ class MLN:
             # soft evidence
             if l[0] in "0123456789":
                 s = l.find(" ")
-                self.softEvidence.append({"expr": l[s+1:], "p": float(l[:s])})
-                continue                
+                self.softEvidence.append({"expr": l[s+1:].replace(" ", ""), "p": float(l[:s])})
+                continue
             # domain declaration
             if "{" in l:
                 domName, constants = parseDomDecl(l)
@@ -2468,7 +2468,7 @@ class MCSAT(MCMCInference):
         # add clauses for soft evidence atoms
         for se in self.mln.softEvidence:
             se["numTrue"] = 0.0
-            gndAtom = self.mln.gndAtoms.get(se["expr"].replace(" ", ""))            
+            gndAtom = self.mln.gndAtoms.get(se["expr"])            
             if gndAtom is None: raise Exception("Soft evidence atom '%s' corresponds to no ground atom" % se["expr"])
             se["gndAtom"] = gndAtom
             self.clauses.append([FOL.GroundLit(gndAtom, False)])
@@ -2552,12 +2552,14 @@ class MCSAT(MCMCInference):
                 if details and self.step % infoInterval == 0:
                     print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()),
                     if len(self.mln.softEvidence) > 0:
-                        se_mean, se_max = 0.0, 0.0
+                        se_mean, se_max, se_max_item = 0.0, 0.0, None
                         for se in self.mln.softEvidence:
                             dev = abs((se["numTrue"] / self.step) - se["p"])
-                            se_max = max(se_max, dev)
                             se_mean += dev
-                        print "  SE dev. mean=%f, max=%f" % (se_mean/len(self.mln.softEvidence), se_max),
+                            if dev > se_max:
+                                se_max = max(se_max, dev)
+                                se_max_item = se
+                        print "  SE dev. mean=%f, max=%f (%s)" % (se_mean/len(self.mln.softEvidence), se_max, se_max_item["expr"]),
                     print
                     if debug:
                         self.mln.printState(chain.state)
