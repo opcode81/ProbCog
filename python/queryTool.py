@@ -92,7 +92,7 @@ class MLNQuery:
         self.use_emln.set(self.settings.get("useEMLN", 0))
         self.use_emln.trace("w", self.onChangeUseEMLN)
         # mln extension selection
-        self.selected_emln = FilePickEdit(self.selected_mln, "*.emln", None, 12, self.changedMLN, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
+        self.selected_emln = FilePickEdit(self.selected_mln, "*.emln", None, 12, None, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.onChangeUseEMLN()
         
         # evidence database selection
