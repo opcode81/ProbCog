@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
+import jpl.JPL;
 import jpl.Query;
 import jpl.fli.Prolog;
 import edu.tum.cs.logic.parser.ParseException;
@@ -33,23 +34,27 @@ public class PrologInterface {
 	 */
 	private static Map<String, String> objectTypes = new HashMap<String, String>();
 
-	private static String modelPool = "/home/tenorth/work/srldb/models/models.xml";
+	private static String modelPool = "/data/srldb/models/models.xml";
 
 	private static String modelName = "tableSetting_fall09";
+	
+	private static Server server = null;
 
 	/**
 	 * Initialize the Prolog engine.
 	 */
 //	static {
 //		try {
-//			Vector<String> args = new Vector<String>(Arrays.asList(Prolog.get_default_init_args()));
-//			args.add("-G128M");
+//			
+//			JPL.init(new String[] {"pl"});
+//	//		Vector<String> args = new Vector<String>(Arrays.asList(Prolog.get_default_init_args()));
+//	//		args.add("-G128M");
 ////			args.add("-q");
-//			args.add("-nosignals");
-//			Prolog.set_default_init_args(args.toArray(new String[0]));
+//	//		args.add("-nosignals");
+//	//		Prolog.set_default_init_args(args.toArray(new String[0]));
 //
 //			// load the appropriate startup file for this context
-//			new Query("ensure_loaded('/home/tenorth/work/owl/gram_tabletop.pl')").oneSolution();
+//		//	new Query("ensure_loaded('/home/tenorth/work/owl/gram_tabletop.pl')").oneSolution();
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
@@ -189,6 +194,27 @@ public class PrologInterface {
 		throw new RuntimeException("ERROR: Cannot infer type of "
 				+ instanceName);
 	}
+	
+	/**
+	 * Retrieves the URI of the class of the object given by the instance
+	 * <code>instanceName</code>.
+	 * 
+	 * @param instanceName
+	 * @return
+	 */
+	public static String inferObjectClass(String instanceName) {
+
+		Map<String, Vector<Object>> answer = executeQuery(
+				"rdf_has('" + instanceName + "', rdf:type, Type)", "");
+
+		for (Iterator<String> i = answer.keySet().iterator(); i.hasNext();) {
+			String key = i.next();
+			if (key.equals("Type") && answer.get(key).size() > 0)
+				return ((String) answer.get(key).get(0)).replaceAll("'", "");
+		}
+
+		return null;
+	}
 
 	public static void setPerception(String owlFile) {
 		executeQuery("owl_parser:owl_parse('" + owlFile
@@ -217,7 +243,7 @@ public class PrologInterface {
 			evidence.add("takesPartIn(P,M)");
 
 			// Maybe we can figure out the type of the meal
-			// evidence.add("mealT(M,Breakfast)");
+		//	evidence.add("mealT(M,Breakfast)");
 
 			// add evidence on utensils and consumed goods
 			for(String instance : objectTypes.keySet()) {
@@ -272,10 +298,149 @@ public class PrologInterface {
 
 		return null;
 	}
+	
+	public static String[][] performInference(String modelName, String[] query, String[]... evidence) {
+		try {
+			// Retrieve all objects that are already on the table
+			queryObjectTypes();
 
+			Server srldbServer = new Server(modelPool);
+			Model model = srldbServer.getModel(modelName);
+
+			// Generate evidence for all objects already found on the table
+			Vector<String> evidences = new Vector<String>();
+			
+			// add evidence on utensils and consumed goods
+			for(String[] e : evidence) {
+					
+				StringBuilder evString = new StringBuilder();
+				
+				evString.append(e[0]);
+				evString.append("(");
+				for (int i = 1; i < e.length; i++) {
+				
+					String arg = inferObjectClass(e[i]);
+					if (arg == null)
+						arg = e[i];
+					evString.append(arg + (i < e.length - 1 ? "," : ""));
+				}
+				evString.append(")");
+				evidences.add(evString.toString());
+			//	System.out.println(evString);
+			}
+
+			// Generate queries: "usesAnyIn" for utensils, "consumesAnyIn" for
+			// edible stuff
+			Vector<String> queries = new Vector<String>();
+			for (String q : query) 
+				queries.add(q);
+				
+
+			// Run the inference process
+			Vector<InferenceResult> results = srldbServer.query(modelName,
+					queries, evidences);
+
+			String[][] result = new String[results.size()][2];
+			int i = 0;
+			for (InferenceResult res : results) {
+				result[i][0] = res.params[1];
+				result[i][1] = res.probability + "";
+				System.out.println("object: " + result[i][0] + "; prob="
+						+ result[i][1]);
+				i++;
+			}
+			
+			return result;
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	private static Server getServer() {
+		if (server == null) {
+			try {
+				server = new Server(modelPool);
+			} catch (Exception e) {
+				throw new RuntimeException(e.getMessage());
+			}
+		}
+		
+		return server;
+	}
+	
+	public static String[] getPredicatesForModel(String modelName) {
+		Server s = getServer();
+		
+		Vector<String[]> predicates = s.getPredicates(modelName);
+		
+		String[] result = new String[predicates.size()];
+		for (int i = 0; i < result.length; i++)
+			result[i] = predicates.get(i)[0];
+		
+		return result;
+	}
+	
+	public static String[] getArgsForPredicate(String predicate, String modelName) {
+		Server s = getServer();
+		
+		String[] predicates = getPredicatesForModel(modelName);
+		Vector<String[]> args = s.getPredicates(modelName);
+		
+		for (int i = 0; i < predicates.length; i++) {
+			
+			if (predicates[i].equals(predicate) && args.elementAt(i).length > 1) {
+				String[] arguments = new String[args.elementAt(i).length - 1];
+				
+				for (int j = 0; j < arguments.length; j++)
+					arguments[j] = args.elementAt(i)[j + 1];
+				
+				return arguments;
+			}
+			
+		}
+		
+		return new String[0];
+	}
+	
+//	public static String[] getDomainForArg(String arg, String modelName) {
+//		
+//	}
+	
+	
 	public static void main(String[] args) {
 
-		getMissingObjectsOnTable();
+	//	getMissingObjectsOnTable();
 
+		try {
+			Server s = new Server(modelPool);
+			
+			for (String[] p : s.getPredicates(modelName)) {
+				for (String d : p)
+					System.out.print(d + ";");
+				System.out.println();
+			}
+			
+			System.out.println();
+			
+			for (String[] p : s.getDomains(modelName)) {
+				for (String d : p)
+					System.out.print(d + ";");
+				System.out.println();
+			}
+			
+			performInference(modelName, new String[] { "usesAnyForIn", "consumesAnyIn" }, new String[] {"takesPartIn", "P", "DinnerPlate"}, new String[] {"mealT", "M", "Breakfast"});
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+		
 	}
 }
