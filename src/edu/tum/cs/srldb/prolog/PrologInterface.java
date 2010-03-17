@@ -409,9 +409,6 @@ public class PrologInterface {
 		return new String[0];
 	}
 	
-//	public static String[] getDomainForArg(String arg, String modelName) {
-//		
-//	}
 	
 	
 	public static void main(String[] args) {
