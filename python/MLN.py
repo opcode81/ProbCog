@@ -1,6 +1,6 @@
 # Markov Logic Networks
 #
-# (C) 2006-2007 by Dominik Jain (jain@cs.tum.edu)
+# (C) 2006-2010 by Dominik Jain (jain@cs.tum.edu)
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -38,14 +38,14 @@ with some limitations:
 
 Your MLN files may contain:
     - domain declarations, e.g.
-          domainName = {value1, value2, value3}
+            domainName = {value1, value2, value3}
     - predicate declarations, e.g.
-          pred1(domainName1, domainName2)
-    - constraints for mutual exclusiveness and exhaustiveness, e.g.
-          pred1(a,b!)   to state that for every constant value that variable a can take on, there is exactly one value that b can take on
+            pred1(domainName1, domainName2)
+        mutual exclusiveness and exhaustiveness may be declared simultaneously, e.g.
+        pred1(a,b!) to state that for every constant value that variable a can take on, there is exactly one value that b can take on
     - formulas, e.g.
-          12   cloudy(d)
-    - use C++-style comments (i.e. // and /* */) anywhere
+            12   cloudy(d)
+    - C++-style comments (i.e. // and /* */) anywhere
 
 As a special construct of our implementation, an MLN file may contain constraints of the sort
     P(foo(x, Bar)) = 0.5
@@ -114,7 +114,8 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 
 POSSWORLDS_BLOCKING = True
 
-DYNAMIC_SCALING_THRESHOLD = 0.1 # maximum difference between desired and computed probability
+# probability constraint fitting parameters
+DYNAMIC_SCALING_THRESHOLD = 1e-3 # maximum difference between desired and computed probability
 DYNAMIC_SCALING_MAX_STEPS = 20 # maximum number of iterations
 
 class InferenceMethods:
@@ -245,9 +246,14 @@ class MLN:
                 'values' -> list of booleans - one for each gnd atom
     '''
 
-    # constructs an MLN object
-    #   filename: the name of a .mln file
-    def __init__(self, filename_or_list, defaultInferenceMethod = InferenceMethods.MCSAT, parameterType = 'weights', verbose=False):
+    def __init__(self, filename_or_list=None, defaultInferenceMethod=InferenceMethods.MCSAT, parameterType='weights', verbose=False, mlnContent=None):
+        '''
+            constructs an MLN object
+            at least one of the arguments
+                filename_or_list: either a single filename or a list of filenames (.mln files)
+                mlnContent: string containing an MLN
+            must be given (both possible)
+        '''
         t_start = time.time()
         self.domains = {}
         self.predicates = {}
@@ -257,22 +263,31 @@ class MLN:
         self.domDecls = []
         self.evidenceBackup = {}
         self.probreqs = []
-        self.softEvidence = []
+        self.posteriorProbReqs = []
+        self.softEvidence = self.posteriorProbReqs # treat soft evidence as constraints on posterior probabilities
         self.evidence = {}
         self.defaultInferenceMethod = defaultInferenceMethod
+        self.probabilityFittingInferenceMethod = InferenceMethods.exact
+        self.probabilityFittingThreshold = DYNAMIC_SCALING_THRESHOLD
+        self.probabilityFittingMaxSteps = DYNAMIC_SCALING_MAX_STEPS
         self.parameterType = parameterType
         self.formulaGroups = []
         self.closedWorldPreds = []
         formulatemplates = []
         # read MLN file
         text = ""
-        if not type(filename_or_list) == list:
-            filename_or_list = [filename_or_list]
-        for filename in filename_or_list:
-            print filename
-            f = file(filename)
-            text += f.read()
-            f.close()
+        if filename_or_list is not None:
+            if not type(filename_or_list) == list:
+                filename_or_list = [filename_or_list]
+            for filename in filename_or_list:
+                print filename
+                f = file(filename)
+                text += f.read()
+                f.close()
+        if mlnContent is not None:
+            text += "\n"
+            text += mlnContent
+        if text == "": raise Exception("No MLN content to construct model from was given; must specify either file/list of files or content string!")
         # replace some meta-directives in comments
         text = re.compile(r'//\s*<group>\s*$', re.MULTILINE).sub("#group", text)
         text = re.compile(r'//\s*</group>\s*$', re.MULTILINE).sub("#group.", text)
@@ -304,16 +319,20 @@ class MLN:
                     self.domains[domName] = constants
                     self.domDecls.append(line)
                     continue
-                # probability requirement
-                m = re.match(r"P\((.*?)\)\s*=\s*([\.\de]+)", line)
-                if m != None:
-                    self.probreqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))), "p": float(m.group(2))})
+                # prior probability requirement
+                if line.startswith("P("):
+                    m = re.match(r"P\((.*?)\)\s*=\s*([\.\de]+)", line)
+                    if m is None:
+                        raise Exception("Prior probability constraint formatted incorrectly: %s" % line)
+                    self.probreqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))).replace(" ", ""), "p": float(m.group(2))})
                     continue
-                # soft evidence
-                m = re.match(r"SE\((.*?)\)\s*=\s*([\.\de]+)", line)
-                if m != None:
-                    self.softEvidence.append({"expr": strFormula(FOL.parseFormula(m.group(1))).replace(" ", ""), "p": float(m.group(2))})
-                    continue                
+                # posterior probability requirement/soft evidence
+                if line.startswith("R(") or line.startswith("SE("):
+                    m = re.match(r"(?:R|SE)\((.*?)\)\s*=\s*([\.\de]+)", line)
+                    if m is None:
+                        raise Exception("Posterior probability constraint formatted incorrectly: %s" % line)
+                    self.posteriorProbReqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))).replace(" ", ""), "p": float(m.group(2))})
+                    continue
                 # mutex constraint
                 if re.search(r"[a-z_][-_'a-zA-Z0-9]*\!", line) != None: 
                     pred = parsePredicate(line)
@@ -521,7 +540,7 @@ class MLN:
             # recursive descent to ground further variables
             self._groundFormula(formula, dict(variables), assignment, idxFormula)
 
-    def _createFormulaGroundings(self, verbose=True):
+    def _createFormulaGroundings(self, verbose=False):
         '''this is the method that creates the ground MRF'''
         self.gndFormulas = []
         self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
@@ -653,7 +672,7 @@ class MLN:
         idxFirst = self.gndAtoms[gndAtom].idx
         return range(idxFirst, idxFirst+numGroundings)
     
-    # expands the list of queries where necessary, i.e. queries that are just predicate names are expanded to the corresponding list of atoms
+    # expands the list of queries where necessary, e.g. queries that are just predicate names are expanded to the corresponding list of atoms
     def _expandQueries(self, queries):
         equeries = []
         for query in queries:
@@ -715,9 +734,14 @@ class MLN:
 
     def inferMCSAT(self, what, given = None, verbose = True, **args):
         if not hasattr(self, "mcsat") or True:
-            self.mcsat = MCSAT(self, verbose = args.get("details", False))
-        result = self.mcsat.infer(what, given, verbose=verbose, **args)
-        return result
+            self.mcsat = MCSAT(self, verbose = args.get("details", False))        
+        return self.mcsat.infer(what, given, verbose=verbose, **args)
+
+    def inferIPFPM(self, what, given = None, verbose = True, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=20):
+        '''
+            inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
+        '''
+        return self._fitProbabilityConstraints(self.posteriorProbReqs, inferenceMethod, threshold, maxSteps, given, queries=what)
 
     # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
     # for details see printWorlds
@@ -812,25 +836,30 @@ class MLN:
             self.domains[domName] = list(set(a+b))
         # collect data
         self._generateGroundAtoms(domain)
-        if groundFormulas: self._createFormulaGroundings()
+        if groundFormulas: self._createFormulaGroundings(verbose)
         if verbose:
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-        self._satisfyProbReqs()
+        self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, None)
         
-    def _satisfyProbReqs(self, evidence = None):
-        ''' applies probability constraints (if any), dynamically modifying weights '''
-        if len(self.probreqs) == 0:
-            return
-        if evidence != None:
-            given = evidence2conjunction(evidence)
-            print "applying dynamic scaling to achieve fixed posteriors... "
-        else:
-            given = None
-            print "applying dynamic scaling to achieve fixed priors... "
+    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, given=None, queries = None):
+        '''
+            applies the given probability constraints (if any), dynamically modifying weights
+            probConstraints: list of constraints
+            inferenceMethod: one of the inference methods defined in InferenceMethods
+            given: if not None, fit parameters of posterior (given the evidence) rather than prior
+            queries: queries to compute along the way, results for which will be returned
+        '''
+        if queries is None:
+            queries = []
+        if len(probConstraints) == 0:
+            if len(queries) > 0:
+                pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
+            return 
+        print "applying probability fitting... "
         # determine relevant formulas
-        for req in self.probreqs:
+        for req in probConstraints:
             gotit = False
             for idxFormula, formula in enumerate(self.formulas):
                 if strFormula(formula) == req["expr"]:
@@ -845,23 +874,33 @@ class MLN:
                     req["idxFormula"] = idxFormula
                     break
             if not gotit:
-                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req[0])
-        # iterative algorithm
+                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
+        # iterative fitting algorithm
         step = 1
         maxdiff = 1
-        while step <= DYNAMIC_SCALING_MAX_STEPS and maxdiff >= DYNAMIC_SCALING_THRESHOLD:
+        while step <= maxSteps and maxdiff >= threshold:
             maxdiff = 0
-            for req in self.probreqs:
+            for req in probConstraints:
                 # calculate probability of the expression (ground formula)
-                if False: # use default inference method
-                    p = self.infer(str(gndFormula), verbose=False)
-                else: # use MCSAT
+                what = [req["gndExpr"]] + queries
+                if inferenceMethod == InferenceMethods.exact:
+                    if not hasattr(self, "worlds"):
+                        self._getWorlds()
+                    else:
+                        self._calculateWorldValues()
+                    results = self.inferExact(what, given=given, verbose=False)
+                elif inferenceMethod == InferenceMethods.MCSAT:
                     oldFormulas = list(self.formulas) # store old set of formulas because MCSAT changes them (negations!)
-                    p = self.inferMCSAT(req["gndExpr"], given=given, verbose=False, maxSteps=500)
+                    results = self.inferMCSAT(what, given=given, verbose=False, maxSteps=500)
                     self.formulas = oldFormulas # restore set of formulas
-                    self._createFormulaGroundings(False)                                    
+                    self._createFormulaGroundings(False) # restore set of ground formulas
+                else:
+                    raise Exception("Requested inference method (%s) not supported by probability constraint fitting" % InferenceMethods._names[inferenceMethod])
+                if type(results) != list:
+                    results = [results]
                 # get the scaling factor and apply it
                 formula = self.formulas[req["idxFormula"]]
+                p = results[0]
                 pnew = req["p"]
                 precision = 1e-3
                 if p == 0.0: p = precision
@@ -876,10 +915,8 @@ class MLN:
                 self.write(file("debug%d.mln" % step, "w"))
                 gotit = True
                 maxdiff = max(maxdiff, diff)
-                # recalculate world values (for exact inference)
-                if self.defaultInferenceMethod == InferenceMethods.exact:
-                    self._calculateWorldValues()
             step += 1
+        return results[1:]
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -972,10 +1009,8 @@ class MLN:
                     if i != idx:
                         self._setEvidence(i, False)
         
-        #self._satisfyProbReqs(evidence)
-        
         return evidence
-
+    
     def combineDBDomain(self, dbfile, requestDomain):
         '''
             combines the MLN with the request domain (given as a dictionary), adding additional objects from the database file
@@ -2035,7 +2070,6 @@ class Inference:
         if type(queries) != list:
             queries = [queries]
         queries = self.mln._expandQueries(queries)
-        queries.sort()
         # parse queries
         self.queries = []
         for q in queries:
@@ -2103,8 +2137,11 @@ class Inference:
             maxLen = 0
             for q in self.queries:
                 maxLen = max(maxLen, len(strFormula(q)))
-        # print results, one per line
-        for i in range(len(self.queries)):
+        # print sorted results, one per line
+        query2Index = {}
+        for i, q in enumerate(self.queries): query2Index[q] = i
+        for q in sorted(self.queries):
+            i = query2Index[q]
             addInfo = self.additionalQueryInfo[i]
             if not shortOutput:
                 out.write("P(%s | %s) = %f  %s\n" % (strFormula(self.queries[i]), self.evidenceString, self.results[i], addInfo))
