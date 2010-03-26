@@ -37,18 +37,30 @@ def createRandomMLN(numVars, numFeatures, maxCliqueSize, maxWeight, numProbConst
 		f.write("0 %s\n" % v)
 	return (vars, str(f), pcVars)
 
-def test():
-	# create MLN
-	vars, mlnContent, pcVars = createRandomMLN(4, 4, 4, log(50), 2)		
-	#print mlnContent
-	# run IPFP-M
-	if True:
+def test(numExperiments, numVars, numFeatures, maxCliqueSize, maxWeight, numProbConstraints):
+	ret = []
+	for i in xrange(numExperiments):
+		print "\nExperiment %d" % (i+1)
+		
+		# create MLN
+		vars, mlnContent, pcVars = createRandomMLN(numVars, numFeatures, maxCliqueSize, maxWeight, numProbConstraints)
+		#print mlnContent
+		
+		# run IPFP-M
 		mln = MLN(mlnContent=mlnContent, verbose=False)
 		mln.combine({})	
-		print mln.inferIPFPM(vars)
-	# run MC-SAT-PC
-	mln = MLN(mlnContent=mlnContent, verbose=False)
-	mln.combine({})
-	print mln.inferMCSAT(vars, maxSteps=10000, infoInterval=1000, resultsInterval=1000, verbose=False, details=False)
+		ipfpmResults = mln.inferIPFPM(vars)
+		print "  %s" % ipfpmResults
+		
+		# run MC-SAT-PC
+		
+		mln = MLN(mlnContent=mlnContent, verbose=False)
+		mln.combine({})	
+		mcsatpcResults = mln.inferMCSAT(vars, maxSteps=10000, infoInterval=1000, resultsInterval=1000, verbose=False, details=False, keepResultsHistory=True, referenceResults=ipfpmResults)
+		print "  %s" % mcsatpcResults
+		ret.append(mln.mcsat.getResultsHistory())
+	
+	return ret
 
-test()
+if __name__=='__main__':
+	test(1, 4, 4, 4, log(50), 2)
