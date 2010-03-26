@@ -737,11 +737,12 @@ class MLN:
             self.mcsat = MCSAT(self, verbose = args.get("details", False))        
         return self.mcsat.infer(what, given, verbose=verbose, **args)
 
-    def inferIPFPM(self, what, given = None, verbose = True, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=20):
+    def inferIPFPM(self, what, given = None, verbose = True, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=20, details=False):
         '''
             inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
         '''
-        return self._fitProbabilityConstraints(self.posteriorProbReqs, inferenceMethod, threshold, maxSteps, given, queries=what)
+        return self._fitProbabilityConstraints(self.posteriorProbReqs, inferenceMethod, threshold, maxSteps, given, queries=what, verbose=details)
+        # TODO !!! verboseness (i.e. output of results) not supported; should make IPFPM a subclass of Inference
 
     # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
     # for details see printWorlds
@@ -843,7 +844,7 @@ class MLN:
         
         self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, None)
         
-    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, given=None, queries = None):
+    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, given=None, queries = None, verbose=True):
         '''
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
@@ -857,7 +858,7 @@ class MLN:
             if len(queries) > 0:
                 pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
             return 
-        print "applying probability fitting... "
+        if verbose: print "applying probability fitting... "
         # determine relevant formulas
         for req in probConstraints:
             gotit = False
@@ -909,7 +910,7 @@ class MLN:
                 old_weight = formula.weight
                 formula.weight += logx(f)
                 diff = abs(p-pnew)
-                print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight)
+                if verbose: print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight)
                 #p = self.inferExact(str(gndFormula), verbose=False)
                 #print " %f " % (p-pnew)
                 self.write(file("debug%d.mln" % step, "w"))
@@ -2132,21 +2133,41 @@ class Inference:
             return self.results[0]
     
     def writeResults(self, out, shortOutput = True):
+        self._writeResults(out, self.results, shortOutput)
+    
+    def _writeResults(self, out, results, shortOutput = True):
         # determine maximum query length to beautify output
         if shortOutput:
             maxLen = 0
             for q in self.queries:
                 maxLen = max(maxLen, len(strFormula(q)))
-        # print sorted results, one per line
+        # print sorted results, one per line        
+        strQueries = map(strFormula, self.queries)
         query2Index = {}
-        for i, q in enumerate(self.queries): query2Index[q] = i
-        for q in sorted(self.queries):
+        for i, q in enumerate(strQueries): query2Index[q] = i
+        for q in sorted(strQueries):
             i = query2Index[q]
             addInfo = self.additionalQueryInfo[i]
             if not shortOutput:
-                out.write("P(%s | %s) = %f  %s\n" % (strFormula(self.queries[i]), self.evidenceString, self.results[i], addInfo))
+                out.write("P(%s | %s) = %f  %s\n" % (q, self.evidenceString, results[i], addInfo))
             else:
-                out.write("%f  %-*s  %s\n" % (self.results[i], maxLen, strFormula(self.queries[i]), addInfo))
+                out.write("%f  %-*s  %s\n" % (results[i], maxLen, q, addInfo))
+    
+    def _compareResults(self, results, referenceResults):
+        if len(results) != len(referenceResults):
+            raise Exception("Cannot compare results - different number of results in reference")
+        me = 0
+        mse = 0
+        maxdiff = 0
+        for i in xrange(len(results)):
+            diff = abs(results[i]-referenceResults[i])
+            maxdiff = max(maxdiff, diff)
+            me += diff
+            mse += diff*diff
+        me /= len(results)
+        mse /= len(results)
+        return {"reference_me": me, "reference_mse": mse, "reference_maxe": maxdiff}
+        
 
 class ExactInference(Inference):
     def __init__(self, mln):
@@ -2350,18 +2371,10 @@ class MCMCInference(Inference):
             return t / len(self.chains)
         
         def printResults(self, shortOutput = False):
-            # determine maximum query length to beautify output
-            if shortOutput:
-                maxLen = 0
-                for q in self.inferObject.queries:
-                    maxLen = max(maxLen, len(strFormula(q)))
-            # print results, one per line
-            for i in range(len(self.inferObject.queries)):
-                chainInfo = "[%dx%d steps, sd=%.3f]" % (len(self.chains), self.chains[0].numSteps, sqrt(self.var[i]))
-                if not shortOutput:
-                    print "P(%s | %s) = %f  %s" % (strFormula(self.inferObject.queries[i]), self.inferObject.evidence, self.results[i], chainInfo)
-                else:
-                    print "%f  %-*s  %s" % (self.results[i], maxLen, strFormula(self.inferObject.queries[i]), chainInfo)
+            if len(self.chains) > 1:
+                for i in range(len(self.inferObject.queries)):
+                    self.inferObject.additionalQueryInfo[i] = "[%dx%d steps, sd=%.3f]" % (len(self.chains), self.chains[0].numSteps, sqrt(self.var[i]))
+            self.inferObject._writeResults(sys.stdout, self.results, shortOutput)
 
 
 class GibbsSampler(MCMCInference):
@@ -2515,14 +2528,24 @@ class MCSAT(MCMCInference):
             se["idxClauseNegative"] = idxClause
             idxClause += 1
     
-    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5):
+    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5, keepResultsHistory=False, referenceResults=None):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
+        verbose: whether to display results upon completion
+        details: whether to display information while the algorithm is running            
+        infoInterval: [if details==True] interval (no. of steps) in which to display the current step number and some additional info
+        resultsInterval: [if details==True] interval (no. of steps) in which to display intermediate results; [if keepResultsHistory==True] interval in which to store intermediate results in the history
+        debug: whether to display debug information (e.g. internal data structures) while the algorithm is running
+            debugLevel: controls degree to which debug information is presented
+        keepResultsHistory: whether to store the history of results (at each resultsInterval)
+        referenceResults: reference results to compare obtained results to
         '''
         self.p = p
         self.debug = debug
         self.debugLevel = debugLevel
+        self.resultsHistory = []
+        self.referenceResults = referenceResults
         t_start = time.time()
         details = verbose and details
         # print CNF KB
@@ -2588,15 +2611,12 @@ class MCSAT(MCMCInference):
                 # print progress
                 if details and self.step % infoInterval == 0:
                     print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()),
+                    if referenceResults is not None:
+                        ref = self._compareResults(referenceResults)
+                        print "  REF me=%f, maxe=%f" % (ref["reference_me"], ref["reference_maxe"]),
                     if len(self.mln.softEvidence) > 0:
-                        se_mean, se_max, se_max_item = 0.0, 0.0, None
-                        for se in self.mln.softEvidence:
-                            dev = abs((se["numTrue"] / self.step) - se["p"])
-                            se_mean += dev
-                            if dev > se_max:
-                                se_max = max(se_max, dev)
-                                se_max_item = se
-                        print "  SE dev. mean=%f, max=%f (%s)" % (se_mean/len(self.mln.softEvidence), se_max, se_max_item["expr"]),
+                        dev = self._getProbConstraintsDeviation()
+                        print "  PC dev. mean=%f, max=%f (%s)" % (dev["pc_dev_mean"], dev["pc_dev_max"], dev["pc_dev_max_item"]),
                     print
                     if debug:
                         self.mln.printState(chain.state)
@@ -2604,14 +2624,19 @@ class MCSAT(MCMCInference):
             # update soft evidence counts
             for se in self.mln.softEvidence:
                 se["numTrue"] += self.chainGroup.currentlyTrue(se["gndAtom"])
-            # outputs
-            if details and self.step % resultsInterval == 0 and self.step != maxSteps:
-                chainGroup.getResults()
-                chainGroup.printResults(shortOutput=True)
-                if debug: print
+            # intermediate results
+            if (details or keepResultsHistory) and self.step % resultsInterval == 0 and self.step != maxSteps:
+                results = chainGroup.getResults()
+                if details:
+                    chainGroup.printResults(shortOutput=True)
+                    if debug: print
+                if keepResultsHistory: self._extendResultsHistory(results)
             self.step += 1
         # get results
-        return chainGroup.getResults()
+        self.step -= 1
+        results = chainGroup.getResults()
+        if keepResultsHistory: self._extendResultsHistory(results)
+        return results
     
     def _satisfySubset(self, chain):
         # choose a set of logical formulas M to be satisfied (more specifically, M is a set of clause indices)
@@ -2659,6 +2684,29 @@ class MCSAT(MCMCInference):
         t3 = time.time()
         #print "select formulas: %f, SS init: %f, SS run: %f" % (t1-t0, t2-t1, t3-t2)
         return len(M) + len(NLC)
+    
+    def _getProbConstraintsDeviation(self):
+        if len(self.mln.softEvidence) == 0:
+            return {}
+        se_mean, se_max, se_max_item = 0.0, 0.0, None
+        for se in self.mln.softEvidence:
+            dev = abs((se["numTrue"] / self.step) - se["p"])
+            se_mean += dev
+            if dev > se_max:
+                se_max = max(se_max, dev)
+                se_max_item = se
+        se_mean /= len(self.mln.softEvidence)
+        return {"pc_dev_mean": se_mean, "pc_dev_max": se_max, "pc_dev_max_item": se_max_item["expr"]}
+    
+    def _extendResultsHistory(self, results):
+        currentResults = {"step": self.step, "results": list(results)}
+        currentResults.update(self._getProbConstraintsDeviation())
+        if self.referenceResults is not None:
+            currentResults.update(self._compareResults(results, self.referenceResults))
+        self.resultsHistory.append(currentResults)
+        
+    def getResultsHistory(self):
+        return self.resultsHistory
 
 
 class SampleSAT:
