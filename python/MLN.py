@@ -87,14 +87,16 @@ try:
     import numpy
     from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b
 except:
-    sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN class is disabled.\n")
+    sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
 from math import exp, log, floor, ceil, e, sqrt
-try:
-    if not DEBUG:
-        import psyco # Don't use Psyco when debugging!
-        psyco.full()    
-except:
-    sys.stderr.write("Note: Psyco (http://psyco.sourceforge.net) was not loaded. On 32bit systems, it is recommended to install it for improved performance.\n")
+import platform
+if platform.architecture()[0] == '32bit':
+    try:
+        if not DEBUG:
+            import psyco # Don't use Psyco when debugging!
+            psyco.full()    
+    except:
+        sys.stderr.write("Note: Psyco (http://psyco.sourceforge.net) was not loaded. On 32bit systems, it is recommended to install it for improved performance.\n")
 
 PMB_METHOD = 'old' # 'excl' or 'old'
 # concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
@@ -264,7 +266,7 @@ class MLN:
         self.evidenceBackup = {}
         self.probreqs = []
         self.posteriorProbReqs = []
-        self.softEvidence = self.posteriorProbReqs # treat soft evidence as constraints on posterior probabilities
+        self.softEvidence = self.posteriorProbReqs # !!!! should get rid of this --- we treat soft evidence as constraints on posterior probabilities
         self.evidence = {}
         self.defaultInferenceMethod = defaultInferenceMethod
         self.probabilityFittingInferenceMethod = InferenceMethods.exact
@@ -676,32 +678,37 @@ class MLN:
     def _expandQueries(self, queries):
         equeries = []
         for query in queries:
-            if "(" in query: # a fully or partially grounded atom
-                predName, args = parsePredicate(query)
-                newargs = []
-                fullygrounded = True
-                for arg in args:
-                    if not arg[0].isalpha() or arg[0].isupper(): # argument is constant
-                        newargs.append(arg)
-                    else: # not a constant, so replace by regex that non-greedily matches anyting
-                        fullygrounded = False
-                        newargs.append(r".*?")
-                if fullygrounded: # fully grounded atom, so we can directly use the original string as a query
-                    equeries.append(query)
-                else: # partially grounded atom: look through all groundings of the predicate for matches
-                    ex = "%s(%s)" % (predName, ",".join(newargs))
-                    #print ex
-                    pat = re.compile(r"%s\(%s\)" % (predName, ",".join(newargs)))
-                    for gndAtom in self._getPredGroundings(predName):
-                        if pat.match(gndAtom):
-                            equeries.append(gndAtom)
-                        #else:
-                        #    print "%s does not match " % gndAtom
-            else: # just a predicate name
-                try: 
-                    equeries.extend(self._getPredGroundings(query))
-                except:
-                    raise Exception("Could not expand query '%s'" % query)
+            if type(query) == str:
+                if "(" in query: # a fully or partially grounded atom
+                    predName, args = parsePredicate(query)
+                    newargs = []
+                    fullygrounded = True
+                    for arg in args:
+                        if not arg[0].isalpha() or arg[0].isupper(): # argument is constant
+                            newargs.append(arg)
+                        else: # not a constant, so replace by regex that non-greedily matches anyting
+                            fullygrounded = False
+                            newargs.append(r".*?")
+                    if fullygrounded: # fully grounded atom, so we can directly use the original string as a query
+                        equeries.append(query)
+                    else: # partially grounded atom: look through all groundings of the predicate for matches
+                        ex = "%s(%s)" % (predName, ",".join(newargs))
+                        #print ex
+                        pat = re.compile(r"%s\(%s\)" % (predName, ",".join(newargs)))
+                        for gndAtom in self._getPredGroundings(predName):
+                            if pat.match(gndAtom):
+                                equeries.append(gndAtom)
+                            #else:
+                            #    print "%s does not match " % gndAtom
+                else: # just a predicate name
+                    try: 
+                        equeries.extend(self._getPredGroundings(query))
+                    except:
+                        raise Exception("Could not expand query '%s'" % query)
+            elif isinstance(query, FOL.Formula):
+                equeries.append(query)
+            else:
+                raise Exception("Received query of unsupported type '%s'" % str(type(query)))
         if len(equeries) == 0:
             raise Exception("No ground atoms match the given query/queries.")
         return equeries
@@ -737,12 +744,12 @@ class MLN:
             self.mcsat = MCSAT(self, verbose = args.get("details", False))        
         return self.mcsat.infer(what, given, verbose=verbose, **args)
 
-    def inferIPFPM(self, what, given = None, verbose = True, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=20, details=False):
+    def inferIPFPM(self, what, given = None, verbose = True, **args):
         '''
             inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
         '''
-        return self._fitProbabilityConstraints(self.posteriorProbReqs, inferenceMethod, threshold, maxSteps, given, queries=what, verbose=details)
-        # TODO !!! verboseness (i.e. output of results) not supported; should make IPFPM a subclass of Inference
+        self.ipfpm = IPFPM(self)
+        return self.ipfpm.infer(what, given, verbose=verbose, **args)
 
     # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
     # for details see printWorlds
@@ -842,9 +849,9 @@ class MLN:
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-        self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, None)
+        self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, verbose=True)
         
-    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, given=None, queries = None, verbose=True):
+    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, inferenceParams=None, given=None, queries=None, verbose=True):
         '''
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
@@ -854,6 +861,8 @@ class MLN:
         '''
         if queries is None:
             queries = []
+        if inferenceParams is None:
+            inferenceParams = {}
         if len(probConstraints) == 0:
             if len(queries) > 0:
                 pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
@@ -889,10 +898,10 @@ class MLN:
                         self._getWorlds()
                     else:
                         self._calculateWorldValues()
-                    results = self.inferExact(what, given=given, verbose=False)
+                    results = self.inferExact(what, given=given, verbose=False, **inferenceParams)
                 elif inferenceMethod == InferenceMethods.MCSAT:
                     oldFormulas = list(self.formulas) # store old set of formulas because MCSAT changes them (negations!)
-                    results = self.inferMCSAT(what, given=given, verbose=False, maxSteps=500)
+                    results = self.inferMCSAT(what, given=given, verbose=False, **inferenceParams)
                     self.formulas = oldFormulas # restore set of formulas
                     self._createFormulaGroundings(False) # restore set of ground formulas
                 else:
@@ -2071,11 +2080,14 @@ class Inference:
         if type(queries) != list:
             queries = [queries]
         queries = self.mln._expandQueries(queries)
-        # parse queries
+        # parse queries that aren't already formulas
         self.queries = []
         for q in queries:
-            q = FOL.parseFormula(q)
-            self.queries.append(q.ground(self.mln, {}))
+            if isinstance(q, FOL.Formula):
+                self.queries.append(q)
+            else:
+                q = FOL.parseFormula(q)
+                self.queries.append(q.ground(self.mln, {}))
     
     # set evidence in the MLN according to the given conjunction of ground literals
     def _setEvidence(self, conjunction):
@@ -2102,6 +2114,7 @@ class Inference:
                     self.mln._setEvidence(idxGA, False)
 
     def _getElapsedTime(self):
+        ''' returns a pair (t,s) where t is the time in seconds elapsed thus far (since construction) and s is a readable string representation thereof '''
         elapsed = time.time() - self.t_start
         hours = int(elapsed / 3600)
         elapsed -= hours * 3600
@@ -2109,9 +2122,12 @@ class Inference:
         elapsed -= minutes * 60
         secs = int(elapsed)
         msecs = int((elapsed - secs) * 1000)
-        return "%d:%02d:%02d.%03d" % (hours, minutes, secs, msecs)
+        return (elapsed, "%d:%02d:%02d.%03d" % (hours, minutes, secs, msecs))
 
     def infer(self, queries, given = None, verbose = True, details = False, shortOutput = False, outFile = None, **args):
+        '''
+            queries: a list of queries - either strings (predicate names or partially/fully grounded atoms) or ground formulas
+        '''
         self.given = given
         self.evidenceString = given
         if self.evidenceString == None: self.evidenceString = "True"
@@ -2120,6 +2136,7 @@ class Inference:
         self.additionalQueryInfo = [""] * len(self.queries)
         # perform actual inference (polymorphic)
         self.results = self._infer(verbose=verbose, details=details, **args)
+        self.totalInferenceTime = self._getElapsedTime()
         # output
         if verbose:
             if details: print "\nresults:"
@@ -2131,6 +2148,10 @@ class Inference:
             return self.results
         else:
             return self.results[0]
+    
+    def getTotalInferenceTime(self):
+        ''' returns a pair (t,s) where t is the total inference time in seconds and s is a readable string representation thereof '''
+        return self.totalInferenceTime
     
     def writeResults(self, out, shortOutput = True):
         self._writeResults(out, self.results, shortOutput)
@@ -2594,7 +2615,7 @@ class MCSAT(MCMCInference):
                 print "\ninitial state:"
                 mln.printState(chain.state)
         # do MCSAT sampling
-        if details: print "sampling (p=%f)... time elapsed: %s" % (self.p, self._getElapsedTime())
+        if details: print "sampling (p=%f)... time elapsed: %s" % (self.p, self._getElapsedTime()[1])
         if debug: print
         if infoInterval is None: infoInterval = {True:1, False:10}[debug]
         if resultsInterval is None: resultsInterval = {True:1, False:50}[debug]
@@ -2610,7 +2631,7 @@ class MCSAT(MCMCInference):
                 chain.update()
                 # print progress
                 if details and self.step % infoInterval == 0:
-                    print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()),
+                    print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()[1]),
                     if referenceResults is not None:
                         ref = self._compareResults(referenceResults)
                         print "  REF me=%f, maxe=%f" % (ref["reference_me"], ref["reference_maxe"]),
@@ -3131,10 +3152,19 @@ class SampleSAT:
                 delta += 1
         return delta
 
-# !!! TODO: Write MaxWalkSat: satisfy a maximally large sum of weights of formulas in CNF, because SAWalkSat often fails to satisfy all hard clauses
-# (or modify SAWalkSat to consider in its sum only hard weights, but it will probably require more steps because it doesn't exploit clausal structure)
 
-# simulated annealing maximum satisfiability
+class IPFPM(Inference):
+    ''' the iterative proportional fitting procedure applied at the model level (IPFP-M) '''
+    
+    def __init__(self, mln):
+        if len(mln.posteriorProbReqs) == 0:
+            raise Exception("Application of IPFP-M inappropriate! IPFP-M is a wrapper method for other inference algorithms that allows to fit probability constraints. An application is not sensical of the model contains no such constraints.")
+        Inference.__init__(self, mln)
+    
+    def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None):
+        return self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams)
+
+# simulated annealing maximum sat (silly)
 class SAMaxWalkSAT:
     def __init__(self, state, mln, evidenceBlocks, threshold = None, hardWeight = 10):
         self.state = state
@@ -3243,7 +3273,7 @@ if __name__ == '__main__':
         print "           inferExact <mln file> <domain> <query> <evidence>"
         print "              domain: a dictionary mapping domain names to lists of constants, e.g."
         print "                      \"{'dom1':['const1', 'const2'], 'dom2':['const3']}\""
-        print "                      To use just the constants declared in the MLN, use {}"
+        print "                      To use just the constants declared in the MLN, use \"{}\""
         print "              query, evidence: ground formulas\n" 
         print "           inferGibbs <mln file> <domain> <query> <evidence>\n"
         print "           topWorlds <mln file> <domain>\n"
