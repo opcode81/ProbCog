@@ -926,7 +926,7 @@ class MLN:
                 gotit = True
                 maxdiff = max(maxdiff, diff)
             step += 1
-        return results[1:]
+        return (results[1:], {"steps": step-1, "maxdiff": maxdiff})
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -3162,7 +3162,8 @@ class IPFPM(Inference):
         Inference.__init__(self, mln)
     
     def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None):
-        return self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams)
+        results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams)
+        return results
 
 # simulated annealing maximum sat (silly)
 class SAMaxWalkSAT:
