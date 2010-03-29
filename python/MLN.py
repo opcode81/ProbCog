@@ -121,8 +121,8 @@ DYNAMIC_SCALING_THRESHOLD = 1e-3 # maximum difference between desired and comput
 DYNAMIC_SCALING_MAX_STEPS = 20 # maximum number of iterations
 
 class InferenceMethods:
-    exact, GibbsSampling, MCSAT = range(3)
-    _names = {exact: "exact inference", GibbsSampling: "Gibbs sampling", MCSAT: "MC-SAT"}
+    exact, GibbsSampling, MCSAT, exactLazy = range(4)
+    _names = {exact: "exact inference", GibbsSampling: "Gibbs sampling", MCSAT: "MC-SAT", exactLazy: "lazy exact inference"}
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
@@ -621,6 +621,15 @@ class MLN:
             world["weights"] = weights
         self.partition_function = total
         self.wtsLastWorldValueComputation = list(wts)
+    
+    def _calculateWorldExpSum(self, world, wts = None):
+        if wts is None:
+            wts = self._weights()
+        sum = 0
+        for gndFormula in self.gndFormulas:
+            if self._isTrue(gndFormula, world):
+                sum += wts[gndFormula.idxFormula]
+        return math.exp(sum)
 
     def _calculateWorldValues_scaled(self, wts = None):
         if wts == None:
@@ -733,7 +742,10 @@ class MLN:
 
     def inferExact(self, what, given = None, verbose = True, **args):
         return ExactInference(self).infer(what, given, verbose, **args)
-            
+
+    def inferExactLazy(self, what, given = None, verbose = True, **args):
+        return ExactInferenceLazy(self).infer(what, given, verbose, **args)
+
     def inferGibbs(self, what, given = None, verbose = True, **args):
         if not hasattr(self, "gibbsSampler"):
             self.gibbsSampler = GibbsSampler(self)
@@ -868,6 +880,7 @@ class MLN:
                 pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
             return 
         if verbose: print "applying probability fitting... "
+        t_start = time.time()
         # determine relevant formulas
         for req in probConstraints:
             gotit = False
@@ -899,6 +912,8 @@ class MLN:
                     else:
                         self._calculateWorldValues()
                     results = self.inferExact(what, given=given, verbose=False, **inferenceParams)
+                elif inferenceMethod == InferenceMethods.exactLazy:
+                    results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
                 elif inferenceMethod == InferenceMethods.MCSAT:
                     oldFormulas = list(self.formulas) # store old set of formulas because MCSAT changes them (negations!)
                     results = self.inferMCSAT(what, given=given, verbose=False, **inferenceParams)
@@ -919,14 +934,14 @@ class MLN:
                 old_weight = formula.weight
                 formula.weight += logx(f)
                 diff = abs(p-pnew)
-                if verbose: print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight)
+                if verbose: print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f, elapsed: %.3fs" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight, time.time()-t_start)
                 #p = self.inferExact(str(gndFormula), verbose=False)
                 #print " %f " % (p-pnew)
-                self.write(file("debug%d.mln" % step, "w"))
+                #self.write(file("debug%d.mln" % step, "w"))
                 gotit = True
                 maxdiff = max(maxdiff, diff)
             step += 1
-        return (results[1:], {"steps": step-1, "maxdiff": maxdiff})
+        return (results[1:], {"steps": step-1, "maxdiff": maxdiff, "time": time.time()-t_start})
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -2247,6 +2262,92 @@ class ExactInference(Inference):
         # return results
         return answers
 
+class ExactInferenceLazy(Inference):
+    '''
+    variant of exact inference, where the possible worlds and associated values are generated dynamically (on demand);
+    In particular, possible worlds are not kept in memory, such that memory consumption remains linear in the number of variables.    
+    '''
+    
+    def __init__(self, mln):
+        Inference.__init__(self, mln)
+    
+    # verbose: whether to print results (or anything at all, in fact)
+    # details: (given that verbose is true) whether to output additional status information
+    # debug: (given that verbose is true) if true, outputs debug information, in particular the distribution over possible worlds
+    # debugLevel: level of detail for debug mode
+    def _infer(self, verbose = True, details = False, shortOutput = False, debug = False, debugLevel = 1, **args):
+        # get the query formula(s)
+        what = self.queries
+        # ground evidence formula
+        # - set evidence according to given conjunction (plus apply the closed-world assumption if requested)
+        self._setEvidence(self.given)
+        # - get the new evidence conjunction
+        given = evidence2conjunction(self.mln.getEvidenceDatabase())
+        # - obtain the corresponding formula object
+        if given is not None and given.strip() == "": given = None
+        if given != None:
+            given = FOL.parseFormula(given)
+            given = given.ground(self.mln, {})
+        # start summing
+        if verbose and details: print "summing..."
+        wts = self.mln._weights()
+        numerators = [0.0 for i in xrange(len(what))]
+        denominator = 0
+        k = 1
+        for world in self._iterWorlds([], 0):
+            precond = (given == None)
+            if not precond:
+                precond = given.isTrue(world["values"])
+            if precond:
+                # compute world value
+                worldValue = self.mln._calculateWorldExpSum(world, wts)
+                # add to applicable numerators
+                for i in xrange(len(what)):
+                    if what[i].isTrue(world):
+                        numerators[i] += worldValue
+                # add to denominator
+                denominator += worldValue
+            k += 1
+        # normalize answers
+        answers = []
+        for i in range(len(what)):
+            answers.append(numerators[i] / denominator)
+        return answers
+    
+    def _iterWorlds(self, values, idx):
+        mln = self.mln
+        if idx == len(mln.gndAtoms):
+            yield values
+        else:     
+            # values that can be set for the truth value of the ground atom with index idx
+            possible_settings = [True, False]
+            # check for rigid predicates: for rigid predicates, we consider both values only if the evidence value is
+            # unknown, otherwise we use the evidence value
+            restricted = False
+            gndAtom = mln.gndAtomsByIdx[idx]
+            # check if setting the truth value for idx is critical for a block (which is the case when idx is the highest index in a block)
+            if idx in mln.gndBlockLookup and POSSWORLDS_BLOCKING:
+                block = mln.gndBlocks[mln.gndBlockLookup[idx]]
+                if idx == max(block):
+                    # count number of true values already set
+                    nTrue, nFalse = 0, 0
+                    for i in block:
+                        if i < len(values): # i has already been set
+                            if values[i]:
+                                nTrue += 1
+                    if nTrue >= 2: # violation, cannot continue
+                        return
+                    if nTrue == 1: # already have a true value, must set current value to false
+                        possible_settings.remove(True)
+                    if nTrue == 0: # no true value yet, must set current value to true
+                        possible_settings.remove(False)
+            # recursive descent
+            for x in possible_settings:
+                values.append(x)
+                for w in self._iterWorlds(values, idx + 1):
+                    yield w
+                values.pop()
+
 # abstract super class for Markov chain Monte Carlo-based inference
 class MCMCInference(Inference):
     # set a random state, taking the evidence blocks and block exclusions into account
@@ -2720,7 +2821,7 @@ class MCSAT(MCMCInference):
         return {"pc_dev_mean": se_mean, "pc_dev_max": se_max, "pc_dev_max_item": se_max_item["expr"]}
     
     def _extendResultsHistory(self, results):
-        currentResults = {"step": self.step, "results": list(results)}
+        currentResults = {"step": self.step, "results": list(results), "time": self._getElapsedTime()[0]}
         currentResults.update(self._getProbConstraintsDeviation())
         if self.referenceResults is not None:
             currentResults.update(self._compareResults(results, self.referenceResults))
