@@ -863,13 +863,18 @@ class MLN:
         
         self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, verbose=True)
         
-    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, inferenceParams=None, given=None, queries=None, verbose=True):
+    def _fitProbabilityConstraints(self, probConstraints, inferenceMethod, threshold, maxSteps, inferenceParams=None, given=None, queries=None, verbose=True, maxThreshold=None):
         '''
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
             inferenceMethod: one of the inference methods defined in InferenceMethods
             given: if not None, fit parameters of posterior (given the evidence) rather than prior
             queries: queries to compute along the way, results for which will be returned
+            threshold:
+                when maximum absolute difference between desired and actual probability drops below this value, then stop (convergence)
+            maxThreshold:
+                if not None, then convergence is relaxed, and we stop when the *mean* absolute difference between desired and
+                actual probability drops below "threshold" *and* the maximum is below "maxThreshold"
         '''
         if queries is None:
             queries = []
@@ -898,14 +903,14 @@ class MLN:
                     break
             if not gotit:
                 raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
-        # iterative fitting algorithm
+        # iterative fitting algorithm        
         step = 1
-        maxdiff = 1
-        while step <= maxSteps and maxdiff >= threshold:
-            maxdiff = 0
-            for req in probConstraints:
-                # calculate probability of the expression (ground formula)
-                what = [req["gndExpr"]] + queries
+        fittingStep = 1        
+        what = [r["gndExpr"] for r in probConstraints] + queries
+        done = False
+        while step <= maxSteps and not done:
+            for idxConstraint, req in enumerate(probConstraints):
+                # calculate probability of the expression (ground formula)                
                 if inferenceMethod == InferenceMethods.exact:
                     if not hasattr(self, "worlds"):
                         self._getWorlds()
@@ -923,9 +928,11 @@ class MLN:
                     raise Exception("Requested inference method (%s) not supported by probability constraint fitting" % InferenceMethods._names[inferenceMethod])
                 if type(results) != list:
                     results = [results]
+                # compute deviations
+                diffs = [abs(r["p"]-results[i]) for (i,r) in enumerate(probConstraints)]
                 # get the scaling factor and apply it
                 formula = self.formulas[req["idxFormula"]]
-                p = results[0]
+                p = results[idxConstraint]
                 pnew = req["p"]
                 precision = 1e-3
                 if p == 0.0: p = precision
@@ -933,15 +940,21 @@ class MLN:
                 f = pnew * (1-p) / p / (1-pnew)
                 old_weight = formula.weight
                 formula.weight += logx(f)
-                diff = abs(p-pnew)
-                if verbose: print "  [%d] p=%f vs. %f (diff = %f), changed weight of %s from %f to %f, elapsed: %.3fs" % (step, p, pnew, diff, strFormula(formula), old_weight, formula.weight, time.time()-t_start)
-                #p = self.inferExact(str(gndFormula), verbose=False)
-                #print " %f " % (p-pnew)
-                #self.write(file("debug%d.mln" % step, "w"))
-                gotit = True
-                maxdiff = max(maxdiff, diff)
+                diff = diffs[idxConstraint]
+                # evaluate current status
+                maxdiff = max(diffs)
+                meandiff = sum(diffs) / len(diffs)
+                # print status
+                if verbose: print "  [%d;%d/%d] p=%f vs. %f (diff = %f), weight %s: %f -> %f, diff max %f mean %f, elapsed: %.3fs" % (step, idxConstraint+1, len(probConstraints), p, pnew, diff, strFormula(formula), old_weight, formula.weight, maxdiff, meandiff, time.time()-t_start)
+                # are we done?
+                done = maxdiff <= threshold
+                if not done and maxThreshold is not None: # relaxed convergence criterion
+                    done = (meandiff <= threshold) and (maxdiff <= maxThreshold)
+                if done:
+                    break
+                fittingStep += 1
             step += 1
-        return (results[1:], {"steps": step-1, "maxdiff": maxdiff, "time": time.time()-t_start})
+        return (results[len(probConstraints):], {"steps": min(step,maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "time": time.time()-t_start})
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -3262,8 +3275,8 @@ class IPFPM(Inference):
             raise Exception("Application of IPFP-M inappropriate! IPFP-M is a wrapper method for other inference algorithms that allows to fit probability constraints. An application is not sensical of the model contains no such constraints.")
         Inference.__init__(self, mln)
     
-    def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None):
-        results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams)
+    def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None, maxThreshold=None):
+        results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams, maxThreshold=maxThreshold)
         return results
 
 # simulated annealing maximum sat (silly)
