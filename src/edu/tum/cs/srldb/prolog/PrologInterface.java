@@ -1,12 +1,17 @@
-package edu.tum.cs.srldb.prolog; 
+package edu.tum.cs.srldb.prolog;
+
 // TODO this package should be moved/renamed to edu.tum.cs.probcog.prolog, as the srldb package is concerned strictly with data collection
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import jpl.JPL;
@@ -37,29 +42,16 @@ public class PrologInterface {
 	private static String modelPool = "/data/srldb/models/models.xml";
 
 	private static String modelName = "tableSetting_fall09";
-	
+
 	private static Server server = null;
 
 	/**
-	 * Initialize the Prolog engine.
+	 * Reset the Prolog interface
 	 */
-//	static {
-//		try {
-//			
-//			JPL.init(new String[] {"pl"});
-//	//		Vector<String> args = new Vector<String>(Arrays.asList(Prolog.get_default_init_args()));
-//	//		args.add("-G128M");
-////			args.add("-q");
-//	//		args.add("-nosignals");
-//	//		Prolog.set_default_init_args(args.toArray(new String[0]));
-//
-//			// load the appropriate startup file for this context
-//		//	new Query("ensure_loaded('/home/tenorth/work/owl/gram_tabletop.pl')").oneSolution();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
+	public static void reset() {
+		objectTypes.clear();
+		server = null;
+	}
 
 	/**
 	 * Execute the given query. Assert the given premises and retract them after
@@ -72,7 +64,7 @@ public class PrologInterface {
 	public static Map<String, Vector<Object>> executeQuery(String query,
 			String plFile) {
 
-//		System.err.println("Executing query: " + query);
+		// System.err.println("Executing query: " + query);
 
 		HashMap<String, Vector<Object>> result = new HashMap<String, Vector<Object>>();
 		Hashtable[] solutions;
@@ -122,15 +114,14 @@ public class PrologInterface {
 
 	/**
 	 * Put all objects that are located on the kitchen table into the
-	 *  <code>objectTypes</code>.
+	 * <code>objectTypes</code>.
 	 */
 	public static void setObjectsOnTable(String[] objs) {
-		
-		for(String identifier : objs)
+
+		for (String identifier : objs)
 			objectTypes.put(identifier, UNKNOWN_TYPE);
 	}
-	
-	
+
 	/**
 	 * Retrieves the concepts for all object instances that are stored in
 	 * <code>objectTypes</code>.
@@ -142,7 +133,6 @@ public class PrologInterface {
 			String type = inferObjectType(instance);
 			if (objectTypes.get(instance).equals(UNKNOWN_TYPE)) {
 				String localClassName = getLocalClassName(type);
-//				System.out.println(instance + " (" + localClassName + ")");
 				objectTypes.put(instance, localClassName);
 			}
 		}
@@ -182,8 +172,8 @@ public class PrologInterface {
 	 */
 	public static String inferObjectType(String instanceName) {
 
-		Map<String, Vector<Object>> answer = executeQuery(
-				"rdf_has('" + instanceName + "', rdf:type, Type)", "");
+		Map<String, Vector<Object>> answer = executeQuery("rdf_has('"
+				+ instanceName + "', rdf:type, Type)", "");
 
 		for (Iterator<String> i = answer.keySet().iterator(); i.hasNext();) {
 			String key = i.next();
@@ -194,7 +184,7 @@ public class PrologInterface {
 		throw new RuntimeException("ERROR: Cannot infer type of "
 				+ instanceName);
 	}
-	
+
 	/**
 	 * Retrieves the URI of the class of the object given by the instance
 	 * <code>instanceName</code>.
@@ -204,8 +194,8 @@ public class PrologInterface {
 	 */
 	public static String inferObjectClass(String instanceName) {
 
-		Map<String, Vector<Object>> answer = executeQuery(
-				"rdf_has('" + instanceName + "', rdf:type, Type)", "");
+		Map<String, Vector<Object>> answer = executeQuery("rdf_has('"
+				+ instanceName + "', rdf:type, Type)", "");
 
 		for (Iterator<String> i = answer.keySet().iterator(); i.hasNext();) {
 			String key = i.next();
@@ -243,27 +233,32 @@ public class PrologInterface {
 			evidence.add("takesPartIn(P,M)");
 
 			// Maybe we can figure out the type of the meal
-		//	evidence.add("mealT(M,Breakfast)");
+			// evidence.add("mealT(M,Breakfast)");
 
 			// add evidence on utensils and consumed goods
-			for(String instance : objectTypes.keySet()) {
+			for (String instance : objectTypes.keySet()) {
 				String objType = objectTypes.get(instance);
 				String constantType = model.getConstantType(objType);
 				String predicate = null;
-				if(constantType != null) {
-					if(constantType.equalsIgnoreCase("domUtensilT"))
+				if (constantType != null) {
+					if (constantType.equalsIgnoreCase("domUtensilT"))
 						predicate = "usesAnyIn";
-					else if(constantType.equalsIgnoreCase("objType_g"))
+					else if (constantType.equalsIgnoreCase("objType_g"))
 						predicate = "consumesAnyIn";
-					if(predicate != null) { 
-						String evidenceAtom = String.format("%s(P,%s,M)", predicate, objType);  
+					if (predicate != null) {
+						String evidenceAtom = String.format("%s(P,%s,M)",
+								predicate, objType);
 						evidence.add(evidenceAtom);
-					}
-					else
-						System.err.println("Warning: Evidence on instance '" + instance + "' not considered because it is neither a utensil nor a consumable object known to the model.");
-				}
-				else
-					System.err.println("Warning: Evidence on instance '" + instance + "' not considered because its type is not known to the model.");
+					} else
+						System.err
+								.println("Warning: Evidence on instance '"
+										+ instance
+										+ "' not considered because it is neither a utensil nor a consumable object known to the model.");
+				} else
+					System.err
+							.println("Warning: Evidence on instance '"
+									+ instance
+									+ "' not considered because its type is not known to the model.");
 			}
 
 			// Generate queries: "usesAnyIn" for utensils, "consumesAnyIn" for
@@ -285,7 +280,7 @@ public class PrologInterface {
 						+ result[i][1]);
 				i++;
 			}
-			
+
 			return result;
 
 		} catch (IOException e) {
@@ -298,47 +293,114 @@ public class PrologInterface {
 
 		return null;
 	}
-	
-	public static String[][] performInference(String modelName, String[] query, String[]... evidence) {
+
+	/**
+	 * Reads the evidence for a particular predicate and returns all 
+	 * evidence predicates resulting from this query.
+	 * 
+	 * @param modelName
+	 * @param predicate
+	 * @return
+	 */
+	public static String[] evidenceForPredciate(Model model, String moduleName, String predicate) {
+
+		Set<String> result = new HashSet<String>();
+		String[] args = getArgsForPredicate(predicate, model.getName());
+
+		StringBuilder query = new StringBuilder();
+		query.append(String.format("%s:%s(", moduleName, predicate));
+
+		for (int i = 0; i < args.length; i++) {
+			query.append(String.format("Arg%d", i));
+			if (i < args.length - 1)
+				query.append(", ");
+		}
+		query.append(")");
+
+		System.out.println("Checking evidence for: "
+				+ query.toString());
+
+		Map<String, Vector<Object>> answer = executeQuery(query.toString(), "");
+
+		if (answer.get("Arg0") == null) // no solution found
+			return new String[0];
+
+		String[][] resultArray = new String[answer.get("Arg0").size()][args.length];
+
+		for (String arg : answer.keySet()) {
+			int argIndex = Integer.valueOf(arg.substring(3));
+
+			Vector<Object> values = answer.get(arg);
+			for (int i = 0; i < values.size(); i++) {
+				resultArray[i][argIndex] = ((String) values.get(i)).replace(
+						"'", "");
+			}
+		}
+
+		for (int sol = 0; sol < resultArray.length; sol++) {
+
+			StringBuilder evidence = new StringBuilder();
+			evidence.append(String.format("%s(", predicate));
+
+			boolean discard = false;
+			for (int arg = 0; arg < resultArray[sol].length; arg++) {
+				String value = resultArray[sol][arg];
+
+				String clazzURI = inferObjectClass(value);
+				if (clazzURI != null) {
+					value = getLocalClassName(clazzURI);
+
+					// to exclude type assertions such as 'Thing' or the like,
+					// only use known constants
+					if (model.constantMapToProbCog.get(value) == null) {
+						discard = true;
+						break;
+					}
+				}
+				evidence.append(value);
+				if (arg < args.length - 1)
+					evidence.append(",");
+			}
+			evidence.append(")");
+			if (!discard) {
+				result.add(evidence.toString());
+				System.out.println("  -> found evidence: "
+						+ evidence.toString());
+			}
+		}
+
+		return result.toArray(new String[0]);
+	}
+
+	public static String[][] performInference(String modelName, String moduleName, String[] query) {
 		try {
-			// Retrieve all objects that are already on the table
-			queryObjectTypes();
+
+			reset();
 
 			Server srldbServer = new Server(modelPool);
 			Model model = srldbServer.getModel(modelName);
 
 			// Generate evidence for all objects already found on the table
-			Vector<String> evidences = new Vector<String>();
-			
-			// add evidence on utensils and consumed goods
-			for(String[] e : evidence) {
-					
-				StringBuilder evString = new StringBuilder();
-				
-				evString.append(e[0]);
-				evString.append("(");
-				for (int i = 1; i < e.length; i++) {
-				
-					String arg = inferObjectClass(e[i]);
-					if (arg == null)
-						arg = e[i];
-					evString.append(arg + (i < e.length - 1 ? "," : ""));
-				}
-				evString.append(")");
-				evidences.add(evString.toString());
-			//	System.out.println(evString);
+			Vector<String> evidence = new Vector<String>();
+
+			// Get evidence
+			String[] predicates = getPredicatesForModel(modelName);
+
+			for (String pred : predicates) {
+				String[] ev = evidenceForPredciate(model, moduleName, pred);
+
+				for (String e : ev)
+					evidence.add(e);
 			}
 
-			// Generate queries: "usesAnyIn" for utensils, "consumesAnyIn" for
-			// edible stuff
+			// Generate queries
 			Vector<String> queries = new Vector<String>();
-			for (String q : query) 
+			for (String q : query)
 				queries.add(q);
-				
 
 			// Run the inference process
 			Vector<InferenceResult> results = srldbServer.query(modelName,
-					queries, evidences);
+					queries, evidence);
 
 			String[][] result = new String[results.size()][2];
 			int i = 0;
@@ -349,7 +411,7 @@ public class PrologInterface {
 						+ result[i][1]);
 				i++;
 			}
-			
+
 			return result;
 
 		} catch (IOException e) {
@@ -362,7 +424,7 @@ public class PrologInterface {
 
 		return null;
 	}
-	
+
 	private static Server getServer() {
 		if (server == null) {
 			try {
@@ -371,73 +433,47 @@ public class PrologInterface {
 				throw new RuntimeException(e.getMessage());
 			}
 		}
-		
+
 		return server;
 	}
-	
+
 	public static String[] getPredicatesForModel(String modelName) {
 		Server s = getServer();
-		
+
 		Vector<String[]> predicates = s.getPredicates(modelName);
-		
+
 		String[] result = new String[predicates.size()];
 		for (int i = 0; i < result.length; i++)
 			result[i] = predicates.get(i)[0];
-		
+
 		return result;
 	}
-	
-	public static String[] getArgsForPredicate(String predicate, String modelName) {
+
+	public static String[] getArgsForPredicate(String predicate,
+			String modelName) {
 		Server s = getServer();
-		
+
 		String[] predicates = getPredicatesForModel(modelName);
 		Vector<String[]> args = s.getPredicates(modelName);
-		
+
 		for (int i = 0; i < predicates.length; i++) {
-			
+
 			if (predicates[i].equals(predicate) && args.elementAt(i).length > 1) {
 				String[] arguments = new String[args.elementAt(i).length - 1];
-				
+
 				for (int j = 0; j < arguments.length; j++)
 					arguments[j] = args.elementAt(i)[j + 1];
-				
+
 				return arguments;
 			}
-			
+
 		}
-		
+
 		return new String[0];
 	}
-	
-	
-	
+
 	public static void main(String[] args) {
 
-	//	getMissingObjectsOnTable();
 
-		try {
-			Server s = new Server(modelPool);
-			
-			for (String[] p : s.getPredicates(modelName)) {
-				for (String d : p)
-					System.out.print(d + ";");
-				System.out.println();
-			}
-			
-			System.out.println();
-			
-			for (String[] p : s.getDomains(modelName)) {
-				for (String d : p)
-					System.out.print(d + ";");
-				System.out.println();
-			}
-			
-			performInference(modelName, new String[] { "usesAnyForIn", "consumesAnyIn" }, new String[] {"takesPartIn", "P", "DinnerPlate"}, new String[] {"mealT", "M", "Breakfast"});
-			
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		} 
-		
 	}
 }
