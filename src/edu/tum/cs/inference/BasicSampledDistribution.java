@@ -10,7 +10,9 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Vector;
 
-public abstract class BasicSampledDistribution {
+import umontreal.iro.lecuyer.probdist.BetaDist;
+
+public abstract class BasicSampledDistribution implements IParameterHandler {
 	/**
 	 * an array of values representing the distribution, one for each node and each domain element:
 	 * values[i][j] is the value for the j-th domain element of the i-th node in the network
@@ -20,9 +22,32 @@ public abstract class BasicSampledDistribution {
 	 * the normalization constant that applies to each of the distribution values
 	 */
 	public Double Z = null;
+	/**
+	 * the confidence level for the computation of confidence intervals
+	 * if null, no confidence interval computations are carried out
+	 */
+	public Double confidenceLevel = null;
+	public ParameterHandler paramHandler;
+	
+	public BasicSampledDistribution() throws Exception {
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("confidenceLevel", "setConfidenceLevel");
+	}
 	
 	public double getProbability(int varIdx, int domainIdx) {
 		return values[varIdx][domainIdx] / Z;
+	}
+	
+	/**
+	 * constructs a new array with the normalized distribution over values for a variable
+	 * @param varIdx index of the variable whose distribution to generate
+	 * @return
+	 */
+	public double[] getDistribution(int varIdx) {
+		double[] ret = new double[values[varIdx].length];
+		for(int i = 0; i < ret.length; i++)
+			ret[i] = values[varIdx][i] / Z;
+		return ret;
 	}
 	
 	public void print(PrintStream out) {
@@ -31,13 +56,23 @@ public abstract class BasicSampledDistribution {
 		}
 	}
 	
+	public abstract Integer getNumSamples();
+	
 	public void printVariableDistribution(PrintStream out, int idx) {
 		out.println(getVariableName(idx) + ":");
 		String[] domain = getDomain(idx);
 		for(int j = 0; j < domain.length; j++) {
 			double prob = values[idx][j] / Z;
-			out.println(String.format("  %.4f %s", prob, domain[j]));
+			if(confidenceLevel == null) 
+				out.printf("  %.4f %s\n", prob, domain[j]);
+			else {
+				out.printf("  %.4f  %s  %s", prob, getConfidenceInterval(idx, j).toString());				
+			}
 		}
+	}
+	
+	public ConfidenceInterval getConfidenceInterval(int varIdx, int domIdx) {
+		return new ConfidenceInterval(varIdx, domIdx);
 	}
 	
 	public abstract String getVariableName(int idx);
@@ -48,7 +83,7 @@ public abstract class BasicSampledDistribution {
 		return values[idx].length;
 	}
 	
-	public GeneralSampledDistribution toGeneralDistribution() {
+	public GeneralSampledDistribution toGeneralDistribution() throws Exception {
 		int numVars = values.length;
 		String[] varNames = new String[numVars];
 		String[][] domains = new String[numVars][];
@@ -62,7 +97,7 @@ public abstract class BasicSampledDistribution {
 	/**
 	 * gets the mean squared error of another distribution d, assuming that values of this distribution are correct
 	 * @param d the other distribution
-	 * @return the mean squared error (across all entries of the distribution)
+	 * @return the mean squared error (averaged across all entries of the distribution)
 	 * @throws Exception
 	 */
 	public double getMSE(BasicSampledDistribution d) throws Exception {
@@ -79,7 +114,49 @@ public abstract class BasicSampledDistribution {
 		dc.compare();
 		return dec.getResult();
 	}
-
+	
+	public void setConfidenceLevel(Double confidenceLevel) {
+		this.confidenceLevel = confidenceLevel;
+	}
+	
+	public boolean usesConfidenceComputation() {
+		return confidenceLevel != null;
+	}
+	
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
+	}
+	
+	public class ConfidenceInterval {
+		public double lowerEnd, upperEnd;		
+		
+		public ConfidenceInterval(int varIdx, int domIdx) {
+			int numSamples = getNumSamples();
+			double p = values[varIdx][domIdx] / Z;
+			double alpha = p * numSamples;
+			double beta = numSamples - alpha;
+			int precisionDigits = 4;
+			if(alpha == 0 || beta == 0) {
+				alpha += 1;
+				beta += 1;
+			}
+			lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confidenceLevel/2);
+			upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confidenceLevel/2);
+			if(p < lowerEnd)
+				lowerEnd = p;
+			if(p > upperEnd)
+				upperEnd = p;
+		}
+		
+		public double getSize() {
+			return upperEnd-lowerEnd;
+		}
+		
+		public String toString() {
+			return String.format("[%.4f;%.4f]", lowerEnd, upperEnd);
+		}
+	}
+	
 	public static class DistributionComparison {
 		protected BasicSampledDistribution referenceDist, otherDist;
 		protected Vector<DistributionEntryComparison> processors;
