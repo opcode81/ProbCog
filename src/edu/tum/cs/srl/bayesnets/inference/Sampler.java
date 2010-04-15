@@ -75,10 +75,6 @@ public abstract class Sampler implements IParameterHandler {
 		debug = active;
 	}
 	
-	public void handleParams(java.util.Map<String,String> params) throws Exception {
-		paramHandler.handle(params);
-	}
-	
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
 	}
