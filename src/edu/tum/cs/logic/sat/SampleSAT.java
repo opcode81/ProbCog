@@ -627,10 +627,6 @@ public class SampleSAT implements IParameterHandler {
 		System.out.println("time taken: " + sw.getElapsedTimeSecs());		
 	}
 
-	public void handleParams(Map<String, String> params) throws Exception {
-		paramHandler.handle(params);
-	}
-
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
 	}
