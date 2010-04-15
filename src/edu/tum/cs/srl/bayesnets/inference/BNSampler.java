@@ -48,6 +48,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		// initialize sampler		
 		System.out.println("initializing...");		
 		sampler = getSampler();
+		paramHandler.addSubhandler(sampler.getParameterHandler());
 		sampler.setEvidence(evidenceDomainIndices);
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
