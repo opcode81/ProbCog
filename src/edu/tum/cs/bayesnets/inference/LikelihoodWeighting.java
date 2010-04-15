@@ -49,7 +49,7 @@ public class LikelihoodWeighting extends Sampler {
 loop:	while(!successful) {
 			s.weight = 1.0;
 			s.trials++;
-			if(s.trials > this.maxTrials) {
+			if(maxTrials > 0 && s.trials > this.maxTrials) {
 				if(!this.skipFailedSteps)
 					throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
 				else
