@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.regex.Pattern;
@@ -20,6 +21,7 @@ import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.srl.bayesnets.inference.BNSampler;
+import edu.tum.cs.srl.bayesnets.inference.InferenceResult;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.srl.bayesnets.inference.TimeLimitedInference;
 import edu.tum.cs.util.Stopwatch;
@@ -53,6 +55,7 @@ public class BLNinfer {
 			boolean saveInstance = false;
 			boolean skipFailedSteps = false;
 			boolean removeDeterministicCPTEntries = false;
+			boolean resultsFilterEvidence = false;
 			double timeLimit = 10.0, infoIntervalTime = 1.0;
 			boolean timeLimitedInference = false;
 			String outputDistFile = null, referenceDistFile = null;
@@ -72,6 +75,8 @@ public class BLNinfer {
 					dbFile = args[++i];				
 				else if(args[i].equals("-s"))
 					showBN = true;				
+				else if(args[i].equals("-rfe"))
+					resultsFilterEvidence = true;				
 				else if(args[i].equals("-nodetcpt"))
 					removeDeterministicCPTEntries = true;				
 				else if(args[i].equals("-si"))
@@ -144,6 +149,7 @@ public class BLNinfer {
 							         "     -debug           debug mode with additional outputs\n" + 
 							         "     -s               show ground network in editor\n" +
 							         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
+							         "     -rfe             filter evidence in results\n" +
 							         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
 							         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
 							         "     -od <file>       save output distribution to file\n" +
@@ -190,7 +196,7 @@ public class BLNinfer {
 			if(cwPreds != null) {
 				for(String predName : cwPreds)
 					db.setClosedWorldPred(predName);
-			}
+			}			
 			
 			// instantiate ground model
 			AbstractGroundBLN gbln;
@@ -231,7 +237,7 @@ public class BLNinfer {
 			}
 			sampler.setNumSamples(maxSteps);
 			sampler.setInfoInterval(infoInterval);
-			sampler.handleParams(params);
+			sampler.getParameterHandler().handle(params, false);
 			// - run inference
 			SampledDistribution dist;
 			if(timeLimitedInference) {
@@ -253,7 +259,18 @@ public class BLNinfer {
 			sw.stop();
 			
 			// print results
-			Sampler.printResults(dist, queries);
+			for(InferenceResult res : Sampler.getResults(dist, queries)) {
+				boolean show = true;
+				if(resultsFilterEvidence)
+					if(db.contains(res.varName))
+						show = false;
+				if(show) res.print();
+			}
+			
+			// report any unhandled parameters
+			Collection<String> unhandledParams = sampler.getParameterHandler().getUnhandledParams();
+			if(!unhandledParams.isEmpty())
+				System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: " + sampler.getParameterHandler().getHandledParameters().toString());
 			
 			// save output distribution
 			if(outputDistFile != null) {
