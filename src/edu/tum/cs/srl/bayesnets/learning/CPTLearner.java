@@ -294,11 +294,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			return;
 		}
 		
-		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable
-		Iterable<String> domain = db.getDomain(domainNames[i]);
-		for(String element : domain) {
-			params[i] = element;
-			countVariable(db, node, params, domainNames, i+1, closedWorld);	
-		}		
+		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable		
+		if(RelationalNode.isConstant(node.params[i])) {
+			params[i] = node.params[i];
+			countVariable(db, node, params, domainNames, i+1, closedWorld);
+		}
+		else {
+			Iterable<String> domain = db.getDomain(domainNames[i]);
+			for(String element : domain) {
+				params[i] = element;
+				countVariable(db, node, params, domainNames, i+1, closedWorld);	
+			}
+		}
 	}
 }
