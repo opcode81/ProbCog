@@ -72,8 +72,4 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
 	}
-
-	public void handleParams(Map<String, String> params) throws Exception {
-		paramHandler.handle(params);	
-	}
 }
