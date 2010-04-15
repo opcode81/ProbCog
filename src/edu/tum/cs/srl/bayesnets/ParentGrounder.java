@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.srl.Database;
@@ -114,8 +113,8 @@ public class ParentGrounder {
 				FunctionalLookup flookup = null;
 				Signature s = bn.getSignature(n);
 				// check all of the parent's parameters
-				for(String param : n.params) {					
-					if(!handledVars.contains(param)) {
+				for(String param : n.params) {			
+					if(!handledVars.contains(param) && !RelationalNode.isConstant(param)) {
 						// check if we can handle this parameter via a functional lookup
 						// - if we already have a functional lookup for this node, we definitely can
 						if(flookup != null) {
@@ -140,7 +139,7 @@ public class ParentGrounder {
 										++numHandledParams;
 										++gains;
 										break;
-									}										
+									}	
 								}
 							}
 						}
@@ -154,7 +153,7 @@ public class ParentGrounder {
 			}
 			// if there weren't any gains in this iteration, then we cannot ground the parents
 			if(gains == 0 && !newWorkingSet.isEmpty()) {
-				throw new Exception("Could not determine how to ground parents of " + mainNode + "; some parameters of " + newWorkingSet + " could not be resolved.");
+				throw new Exception("Could not determine how to ground parents of " + mainNode + "; some parameters of " + newWorkingSet + " could not be resolved; handled vars: " + handledVars);
 			}
 			workingSet = newWorkingSet;
 		}
@@ -235,8 +234,12 @@ public class ParentGrounder {
 			m.put(this.mainNode.index, mainNodeParams);
 			for(RelationalNode parent : this.parents) {
 				String[] params = new String[parent.params.length];
-				for(int i = 0; i < params.length; i++)
-					params[i] = paramBindings.get(parent.params[i]);
+				for(int i = 0; i < params.length; i++) {
+					if(RelationalNode.isConstant(parent.params[i]))
+						params[i] = parent.params[i];
+					else
+						params[i] = paramBindings.get(parent.params[i]);
+				}
 				m.put(parent.index, params);
 			}
 			ret.add(m);
