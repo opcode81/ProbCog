@@ -98,7 +98,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 		return getSampledDistribution(gad);	
 	}
 	
-	protected SampledDistribution getSampledDistribution(GroundAtomDistribution gad) {
+	protected SampledDistribution getSampledDistribution(GroundAtomDistribution gad) throws Exception {
 		gad.normalize();
 		BeliefNetworkEx bn = gbln.getGroundNetwork();
 		SampledDistribution dist = new SampledDistribution(bn);
