@@ -23,10 +23,9 @@ public class GeneralSampledDistribution extends BasicSampledDistribution {
 
 	protected String[] varNames;
 	protected String[][] domains;
-	protected HashMap<String,Integer> varName2Index;
+	protected HashMap<String,Integer> varName2Index;	
 	
-	
-	public GeneralSampledDistribution(double[][] values, Double Z, String[] varNames, String[][] domains) {
+	public GeneralSampledDistribution(double[][] values, Double Z, String[] varNames, String[][] domains) throws Exception {
 		this.values = values;
 		this.Z = Z;
 		this.varNames = varNames;
@@ -65,10 +64,9 @@ public class GeneralSampledDistribution extends BasicSampledDistribution {
 	 * reads a previously stored distribution from a file
 	 * @param s
 	 * @return
-	 * @throws IOException
-	 * @throws ClassNotFoundException
+	 * @throws Exception 
 	 */
-	public static GeneralSampledDistribution fromFile(File f) throws IOException, ClassNotFoundException {
+	public static GeneralSampledDistribution fromFile(File f) throws Exception {
 		java.io.ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(f));
 	    double[][] values = (double[][])objstream.readObject();
 	    Double Z = (Double)objstream.readObject();
@@ -81,5 +79,10 @@ public class GeneralSampledDistribution extends BasicSampledDistribution {
 	@Override
 	public int getVariableIndex(String name) {		
 		return varName2Index.get(name);
+	}
+
+	@Override
+	public Integer getNumSamples() {
+		throw new RuntimeException("A GeneralizedDistribution represents only the distribution, no additional data is available");
 	}
 }

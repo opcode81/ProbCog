@@ -21,12 +21,12 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	/**
 	 * values that may be used by certain algorithms to store the number of steps involved in creating the distribution
 	 */
-	public int trials, steps;
+	public int steps, trials;
 	protected double maxWeight = 0.0;
 	protected boolean debug = true;
 	protected BeliefNode[] nodes;
 	
-	public SampledDistribution(BeliefNetworkEx bn) {
+	public SampledDistribution(BeliefNetworkEx bn) throws Exception {
 		this.bn = bn;
 		this.Z = 0.0;
 		nodes = bn.bn.getNodes();
@@ -107,5 +107,10 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+
+	@Override
+	public Integer getNumSamples() {		
+		return steps;
 	}
 }
