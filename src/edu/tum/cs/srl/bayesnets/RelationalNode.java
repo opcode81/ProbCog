@@ -105,6 +105,14 @@ public class RelationalNode extends ExtendedNode {
 		return new Pair<String, String[]>(m.group(1), m.group(2).split(","));
 	}
 	
+	/**
+	 * @return true if the given identifier is a constant name, false otherwise
+	 * @param identifier
+	 */
+	public static boolean isConstant(String identifier) {
+		return Character.isUpperCase(identifier.charAt(0));
+	}
+	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
 		super(bn, node);
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
