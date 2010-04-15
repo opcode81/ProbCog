@@ -135,7 +135,7 @@ public class MLNinfer {
 				break;
 			}			
 			infer.setDebugMode(debug);
-			infer.handleParams(params);
+			infer.getParameterHandler().handle(params, true);
 			System.out.printf("algorithm: %s, steps: %d\n", infer.getAlgorithmName(), maxSteps);
 			List<InferenceResult> results = infer.infer(queries, maxSteps);
 	        sw.stop();
