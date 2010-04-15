@@ -376,7 +376,7 @@ public class Database {
 			setClosedWorldPred(sig, i+1, params);
 		}
 	}	
-	
+
 	public Signature getSignature(String functionName) {
 		return model.getSignature(functionName);
 	}
@@ -434,6 +434,9 @@ public class Database {
             matcher = re_entry.matcher(line);
             if (matcher.matches()) {
                 matcher = funcName.matcher(line);
+                if(!matcher.matches()) {
+                	throw new Exception("Could not parse line: " + line);
+                }
                 matcher.find();
                 if (matcher.group(1).contains("!"))
                     var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False", model);
