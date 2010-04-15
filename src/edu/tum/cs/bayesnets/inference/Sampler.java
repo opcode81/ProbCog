@@ -7,14 +7,17 @@ import java.util.Random;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 
-public abstract class Sampler implements ITimeLimitedInference {
+public abstract class Sampler implements ITimeLimitedInference, IParameterHandler {
 	public BeliefNetworkEx bn;
 	public SampledDistribution dist;
 	public HashMap<BeliefNode, Integer> nodeIndices;
 	public Random generator;
 	public BeliefNode[] nodes;
 	public int[] evidenceDomainIndices;
+	protected ParameterHandler paramHandler;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -39,11 +42,13 @@ public abstract class Sampler implements ITimeLimitedInference {
 			nodeIndices.put(nodes[i], i);
 		}
 		generator = new Random();
+		paramHandler = new ParameterHandler(this);
 	}
 	
-	protected void createDistribution() {
+	protected void createDistribution() throws Exception {
 		this.dist = new SampledDistribution(bn);
 		dist.setDebugMode(debug);
+		paramHandler.addSubhandler(dist.getParameterHandler());
 	}
 	
 	protected synchronized void addSample(WeightedSample s) throws Exception {
@@ -210,5 +215,9 @@ public abstract class Sampler implements ITimeLimitedInference {
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();
+	}
+	
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }
