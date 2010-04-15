@@ -1,13 +1,12 @@
 /*
  * Created on Nov 17, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.inference;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Vector;
 
@@ -18,10 +17,14 @@ public class ParameterHandler {
 	protected java.util.HashMap<String, ParameterMapping> mappings;
 	protected Object owner;
 	protected Vector<ParameterHandler> subhandlers;
+	protected Vector<ParameterHandler> parenthandlers;
+	protected Map<String,String> submittedParams = null;
+	protected HashSet<String> unhandledParams = new HashSet<String>();
 	
 	public ParameterHandler(IParameterHandler owner) {
 		mappings = new HashMap<String, ParameterMapping>();
 		subhandlers = new Vector<ParameterHandler>();
+		parenthandlers = new Vector<ParameterHandler>();
 		this.owner = owner;
 	}
 	
@@ -31,22 +34,58 @@ public class ParameterHandler {
 				Class<?>[] paramTypes = m.getParameterTypes();
 				if(paramTypes.length != 1)
 					continue;
-				mappings.put(paramName, new ParameterMapping(m));
-				return;  
+				mappings.put(paramName, new ParameterMapping(m));				
+				return;
 			}
 		}
 		throw new Exception("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
 	}
 	
-	public void addSubhandler(ParameterHandler h) throws Exception {
+	public void addSubhandler(ParameterHandler h) throws Exception {		
 		subhandlers.add(h);
+		h.parenthandlers.add(this);
+		onAddedSubhandler(h);
 	}
 	
-	public void handle(Map<String, String> params) throws Exception {
-		for(java.util.Map.Entry<String, String> e : params.entrySet()) {
-			if(!handle(e.getKey(), e.getValue()))
-				throw new Exception("Parameter " + e.getKey() + " unhandled! Known parameters: " + this.getHandledParameters().toString());
+	public void onAddedSubhandler(ParameterHandler h) throws Exception {
+		// see if the new subhandler allows us to handle unhandled params
+		if(!unhandledParams.isEmpty())
+			handle(submittedParams, unhandledParams, false);		
+		// notify parents of addition of subhandler
+		for(ParameterHandler parent : this.parenthandlers)
+			parent.onAddedSubhandler(h);		
+	}
+	
+	public void handle(Map<String, String> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {		
+		for(String param : paramsToHandle) {
+			String value = paramMapping.get(param);
+			if(handle(param, value)) {
+				if(unhandledParams.contains(param))
+					unhandledParams.remove(param);
+			}
+			else {
+				if(exceptionIfUnhandledParam)
+					throw new Exception("Parameter " + param + " unhandled! Known parameters: " + this.getHandledParameters().toString());
+				else {
+					unhandledParams.add(param);
+				}
+			}
 		}
+	}
+	
+	/**
+	 * 
+	 * @param paramMapping
+	 * @param exceptionIfUnhandledParam whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
+	 * @throws Exception
+	 */
+	public void handle(Map<String, String> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {
+		submittedParams = paramMapping;
+		handle(paramMapping, paramMapping.keySet(), exceptionIfUnhandledParam);
+	}
+	
+	public Collection<String> getUnhandledParams() {
+		return unhandledParams; 
 	}
 	
 	protected boolean handle(String paramName, String value) throws Exception {
