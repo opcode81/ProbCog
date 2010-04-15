@@ -54,7 +54,7 @@ public class learnBLOG {
 			if(bifFile == null || dbFile == null || outFileBLOG == null || outFileNetwork == null) {
 				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db pattern>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
 							         "    -b      " + acronym + " file from which to read function signatures\n" +
-						             "    -s      show learned Bayesian network\n" +
+						             "    -s      show learned fragment network\n" +
 						             "    -d      learn domains\n" + 
 						             "    -i      ignore data on predicates not defined in the model\n" +
 						             "    -ud     apply uniform distribution by default (for CPT columns with no examples)\n" +
@@ -81,18 +81,25 @@ public class learnBLOG {
 			
 			// prepare it for learning
 			bn.prepareForLearning();
+			
+			System.out.println("Signatures:");
+			for(Signature sig : bn.getSignatures()) {
+				System.out.println("  " + sig);
+			}
 
 			// read the training databases
 			System.out.println("Reading data...");
 			Vector<Database> dbs = new Vector<Database>();
-			Pattern p = Pattern.compile( dbFile );
+			String regex = new File(dbFile).getName();
+			Pattern p = Pattern.compile( regex );
 			File directory = new File(dbFile).getParentFile();
 			if(directory == null || !directory.exists())
 				directory = new File(".");
-			System.out.printf("Searching in %s...\n", directory);
+			System.out.printf("Searching for '%s' in '%s'...\n", regex, directory);
 			for (File file : directory.listFiles()) { 
 				if(p.matcher(file.getName()).matches()) {
 					Database db = new Database(bn);
+					System.out.printf("reading %s...\n", file.getAbsolutePath());
 					db.readBLOGDB(file.getPath(), ignoreUndefPreds);
 					dbs.add(db);
 				}
@@ -134,7 +141,6 @@ public class learnBLOG {
 				// write parameters to Bayesian network template
 				System.out.println("Writing network output to " + outFileNetwork + "...");
 				bn.save(outFileNetwork);
-				bn.save(outFileNetwork+".net");
 			}
 			// write basic BLN 
 			if(basicBLN) {
