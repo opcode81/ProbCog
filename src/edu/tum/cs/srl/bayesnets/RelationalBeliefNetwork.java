@@ -19,6 +19,7 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
@@ -699,13 +700,14 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	public void addRelationKey(RelationKey k) {
-		Collection<RelationKey> list = relationKeys.get(k.relation);
+		Collection<RelationKey> list = relationKeys.get(k.relation.toLowerCase());
 		if(list == null) { 
 			list = new Vector<RelationKey>();
 			relationKeys.put(k.relation.toLowerCase(), list);
 		}
 		list.add(k);
 		//System.out.println("Key: " + k);
+		//System.out.println(" now: " + this.getRelationKeys(k.relation.toLowerCase()));
 	}
 	
 	/**
