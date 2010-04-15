@@ -45,6 +45,7 @@ public class MCSAT implements IParameterHandler {
 		PossibleWorld state = new PossibleWorld(vars);
 		sat = new SampleSAT(state, vars, db.getEntries());				
 		paramHandler.addSubhandler(sat.getParameterHandler());
+		paramHandler.add("infoInterval", "setInfoInterval");
 	}
 	
 	public WeightedClausalKB getKB() {
@@ -180,10 +181,6 @@ public class MCSAT implements IParameterHandler {
 
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
-	}
-
-	public void handleParams(Map<String, String> params) throws Exception {
-		paramHandler.handle(params);		
 	}
 	
 	public String getAlgorithmName() {
