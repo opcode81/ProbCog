@@ -31,6 +31,7 @@ public class TrajVis {
 		boolean error = false;
 		boolean background = false;
 		int minStep = 0;
+		boolean greyscale = false;
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-c")) {
@@ -57,6 +58,9 @@ public class TrajVis {
 			else if(args[i].equals("-bg")) {
 				background = true;
 			}
+			else if(args[i].equals("-bw")) {
+				greyscale = true;
+			}
 			else if(args[i].equals("-minStep")) {
 				minStep = Integer.parseInt(args[++i]);
 			}
@@ -65,9 +69,10 @@ public class TrajVis {
 				error = true;
 			}
 		}
-		if(humanFiles.isEmpty() || embedFiles.isEmpty())
+		if(humanFiles.isEmpty() && embedFiles.isEmpty())
 			error = true;
 		
+		System.out.println("TrajVis");
 		if(error) {
 			System.out.println("usage: TrajVis [options]");
 			System.out.println("  options: ");
@@ -80,11 +85,22 @@ public class TrajVis {
 			System.out.println("           -wire                    draw human pose using lines only");
 			System.out.println("           -bg                    	draw kitchen background");
 			System.out.println("           -minStep <frame no.>     draw trajectory starting with given frame");
-			System.out.println("\n      -h and -e can be passed multiple times, -h at least once");
+			System.out.println("           -bw     					black & white mode");
+			System.out.println("\n      -h and -e can be passed multiple times; must pass one of them at least once");
 			return;
 		}
 		
-		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk", 800, 400, 400);
+		int height = 1000;
+		int humanHeight = height/2, embeddingHeight = height/2;
+		if(humanFiles.isEmpty()) {
+			embeddingHeight *= 2;
+			humanHeight = 0;
+		}
+		if(embedFiles.isEmpty()) {
+			embeddingHeight = 0;
+			humanHeight *= 2;
+		}
+		JointTrajectoriesIsomap m = new JointTrajectoriesIsomap("trajectoryData/pointcloud.vtk", height, humanHeight, embeddingHeight);
 		
 		m.kitchen.setDrawMeshes(drawMesh);
 		if(background)
@@ -105,32 +121,40 @@ public class TrajVis {
 			}
 		}
 		
-		m.isomap.centerTrajectory = center;
-		Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
 		
-		if(labelFiles.size() > 0)
-			traj.setLabels(new File(labelFiles.get(0)));		
-		
-		if(labelMapFiles.size() > 0) {
-			Legend leg = new Legend(new File(labelMapFiles.get(0)), 5, 39);
-			m.isomap.add2D(leg);
-		}
-		
-		int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
-		for(int i = 1; i < embedFiles.size(); i++) {
-			traj = new Trajectory();
-			traj.readAsc(new File(embedFiles.get(i)));
-			traj.lineColor = colors[i % colors.length];
-			if(center)
-				traj.center();
-			if(i < labelFiles.size())
-				traj.setLabels(new File(labelFiles.get(i)));
-			m.isomap.addAnimated(traj);
-		}		
-		//m.isomap.setHeight(400);
-		
-		for(Trajectory t : new CollectionFilter<Trajectory, DrawableAnimated>(m.isomap.getAnimatedItems(), Trajectory.class)) {
-			t.minStep = minStep;
+		if(!embedFiles.isEmpty()) {
+			if(greyscale)
+				m.isomap.setBackgroundColor(0xffffffff);
+
+			m.isomap.centerTrajectory = center;		
+			Trajectory traj = m.isomap.readTrajectory(new File(embedFiles.get(0)));
+			traj.colorMode = !greyscale ? Trajectory.ColorMode.Color : Trajectory.ColorMode.Grayscale; 
+			
+			if(labelFiles.size() > 0)
+				traj.setLabels(new File(labelFiles.get(0)));		
+			
+			if(labelMapFiles.size() > 0) {
+				Legend leg = new Legend(new File(labelMapFiles.get(0)), 5, 39);
+				m.isomap.add2D(leg);
+			}
+			
+			int[] colors = new int[]{0xffffffff, 0xffffff00, 0xff00ffff};
+			for(int i = 1; i < embedFiles.size(); i++) {
+				traj = new Trajectory();
+				traj.colorMode = !greyscale ? Trajectory.ColorMode.Color : Trajectory.ColorMode.Grayscale;
+				traj.readAsc(new File(embedFiles.get(i)));
+				traj.lineColor = colors[i % colors.length];
+				if(center)
+					traj.center();
+				if(i < labelFiles.size())
+					traj.setLabels(new File(labelFiles.get(i)));
+				m.isomap.addAnimated(traj);
+			}		
+			//m.isomap.setHeight(400);
+			
+			for(Trajectory t : new CollectionFilter<Trajectory, DrawableAnimated>(m.isomap.getAnimatedItems(), Trajectory.class)) {
+				t.minStep = minStep;
+			}
 		}
 			
 		JFrame frame = new JFrame();
