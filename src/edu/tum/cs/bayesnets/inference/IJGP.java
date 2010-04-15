@@ -49,7 +49,7 @@ public class IJGP extends Sampler {
 	
 	@Override
 	public String getAlgorithmName() {
-		return String.format("IJGP[i-bound %d]");
+		return String.format("IJGP[i-bound %d]", this.ibound);
 	}
 
 	/*
