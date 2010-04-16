@@ -129,23 +129,26 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	
 	public class ConfidenceInterval {
 		public double lowerEnd, upperEnd;		
+		protected int precisionDigits = 4;
 		
 		public ConfidenceInterval(int varIdx, int domIdx) {
 			int numSamples = getNumSamples();
 			double p = values[varIdx][domIdx] / Z;
 			double alpha = p * numSamples;
 			double beta = numSamples - alpha;
-			int precisionDigits = 4;
-			if(alpha == 0 || beta == 0) {
-				alpha += 1;
-				beta += 1;
+			alpha += 1;
+			beta += 1;
+			double confAlpha = 1-confidenceLevel;
+			lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha/2);
+			upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha/2);
+			if(p > upperEnd) {
+				lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha);
+				upperEnd = 1.0;
 			}
-			lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confidenceLevel/2);
-			upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confidenceLevel/2);
-			if(p < lowerEnd)
-				lowerEnd = p;
-			if(p > upperEnd)
-				upperEnd = p;
+			else if(p < lowerEnd) {
+				lowerEnd = 0.0;
+				upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha);
+			}
 		}
 		
 		public double getSize() {
@@ -153,7 +156,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		}
 		
 		public String toString() {
-			return String.format("[%.4f;%.4f]", lowerEnd, upperEnd);
+			return String.format(String.format("[%%.%df;%%.%df]", precisionDigits, precisionDigits), lowerEnd, upperEnd);
 		}
 	}
 	
