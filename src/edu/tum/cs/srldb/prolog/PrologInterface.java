@@ -26,7 +26,7 @@ import edu.tum.cs.probcog.Server;
  * Interface to the Prolog system for figuring out which objects are missing on
  * the table.
  * 
- * @author Daniel Nyga
+ * @author Daniel Nyga, Moritz Tenorth
  * 
  */
 public class PrologInterface {
@@ -39,7 +39,7 @@ public class PrologInterface {
 	 */
 	private static Map<String, String> objectTypes = new HashMap<String, String>();
 
-	private static String modelPool = "/data/srldb/models/models.xml";
+	private static String modelPool = "/home/tenorth/work/srldb/models/models.xml";
 
 	private static String modelName = "tableSetting_fall09";
 
@@ -372,7 +372,7 @@ public class PrologInterface {
 		return result.toArray(new String[0]);
 	}
 
-	public static String[][] performInference(String modelName, String moduleName, String[] query) {
+	public static String[][][] performInference(String modelName, String moduleName, String[] query) {
 		try {
 
 			reset();
@@ -393,26 +393,94 @@ public class PrologInterface {
 					evidence.add(e);
 			}
 
-			// Generate queries
+			
+			// vector of queries to be sent
 			Vector<String> queries = new Vector<String>();
-			for (String q : query)
-				queries.add(q);
-
-			// Run the inference process
-			Vector<InferenceResult> results = srldbServer.query(modelName,
-					queries, evidence);
-
-			String[][] result = new String[results.size()][2];
-			int i = 0;
-			for (InferenceResult res : results) {
-				result[i][0] = res.params[1];
-				result[i][1] = res.probability + "";
-				System.out.println("object: " + result[i][0] + "; prob="
-						+ result[i][1]);
-				i++;
+			
+			// mapping from predicate name to the indices of query parameters
+			HashMap<String, Vector<Integer>> queriesPredsParams = new HashMap<String, Vector<Integer>>();
+			
+			
+			for (String q : query) {
+				
+				// split into predicate name and parameters, remember query parameters
+				// in order to later determine query parameters
+				
+				if(q.contains("(")&&q.contains("")) {
+					String pred = q.split("\\(")[0];
+					String[] params = q.split("\\(")[1].split("\\)")[0].split(",");
+					
+					Vector<Integer> qParams = new Vector<Integer>();
+					for(int k=0;k<params.length;k++) {
+	
+						if(params[k].contains("?"))
+							qParams.add(k);
+					}
+					queriesPredsParams.put(pred, qParams);
+					queries.add(pred);
+					
+				} else {
+					queriesPredsParams.put(q, new Vector<Integer>());
+					queries.add(q);
+				}
+				
+				
 			}
+			
+			// Run the inference process
+			Vector<InferenceResult>  inferenceresults = srldbServer.query(modelName, queries, evidence);
+			Vector<Vector<String[]>> resultvector     = new Vector<Vector<String[]>>();
 
-			return result;
+			String lastQuery = "";
+			Vector<String[]> r = null;
+
+			
+			for (InferenceResult ires : inferenceresults) {
+				
+				// start new result vector
+				if(!ires.functionName.equals(lastQuery)) {
+					
+					if(r!=null) {
+						resultvector.add(r);
+					}
+					r = new Vector<String[]>();
+					lastQuery=ires.functionName;
+				}
+				
+				if(queriesPredsParams.get(ires.functionName).size()==0) {
+				
+					// there are no free variables -> return possible predicate/params like usesAnyIn(P1, Cup, Meal2)
+					r.add(new String[]{ires.toString().split("  ")[1], ires.toString().split("  ")[0]});
+
+										
+				} else {
+					
+					// only return the query variables [[param1-param2-param3, 0.2345],...]
+					String params = "";
+					for(int k : queriesPredsParams.get(ires.functionName)) {
+						
+						params += ires.params[k];
+						if(k<queriesPredsParams.get(ires.functionName).size()) {
+							params+= "_";
+						}
+					}
+					r.add(new String[]{params, ""+ires.probability});
+				} 
+			}
+			resultvector.add(r);
+
+			
+			String[][][] resultarray = new String[resultvector.size()][][];
+			for(int i=0;i<resultvector.size();i++) {
+				
+				resultarray[i] = new String[resultvector.get(i).size()][];
+			
+				for(int j=0;j<resultvector.get(i).size();j++) {
+					resultarray[i][j] = resultvector.get(i).get(j);
+				}
+			}
+			
+			return resultarray;
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -473,7 +541,6 @@ public class PrologInterface {
 	}
 
 	public static void main(String[] args) {
-
-
+		performInference("tableSetting_fall09", "mod_probcog_tablesetting", new String[]{"usesAnyIn(person1, ?, meal1)", "sitsAtIn(person1, ?, bla)"});
 	}
 }
