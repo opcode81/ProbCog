@@ -1,22 +1,15 @@
-package edu.tum.cs.srldb.prolog;
-
-// TODO this package should be moved/renamed to edu.tum.cs.probcog.prolog, as the srldb package is concerned strictly with data collection
+package edu.tum.cs.probcog.prolog;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import jpl.JPL;
 import jpl.Query;
-import jpl.fli.Prolog;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.probcog.InferenceResult;
 import edu.tum.cs.probcog.Model;
@@ -67,14 +60,14 @@ public class PrologInterface {
 		// System.err.println("Executing query: " + query);
 
 		HashMap<String, Vector<Object>> result = new HashMap<String, Vector<Object>>();
-		Hashtable[] solutions;
+		Hashtable<?, ?>[] solutions;
 
 		Query q = new Query("expand_goal((" + query + "),_9), call(_9)");
 
 		// Due to bugs we have to check for one answer beforehand.
 		if (!q.hasMoreSolutions())
 			return new HashMap<String, Vector<Object>>();
-		Hashtable oneSolution = q.nextSolution();
+		Hashtable<?, ?> oneSolution = q.nextSolution();
 		if (oneSolution.isEmpty()) // Due to a bug consulting a file without
 			// anything else results in shutdown
 			return new HashMap<String, Vector<Object>>(); // I will try to
@@ -91,7 +84,7 @@ public class PrologInterface {
 
 		// Build the result
 		for (int i = 0; i < solutions.length; i++) {
-			Hashtable solution = solutions[i];
+			Hashtable<?, ?> solution = solutions[i];
 			for (Object key : solution.keySet()) {
 				String keyStr = key.toString();
 
@@ -436,6 +429,9 @@ public class PrologInterface {
 
 			
 			for (InferenceResult ires : inferenceresults) {
+				
+				if(ires.probability==0)
+					continue;
 				
 				// start new result vector
 				if(!ires.functionName.equals(lastQuery)) {
