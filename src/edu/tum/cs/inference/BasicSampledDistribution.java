@@ -10,7 +10,7 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Vector;
 
-//import umontreal.iro.lecuyer.probdist.BetaDist;
+import umontreal.iro.lecuyer.probdist.BetaDist;
 
 public abstract class BasicSampledDistribution implements IParameterHandler {
 	/**
@@ -139,16 +139,16 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			alpha += 1;
 			beta += 1;
 			double confAlpha = 1-confidenceLevel;
-//			lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha/2);
-//			upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha/2);
-//			if(p > upperEnd) {
-//				lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha);
-//				upperEnd = 1.0;
-//			}
-//			else if(p < lowerEnd) {
-//				lowerEnd = 0.0;
-//				upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha);
-//			}
+			lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha/2);
+			upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha/2);
+			if(p > upperEnd) {
+				lowerEnd = BetaDist.inverseF(alpha, beta, precisionDigits, confAlpha);
+				upperEnd = 1.0;
+			}
+			else if(p < lowerEnd) {
+				lowerEnd = 0.0;
+				upperEnd = BetaDist.inverseF(alpha, beta, precisionDigits, 1-confAlpha);
+			}
 		}
 		
 		public double getSize() {
