@@ -153,8 +153,9 @@ public class GroundBLN extends AbstractGroundBLN {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
 				Stopwatch sw = new Stopwatch();
-				sw.start();				
-				Algorithm.LikelihoodWeighting.createSampler(gbln).infer(Arrays.asList("rel(X,Y)"));
+				sw.start();		
+				//queries = Arrays.asList("rel(X,Y)")
+				//Algorithm.LikelihoodWeighting.createSampler(gbln).inferQueries();
 				//gbln.inferAIS(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, 1000);
 				sw.stop();
 				System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
@@ -164,7 +165,7 @@ public class GroundBLN extends AbstractGroundBLN {
 				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
 				gbln.show();
-				Algorithm.LikelihoodWeighting.createSampler(gbln).infer(Arrays.asList("prop1(X)","prop2(Y)"));
+				//Algorithm.LikelihoodWeighting.createSampler(gbln).infer(Arrays.asList("prop1(X)","prop2(Y)"));
 			}
 		}
 		catch(Exception e) {
