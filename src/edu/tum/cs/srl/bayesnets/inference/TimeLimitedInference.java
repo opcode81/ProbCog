@@ -6,19 +6,26 @@
  */
 package edu.tum.cs.srl.bayesnets.inference;
 
+import java.util.Vector;
+
 import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 
 public class TimeLimitedInference extends edu.tum.cs.bayesnets.inference.TimeLimitedInference {
 
-	SampledDistribution dist;
+	Sampler inference;
 	
-	public TimeLimitedInference(ITimeLimitedInference inference, Iterable<String> queries, double time, double interval) {
-		super(inference, queries, time, interval);
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) {
+		super(inference, time, interval);
+		this.inference = (Sampler)inference;
 	}
 	
 	@Override
 	protected void printResults(SampledDistribution dist) {	
-		Sampler.printResults(dist, queries);
+		inference.printResults(dist);
+	}
+	
+	public Vector<InferenceResult> getResults(SampledDistribution dist) {
+		return inference.getResults(dist);
 	}
 }
