@@ -11,7 +11,7 @@ public class SampleSearch extends Sampler {
 	int[] nodeOrder;
 	int currentStep;
 	
-	public SampleSearch(BeliefNetworkEx bn) {
+	public SampleSearch(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		// TODO should guarantee for BLNs that formula nodes appear as early as possible
 		nodeOrder = bn.getTopologicalOrder();
@@ -50,6 +50,8 @@ public class SampleSearch extends Sampler {
 				
 				addSample(ret);
 			}
+			if(converged())
+				break;
 		}
 		sw.stop();
 		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));

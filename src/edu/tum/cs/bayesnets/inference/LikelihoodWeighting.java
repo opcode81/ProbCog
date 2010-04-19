@@ -7,7 +7,7 @@ import edu.tum.cs.util.Stopwatch;
 public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
 	
-	public LikelihoodWeighting(BeliefNetworkEx bn) {
+	public LikelihoodWeighting(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		nodeOrder = bn.getTopologicalOrder();
 	}
@@ -37,6 +37,8 @@ public class LikelihoodWeighting extends Sampler {
 					System.out.println();
 				}
 			}
+			if(converged())
+				break;
 		}
 		sw.stop();
 		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));

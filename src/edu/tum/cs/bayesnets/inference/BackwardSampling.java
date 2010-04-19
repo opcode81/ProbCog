@@ -89,7 +89,7 @@ public class BackwardSampling extends Sampler {
 		}
 	}
 	
-	public BackwardSampling(BeliefNetworkEx bn) {
+	public BackwardSampling(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 	}
 	
@@ -222,6 +222,8 @@ public class BackwardSampling extends Sampler {
 			getSample(s);
 			this.addSample(s);
 			onAddedSample(s);
+			if(converged())
+				break;
 		}
 		
 		sw.stop();
