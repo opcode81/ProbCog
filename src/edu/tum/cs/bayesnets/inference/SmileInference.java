@@ -14,7 +14,7 @@ public class SmileInference extends Sampler {
 	smile.Network net;
 	int algorithmID;
 	
-	public SmileInference(BeliefNetworkEx bn, int algorithmID) throws FileNotFoundException {
+	public SmileInference(BeliefNetworkEx bn, int algorithmID) throws Exception {
 		super(bn);
 		this.algorithmID = algorithmID;
 		

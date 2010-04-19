@@ -2,13 +2,15 @@ package edu.tum.cs.bayesnets.inference;
 
 import java.util.Random;
 
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
+/**
+ * This was just an experiment, the algorithm is anything but sound 
+ */
 public class LikelihoodWeightingWithUncertainEvidence extends LikelihoodWeighting {
 	protected final double evidenceProbability = 0.8;
 	
-	public LikelihoodWeightingWithUncertainEvidence(BeliefNetworkEx bn) {
+	public LikelihoodWeightingWithUncertainEvidence(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 	}
 	

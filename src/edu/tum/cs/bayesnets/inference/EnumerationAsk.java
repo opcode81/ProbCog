@@ -14,7 +14,7 @@ public class EnumerationAsk extends Sampler {
 	 */
 	double numTotalWorlds;
 	
-	public EnumerationAsk(BeliefNetworkEx bn) {
+	public EnumerationAsk(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		nodeOrder = bn.getTopologicalOrder();
 		numTotalWorlds = bn.getNumWorlds();

@@ -30,7 +30,7 @@ public class IJGP extends Sampler {
 	protected int ibound;
 	protected boolean verbose = true;
 
-	public IJGP(BeliefNetworkEx bn) throws FileNotFoundException {
+	public IJGP(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		this.nodes = bn.bn.getNodes();
 		// detect minimum bound

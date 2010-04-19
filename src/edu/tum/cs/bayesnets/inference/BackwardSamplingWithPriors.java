@@ -65,7 +65,7 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 		}
 	}
 	
-	public BackwardSamplingWithPriors(BeliefNetworkEx bn) {
+	public BackwardSamplingWithPriors(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 	}
 	

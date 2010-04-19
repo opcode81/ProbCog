@@ -19,7 +19,7 @@ public class BNJInference extends Sampler {
 
 	Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algorithmClass;
 	
-	public BNJInference(BeliefNetworkEx bn, Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algoClass) {
+	public BNJInference(BeliefNetworkEx bn, Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algoClass) throws Exception {
 		super(bn);
 		this.algorithmClass = algoClass;
 	}
