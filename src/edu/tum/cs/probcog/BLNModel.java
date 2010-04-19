@@ -41,7 +41,8 @@ public class BLNModel extends Model {
 		sampler = Algorithm.valueOf(inferenceMethod).createSampler(gbln);
 		// run inference
 		sampler.setNumSamples(getIntParameter("numSamples", 1000));
-		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.infer(queries);
+		sampler.setQueries(queries);
+		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.inferQueries();
 		// store results in common InferenceResult format
 		Vector<InferenceResult> ret = new Vector<InferenceResult>();
 		for(edu.tum.cs.srl.bayesnets.inference.InferenceResult res : results) {

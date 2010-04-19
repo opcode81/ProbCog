@@ -46,7 +46,7 @@ public class SATISExGibbs extends SATISEx {
 
 		public GibbsSampling gibbsSampler;
 		
-		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) {
+		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws Exception {
 			super(bn, sat, coupling, determinedVars);
 			gibbsSampler = new GibbsSampling(gbln.getGroundNetwork());
 		}

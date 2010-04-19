@@ -11,7 +11,6 @@ import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
  *
  */
 public class BNSampler extends Sampler implements ITimeLimitedInference {
-	AbstractGroundBLN gbln;
 	protected int maxTrials;
 	/**
 	 * whether steps that exceed the max number of trials should just be skipped rather than raising an exception
@@ -25,7 +24,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	protected int[] evidenceDomainIndices;
 		
 	public BNSampler(AbstractGroundBLN gbln, Class<? extends edu.tum.cs.bayesnets.inference.Sampler> samplerClass) throws Exception {
-		this.gbln = gbln;
+		super(gbln);
 		maxTrials = 5000;
 		this.paramHandler.add("maxTrials", "setMaxTrials");
 		this.samplerClass = samplerClass;
@@ -50,6 +49,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		sampler = getSampler();
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 		sampler.setEvidence(evidenceDomainIndices);
+		sampler.setQueryVars(queryVars);
 		sampler.setDebugMode(debug);
 		sampler.setNumSamples(numSamples);
 		sampler.setInfoInterval(infoInterval);
