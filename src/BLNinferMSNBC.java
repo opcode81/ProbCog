@@ -241,7 +241,8 @@ public class BLNinferMSNBC {
 						((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
 					}
 					sampler.setNumSamples(maxSteps);
-					Vector<InferenceResult> results = sampler.infer(queries);
+					sampler.setQueries(queries);
+					Vector<InferenceResult> results = sampler.inferQueries();
 					sw.stop();
 
 					for(InferenceResult res : results) {

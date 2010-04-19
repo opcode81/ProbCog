@@ -202,7 +202,7 @@ public class BNinfer {
 				if(!useMaxSteps)				
 					sampler.setNumSamples(Integer.MAX_VALUE);
 				sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
-				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, queries, timeLimit, infoIntervalTime);
+				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
 				tli.setReferenceDistribution(referenceDist);
 				dist = tli.run();
 				if(referenceDist != null)

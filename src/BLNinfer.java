@@ -12,7 +12,6 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
-import edu.tum.cs.inference.BasicSampledDistribution.DistributionEntryComparison;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -229,6 +228,7 @@ public class BLNinfer {
 			sw.start();
 			// - create sampler 
 			Sampler sampler = algo.createSampler(gbln);
+			sampler.setQueries(queries);
 			// - set options
 			sampler.setDebugMode(debug);
 			if(sampler instanceof BNSampler) {
@@ -240,6 +240,7 @@ public class BLNinfer {
 			sampler.getParameterHandler().handle(params, false);
 			// - run inference
 			SampledDistribution dist;
+			Collection<InferenceResult> results;
 			if(timeLimitedInference) {
 				if(!(sampler instanceof ITimeLimitedInference)) 
 					throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");					
@@ -247,19 +248,21 @@ public class BLNinfer {
 				if(!useMaxSteps)				
 					sampler.setNumSamples(Integer.MAX_VALUE);
 				sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
-				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, queries, timeLimit, infoIntervalTime);
+				TimeLimitedInference tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
 				tli.setReferenceDistribution(referenceDist);
 				dist = tli.run();
 				if(referenceDist != null)
-					System.out.println("MSEs: " + tli.getMSEs());				
+					System.out.println("MSEs: " + tli.getMSEs());
+				results = tli.getResults(dist);
 			}
 			else {
 				dist = sampler.infer();
+				results = sampler.getResults(dist);
 			}
 			sw.stop();
 			
 			// print results
-			for(InferenceResult res : Sampler.getResults(dist, queries)) {
+			for(InferenceResult res : results) {
 				boolean show = true;
 				if(resultsFilterEvidence)
 					if(db.contains(res.varName))
