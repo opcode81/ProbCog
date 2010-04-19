@@ -156,7 +156,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		}
 		
 		public String toString() {
-			return String.format(String.format("[%%.%df;%%.%df]", precisionDigits, precisionDigits), lowerEnd, upperEnd);
+			return String.format(String.format("[%%.%df;%%.%df] %%.4f", precisionDigits, precisionDigits), lowerEnd, upperEnd, getSize());
 		}
 	}
 	
