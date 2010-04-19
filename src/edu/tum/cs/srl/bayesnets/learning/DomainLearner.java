@@ -42,8 +42,10 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 						mustApplyBooleanDomain = true;
 					else { // ... otherwise apply the values we have in the database						
 						Iterable<String> values = db.getDomain(sig.returnType);
-						if(values == null)
-							throw new Exception("Domain '" + sig.returnType + "' of node '" + nodes[i].getName() + "' has no values in the database.");
+						if(values == null) {
+							db.printDomain(System.out);
+							throw new Exception("Domain '" + sig.returnType + "' of node '" + nodes[i].getName() + "' has no values in the database.");	
+						}							
 						for(String value : values) {
 							if(debug) System.out.println("adding " + value + " to " + sig.returnType + " while processing " + sig.functionName + " - returnType = " + sig.returnType);
 							((HashSet<String>)directDomainData[i]).add(value);
