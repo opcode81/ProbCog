@@ -9,6 +9,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
+import edu.tum.cs.inference.BasicSampledDistribution.ConfidenceInterval;
 
 public abstract class Sampler implements ITimeLimitedInference, IParameterHandler {
 	public BeliefNetworkEx bn;
@@ -18,6 +19,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	public BeliefNode[] nodes;
 	public int[] evidenceDomainIndices;
 	protected ParameterHandler paramHandler;
+	protected Collection<Integer> queryVars = null;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -26,6 +28,8 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	protected int maxTrials = 5000;
 	protected boolean skipFailedSteps = false;
+	protected Double confidenceIntervalSizeThreshold = null; 
+	public double convergenceCheckInterval = 100;
 	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
@@ -34,7 +38,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public boolean debug = false;
 	
-	public Sampler(BeliefNetworkEx bn) {	
+	public Sampler(BeliefNetworkEx bn) throws Exception {	
 		this.bn = bn;
 		this.nodes = bn.bn.getNodes();
 		nodeIndices = new HashMap<BeliefNode, Integer>();
@@ -43,6 +47,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		}
 		generator = new Random();
 		paramHandler = new ParameterHandler(this);
+		paramHandler.add("confidenceIntervalSizeThreshold", "setConfidenceIntervalSizeThreshold");
 	}
 	
 	protected void createDistribution() throws Exception {
@@ -60,6 +65,34 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		}
 		// add to distribution
 		this.dist.addSample(s);
+	}
+	
+	public void setQueryVars(Collection<Integer> queryVars) {
+		this.queryVars = queryVars;
+	}
+	
+	protected boolean converged() throws Exception {
+		if(dist.getNumSamples() % this.convergenceCheckInterval != 0)
+			return false; // TODO assumes that all algorithms call this method after each step
+		// determine convergence based on confidence interval sizes
+		if(confidenceIntervalSizeThreshold != null) {
+			if(!dist.usesConfidenceComputation())
+				throw new Exception("Cannot determine convergence based on confidence interval size: No confidence level specified.");
+			double max = 0;
+			for(Integer i : queryVars) {
+				ConfidenceInterval interval = dist.getConfidenceInterval(i, 0);
+				max = Math.max(max, interval.getSize());
+			}
+			if(max <= confidenceIntervalSizeThreshold) {
+				System.out.printf("Convergence criterion reached: maximum confidence interval size = %f\n", max);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public void setConfidenceIntervalSizeThreshold(double t) {
+		confidenceIntervalSizeThreshold = t;
 	}
 	
 	/**
