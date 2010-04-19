@@ -14,7 +14,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  */
 public class BNJPearl extends BNJInference {
 
-	public BNJPearl(BeliefNetworkEx bn) {
+	public BNJPearl(BeliefNetworkEx bn) throws Exception {
 		super(bn, edu.ksu.cis.bnj.ver3.inference.exact.Pearl.class);
 	}
 

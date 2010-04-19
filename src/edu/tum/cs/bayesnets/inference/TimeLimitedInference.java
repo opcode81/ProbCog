@@ -17,7 +17,6 @@ import edu.tum.cs.util.Stopwatch;
 public class TimeLimitedInference {
 
 	protected ITimeLimitedInference inference;
-	protected Iterable<String> queries;
 	protected double time, interval;
 	protected InferenceThread thread;
 	protected BasicSampledDistribution referenceDistribution = null;
@@ -27,9 +26,8 @@ public class TimeLimitedInference {
 	protected Vector<Double> MSEs = null;
 	protected Vector<Class<? extends DistributionEntryComparison>> comparisonClasses;
 
-	public TimeLimitedInference(ITimeLimitedInference inference, Iterable<String> queries, double time, double interval) {
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) {
 		this.inference = inference;
-		this.queries = queries;
 		this.time = time;
 		this.interval = interval;
 		comparisonClasses = new Vector<Class<? extends DistributionEntryComparison>>();
@@ -94,7 +92,7 @@ public class TimeLimitedInference {
 	}
 	
 	protected void printResults(SampledDistribution dist) {
-		
+		// TODO
 	}
 	
 	/**

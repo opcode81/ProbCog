@@ -238,7 +238,7 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		return d;
 	}
 	
-	public BackwardSamplingWithChildren(BeliefNetworkEx bn) {
+	public BackwardSamplingWithChildren(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 	}
 	

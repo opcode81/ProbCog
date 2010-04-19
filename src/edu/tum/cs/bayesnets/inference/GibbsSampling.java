@@ -11,7 +11,7 @@ public class GibbsSampling extends Sampler {
 	int[] nodeOrder;	
 	HashMap<BeliefNode, BeliefNode[]> children;
 	
-	public GibbsSampling(BeliefNetworkEx bn) {
+	public GibbsSampling(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		children = new HashMap<BeliefNode, BeliefNode[]>();
 		for(int i = 0; i < nodes.length; i++) {

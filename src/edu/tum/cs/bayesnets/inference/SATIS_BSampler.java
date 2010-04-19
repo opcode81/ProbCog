@@ -54,8 +54,9 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @param sat the SAT sampler to use in each iteration
 	 * @param coupling the logical coupling of the BN's variables
 	 * @param determinedVars the set of variables affected by the SAT sampler, i.e. the variables that will be set if the SAT sampler is run
+	 * @throws Exception 
 	 */
-	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) {
+	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws Exception {
 		super(bn);			
 		this.coupling = coupling;
 		this.sat = sat;

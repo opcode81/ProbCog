@@ -14,7 +14,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
  */
 public class BNJVariableElimination extends BNJInference {
 
-	public BNJVariableElimination(BeliefNetworkEx bn) {
+	public BNJVariableElimination(BeliefNetworkEx bn) throws Exception {
 		super(bn, edu.ksu.cis.bnj.ver3.inference.exact.Elimbel.class);
 	}
 
