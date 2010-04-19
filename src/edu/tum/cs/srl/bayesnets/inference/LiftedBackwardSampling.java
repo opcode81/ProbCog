@@ -19,14 +19,13 @@ import edu.tum.cs.util.datastruct.MutableDouble;
 
 public class LiftedBackwardSampling extends Sampler {
 
-	AbstractGroundBLN gbln;
 	/**
 	 * a mapping from belief node objects to integers identifying equivalence classes with respect to the algorithm
 	 */
 	HashMap<BeliefNode,Integer> node2class = new HashMap<BeliefNode, Integer>();
 	
 	public LiftedBackwardSampling(GroundBLN gbln) throws Exception {
-		this.gbln = gbln;
+		super(gbln);
 	}
 	
 	@Override
@@ -316,7 +315,7 @@ public class LiftedBackwardSampling extends Sampler {
 			return d;
 		}
 		
-		public Sampler(BeliefNetworkEx bn) {
+		public Sampler(BeliefNetworkEx bn) throws Exception {
 			super(bn);
 		}
 		

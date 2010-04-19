@@ -38,6 +38,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 	protected edu.tum.cs.logic.sat.weighted.MCSAT sampler;
 	
 	public MCSAT(GroundBLN gbln) throws Exception {
+		super(gbln);
 		this.gbln = gbln;
 		kb = new WeightedClausalKB();		
 		// add weighted clauses for probabilistic constraints
