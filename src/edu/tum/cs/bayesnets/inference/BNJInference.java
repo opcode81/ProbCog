@@ -25,7 +25,7 @@ public class BNJInference extends Sampler {
 	}
 
 	@Override
-	public SampledDistribution infer()
+	public SampledDistribution _infer()
 			throws Exception {
 		// set evidence
 		for(int i = 0; i < evidenceDomainIndices.length; i++)

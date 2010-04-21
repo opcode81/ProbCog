@@ -59,7 +59,7 @@ public class IJGP extends Sampler {
 	 */
 
 	@Override
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		// Create topological order
 		if(verbose) System.out.println("determining order...");
 		jgNodes = jg.getTopologicalorder();

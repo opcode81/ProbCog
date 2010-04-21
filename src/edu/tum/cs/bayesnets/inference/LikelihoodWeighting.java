@@ -13,7 +13,7 @@ public class LikelihoodWeighting extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();
