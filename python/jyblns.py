@@ -1,0 +1,56 @@
+import sys
+import os
+libpath = os.path.join(os.path.dirname(__file__), "..", "lib")
+
+def importlib(name):
+	sys.path.append(os.path.join(libpath, name))
+
+sys.path.append(os.path.join(libpath, "..", "bin"))
+importlib("srldb.jar")
+importlib("tumutils.jar")
+importlib("bnj.jar")
+importlib("bnj_res.jar")
+importlib("log4j-1.2.9.jar")
+importlib("ssj.jar")
+importlib("optimization.jar")
+
+from edu.tum.cs.srl.bayesnets.inference import BLNinfer
+
+def infer(network, decls, logic, algorithm, evidence, queries, cwPreds = None, maxSteps = None, *moreargs):
+	'''
+		network: the model's fragment network (filename)
+		decls: the model's declarations (filename)
+		logic: the model's logical constraints (filename)
+		algorithm: an algorithm name (use printInferenceAlgorithmList())
+		evidence: an evidence database (filename)
+		queries: a comma-separated list of queries (predicate names or fully or partially grounded atoms)
+		cwPreds: a comma-separated list of closed-world predicates
+		maxSteps: maximum number of steps to take		
+		(moreargs: may specify any additional command line arguments that the BLNinfer java program can process, see command-line help)
+		returns the BLNinfer object, which can be used to immediately obtain the results via .getResults() and other information
+	'''
+	args = ['-ia', algorithm, '-x', network, '-b', decls, '-l', logic, '-e', evidence, '-q', queries]
+	if cwPreds is not None:
+		args.extend(["-cw", cwPreds])
+	if maxSteps is not None:
+		args.extend(["-maxSteps", str(maxSteps)])
+	args.extend(moreargs)
+	i = BLNinfer()
+	i.readArgs(args)
+	i.run()
+	return i
+	
+# example usage
+if __name__=='__main__':
+	p = "../models/kitchen/tableSetting/"
+	inf = infer(p+"meals_any_for_functional.adUt30w.learnt.xml", p+"meals_any_for.adUt.learnt.blog", p+"meals_any_for_functional.bln", 'LikelihoodWeighting', p+"rssdejan_scene4.blogdb", "usesAnyIn,consumesAnyIn,name", None, None, "--confidenceLevel=0.95")
+	for r in inf.getResults():
+		print "%s" % r.varName
+		for i in range(r.getDomainSize()):
+			print "  %f  %s" % (r.probabilities[i], r.domainElements[i]),
+			if r.additionalInfo is not None:
+				interval = r.additionalInfo[i]
+				print " [%f;%f]" % (interval.lowerEnd, interval.upperEnd),
+			print
+	print "time taken: %fs" % inf.getSamplingTime()
+	print "steps taken: %d" % inf.getNumSteps()
