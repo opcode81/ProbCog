@@ -76,4 +76,9 @@ public enum Algorithm {
 			}
 			return sampler;
 		}
+		
+		public static void printList(String indentation) {
+			for(Algorithm a : Algorithm.values()) 
+				System.out.printf("%s%-28s  %s\n", indentation, a.toString(), a.getDescription());
+		}
 }
