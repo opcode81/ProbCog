@@ -53,6 +53,7 @@ public class BLNinfer {
 	// computed stuff
 	Collection<InferenceResult> results;
 	double samplingTime;
+	int stepsTaken;
 
 	public void readArgs(String[] args) throws Exception {
 		// read arguments
@@ -257,6 +258,7 @@ public class BLNinfer {
 			results = sampler.getResults(dist);
 		}
 		this.samplingTime = sampler.getSamplingTime();
+		this.stepsTaken = dist.steps;
 		sw.stop();
 		
 		// print results
@@ -289,12 +291,25 @@ public class BLNinfer {
 		}
 	}
 	
+	/**
+	 * @return the results returned by the inference algorithm
+	 */
 	public Collection<InferenceResult> getResults() {
 		return this.results;
 	}
 	
+	/**
+	 * @return the number of seconds that the inference algorithm ran for
+	 */
 	public double getSamplingTime() {
 		return samplingTime;
+	}
+	
+	/**
+	 * @return the number of steps taken by the inference algorithm that was run
+	 */
+	public int getNumSteps() {
+		return stepsTaken;
 	}
 	
 	/**
