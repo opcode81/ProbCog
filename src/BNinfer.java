@@ -17,6 +17,7 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.Sampler;
 import edu.tum.cs.bayesnets.inference.TimeLimitedInference;
 import edu.tum.cs.inference.GeneralSampledDistribution;
+import edu.tum.cs.srl.bayesnets.inference.BLNinfer;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.Stopwatch;
 
