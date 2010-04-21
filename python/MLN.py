@@ -78,6 +78,7 @@ import os
 import random
 import time
 import traceback
+import pickle
 if "java" not in sys.platform:
     from pyparsing import ParseException
 else: # using Jython (assuming 2.2)
@@ -962,7 +963,7 @@ class MLN:
             if fittingStep % len(probConstraints) == 0:
                 step += 1
             fittingStep += 1
-        return (results[len(probConstraints):], {"steps": min(step,maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "time": time.time()-t_start})
+        return (results[len(probConstraints):], {"steps": min(step,maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "meandiff": meandiff, "time": time.time()-t_start})
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
@@ -2671,7 +2672,7 @@ class MCSAT(MCMCInference):
             se["idxClauseNegative"] = idxClause
             idxClause += 1
     
-    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5, keepResultsHistory=False, referenceResults=None):
+    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
@@ -2683,11 +2684,14 @@ class MCSAT(MCMCInference):
             debugLevel: controls degree to which debug information is presented
         keepResultsHistory: whether to store the history of results (at each resultsInterval)
         referenceResults: reference results to compare obtained results to
+        saveHistoryFile: if not None, save history to given filename
         '''
         self.p = p
         self.debug = debug
         self.debugLevel = debugLevel
         self.resultsHistory = []
+        if saveHistoryFile is not None:
+            keepResultsHistory = True
         self.referenceResults = referenceResults
         t_start = time.time()
         details = verbose and details
@@ -2779,6 +2783,8 @@ class MCSAT(MCMCInference):
         self.step -= 1
         results = chainGroup.getResults()
         if keepResultsHistory: self._extendResultsHistory(results)
+        if saveHistoryFile is not None:            
+            pickle.dump(self.getResultsHistory(), file(saveHistoryFile, "w"))
         return results
     
     def _satisfySubset(self, chain):
