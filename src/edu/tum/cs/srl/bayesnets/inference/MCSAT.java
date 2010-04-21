@@ -91,7 +91,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		sampler.setDebugMode(this.debug);
 		sampler.setVerbose(true);
 		sampler.setInfoInterval(infoInterval);
