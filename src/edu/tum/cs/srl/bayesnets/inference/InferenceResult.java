@@ -38,4 +38,8 @@ public class InferenceResult implements Comparable<InferenceResult> {
 	public int compareTo(InferenceResult o) {
 		return varName.compareTo(o.varName);
 	}
+	
+	public int getDomainSize() {
+		return domainElements.length;
+	}
 }
