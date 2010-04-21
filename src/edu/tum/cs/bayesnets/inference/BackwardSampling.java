@@ -207,7 +207,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution infer() throws Exception {		
+	public SampledDistribution _infer() throws Exception {		
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		

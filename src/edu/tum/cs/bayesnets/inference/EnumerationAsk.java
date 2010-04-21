@@ -20,7 +20,7 @@ public class EnumerationAsk extends Sampler {
 		numTotalWorlds = bn.getNumWorlds();
 	}
 	
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		numPathsPruned = 0;
 		numWorldsPruned = numWorldsCounted = 0;
