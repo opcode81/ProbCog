@@ -50,6 +50,10 @@ public abstract class Sampler implements IParameterHandler {
 			res.print();
 	}
 	
+	public double getSamplingTime() {
+		return 0; // TODO
+	}
+	
 	public void setNumSamples(int n) {
 		numSamples = n;
 	}

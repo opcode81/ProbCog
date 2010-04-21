@@ -76,4 +76,8 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 			return null;
 		return sampler.pollResults();
 	}
+	
+	public double getSamplingTime() {
+		return sampler.getSamplingTime();
+	}
 }
