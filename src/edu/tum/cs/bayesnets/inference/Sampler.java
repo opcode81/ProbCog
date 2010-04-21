@@ -10,6 +10,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.ConfidenceInterval;
+import edu.tum.cs.util.Stopwatch;
 
 public abstract class Sampler implements ITimeLimitedInference, IParameterHandler {
 	public BeliefNetworkEx bn;
@@ -30,6 +31,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected boolean skipFailedSteps = false;
 	protected Double confidenceIntervalSizeThreshold = null; 
 	public double convergenceCheckInterval = 100;
+	public double samplingTime;
 	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
@@ -205,7 +207,22 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		this.evidenceDomainIndices = evidenceDomainIndices;
 	}
 	
-	public abstract SampledDistribution infer() throws Exception;
+	protected abstract SampledDistribution _infer() throws Exception;
+	
+	public SampledDistribution infer() throws Exception {
+		Stopwatch sw = new Stopwatch();
+		sw.start();
+		SampledDistribution ret = _infer();
+		samplingTime = sw.getElapsedTimeSecs();
+		return ret;
+	}
+	
+	/**
+     * @return the time taken for the sampling process in seconds
+	 */
+	public double getSamplingTime() {
+		return samplingTime;
+	}
 	
 	/**
 	 * samples forward, i.e. samples a value for 'node' given its parents
