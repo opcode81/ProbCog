@@ -39,7 +39,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);
@@ -75,9 +75,5 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		if(sampler == null)
 			return null;
 		return sampler.pollResults();
-	}
-	
-	public double getSamplingTime() {
-		return sampler.getSamplingTime();
 	}
 }

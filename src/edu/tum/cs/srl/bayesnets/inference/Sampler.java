@@ -10,6 +10,7 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
+import edu.tum.cs.util.Stopwatch;
 
 /**
  * 
@@ -22,6 +23,7 @@ public abstract class Sampler implements IParameterHandler {
 	protected ParameterHandler paramHandler;
 	protected Vector<Integer> queryVars;
 	AbstractGroundBLN gbln;
+	double samplingTime;
 	
 	public Sampler(AbstractGroundBLN gbln) throws Exception {
 		this.gbln = gbln;
@@ -51,7 +53,7 @@ public abstract class Sampler implements IParameterHandler {
 	}
 	
 	public double getSamplingTime() {
-		return 0; // TODO
+		return samplingTime;
 	}
 	
 	public void setNumSamples(int n) {
@@ -62,7 +64,15 @@ public abstract class Sampler implements IParameterHandler {
 		infoInterval = n;
 	}
 	
-	public abstract SampledDistribution infer() throws Exception;
+	public SampledDistribution infer() throws Exception {
+		Stopwatch sw = new Stopwatch();
+		sw.start();
+		SampledDistribution ret = _infer();
+		samplingTime = sw.getElapsedTimeSecs();
+		return ret;
+	}
+	
+	protected abstract SampledDistribution _infer() throws Exception;
 	
 	public Vector<InferenceResult> inferQueries() throws Exception {
 		return getResults(infer());

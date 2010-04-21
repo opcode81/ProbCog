@@ -29,7 +29,7 @@ public class LiftedBackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution _infer() throws Exception {
 		
 		// compute node equivalence classes with respect to the "backward sampling
 		// with children" procedure		
@@ -326,7 +326,8 @@ public class LiftedBackwardSampling extends Sampler {
 			super.prepareInference(evidenceDomainIndices);
 		}
 		
-		public SampledDistribution infer() throws Exception {
+		@Override
+		public SampledDistribution _infer() throws Exception {
 			probSW = new Stopwatch();
 			distSW = new Stopwatch();
 			SampledDistribution d = super.infer();
