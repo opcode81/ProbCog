@@ -125,36 +125,16 @@ public class BLNinfer {
 	}
 	
 	public void run() throws Exception {
-		if(networkFile == null || dbFile == null || declsFile == null || logicFile == null || query == null) {
-			System.out.println("\n usage: BLNinfer <arguments>\n\n" +
-					             "   required arguments:\n\n" +
-					             "     -b <declarations file>    declarations file (types, domains, signatures, etc.)\n" +
-					             "     -x <network file>         fragment network (XML-BIF or PMML)\n" + 
-					             "     -l <logic file>           logical constraints file\n" + 
-					             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
-					             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
-					             "   options:\n\n" +
-								 "     -maxSteps #      the maximum number of steps to take (default: 1000 for non-time-limited inf.)\n" +
-								 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
-								 "     -infoInterval #  the number of steps after which to output a status message\n" +
-								 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +	
-								 "     -t [secs]        use time-limited inference (default: 10 seconds)\n" +
-								 "     -infoTime #      interval in secs after which to display intermediate results (time-limited inference, default: 1.0)\n" +
-								 "     -ia <name>       inference algorithm selection; valid names:");
-			Algorithm.printList("                        ");
-			System.out.println(
-								 "     --<key>=<value>  set algorithm-specific parameter\n" +
-						         "     -debug           debug mode with additional outputs\n" + 
-						         "     -s               show ground network in editor\n" +
-						         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
-						         "     -rfe             filter evidence in results\n" +
-						         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
-						         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
-						         "     -od <file>       save output distribution to file\n" +
-						         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
-						         "     -py              use Python-based logic engine [deprecated]\n");
-			System.exit(1);
-		}			
+		if(networkFile == null)
+			throw new IllegalArgumentException("No fragment network given");
+		if(dbFile == null)
+			throw new IllegalArgumentException("No evidence given");
+		if(declsFile == null)
+			throw new IllegalArgumentException("No model declarations given");
+		if(logicFile == null)
+			throw new IllegalArgumentException("No logical constraints definitions given");
+		if(query == null)
+			throw new IllegalArgumentException("No queries given");			
 		
 		// determine queries
 		Pattern comma = Pattern.compile("\\s*,\\s*");
@@ -321,8 +301,40 @@ public class BLNinfer {
 			infer.readArgs(args);	
 			infer.run();
 		}
+		catch(IllegalArgumentException e) {
+			System.err.println(e);
+			System.out.println("\n usage: BLNinfer <arguments>\n\n" +
+					             "   required arguments:\n\n" +
+					             "     -b <declarations file>    declarations file (types, domains, signatures, etc.)\n" +
+					             "     -x <network file>         fragment network (XML-BIF or PMML)\n" + 
+					             "     -l <logic file>           logical constraints file\n" + 
+					             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
+					             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
+					             "   options:\n\n" +
+								 "     -maxSteps #      the maximum number of steps to take (default: 1000 for non-time-limited inf.)\n" +
+								 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
+								 "     -infoInterval #  the number of steps after which to output a status message\n" +
+								 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +	
+								 "     -t [secs]        use time-limited inference (default: 10 seconds)\n" +
+								 "     -infoTime #      interval in secs after which to display intermediate results (time-limited inference, default: 1.0)\n" +
+								 "     -ia <name>       inference algorithm selection; valid names:");
+			Algorithm.printList("                        ");
+			System.out.println(
+								 "     --<key>=<value>  set algorithm-specific parameter\n" +
+						         "     -debug           debug mode with additional outputs\n" + 
+						         "     -s               show ground network in editor\n" +
+						         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
+						         "     -rfe             filter evidence in results\n" +
+						         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
+						         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
+						         "     -od <file>       save output distribution to file\n" +
+						         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
+						         "     -py              use Python-based logic engine [deprecated]\n");
+			System.exit(1);
+		}
 		catch(Exception e) {
 			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 
