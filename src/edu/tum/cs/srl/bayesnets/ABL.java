@@ -13,7 +13,7 @@ import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 
 /**
- * Advanced BLOG Model
+ * Advanced Bayesian Logical (ABL) Model
  * @author jain
  */
 public class ABL extends BLOGModel {
@@ -68,6 +68,10 @@ public class ABL extends BLOGModel {
 				}
 			}
 			return false;
+		}
+		// prolog rule
+		if(line.startsWith("prolog")) {
+			// TODO
 		}
 		return false;
 	}

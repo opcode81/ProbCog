@@ -49,6 +49,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	protected HashSet<String> evidenceFunctions = new HashSet<String>();
 	protected Taxonomy taxonomy = null;
+	protected Vector<String> prologRules;
 	
 	public Collection<RelationKey> getRelationKeys(String relation) {
 		return relationKeys.get(relation.toLowerCase());
@@ -824,6 +825,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 
 	public Taxonomy getTaxonomy() {
 		return taxonomy;
+	}
+
+	@Override
+	public Collection<String> getPrologRules() {
+		return prologRules;
 	}
 }
 

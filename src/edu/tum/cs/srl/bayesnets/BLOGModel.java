@@ -53,16 +53,17 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	
 	protected boolean readDeclaration(String line) throws Exception {
 		// function signature
-		if(line.startsWith("random")) {
-			Pattern pat = Pattern.compile("random\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
+		if(line.startsWith("random") || line.startsWith("logical")) {
+			Pattern pat = Pattern.compile("(random|logical)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
 			Matcher matcher = pat.matcher(line);
 			if(matcher.matches()) {
-				String retType = matcher.group(1);
-				String[] argTypes = matcher.group(3).trim().split("\\s*,\\s*");
-				Signature sig = new Signature(matcher.group(2), retType, argTypes);
-				addSignature(matcher.group(2), sig);
+				boolean isLogical = matcher.group(1).equals("logical");
+				String retType = matcher.group(2);
+				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
+				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical);
+				addSignature(matcher.group(3), sig);
 				return true;
-			}			
+			}
 			return false;
 		}
 		// obtain guaranteed domain elements

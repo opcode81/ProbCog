@@ -12,4 +12,5 @@ public interface RelationalModel {
 	public Signature getSignature(String functionName);
 	public Collection<RelationKey> getRelationKeys(String relation);
 	public Taxonomy getTaxonomy();
+	public Collection<String> getPrologRules();
 }
