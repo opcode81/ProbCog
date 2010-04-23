@@ -360,4 +360,9 @@ public class MarkovLogicNetwork implements RelationalModel {
 	public void write(File f) throws FileNotFoundException {
 		write(new PrintStream(f));
 	}
+
+	@Override
+	public Collection<String> getPrologRules() {
+		return null;
+	}
 }
