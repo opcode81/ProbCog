@@ -21,6 +21,10 @@ import edu.tum.cs.bayesnets.inference.IJGP.JoinGraph.Arc;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.MutableDouble;
 
+/**
+ * Iterative Join-Graph Propagation
+ * @author waldhers, jain
+ */
 public class IJGP extends Sampler {
 
 	protected JoinGraph jg;
