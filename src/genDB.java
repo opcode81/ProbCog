@@ -16,10 +16,11 @@ public class genDB {
 		try {			
 			if(args.length < 3) {
 				System.out.println("\ngenDB: A database generator for MLNs and BLOG models.");
-				System.out.println("\n  usage: genDB <-m|-b|-bm> <Jython generator script> <output file> [parameters to pass on to generator]\n" +
-						             "           -m   output MLN format\n" +
-						             "           -b   output BLOG format\n" +
-						             "           -bm  output basic MLN\n\n" +
+				System.out.println("\n  usage: genDB [options] <Jython generator script> <output base filename> [parameters to pass on to generator]\n" +
+						             "           -m   output MLN database (.db)\n" +
+						             "           -b   output BLOG database (.blogdb)\n" +
+						             "           -bm  output basic MLN model (.basic.mln)\n" +
+						             "           -bb  output basic BLN model declarations (.basic.blnd)\n\n" +
 						             "         The Jython script must create a Database object named 'db' in the global scope.\n");
 				return;
 			}
@@ -39,14 +40,32 @@ public class genDB {
 			Properties sysprops = System.getProperties();
 			PythonInterpreter.initialize(sysprops, props, null);
 			PythonInterpreter jython = new PythonInterpreter();
+
+			// read args
+			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false;
+			int i = 0; 
+			for(; i < args.length; i++) {
+				if(args[i].equals("-m"))
+					writeMLNDB = true;
+				else if(args[i].equals("-b"))
+					writeBLOGDB = true;
+				else if(args[i].equals("-bm"))
+					writeBasicMLN = true;
+				else if(args[i].equals("-bb"))
+					writeBasicBLND = true;
+				else 
+					break;
+			}			
 			
 			jython.exec("import sys");
-			jython.exec("sys.argv.append('" + args[1] + "')");
-			for(int i = 3; i < args.length; i++) {
+			String jythonscript = args[i++];
+			jython.exec("sys.argv.append('" + jythonscript + "')");
+			String outfilename = args[i++];
+			for(; i < args.length; i++) {
 				jython.exec("sys.argv.append('" + args[i] + "')");
 			}
 			
-			jython.execfile(args[1]);
+			jython.execfile(jythonscript);
 			PyObject dbObj = jython.get("db");
 			if(dbObj == null) {
 				System.err.println("Error: Generator script does not define 'db' object!");
@@ -54,13 +73,14 @@ public class genDB {
 			}
 			Database db = (Database) dbObj.__tojava__(Database.class);
 			db.check();
-			PrintStream outDB = new PrintStream(new java.io.File(args[2]));
-			if(args[0].equals("-m"))
-				db.writeMLNDatabase(outDB);
-			else if(args[0].equals("-b"))
-				db.writeBLOGDatabase(outDB);
-			else if(args[0].equals("-bm"))
-				db.writeBasicMLN(outDB);
+			if(writeMLNDB)
+				db.writeMLNDatabase(new PrintStream(new java.io.File(outfilename + ".db")));
+			if(writeBLOGDB)
+				db.writeBLOGDatabase(new PrintStream(new java.io.File(outfilename + ".blogdb")));
+			if(writeBasicMLN)
+				db.writeBasicMLN(new PrintStream(new File(outfilename + ".basic.mln")));
+			if(writeBasicBLND)
+				db.getDataDictionary().writeBasicBLOGModel(new PrintStream(new File(outfilename + ".basic.blnd")));
 			System.out.println("done!");
 		}
 		catch(Exception e) {
