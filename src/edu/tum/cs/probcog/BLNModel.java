@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
@@ -135,4 +136,21 @@ public class BLNModel extends Model {
 	protected String _getConstantType(String constant) {
 		return db.getConstantType(constant);
 	}
+	
+    /**
+     * reads data via Java Prolog 
+     * @throws Exception 
+     */
+    public void learnViaJPL(String prologModule) throws Exception {
+    	// TODO extend db with data from prolog 
+    	for(Signature sig : this.bln.rbn.getSignatures()) {
+    		String predName = sig.functionName;
+    		// for every func/pred, issue query to prolog and 
+    		// assert the results to the db
+    		String[] params; String value;
+    		//db.addVariable(new Variable(predName, params, value, bln.rbn));
+    	}
+    	db.print();
+    	// TODO start learning (wie learnBLOG)
+    }
 }
