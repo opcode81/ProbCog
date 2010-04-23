@@ -11,8 +11,10 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.prolog.PrologKnowledgeBase;
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
+import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.MultiIterator;
@@ -30,6 +32,7 @@ public class Database {
 	protected HashMap<RelationKey, HashMap<String, String[]>> functionalDependencies;
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
+	protected PrologKnowledgeBase prolog;
 	
 	// taxonomy-related variables
 	
@@ -56,6 +59,13 @@ public class Database {
 				fillDomain(e.getKey(), element);
 		}
 		
+		// TODO instantiate prolog if we have log. signatures
+		if(false) {
+			prolog = new PrologKnowledgeBase();
+			for(String rule : model.getPrologRules())
+				prolog.tell(rule);
+		}
+		
 		// taxonomy-related stuff
 		taxonomy = model.getTaxonomy();
 		if(taxonomy != null) {
@@ -76,10 +86,16 @@ public class Database {
 		// if we have the value, return it
 		if(var != null)
 			return var.value;
-		// otherwise, return the default value of false for boolean predicates or raise an exception for non-boolean functions 
+		// otherwise, check the signature		
+		String nodeName = varName.substring(0, varName.indexOf('('));
+		Signature sig = model.getSignature(nodeName);
+		// if it's a logically determined predicate, use prolog to retrieve a value
+		if(sig.isLogical) {
+			String value = prolog.ask(varName) ? "True" : "False"; // TODO 
+			return value;
+		}
+		// if we are making the closed assumption return the default value of false for boolean predicates or raise an exception for non-boolean functions
 		if(closedWorld) {
-			String nodeName = varName.substring(0, varName.indexOf('('));
-			Signature sig = model.getSignature(nodeName);
 			if(sig.isBoolean())
 				return "False";
 			else {
@@ -120,17 +136,21 @@ public class Database {
 			else
 				throw new Exception(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
 		}
-		else {
-			if(sig.argTypes.length != var.params.length) 
-				throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
-			//if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
-			//	System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
-			fillDomain(sig.returnType, var.value);
-			for(int i = 0; i < sig.argTypes.length; i++) {
-				//if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
-				//	System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
-				fillDomain(sig.argTypes[i], var.params[i]);
-			}
+		
+		if(sig.isLogical) {
+			// TODO assert to prolog, and same with getVariableValue
+			return;
+		}
+		
+		if(sig.argTypes.length != var.params.length) 
+			throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");			
+		//if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
+		//	System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
+		fillDomain(sig.returnType, var.value);
+		for(int i = 0; i < sig.argTypes.length; i++) {
+			//if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
+			//	System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
+			fillDomain(sig.argTypes[i], var.params[i]);
 		}
 		
 		// add the entry to the main store

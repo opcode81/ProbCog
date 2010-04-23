@@ -9,11 +9,20 @@ public class Signature {
 	public String returnType;
 	public String[] argTypes;
 	public String functionName;
+	/**
+	 * whether the function is a strictly logically handled predicate (i.e. computed prior to probabilistic inference on logical grounds)
+	 */
+	public boolean isLogical;
 
-	public Signature(String functionName, String returnType, String[] argTypes) {
+	public Signature(String functionName, String returnType, String[] argTypes, boolean isLogical) {
 		this.returnType = returnType;
 		this.argTypes = argTypes;
 		this.functionName = functionName;
+		this.isLogical = isLogical;
+	}
+	
+	public Signature(String functionName, String returnType, String[] argTypes) {
+		this(functionName, returnType, argTypes, false);
 	}
 	
 	public void replaceType(String oldType, String newType) {
