@@ -1,6 +1,7 @@
 package edu.tum.cs.probcog.prolog;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import jpl.Query;
+import jpl.fli.Prolog;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.probcog.InferenceResult;
 import edu.tum.cs.probcog.Model;
@@ -38,6 +40,23 @@ public class PrologInterface {
 
 	private static Server server = null;
 
+	
+	private static void initProlog() {
+		try {
+			Vector<String> args= new Vector<String>(Arrays.asList(Prolog.get_default_init_args()));
+			args.add( "-G256M" );
+			//args.add( "-q" );
+			args.add( "-nosignals" );
+			Prolog.set_default_init_args( args.toArray( new String[0] ) );
+
+			// load the appropriate startup file for this context
+			new Query("ensure_loaded('/home/tenorth/work/owl/gram_ias_human.pl')").oneSolution();
+
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Reset the Prolog interface
 	 */
