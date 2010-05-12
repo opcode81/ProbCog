@@ -423,6 +423,7 @@ public class Database {
 	 * @return
 	 */
 	public Collection<Variable> getEntries() {
+		// TODO if prolog is not null, extend database (unless it has already been extended)
 		return entries.values();
 	}
 
@@ -434,7 +435,7 @@ public class Database {
 	public String[][] getEntriesAsArray() {
 		String[][] ret = new String[entries.size()][2];
 		int i = 0;
-		for (Variable var : entries.values()) {
+		for (Variable var : getEntries()) {
 			ret[i][0] = var.getKeyString();
 			ret[i][1] = var.value;
 			i++;
