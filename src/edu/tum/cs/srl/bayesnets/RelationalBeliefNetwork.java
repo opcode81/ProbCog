@@ -49,7 +49,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	protected HashSet<String> evidenceFunctions = new HashSet<String>();
 	protected Taxonomy taxonomy = null;
-	protected Vector<String> prologRules;
+	protected Vector<String> prologRules = new Vector<String>();
 	
 	public Collection<RelationKey> getRelationKeys(String relation) {
 		return relationKeys.get(relation.toLowerCase());
