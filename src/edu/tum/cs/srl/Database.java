@@ -35,6 +35,7 @@ public class Database {
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
 	protected PrologKnowledgeBase prolog;
+	protected Boolean prologDatabaseExtended = false;
 
 	// taxonomy-related variables
 
@@ -65,7 +66,7 @@ public class Database {
 
 		Collection<String> prologRules = model.getPrologRules();
 		if (!prologRules.isEmpty()) {
-			System.out.println("Building Prolog Knowledge Base... ");
+			System.out.println("  building prolog knowledge base... ");
 			prolog = new PrologKnowledgeBase();
 			for (String rule : prologRules) {
 				// System.out.println("   rule " + rule);
@@ -105,12 +106,10 @@ public class Database {
 		// otherwise, check the signature
 		String nodeName = varName.substring(0, varName.indexOf('('));
 		Signature sig = model.getSignature(nodeName);
-		// if it's a logically determined predicate, use prolog to retrieve a
-		// value
+		// if it's a logically determined predicate, use prolog to retrieve a value
 		if (sig.isLogical) {
 			String value = prolog.ask(varName.toLowerCase()) ? "True" : "False"; // TODO
-			System.out.println("Using Prolog to retrieve value: "
-					+ varName.toLowerCase());
+			//System.out.println("Using Prolog to retrieve value: " + varName.toLowerCase());
 			return value;
 		}
 		// if we are making the closed assumption return the default value of
@@ -171,11 +170,11 @@ public class Database {
 		}
 
 		if (sig.isLogical) {
-			// TODO: assert to PROLOG.
-			System.out.println(var.getPredicate().toLowerCase()
-					+ ". asserted to Prolog");
-			prolog.tell(var.getPredicate().toLowerCase() + ".");
-			// return; //must not return?
+			if (var.isTrue()){
+				//System.out.println(var.getPredicate().toLowerCase() + ". asserted to Prolog");
+				prolog.tell(var.getPredicate().toLowerCase() + ".");
+				// return; //must not return?
+			}
 		}
 
 		if (sig.argTypes.length != var.params.length)
@@ -421,9 +420,30 @@ public class Database {
 	 * retrieves all entries in the database
 	 * 
 	 * @return
+	 * @throws Exception 
 	 */
-	public Collection<Variable> getEntries() {
-		// TODO if prolog is not null, extend database (unless it has already been extended)
+	public Collection<Variable> getEntries() throws Exception {
+		// TODO if prolog is not null, extend database (unless it has already
+		// been extended)
+		if (prolog != null && !prologDatabaseExtended){
+			prologDatabaseExtended = true;
+			Collection<String> rules = model.getPrologRules();
+			for (String rule : rules){
+				String pred[] = rule.split(":-");
+				String varName = rule.split("\\(")[0];
+				Vector<String[]> prologBindings = prolog.fetchBindings(pred[0]);
+				if (prologBindings != null){
+					for (String[] bindings : prologBindings){
+						String[] params = new String[bindings.length];
+						for (int i = 0; i < bindings.length; i++){
+							params[i] = bindings[i].toUpperCase();
+						}
+						Variable var = new Variable(varName,params,"True",model);
+						this.addVariable(var);
+					}
+				}
+			}
+		}
 		return entries.values();
 	}
 
@@ -431,11 +451,13 @@ public class Database {
 	 * @return the values of this database as an array of String[2] arrays,
 	 *         where the first element of each is the name of the variable, and
 	 *         the second is the value
+	 * @throws Exception 
 	 */
-	public String[][] getEntriesAsArray() {
+	public String[][] getEntriesAsArray() throws Exception {
+		Collection<Variable> vars = getEntries();
 		String[][] ret = new String[entries.size()][2];
 		int i = 0;
-		for (Variable var : getEntries()) {
+		for (Variable var : vars) {
 			ret[i][0] = var.getKeyString();
 			ret[i][1] = var.value;
 			i++;
@@ -490,7 +512,7 @@ public class Database {
 		}
 	}
 
-	public void print() {
+	public void print() throws Exception {
 		for (Variable v : getEntries())
 			System.out.println(v.toString());
 	}
