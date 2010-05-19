@@ -83,10 +83,10 @@ public class ABL extends BLOGModel {
 					.compile("[Pp]rolog\\s+(.*?)\\s(:-)?\\s(.*?).?");
 			Matcher matcher = pat.matcher(line);
 			if (matcher.matches()) {
-				String[] cond = matcher.group(3).split("\\s*,\\s*");
+				String[] cond = matcher.group(3).split("\\^");
+				//Pattern predPar = Pattern.compile("(.*)\\((.*)\\)\\s*"); //TODO: Better Split
 				Pattern predPar = Pattern.compile("(.*)\\((.*)\\)\\s*");
 				String rule = new String();
-				// System.out.println(matcher.group(1));
 				Matcher predMatcher = predPar.matcher(matcher.group(1));
 				if (predMatcher.matches()) {
 					rule = predMatcher.group(1) + "("
@@ -94,6 +94,7 @@ public class ABL extends BLOGModel {
 				}
 				int i = 0;
 				for (String c : cond) {
+					//System.out.println(" Condition: " + c);
 					predMatcher = predPar.matcher(c);
 					if (predMatcher.matches()) {
 						rule = rule + predMatcher.group(1) + "("
@@ -105,6 +106,7 @@ public class ABL extends BLOGModel {
 						i++;
 					}
 				}
+				//System.out.println(rule);
 				prologRules.add(rule);
 				return true;
 			}
