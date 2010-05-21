@@ -74,7 +74,7 @@ public class PossibleWorld implements IPossibleWorld {
             throw new IllegalArgumentException("Size of state array does not match number of variables!");        
     }
     
-    public void setEvidence(Database db) {
+    public void setEvidence(Database db) throws Exception {
     	for(AbstractVariable var : db.getEntries()) {
     		this.set(var.getPredicate(), var.isTrue()); 
     	}
