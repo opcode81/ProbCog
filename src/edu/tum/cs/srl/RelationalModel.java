@@ -10,6 +10,7 @@ public interface RelationalModel {
 	public void replaceType(String oldType, String newType);
 	public HashMap<String, String[]> getGuaranteedDomainElements();
 	public Signature getSignature(String functionName);
+	public Collection<Signature> getSignatures();
 	public Collection<RelationKey> getRelationKeys(String relation);
 	public Taxonomy getTaxonomy();
 	public Collection<String> getPrologRules();

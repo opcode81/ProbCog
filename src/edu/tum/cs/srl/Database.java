@@ -172,6 +172,7 @@ public class Database {
 		if (sig.isLogical) {
 			if (var.isTrue()){
 				//System.out.println(var.getPredicate().toLowerCase() + ". asserted to Prolog");
+				// TODO toLowerCase is too much
 				prolog.tell(var.getPredicate().toLowerCase() + ".");
 				// return; //must not return?
 			}
@@ -427,19 +428,18 @@ public class Database {
 		// been extended)
 		if (prolog != null && !prologDatabaseExtended){
 			prologDatabaseExtended = true;
-			Collection<String> rules = model.getPrologRules();
-			for (String rule : rules){
-				String pred[] = rule.split(":-");
-				String varName = rule.split("\\(")[0];
-				Vector<String[]> prologBindings = prolog.fetchBindings(pred[0]);
-				if (prologBindings != null){
-					for (String[] bindings : prologBindings){
-						String[] params = new String[bindings.length];
-						for (int i = 0; i < bindings.length; i++){
-							params[i] = bindings[i].toUpperCase();
-						}
-						Variable var = new Variable(varName,params,"True",model);
+			//Collection<String> rules = model.getPrologRules();
+			for(Signature sig : this.model.getSignatures()) {
+				if(sig.isLogical) {
+					Collection<String[]> bindings = ParameterGrounder.generateGroundings(sig, this);
+					for(String[] b : bindings) {
+						String[] c = new String[b.length];
+						for(int j = 0; j < b.length; j++)
+							c[j] = b[j].toLowerCase(); // TODO quick hack
+						boolean value = prolog.ask(Signature.formatVarName(sig.functionName, c));
+						Variable var = new Variable(sig.functionName, b, value ? "True" : "False", model);
 						this.addVariable(var);
+						System.out.println("adding " + var + " computed by Prolog");
 					}
 				}
 			}
@@ -653,6 +653,11 @@ public class Database {
 
 		public boolean isBoolean() {
 			return model.getSignature(functionName).isBoolean();
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("%s = %s", Signature.formatVarName(functionName, params), value); 
 		}
 	}
 }

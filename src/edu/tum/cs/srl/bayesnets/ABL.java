@@ -79,38 +79,11 @@ public class ABL extends BLOGModel {
 		}
 		// prolog rule
 		if (line.startsWith("prolog")) {
-			Pattern pat = Pattern
-					.compile("[Pp]rolog\\s+(.*?)\\s(:-)?\\s(.*?).?");
-			Matcher matcher = pat.matcher(line);
-			if (matcher.matches()) {
-				String[] cond = matcher.group(3).split("\\^");
-				//Pattern predPar = Pattern.compile("(.*)\\((.*)\\)\\s*"); //TODO: Better Split
-				Pattern predPar = Pattern.compile("(.*)\\((.*)\\)\\s*");
-				String rule = new String();
-				Matcher predMatcher = predPar.matcher(matcher.group(1));
-				if (predMatcher.matches()) {
-					rule = predMatcher.group(1) + "("
-							+ predMatcher.group(2).toUpperCase() + ") :- ";
-				}
-				int i = 0;
-				for (String c : cond) {
-					//System.out.println(" Condition: " + c);
-					predMatcher = predPar.matcher(c);
-					if (predMatcher.matches()) {
-						rule = rule + predMatcher.group(1) + "("
-								+ predMatcher.group(2).toUpperCase() + ")";
-						if (i == cond.length - 1)
-							rule = rule + ".";
-						else
-							rule = rule + ",";
-						i++;
-					}
-				}
-				//System.out.println(rule);
-				prologRules.add(rule);
-				return true;
-			}
-			return false;
+			String rule = line.substring(6).trim();
+			if(!rule.endsWith("."))
+				rule += ".";
+			prologRules.add(rule);
+			return true;
 		}
 		return false;
 	}
