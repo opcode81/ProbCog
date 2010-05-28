@@ -567,9 +567,14 @@ class MLN:
         for f in self.formulas:
             if f.weight is not None:
                 w = str(f.weight)
-                while "$" in w: # replace variables
-                    for (var,value) in self.vars.iteritems():
-                        w = w.replace(var, value)
+                try:
+                    while "$" in w: 
+                        w, numReplacements = re.subn('\$\w+', self._substVar, w)
+                        if numReplacements == 0:
+                            raise Exception("Undefined variable(s) referenced in '%s'" % w)
+                except:
+                    sys.stderr.write("Error substituting variable references in '%s'\n" % w)
+                    raise
                 w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
                 try:
                     f.weight = eval(w)
@@ -585,6 +590,12 @@ class MLN:
     
     def domSize(self, domName):
         return len(self.domains[domName])
+    
+    def _substVar(self, matchobj):
+        varName = matchobj.group(0)
+        if varName not in self.vars:
+            raise Exception("Unknown variable '%s'" % varName)
+        return self.vars[varName]
     
     # convert all the MLN's ground formulas to CNF
     # if allPositive=True, then formulas with negative weights are negated to make all weights positive
