@@ -277,6 +277,7 @@ class MLN:
         self.formulaGroups = []
         self.closedWorldPreds = []
         formulatemplates = []
+        self.vars = {}
         # read MLN file
         text = ""
         if filename_or_list is not None:
@@ -297,7 +298,7 @@ class MLN:
         # remove comments
         text = stripComments(text)
         # read lines
-        hard_formulas = []
+        self.hard_formulas = []
         max_weight = -1000000
         if verbose: print "reading MLN..."
         templateIdx2GroupIdx = {}
@@ -335,6 +336,13 @@ class MLN:
                     if m is None:
                         raise Exception("Posterior probability constraint formatted incorrectly: %s" % line)
                     self.posteriorProbReqs.append({"expr": strFormula(FOL.parseFormula(m.group(1))).replace(" ", ""), "p": float(m.group(2))})
+                    continue
+                # variable definition
+                if line.startswith("$"):
+                    m = re.match(r'(\$\w+)\s*=(.+)', line)
+                    if m is None:
+                        raise Exception("Variable assigment malformed: %s" % line)                    
+                    self.vars[m.group(1)] = "(%s)" % m.group(2).strip()
                     continue
                 # mutex constraint
                 if re.search(r"[a-z_][-_'a-zA-Z0-9]*\!", line) != None: 
@@ -388,7 +396,8 @@ class MLN:
                             if not isHard:
                                 formula.weight = weight
                             else:
-                                hard_formulas.append(formula)
+                                self.hard_formulas.append(formula)
+                                formula.weight = None # not set until instantiation when other weights are known
                             idxTemplate = len(formulatemplates)
                             formulatemplates.append(formula)
                             if inGroup:
@@ -400,12 +409,8 @@ class MLN:
                 cls, e, tb = sys.exc_info()
                 traceback.print_tb(tb)
                 raise e
-        # set weights of hard formula/templates
-        hard_weight = max(20, max_weight+20)
-        for formula in hard_formulas:
-            formula.weight = hard_weight
         # materialize formula templates
-        if verbose: print "materializing formula templates..."
+        if verbose: print "materializing formula templates..." # TODO extend self.hard_formulas here
         idxGroup = None
         prevIdxGroup = None
         group = []
@@ -558,13 +563,25 @@ class MLN:
                 gndFormula.idxFormula = idxFormula
                 self.gndFormulas.append(gndFormula)
         # materialize all formula weights
+        max_weight = 0
         for f in self.formulas:
-            w = str(f.weight)
-            w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
-            try:
-                f.weight = eval(w)
-            except:
-                raise Exception("Evaluation error while trying to compute '%s'" % w)
+            if f.weight is not None:
+                w = str(f.weight)
+                while "$" in w: # replace variables
+                    for (var,value) in self.vars.iteritems():
+                        w = w.replace(var, value)
+                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
+                try:
+                    f.weight = eval(w)
+                except:
+                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
+                    raise
+                max_weight = max(abs(f.weight), max_weight)
+        # set weights of hard formulas
+        hard_weight = 20+max_weight
+        if verbose: "setting hard weights to %f" % hard_weight
+        for f in self.hard_formulas:
+            f.weight = hard_weight        
     
     def domSize(self, domName):
         return len(self.domains[domName])
