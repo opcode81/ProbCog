@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
@@ -22,9 +21,11 @@ public class BLNModel extends Model {
 	protected BayesianLogicNetwork bln;
 	protected GroundBLN gbln;
 	protected Database db;
+	protected String filenames;
 	
 	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
 		super(modelName);
+		this.filenames = String.format("%s;%s;%s", blogFile, networkFile, logicFile);
 		this.bln = new BayesianLogicNetwork(new ABL(blogFile, networkFile), logicFile);
 		db = new Database(bln.rbn);
 	}
@@ -152,5 +153,10 @@ public class BLNModel extends Model {
     	}
     	db.print();
     	// TODO start learning (wie learnBLOG)
+    }
+    
+    @Override
+    public String toString() {
+    	return String.format("%s=BLN[%s]", this.name, this.filenames);
     }
 }
