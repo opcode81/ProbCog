@@ -1,11 +1,7 @@
 package edu.tum.cs.clustering.multidim;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
 
-import edu.tum.cs.util.TypeReference;
-
-import weka.clusterers.SimpleKMeans;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
