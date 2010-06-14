@@ -1,18 +1,14 @@
 import sys
 import os
-libpath = os.path.join(os.path.dirname(__file__), "..", "lib")
-
-def importlib(name):
-	sys.path.append(os.path.join(libpath, name))
-
-sys.path.append(os.path.join(libpath, "..", "bin"))
-importlib("srldb.jar")
-importlib("tumutils.jar")
-importlib("bnj.jar")
-importlib("bnj_res.jar")
-importlib("log4j-1.2.9.jar")
-importlib("ssj.jar")
-importlib("optimization.jar")
+from jyimportlib import importjar, importbin
+importbin()
+importjar("srldb.jar")
+importjar("tumutils.jar")
+importjar("bnj.jar")
+importjar("bnj_res.jar")
+importjar("log4j-1.2.9.jar")
+importjar("ssj.jar")
+importjar("optimization.jar")
 
 from edu.tum.cs.srl.bayesnets.inference import BLNinfer
 
