@@ -591,3 +591,47 @@ class FilePick(Frame):
         if not hasattr(self, 'picked_name'):
             return None
         return self.picked_name.get()
+
+class DropdownList:
+    def __init__(self, master, items, default=None, allowNone=False, onSelChange=None):
+        if allowNone:
+            items = tuple([""] + list(items))
+        self.items = items
+        if havePMW:
+            self.list = Pmw.ComboBox(master, selectioncommand = onSelChange, scrolledlist_items = items)
+            self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
+            self.picked_name = self.list
+        else:
+            self.picked_name = StringVar(master)
+            self.list = apply(OptionMenu, (master, self.picked_name) + tuple(items))
+            if onSelChange is not None:
+                self.picked_name.trace("w", onSelChange)
+        if default is not None:
+            self.set(default)
+        else:
+            self.set(self.items[0])
+    
+    def __getattr__(self, name):        
+        return getattr(self.list, name)
+    
+    def get(self):
+        return self.picked_name.get()
+    
+    def set(self, item):
+        if item in self.items:
+            if not havePMW:
+                self.picked_name.set(item) 
+            else:
+                self.list.selectitem(item)
+                #self.onSelChange(default_file)
+
+class Checkbox(Checkbutton):
+    def __init__(self, master, text, default=None, **args):
+        self.var = IntVar()
+        Checkbutton.__init__(self, master, text=text, **args)
+        if default is not None:
+            self.var.set(default)
+    
+    def get(self):
+        return self.var.get()
+        
