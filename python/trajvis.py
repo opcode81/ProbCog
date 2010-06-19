@@ -59,7 +59,6 @@ class TrajVis:
         #self.frame.rowconfigure(row, weight=1)
         
         row += 1
-        #Label(self.frame, text="Add. Human Data: ").grid(row=row, column=0, sticky=NE)
         self.selected_orig2 = FilePick(self.frame, "*Joints*.asc", self.settings.get("asc_orig2", ""), dirs=("trajectoryData", ), font=fixed_width_font, allowNone=True)
         self.selected_orig2.grid(row=row, column=1, sticky="NWES")
         #self.frame.rowconfigure(row, weight=1)
@@ -72,7 +71,6 @@ class TrajVis:
         #self.frame.rowconfigure(row, weight=1)
 
         row += 1
-        #Label(self.frame, text="Embedding: ").grid(row=row, column=0, sticky=NE)
         self.selected_embed2 = FilePick(self.frame, "*.asc", self.settings.get("asc_embed2", ""), dirs = ('.', os.path.join("trajectoryData", "gplvm"), os.path.join("trajectoryData", "stisomap")), font=fixed_width_font, allowNone=True)
         self.selected_embed2.grid(row=row,column=1, sticky="NWES")
         #self.frame.rowconfigure(row, weight=1)
@@ -98,13 +96,13 @@ class TrajVis:
         labelFields = ("righthand", "lefthand", "trunk")
         frame.grid(row=row, column=1, sticky="EW")
         self.tumkd = []
-        for i in range(2):
+        for i in range(4):
             d = {}
             Label(frame, text="Sequence:").grid(row=i, column=0)
             d["seq"] = DropdownList(frame, tuple(sequences), allowNone=True, default=self.settings.get("db_seq_%d" % i, ""))
             d["seq"].grid(row=i, column=1)
             frame.columnconfigure(1, weight=1)
-            d["relative"] = Checkbox(frame, text="relative; ", default=self.settings.get("db_rel_%d" % i, 0))
+            d["relative"] = Checkbox(frame, text="relative; ", default=self.settings.get("db_relative_%d" % i, 0))
             d["relative"].grid(row=i, column=2)
             Label(frame, text="Label:").grid(row=i, column=3)
             d["labelField"] = DropdownList(frame, labelFields, default=self.settings.get("db_label_%d" % i, labelFields[0]))
@@ -115,6 +113,12 @@ class TrajVis:
             d["joint"].grid(row=i, column=6)
             frame.columnconfigure(6, weight=1)
             self.tumkd.append(d)
+        
+        row += 1
+        Label(self.frame, text="Test Label File: ").grid(row=row, column=0, sticky=NE)
+        self.test_label = FilePick(self.frame, "*.asc", self.settings.get("test_label", ""), dirs = ('.', ), font=fixed_width_font, allowNone = True)
+        self.test_label.grid(row=row,column=1, sticky="NWES")
+        #self.frame.rowconfigure(row, weight=1)        
         
         # additional parameters
         row += 1
@@ -155,7 +159,8 @@ class TrajVis:
             c = self.settings["db_labelField_%d" % i] = d["labelField"].get()
             d = self.settings["db_joint_%d" % i] = d["joint"].get()
             if(self.settings["db_seq_%d" % i] != ""):
-                dbs.append(":".join((a,b,c,d)))
+                dbs.append(":".join((a,str(b),c,d)))
+        self.settings["test_label"] = self.test_label.get()
         # create command to execute
         params = ""
         for db in dbs:
@@ -169,11 +174,10 @@ class TrajVis:
         for f in (self.settings["asc_label"], self.settings["asc_label2"]):
             if f != "":
                 params += ' -l "%s"' % f
+        if self.settings["test_label"] != "":
+            params += ' -tl "%s"' % self.settings["test_label"]
         params += " %s" % self.params.get()
-        if "win" in sys.platform.lower():
-            app = "trajvis.bat"
-        else:
-            app = "trajvis"
+        app = "TrajVis"
         command = '%s %s' % (app, params)
         # write settings
         pickle.dump(self.settings, file(configname, "w+"))
