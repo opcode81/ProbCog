@@ -628,7 +628,7 @@ class DropdownList:
 class Checkbox(Checkbutton):
     def __init__(self, master, text, default=None, **args):
         self.var = IntVar()
-        Checkbutton.__init__(self, master, text=text, **args)
+        Checkbutton.__init__(self, master, text=text, variable=self.var, **args)
         if default is not None:
             self.var.set(default)
     
