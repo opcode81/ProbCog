@@ -185,17 +185,27 @@ class ConstantAsObject(Object):
         world.addObject("constant", self)
         
 class ObjectGenerator:
-    def __init__(self, objtype, container, attrgens = None):
+    def __init__(self, objtype, world_or_container, attrgens = None):
         '''
             objtype: a string representing the name of the type of the objects that this generator is to generate
-            container: a container (ObjectContainer) object in which to store the generated object
+            world_or_container:
+                either the world object (which is expected to have a container for objtype) or
+                directly a container (ObjectContainer instance) in which to store the generated object
             attrgens: a mapping of attribute names to attribute generator objects (e.g. AttrFixed or AttrDist)
         '''
-        self.container = container
+        if isinstance(world_or_container, World):
+            self.container = world_or_container.getContainer(objtype)
+            if self.container is None:
+                raise Exception("World object does not have a container for '%s'" % objtype)
+        else:
+            self.container = world_or_container
         if attrgens is None: attrgens = {}
         self.attrgens = attrgens
         self.objtype = objtype
-
+    
+    def setAttrGen(attr, gen):
+        self.attrgens[attr] = gen
+       
     def generate(self, **args):
         o = Object(self.objtype, **args)
         self._createAttributes(o, **args)
@@ -259,10 +269,19 @@ class ObjectContainer:
     def __str__(self):
         return "ObjectContainer[size=%d]" % len(self)
     
+    def __contains__(self, item):
+        return item in self.objects
+    
     def delete(self, object):
         ''' permanently remove the given object '''
         self.objects.remove(object)
         
+    def difference(self, container):
+        ''' returns a container with the objects of this container not contained in the given container '''
+        return ObjectContainer(filter(lambda x: x not in container, self.objects))
+    
+    def filter(self, criterion):
+        return ObjectContainer(filter(criterion, self.objects))
 
 class World:
     def __init__(self):
@@ -274,6 +293,7 @@ class World:
         return container
     
     def addObject(self, className, object):
+        ''' adds an object to the container for the given class name, creating the container if it does not yet exist '''
         if not className in self.containers:
             self.containers[className] = ObjectContainer()
         self.containers[className].add(object)
@@ -393,7 +413,7 @@ class AttrFixed(AttrGen):
         return [self.value]
 
 class AttrDist(AttrGen):
-    ''' attribute value distribution: instantiate as AttrDist({"value": prob, "value2": prob2}) (probs are automatically normalized) '''
+    ''' attribute value distribution (for sampling from a distribution): instantiate as AttrDist({"value": prob, "value2": prob2, ...}) (probs are automatically normalized) '''
     
     def __init__(self, distribution=None, **convenient_distribution_specification):
         if distribution is None:
@@ -418,7 +438,7 @@ class AttrDist(AttrGen):
         return self.distribution.keys()
 
 class AttrSet(AttrGen):
-    ''' represents a set of attributes/values from which we sample independently '''
+    ''' represents a set of attributes/values with an attached probability. We sample each value independently based on the given probability to ultimately generate a (potentially empty) set of values '''
     
     def __init__(self, values2probs = None, **convenient_specification):
         if values2probs is None:
