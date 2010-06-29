@@ -14,21 +14,22 @@ import edu.tum.cs.prolog.PrologKnowledgeBase;
 public class PrologShell {
 
 	public static void main(String[] args) {
-		System.out.println(
-				"yProlog Interactive Shell\n\n" +
+		System.out.println("\n"+
+				"The Simple yProlog Interactive Shell\n\n" +
 				"usage:\n" +
 				"      tell:  parent(eve, abel).\n" +
 				"             female(eve).\n" +
 				"             mother(X,Y) :- parent(X,Y), female(X).\n" +
 				"       ask:  mother(eve, abel)\n" +
+				"             mother(eve, X)\n" +
 				"   consult:  consult myfile.pl\n" +
 				"      exit:  exit\n"
 			);
 		
 		PrologKnowledgeBase kb = new PrologKnowledgeBase();
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String constant = "([a-z]\\w+|[0-9]+)";
-		Pattern patGroundAtom = Pattern.compile(String.format("\\w+\\(%s(,%s)+\\)", constant, constant));
+		String constant = "\\s*([a-z]\\w*|[0-9]+)\\s*";
+		Pattern patGroundAtom = Pattern.compile(String.format("\\w+\\(%s(,%s)*\\)", constant, constant));
 		for(;;) {
 			
 			try {
