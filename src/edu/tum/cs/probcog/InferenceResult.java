@@ -4,7 +4,7 @@ import java.io.PrintStream;
 
 import edu.tum.cs.util.StringTool;
 
-public class InferenceResult {
+public class InferenceResult implements Comparable<InferenceResult> {
 	public String functionName;
 	public String[] params;
 	public double probability;
@@ -37,4 +37,9 @@ public class InferenceResult {
 	public void print(PrintStream out) {
 		out.println(this);
 	}
+
+	@Override
+	public int compareTo(InferenceResult arg0) {
+		return Double.compare(this.probability, arg0.probability);
+	}	
 }

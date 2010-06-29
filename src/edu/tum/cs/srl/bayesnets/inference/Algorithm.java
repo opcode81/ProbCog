@@ -43,7 +43,7 @@ public enum Algorithm {
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", null, SmilePearl.class),
 		VarElim("variable elimination (exact)", null, BNJVariableElimination.class),
-		Experimental("an experimental algorithm (usually beta)", null, SampleSearch.class);
+		Experimental("an experimental algorithm (usually beta)", SampleSearch2.class, null);
 		
 		protected String description;
 		protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> bnClass;

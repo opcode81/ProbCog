@@ -76,7 +76,7 @@ public class PrologInterface {
 	public static Map<String, Vector<Object>> executeQuery(String query,
 			String plFile) {
 
-		// System.err.println("Executing query: " + query);
+		System.err.println("Executing query: " + query);
 
 		HashMap<String, Vector<Object>> result = new HashMap<String, Vector<Object>>();
 		Hashtable<?, ?>[] solutions;

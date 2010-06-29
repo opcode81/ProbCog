@@ -3,12 +3,16 @@ package edu.tum.cs.probcog;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.srl.Signature;
 
 /**
  * serves a pool of models (base class for specialized server interfaces);
@@ -108,8 +112,23 @@ public class Server {
 		// set evidence		
 		model.setEvidence(evidence);
 		// instantiate model and perform inference
+		System.out.printf("instantiating model from %s\n", model.toString());
 		model.instantiate();
-		return model.infer(queries);
+		Vector<InferenceResult> results = model.infer(queries);
+		// output evidence and results
+		boolean verbose = true;
+		if(verbose) {
+			System.out.println("\nEvidence:");
+			for(String[] e : evidence)
+				System.out.println(Arrays.toString(e));
+			System.out.println("\nResults:");
+			LinkedList<InferenceResult> sortedres = new LinkedList<InferenceResult>(results);
+			Collections.sort(sortedres);
+			for(InferenceResult r : sortedres)
+				r.print(System.out);
+		}
+		// return results
+		return results;
 	}
 	
 	/**
@@ -158,7 +177,7 @@ public class Server {
 		try {
 			Server server = new Server("/usr/wiss/jain/work/code/SRLDB/models/models.xml");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			System.err.println("ProbCog Server running...");
+			System.err.println("ProbCog Server Test");
 			// test cases
 			boolean testKnowRob = true;
 			boolean testLISP = false;
@@ -167,26 +186,34 @@ public class Server {
 				Model model = server.getModel(modelName);
 				// * evidence
 				Vector<String> evidence = new Vector<String>();
-				evidence.add("takesPartIn(P,M)");
-				String[] observedClasses = new String[]{"DinnerPlate", "Tea", "IceTea"};
-				for(String instance : observedClasses) {
-					String objType = instance;
-					String constantType = model.getConstantType(objType);
-					String predicate = null;
-					if(constantType != null) {
-						if(constantType.equalsIgnoreCase("domUtensilT"))
-							predicate = "usesAnyIn";
-						else if(constantType.equalsIgnoreCase("objType_g"))
-							predicate = "consumesAnyIn";
-						if(predicate != null) { 
-							String evidenceAtom = String.format("%s(P,%s,M)", predicate, objType);  
-							evidence.add(evidenceAtom);
+				evidence.add("takesPartIn(person1,meal1)");
+				evidence.add("mealT(meal1,Breakfast)");
+				boolean autoUsage = false;
+				if(!autoUsage) {
+					evidence.add("consumesAnyIn(person1,CowsMilk-Product,meal1)");
+					//evidence.add("consumesAnyIn(person1,Cereals,meal1)");
+				}
+				else {
+					String[] observedClasses = new String[]{"Milk", "Cereals"};				
+					for(String instance : observedClasses) {
+						String objType = instance;
+						String constantType = model.getConstantType(objType);
+						String predicate = null;
+						if(constantType != null) {
+							if(constantType.equalsIgnoreCase("domUtensilT"))
+								predicate = "usesAnyIn";
+							else if(constantType.equalsIgnoreCase("objType_g"))
+								predicate = "consumesAnyIn";
+							if(predicate != null) { 
+								String evidenceAtom = String.format("%s(P,%s,M)", predicate, objType);  
+								evidence.add(evidenceAtom);
+							}
+							else
+								System.err.println("Warning: Evidence on instance '" + instance + "' not considered because it is neither a utensil nor a consumable object known to the model.");
 						}
 						else
-							System.err.println("Warning: Evidence on instance '" + instance + "' not considered because it is neither a utensil nor a consumable object known to the model.");
+							System.err.println("Warning: Evidence on instance '" + instance + "' not considered because its type is not known to the model.");
 					}
-					else
-						System.err.println("Warning: Evidence on instance '" + instance + "' not considered because its type is not known to the model.");
 				}
 				// * queries
 				Vector<String> queries = new Vector<String>();
@@ -194,6 +221,7 @@ public class Server {
 				queries.add("consumesAnyIn");
 				// * run inference
 				Vector<InferenceResult> results = server.query(modelName, queries, evidence);
+				System.out.println();
 				for(InferenceResult res : results) {
 					res.print(System.out);
 				}
