@@ -80,7 +80,7 @@ public class ABL extends BLOGModel {
 		// prolog rule
 		if (line.startsWith("prolog")) {
 			String rule = line.substring(6).trim();
-			if(!rule.endsWith("."))
+			if (!rule.endsWith("."))
 				rule += ".";
 			prologRules.add(rule);
 			return true;

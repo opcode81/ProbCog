@@ -67,7 +67,7 @@ public class Database {
 		Collection<String> prologRules = model.getPrologRules();
 		if (!prologRules.isEmpty()) {
 			System.out.println("  building prolog knowledge base... ");
-			prolog = new PrologKnowledgeBase();
+			prolog = new PrologKnowledgeBase(); //TODO: If no rules in ABL (just logical definition) prologRules are empty and no Knowledge Base is initialized!
 			for (String rule : prologRules) {
 				// System.out.println("   rule " + rule);
 				prolog.tell(rule);
@@ -106,10 +106,12 @@ public class Database {
 		// otherwise, check the signature
 		String nodeName = varName.substring(0, varName.indexOf('('));
 		Signature sig = model.getSignature(nodeName);
-		// if it's a logically determined predicate, use prolog to retrieve a value
+		// if it's a logically determined predicate, use prolog to retrieve a
+		// value
 		if (sig.isLogical) {
 			String value = prolog.ask(varName.toLowerCase()) ? "True" : "False"; // TODO
-			//System.out.println("Using Prolog to retrieve value: " + varName.toLowerCase());
+			// System.out.println("Using Prolog to retrieve value: " +
+			// varName.toLowerCase());
 			return value;
 		}
 		// if we are making the closed assumption return the default value of
@@ -170,11 +172,17 @@ public class Database {
 		}
 
 		if (sig.isLogical) {
-			if (var.isTrue()){
-				//System.out.println(var.getPredicate().toLowerCase() + ". asserted to Prolog");
-				// TODO toLowerCase is too much
-				prolog.tell(var.getPredicate().toLowerCase() + ".");
-				// return; //must not return?
+			if (var.isTrue()) {
+				String func = var.functionName;
+				func = func.substring(0, 1).toLowerCase() + func.substring(1);
+				String line = func + "(";
+				for (String par : var.params){
+					line += par.substring(0,1).toLowerCase() + par.substring(1) + ",";
+				}
+				line = line.substring(0, line.length()-1) + ")";
+				System.out.println(line + ". asserted to Prolog");
+				prolog.tell(line + ".");
+				//return; //must not return?
 			}
 		}
 
@@ -421,25 +429,28 @@ public class Database {
 	 * retrieves all entries in the database
 	 * 
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public Collection<Variable> getEntries() throws Exception {
 		// TODO if prolog is not null, extend database (unless it has already
 		// been extended)
-		if (prolog != null && !prologDatabaseExtended){
+		if (prolog != null && !prologDatabaseExtended) {
 			prologDatabaseExtended = true;
-			//Collection<String> rules = model.getPrologRules();
-			for(Signature sig : this.model.getSignatures()) {
-				if(sig.isLogical) {
+			// Collection<String> rules = model.getPrologRules();
+			for (Signature sig : this.model.getSignatures()) {
+				if (sig.isLogical) {
 					Collection<String[]> bindings = ParameterGrounder.generateGroundings(sig, this);
-					for(String[] b : bindings) {
+					for (String[] b : bindings) {
 						String[] c = new String[b.length];
-						for(int j = 0; j < b.length; j++)
-							c[j] = b[j].toLowerCase(); // TODO quick hack
-						boolean value = prolog.ask(Signature.formatVarName(sig.functionName, c));
-						Variable var = new Variable(sig.functionName, b, value ? "True" : "False", model);
+						for (int j = 0; j < b.length; j++)
+							c[j] = b[j].substring(0, 1).toLowerCase() + b[j].substring(1);
+						boolean value = prolog.ask(Signature.formatVarName(
+								sig.functionName, c));
+						Variable var = new Variable(sig.functionName, b,
+								value ? "True" : "False", model);
 						this.addVariable(var);
-						System.out.println("adding " + var + " computed by Prolog");
+						System.out.println("adding " + var
+								+ " computed by Prolog");
 					}
 				}
 			}
@@ -451,7 +462,7 @@ public class Database {
 	 * @return the values of this database as an array of String[2] arrays,
 	 *         where the first element of each is the name of the variable, and
 	 *         the second is the value
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public String[][] getEntriesAsArray() throws Exception {
 		Collection<Variable> vars = getEntries();
@@ -654,10 +665,11 @@ public class Database {
 		public boolean isBoolean() {
 			return model.getSignature(functionName).isBoolean();
 		}
-		
+
 		@Override
 		public String toString() {
-			return String.format("%s = %s", Signature.formatVarName(functionName, params), value); 
+			return String.format("%s = %s", Signature.formatVarName(
+					functionName, params), value);
 		}
 	}
 }
