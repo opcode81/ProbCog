@@ -7,9 +7,14 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.Stopwatch;
 
+/**
+ * simple implementation of the SampleSearch algorithm by Gogate & Dechter.
+ * NOTE: This implementation does not properly weight samples
+ * @author jain
+ */
 public class SampleSearch extends Sampler {
-	int[] nodeOrder;
-	int currentStep;
+	protected int[] nodeOrder;
+	protected int currentStep;
 	
 	public SampleSearch(BeliefNetworkEx bn) throws Exception {
 		super(bn);
@@ -67,7 +72,7 @@ public class SampleSearch extends Sampler {
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
 			if(i == -1)
-				throw new Exception("It appears that the evidence is constradictory.");
+				throw new Exception("It appears that the evidence is contradictory.");
 			int nodeIdx = nodeOrder[i];
 			int domainIdx = evidenceDomainIndices[nodeIdx];
 			// get domain exclusions
