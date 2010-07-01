@@ -22,7 +22,7 @@ public abstract class Sampler implements IParameterHandler {
 	protected int infoInterval = 100;
 	protected ParameterHandler paramHandler;
 	protected Vector<Integer> queryVars;
-	AbstractGroundBLN gbln;
+	protected AbstractGroundBLN gbln;
 	double samplingTime;
 	
 	public Sampler(AbstractGroundBLN gbln) throws Exception {
