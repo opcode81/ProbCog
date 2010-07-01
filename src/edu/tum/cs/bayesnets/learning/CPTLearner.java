@@ -1,6 +1,6 @@
 package edu.tum.cs.bayesnets.learning;
 
-import de.tum.in.fipm.base.data.QueryResult;
+//import de.tum.in.fipm.base.data.QueryResult;
 import edu.ksu.cis.bnj.ver3.core.*;
 import edu.ksu.cis.bnj.ver3.core.values.Field;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
@@ -334,6 +334,7 @@ public class CPTLearner extends Learner {
 	 * @param res			the query result containing the data for a set of examples
 	 * @throws Exception
 	 */
+	/*
 	public void learn(QueryResult res) throws Exception {
 		// map node indices to result set column indices
 		Vector colnames = res.getColumnNames();
@@ -382,9 +383,9 @@ public class CPTLearner extends Learner {
         	for(int i = 0; i < nodes.length; i++) {
         		counters[i].count(domainIndices);
         	}
-        } 
-		
+        }		
 	}
+	*/
 	
 	/**
 	 * tells the CPTLearner to use a clusterer to categorize instances (i.e. example outcomes)
