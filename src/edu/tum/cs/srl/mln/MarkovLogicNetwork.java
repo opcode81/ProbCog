@@ -13,8 +13,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry.Entry;
-
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
@@ -24,7 +22,6 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.tools.JythonInterpreter;
 import edu.tum.cs.util.FileUtil;
-import edu.tum.cs.util.StringTool;
 
 /**
  * represents a Markov logic network

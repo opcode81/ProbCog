@@ -1,9 +1,9 @@
-import flanagan.analysis.*;
+//import flanagan.analysis.*;
 import java.util.Random;
 import umontreal.iro.lecuyer.probdist.WeibullDist;
 
 public class Weibull {
-	
+/*	
 	public double k = 0;
 	public double lambda = 0;
 	public double delta = 0;
@@ -48,12 +48,13 @@ public class Weibull {
 		//ProbabilityPlot probplot = new ProbabilityPlot(stat);
 		//Regression reg = new Regression(data1, 1.0);
 		//reg.weibullPlot();
-		/*
-		 * double mu = probplot.weibullMu(); double sigma =
-		 * probplot.weibullSigma(); double gamma = probplot.weibullGamma();
-		 * stat.weibullCDF(mu, sigma, gamma, 1.0);
-		 */
+		//
+		// double mu = probplot.weibullMu(); double sigma =
+		// probplot.weibullSigma(); double gamma = probplot.weibullGamma();
+		// stat.weibullCDF(mu, sigma, gamma, 1.0);
+		 
 		//probplot.weibullStandardProbabilityPlot();
 		// stat.weibullCDF(1.0, 1.0, 1.0, 10.0);
 	}
+*/
 }

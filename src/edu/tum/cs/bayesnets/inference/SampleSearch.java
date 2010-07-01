@@ -19,7 +19,11 @@ public class SampleSearch extends Sampler {
 	public SampleSearch(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 		// TODO should guarantee for BLNs that formula nodes appear as early as possible
-		nodeOrder = bn.getTopologicalOrder();
+		nodeOrder = getNodeOrdering();
+	}
+	
+	public int[] getNodeOrdering() {
+		return bn.getTopologicalOrder();
 	}
 	
 	public SampledDistribution _infer() throws Exception {
