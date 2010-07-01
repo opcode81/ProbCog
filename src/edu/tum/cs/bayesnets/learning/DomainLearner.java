@@ -9,7 +9,7 @@ import java.util.*;
 
 import weka.core.*;
 import weka.clusterers.*;
-import de.tum.in.fipm.base.data.QueryResult;
+//import de.tum.in.fipm.base.data.QueryResult;
 
 /**
  * learns domains for a certain set of nodes in a Bayesian network when given a
@@ -365,6 +365,7 @@ public class DomainLearner extends Learner {
 	 *            the query result containing the data for a set of examples
 	 * @throws Exception
 	 */
+	/*
 	public void learn(QueryResult res) throws Exception {
 		int numDirectDomains = directDomains != null ? directDomains.length : 0;
 		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length
@@ -408,6 +409,7 @@ public class DomainLearner extends Learner {
 			}
 		}
 	}
+	*/
 
 	/**
 	 * performs the clustering (if some domains are to be learnt by clustering)
