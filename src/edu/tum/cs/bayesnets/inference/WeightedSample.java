@@ -33,7 +33,14 @@ public class WeightedSample {
 	 * The weight of the sample.
 	 */
 	public double weight;
+	/**
+	 * the number of trials/restarts/backtrackings was required to obtain the sample;
+	 */
 	public int trials;
+	/**
+	 * the number of operations used to obtain the sample
+	 */
+	public int operations;	
 
 	/**
 	 * Constructs a weighted sample from given node value mapping and

@@ -21,7 +21,7 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	/**
 	 * values that may be used by certain algorithms to store the number of steps involved in creating the distribution
 	 */
-	public int steps, trials;
+	public int steps, trials, operations;
 	protected double maxWeight = 0.0;
 	protected boolean debug = true;
 	protected BeliefNode[] nodes;
@@ -55,7 +55,7 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 		}
 		
 		// update distribution values
-		for(int i = 0; i < s.nodeIndices.length; i++) {
+		for(int i = 0; 	i < s.nodeIndices.length; i++) {
 			try {
 				values[s.nodeIndices[i]][s.nodeDomainIndices[i]] += s.weight;
 			}
@@ -67,6 +67,7 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 		
 		// update number of steps and trials
 		trials += s.trials;
+		operations += s.operations;
 		steps++;
 	}
 	
