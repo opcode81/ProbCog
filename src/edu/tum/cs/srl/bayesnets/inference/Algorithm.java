@@ -8,6 +8,7 @@ package edu.tum.cs.srl.bayesnets.inference;
 
 import java.lang.reflect.Constructor;
 
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.BNJPearl;
 import edu.tum.cs.bayesnets.inference.BNJVariableElimination;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
@@ -43,7 +44,7 @@ public enum Algorithm {
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", null, SmilePearl.class),
 		VarElim("variable elimination (exact)", null, BNJVariableElimination.class),
-		Experimental("an experimental algorithm (usually beta)", null, SampleSearch.class);
+		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearch2");
 		
 		protected String description;
 		protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> bnClass;
@@ -55,16 +56,37 @@ public enum Algorithm {
 			this.bnClass = bnClass;
 		}
 		
+		/**
+		 * this constructor can be used for classes that are not necessarily part of distributions of the project (won't get compilation problems)
+		 * @param description
+		 * @param className name of either a class derived from Sampler or edu.tum.cs.bayesnets.inference.Sampler
+		 */
+		@SuppressWarnings("unchecked")
+		private Algorithm(String description, String className) {
+			try {
+				Class<?> cl = Class.forName(className);
+				try {
+					cl.getConstructor(BeliefNetworkEx.class);
+					bnClass = (Class<? extends edu.tum.cs.bayesnets.inference.Sampler>)cl;
+				}
+				catch(Exception e) {
+					blnClass = (Class<? extends Sampler>)cl;
+				}
+			} 
+			catch(ClassNotFoundException e) {	
+			} 
+		}
+		
 		public String getDescription() {
 			return description;
 		}
 		
 		public Sampler createSampler(AbstractGroundBLN gbln) throws Exception {
-			Sampler sampler;
+			Sampler sampler = null;
 			if(bnClass != null) {
 				sampler = new BNSampler(gbln, bnClass);
 			}
-			else {	
+			else if(blnClass != null) {	
 				Constructor<? extends Sampler> constructor;
 				try {
 					 constructor = blnClass.getConstructor(gbln.getClass());
@@ -74,6 +96,8 @@ public enum Algorithm {
 				}
 				sampler = constructor.newInstance(gbln);
 			}
+			else
+				throw new Exception("Cannot instantiate a sampler for the algorithm '" + toString() + "' - sampler class not given");
 			return sampler;
 		}
 		
