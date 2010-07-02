@@ -22,7 +22,7 @@ public class SampleSearch extends Sampler {
 		nodeOrder = computeNodeOrdering();
 	}
 	
-	public int[] computeNodeOrdering() {
+	protected int[] computeNodeOrdering() {
 		return bn.getTopologicalOrder();
 	}
 	
@@ -63,18 +63,20 @@ public class SampleSearch extends Sampler {
 				break;
 		}
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
+		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
 		return dist;
 	}
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
 		s.trials = 0;
+		s.operations = 0;
 		s.weight = 1.0;
 		s.trials++;
 		double[] samplingProb = new double[nodeOrder.length];
 		// assign values to the nodes in order
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
+			s.operations++;
 			if(i == -1)
 				throw new Exception("It appears that the evidence is contradictory.");
 			int nodeIdx = nodeOrder[i];
