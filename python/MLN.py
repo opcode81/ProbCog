@@ -395,8 +395,7 @@ class MLN:
                             formula = FOL.parseFormula(formula)
                             if not isHard:
                                 formula.weight = weight
-                            else:
-                                self.hard_formulas.append(formula)
+                            else:                                
                                 formula.weight = None # not set until instantiation when other weights are known
                             idxTemplate = len(formulatemplates)
                             formulatemplates.append(formula)
@@ -426,6 +425,8 @@ class MLN:
             # add them to the list of formulas and set index
             for f in fl:
                 f.weight = tf.weight
+                if f.weight is None:
+                    self.hard_formulas.append(f)
                 idxFormula = len(self.formulas)
                 self.formulas.append(f)
                 f.idxFormula = idxFormula
@@ -550,7 +551,7 @@ class MLN:
 
     def _createFormulaGroundings(self, verbose=False):
         '''this is the method that creates the ground MRF'''
-        self.gndFormulas = []
+        self.gndFormulas = []        
         self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
         if verbose: print "grounding formulas..."
         for idxFormula, formula in enumerate(self.formulas):
@@ -584,9 +585,11 @@ class MLN:
                 max_weight = max(abs(f.weight), max_weight)
         # set weights of hard formulas
         hard_weight = 20+max_weight
-        if verbose: "setting hard weights to %f" % hard_weight
+        if verbose: print "setting hard weights to %f" % hard_weight
         for f in self.hard_formulas:
-            f.weight = hard_weight        
+            #if verbose: print "  ", strFormula(f)
+            f.weight = hard_weight
+        self.printGroundFormulas()
     
     def domSize(self, domName):
         return len(self.domains[domName])
