@@ -26,7 +26,7 @@ public class TopologicalOrdering implements Iterable<Integer> {
 		return new Iterator(this);
 	}
 
-	protected static class Iterator implements java.util.Iterator<Integer> {
+	public static class Iterator implements java.util.Iterator<Integer> {
 
 		int idxCurrentLevel;
 		Vector<Integer> currentLevel;
