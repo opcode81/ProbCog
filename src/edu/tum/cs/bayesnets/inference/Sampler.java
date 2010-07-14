@@ -21,6 +21,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	public int[] evidenceDomainIndices;
 	protected ParameterHandler paramHandler;
 	protected Collection<Integer> queryVars = null;
+	protected StringBuffer report = new StringBuffer();
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -212,8 +213,9 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	public SampledDistribution infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		SampledDistribution ret = _infer();
+		SampledDistribution ret = _infer();		
 		samplingTime = sw.getElapsedTimeSecs();
+		System.out.print(report.toString());
 		return ret;
 	}
 	
@@ -269,5 +271,14 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
+	}
+	
+	/**
+	 * adds a string to the report that is displayed after the inference procedure has returned 
+	 * @param s
+	 */
+	protected void report(String s) {
+		this.report.append(s);
+		this.report.append('\n');
 	}
 }
