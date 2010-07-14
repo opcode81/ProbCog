@@ -22,7 +22,7 @@ public class SampleSearch extends Sampler {
 		nodeOrder = computeNodeOrdering();
 	}
 	
-	protected int[] computeNodeOrdering() {
+	protected int[] computeNodeOrdering() throws Exception {
 		return bn.getTopologicalOrder();
 	}
 	
@@ -63,7 +63,7 @@ public class SampleSearch extends Sampler {
 				break;
 		}
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
+		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
 		return dist;
 	}
 	
