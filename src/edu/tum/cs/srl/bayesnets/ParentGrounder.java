@@ -10,6 +10,7 @@ import java.util.Vector;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.StringTool;
 
 /**
@@ -81,6 +82,8 @@ public class ParentGrounder {
 				handledVars.add(p);
 	
 		// determine domains of ungrounded params (if any)
+		// If a parameter appears in more than one parent, we use the most specific type in the taxonomy that we come across
+		Taxonomy taxonomy = bn.getTaxonomy();
 		if(ungroundedParams != null) {
 			ungroundedParamDomains = new String[ungroundedParams.length];
 			for(int i = 0; i < ungroundedParams.length; i++) {
@@ -91,7 +94,8 @@ public class ParentGrounder {
 							if(sig != null && !parent.isConstant) { // sig can be null for built-in predicates
 								if(sig.argTypes.length != parent.params.length)
 									throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
-								ungroundedParamDomains[i] = sig.argTypes[j];
+								if(ungroundedParamDomains[i] == null || taxonomy.query_isa(sig.argTypes[j], ungroundedParamDomains[i]))
+									ungroundedParamDomains[i] = sig.argTypes[j];
 							}
 						}
 					}

@@ -36,6 +36,10 @@ public class Concept {
 		c.children.add(this);
 	}	
 	
+	/**
+	 * gets the list of descendants/sub-concepts of the concept
+	 * @return
+	 */
 	public Vector<Concept> getDescendants() {
 		Vector<Concept> ret = new Vector<Concept>();
 		ret.add(this);
@@ -46,7 +50,11 @@ public class Concept {
 		return ret;
 	}
 	
-	public Vector<Concept> getParents() {
+	/**
+	 * gets the list of ancestors/super-concepts of the concept
+	 * @return list (sorted in increasing order of generality)
+	 */
+	public Vector<Concept> getAncestors() {
 		Vector<Concept> ret = new Vector<Concept>();
 		Concept parent = this.parent;
 		while(parent != null) {
