@@ -43,8 +43,8 @@ public class Taxonomy {
 			throw new Exception("Concept '" + type + "' unknown.");
 		if(sc == null)
 			throw new Exception("Concept '" + subtype + "' unknown.");
-		Vector<Concept> p1 = sc.getParents();		
-		Vector<Concept> p2 = c.getParents();
+		Vector<Concept> p1 = sc.getAncestors();		
+		Vector<Concept> p2 = c.getAncestors();
 		if(!(p1.size() > p2.size()))
 				return false;
 		return p1.contains(c);			
