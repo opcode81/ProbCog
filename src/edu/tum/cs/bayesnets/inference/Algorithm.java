@@ -25,7 +25,8 @@ public enum Algorithm {
 	EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", EnumerationAsk.class),
 	Pearl("Pearl's algorithm for polytrees (exact)", BNJPearl.class),
 	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", SmilePearl.class),
-	VarElim("variable elimination (exact)", BNJVariableElimination.class),
+	//VarElim("variable elimination (exact)", BNJVariableElimination.class),
+	VarElim("variable elimination (exact)", VariableElimination.class),
 	Experimental("an experimental algorithm (usually beta)", SampleSearch.class);
 	
 	String description;

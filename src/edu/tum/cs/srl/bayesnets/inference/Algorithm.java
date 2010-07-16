@@ -10,7 +10,6 @@ import java.lang.reflect.Constructor;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.BNJPearl;
-import edu.tum.cs.bayesnets.inference.BNJVariableElimination;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
@@ -22,6 +21,7 @@ import edu.tum.cs.bayesnets.inference.SampleSearch;
 import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
 import edu.tum.cs.bayesnets.inference.SmileEPIS;
 import edu.tum.cs.bayesnets.inference.SmilePearl;
+import edu.tum.cs.bayesnets.inference.VariableElimination;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 
 public enum Algorithm {
@@ -43,7 +43,7 @@ public enum Algorithm {
 		EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", null, EnumerationAsk.class),
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", null, SmilePearl.class),
-		VarElim("variable elimination (exact)", null, BNJVariableElimination.class),
+		VarElim("variable elimination (exact)", null, VariableElimination.class),
 		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearchIB"),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning");
 		
