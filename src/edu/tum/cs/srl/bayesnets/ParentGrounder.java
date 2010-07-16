@@ -223,7 +223,7 @@ public class ParentGrounder {
 	}
 	
 	/**
-	 * completes a (yet incomplete grounding) grounding by considering all possibilities of grounding the ungrounded variables
+	 * completes a (yet incomplete) grounding by considering all possibilities of grounding the ungrounded variables
 	 * @param mainNodeParams
 	 * @param db
 	 * @param paramBindings
