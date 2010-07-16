@@ -182,6 +182,15 @@ public class BNinfer {
 				referenceDist = GeneralSampledDistribution.fromFile(new File(referenceDistFile));
 			}
 			
+			// determine queries
+			Vector<Integer> queryVars = new Vector<Integer>();
+			for(String qq : queries) {
+				int varIdx = bn.getNodeIndex(qq);
+				if(varIdx == -1)
+					throw new Exception("Unknown variable '" + qq + "'");
+				queryVars.add(varIdx);
+			}
+			
 			// run inference
 			Stopwatch sw = new Stopwatch();
 			sw.start();
@@ -189,6 +198,7 @@ public class BNinfer {
 			Sampler sampler = algo.createSampler(bn);
 			// - set evidence and options
 			sampler.setEvidence(evidenceDomainIndices);
+			sampler.setQueryVars(queryVars);
 			sampler.setDebugMode(debug);
 			sampler.setMaxTrials(maxTrials);
 			sampler.setSkipFailedSteps(skipFailedSteps);
@@ -216,8 +226,7 @@ public class BNinfer {
 			// print results
 			for(String qq : queries) {
 				int varIdx = bn.getNodeIndex(qq);
-				if(varIdx != -1)
-					dist.printVariableDistribution(System.out, varIdx);
+				dist.printVariableDistribution(System.out, varIdx);
 			}
 			
 			// save output distribution
