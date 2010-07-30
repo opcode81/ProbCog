@@ -12,6 +12,7 @@ import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
@@ -170,6 +171,7 @@ public class BLNinfer {
 		
 		// read evidence database
 		Database db = new Database(blog);
+		db.getParameterHandler().handle(params, false);
 		db.readBLOGDB(dbFile);
 		if(cwPreds != null) {
 			for(String predName : cwPreds)
