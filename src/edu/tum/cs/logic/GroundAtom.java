@@ -80,23 +80,25 @@ public class GroundAtom extends Formula {
 	}
 
     /**
-     * this method checks whether an evidence is given for the current groundatom
-     * @param evidence evidence of current scenario
-     * @return returns an instance of TrueFalse by given evidence or this groundatom
+     * simplifies the formula based on the evidence
+     * @param evidence evidence of current scenario (or null)
+     * @return returns an instance of TrueFalse if the value of the ground atom is contained in the evidence (or evidence is null); otherwise returns this very ground atom 
      */
     @Override
     public Formula simplify(Database evidence) {
         try {
             // check whether evidence contains this ground atom and return instance of TrueFalse
-        	String value = evidence.getVariableValue(this.toString(), false);
-            if(value != null) {            	 
-                if(value.equals("True"))
-                    return TrueFalse.TRUE;
-                else if (value.equals("False"))
-                    return TrueFalse.FALSE;
-                else
-                	throw new RuntimeException("Database contains invalid boolean value '" + value + "' for atom " + this.toString());
-            }
+        	if(evidence != null) {
+	        	String value = evidence.getVariableValue(this.toString(), false);
+	            if(value != null) {            	 
+	                if(value.equals("True"))
+	                    return TrueFalse.TRUE;
+	                else if (value.equals("False"))
+	                    return TrueFalse.FALSE;
+	                else
+	                	throw new RuntimeException("Database contains invalid boolean value '" + value + "' for atom " + this.toString());
+	            }
+        	}
             // if evidence dosn't contain this atom, there's no change
             return this;
         } 

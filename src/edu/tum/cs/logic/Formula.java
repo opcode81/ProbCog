@@ -104,9 +104,9 @@ public abstract class Formula {
 	public abstract Formula toCNF();
 
 	/**
-	 * returns a simplified version of the formula that incorporates the evidence
-	 * @param evidence
-	 * @return
+	 * simplifies the formula by removing parts of the formula that can be evaluated 
+	 * @param evidence an evidence database with which to evaluate ground atoms (may be null; if null, will only simplify based on TrueFalse instances appearing within the formula)
+	 * @return a simplified version of the formula that incorporates the evidence 
 	 */
     public abstract Formula simplify(Database evidence);
 
