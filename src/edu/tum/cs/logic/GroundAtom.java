@@ -88,8 +88,8 @@ public class GroundAtom extends Formula {
     public Formula simplify(Database evidence) {
         try {
             // check whether evidence contains this ground atom and return instance of TrueFalse
-            if(evidence.contains(this.toString())) {
-            	String value = evidence.getVariableValue(this.toString(), false); 
+        	String value = evidence.getVariableValue(this.toString(), false);
+            if(value != null) {            	 
                 if(value.equals("True"))
                     return TrueFalse.TRUE;
                 else if (value.equals("False"))
