@@ -52,8 +52,8 @@ public class Negation extends ComplexFormula {
     }
 
     /**
-     * this method simplifies the formula (atoms of this formuala that are given by the evidence are evaluated to TrueFalse)
-     * @param evidence (evidence of the current szenario)
+     * this method simplifies the formula (atoms of this formula that are given by the evidence are evaluated to TrueFalse)
+     * @param evidence (evidence of the current scenario)
      * @return  
      */
     @Override
