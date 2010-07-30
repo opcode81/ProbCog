@@ -60,6 +60,7 @@ public class ParameterGrounder {
 		return ret;
 	}
 	
+	// TODO it would be better to use an iterator that generates groundings as we go along rather than putting them all into one big collection
 	private static void generateGroundings(Collection<String[]> ret, Database db, String[] params, String[] domainNames, int i) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == domainNames.length) {
