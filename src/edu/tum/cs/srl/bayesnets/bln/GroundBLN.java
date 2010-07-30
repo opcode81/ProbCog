@@ -70,13 +70,17 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected void groundFormulaicNodes() throws Exception {
 		WorldVariables worldVars = coupling.getWorldVars();
 		state = new PossibleWorld(worldVars);
+		boolean useFormulaSimplification = false; // TODO: maybe simplification should depend on the algorithm that is used
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
-		gkb = bln.kb.ground(this.db, worldVars, true);
+		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification); 
 		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		int i = 0;
 		for(Formula gf : gkb) {
+			if(!useFormulaSimplification)
+				gf = gf.simplify(null); // still do basic simplification (there may still be TrueFalse instances due to equalities, e.g. !(x=y))
+			
 			// add node and connections
-			String nodeName = "GF" + i++;
+			String nodeName = "GF" + i;
 			System.out.printf("    %s: %s\n", nodeName, gf.toString());
 			HashSet<GroundAtom> gas = new HashSet<GroundAtom>();
 			gf.getGroundAtoms(gas);
@@ -87,9 +91,22 @@ public class GroundBLN extends AbstractGroundBLN {
 				parentGAs.add(ga.toString());
 			}
 			Pair<BeliefNode, BeliefNode[]> nodeData = addHardFormulaNode(nodeName, parentGAs);
-			// set cpf
-			fillFormulaCPF(gf, nodeData.first.getCPF(), nodeData.second, parentGAs);
-			this.cpfIDs.put(nodeData.first, "F" + gkb.getTemplateID(gf));
+			
+			// set CPF id (i.e. equivalence class id)
+			// TODO try string transform: Two formulas are equivalent if they are the same except for the universally quantified variables
+			// TODO Important: equivalence ONLY results if the parent ordering is also the same!!! must ensure this
+			String cpfid; 
+			if(useFormulaSimplification || true) {
+				cpfid = "F" + i; // treat all formulas differently
+			}
+			else
+				cpfid = "F" + gkb.getTemplateID(gf); // treat all instances of a formula template the same	
+			this.cpfIDs.put(nodeData.first, cpfid);
+
+			// set CPF
+			fillFormulaCPF(gf, nodeData.first.getCPF(), nodeData.second, parentGAs);			
+			
+			++i;
 		}
 		// clean up
 		state = null;
