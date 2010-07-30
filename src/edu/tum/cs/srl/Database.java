@@ -7,15 +7,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import yprolog.ParseException;
 import edu.tum.cs.prolog.PrologKnowledgeBase;
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
-import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.MultiIterator;
@@ -58,25 +57,27 @@ public class Database {
 		functionalDependencies = new HashMap<RelationKey, HashMap<String, String[]>>();
 
 		// fill domains with guaranteed domain elements
-		for (Entry<String, String[]> e : model.getGuaranteedDomainElements()
-				.entrySet()) {
-			for (String element : e.getValue())
+		for(Entry<String, String[]> e : model.getGuaranteedDomainElements().entrySet()) {
+			for(String element : e.getValue())
 				fillDomain(e.getKey(), element);
 		}
 
 		Collection<String> prologRules = model.getPrologRules();
-		if (!prologRules.isEmpty()) {
+		if(!prologRules.isEmpty()) {
 			System.out.println("  building prolog knowledge base... ");
-			prolog = new PrologKnowledgeBase(); //TODO: If no rules in ABL (just logical definition) prologRules are empty and no Knowledge Base is initialized!
-			for (String rule : prologRules) {
-				// System.out.println("   rule " + rule);
+			prolog = new PrologKnowledgeBase(); // TODO: If no rules in ABL
+												// (just logical definition)
+												// prologRules are empty and no
+												// Knowledge Base is
+												// initialized!
+			for(String rule : prologRules) {
 				prolog.tell(rule);
 			}
 		}
 
 		// taxonomy-related stuff
 		taxonomy = model.getTaxonomy();
-		if (taxonomy != null) {
+		if(taxonomy != null) {
 			entity2type = new HashMap<String, String>();
 			multiDomains = new HashMap<String, MultiIterator<String>>();
 		}
@@ -91,43 +92,42 @@ public class Database {
 	 *            whether to make the closed-world assumption, i.e. to assume
 	 *            that any Boolean variable for which we do not have a value is
 	 *            "False"
-	 * @return If a value for the given variable is stored in the database, it
-	 *         is returned. Otherwise, null is returned, unless the closed world
+	 * @return If a value for the given variable is stored in the database (or
+	 *         can be computed based on Prolog rules), it is returned. 
+	 *         Otherwise, null is returned - unless the closed world
 	 *         assumption is being made and the variable is boolean, in which
 	 *         case the default value of "False" is returned.
 	 * @throws Exception
 	 */
-	public String getVariableValue(String varName, boolean closedWorld)
-			throws Exception {
-		Variable var = this.entries.get(varName.toLowerCase());
+	public String getVariableValue(String varName, boolean closedWorld) throws Exception {
+		String lowerCaseName = varName.toLowerCase();
+		Variable var = this.entries.get(lowerCaseName);
 		// if we have the value, return it
-		if (var != null)
+		if(var != null)
 			return var.value;
-		// otherwise, check the signature
-		String nodeName = varName.substring(0, varName.indexOf('('));
-		Signature sig = model.getSignature(nodeName);
-		// if it's a logically determined predicate, use prolog to retrieve a
-		// value
-		if (sig.isLogical) {
-			String value = prolog.ask(varName.toLowerCase()) ? "True" : "False"; // TODO
-			// System.out.println("Using Prolog to retrieve value: " +
-			// varName.toLowerCase());
-			return value;
+		
+		// otherwise, get the signature
+		int braceIndex = varName.indexOf('(');
+		String nodeName = varName.substring(0, braceIndex);
+		Signature sig = model.getSignature(nodeName);		
+
+		// if it's a logically determined predicate, use prolog to retrieve a value
+		if(sig.isLogical) {
+			String[] args = varName.substring(braceIndex+1, varName.length()-1).split("\\s*,\\s*");
+			return getPrologValue(sig, args) ? "True" : "False"; 
 		}
+		
 		// if we are making the closed assumption return the default value of
 		// false for boolean predicates or raise an exception for non-boolean
 		// functions
-		if (closedWorld) {
-			if (sig.isBoolean())
+		if(closedWorld) {
+			if(sig.isBoolean())
 				return "False";
 			else {
-				throw new Exception(
-						"Missing database value of "
-								+ varName
-								+ " - cannot apply closed-world assumption because domain is not boolean: "
-								+ sig.returnType);
+				throw new Exception("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);
 			}
 		}
+		
 		return null;
 	}
 
@@ -138,6 +138,7 @@ public class Database {
 	 *            the name of the variable to retrieve
 	 * @return returns the variable setting with the given name if it is
 	 *         contained in the database), null otherwise
+	 * @deprecated because it does not really work with prolog predicates
 	 */
 	public Variable getVariable(String varName) {
 		return entries.get(varName.toLowerCase());
@@ -147,90 +148,88 @@ public class Database {
 	 * checks whether the database contains an entry for the given variable name
 	 */
 	public boolean contains(String varName) {
-		return entries.containsKey(varName.toLowerCase());
+		if(entries.containsKey(varName.toLowerCase()))
+			return true;
+		
+		//Matcher m = Pattern.compile("(\\w+)\\((\\.*?)\\)").matcher(varName);
+		// for logically determined functions, we always have a value
+		String functionName = varName.substring(0, varName.indexOf('(')); //m.group(1);
+		Signature sig = model.getSignature(functionName);
+		return sig.isLogical;
 	}
 
+	/**
+	 * adds the given variable to the database if it isn't already present
+	 */
 	public void addVariable(Variable var) throws Exception {
-		addVariable(var, false);
+		addVariable(var, false, true);
 	}
 
-	public void addVariable(Variable var, boolean ignoreUndefinedFunctions)
-			throws Exception {
+	protected void addVariable(Variable var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws Exception {
+		String entryKey = var.getKeyString().toLowerCase();
+		if(entries.containsKey(entryKey))
+			return;
+		
 		// if(debug) System.out.println("adding var " + var);
+		
 		// fill domains
 		Signature sig = model.getSignature(var.functionName);
-		if (sig == null) {
+		if(sig == null) {
 			// if the predicate is not in the model, end here
-			if (ignoreUndefinedFunctions)
+			if(ignoreUndefinedFunctions)
 				return;
 			else
-				throw new Exception(
-						String
-								.format(
-										"Function %s appears in the data but is not declared in the model.",
-										var.functionName));
+				throw new Exception(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
 		}
 
-		if (sig.isLogical) {
-			if (var.isTrue()) {
+		if(sig.isLogical && doPrologAssertions) { // for logically determined functions, assert any true instances to the Prolog KB
+			if(var.isTrue()) {
 				String func = var.functionName;
 				func = func.substring(0, 1).toLowerCase() + func.substring(1);
 				String line = func + "(";
-				for (String par : var.params){
-					line += par.substring(0,1).toLowerCase() + par.substring(1) + ",";
+				for(String par : var.params) {
+					line += par.substring(0, 1).toLowerCase() + par.substring(1) + ",";
 				}
-				line = line.substring(0, line.length()-1) + ")";
+				line = line.substring(0, line.length() - 1) + ")";
 				System.out.println(line + ". asserted to Prolog");
 				prolog.tell(line + ".");
-				//return; //must not return?
 			}
 		}
 
-		if (sig.argTypes.length != var.params.length)
-			throw new Exception(
-					"The database entry '"
-							+ var.getKeyString()
-							+ "' is not compatible with the signature definition of the corresponding function: expected "
-							+ sig.argTypes.length
-							+ " parameters as per the signature, got "
-							+ var.params.length + ".");
-		// if(domains.get(sig.returnType) == null ||
-		// !domains.get(sig.returnType).contains(var.value))
-		// System.out.println("adding " + var.value + " to " + sig.returnType +
-		// " because of " + var);
+		if(sig.argTypes.length != var.params.length)
+			throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");
+		// if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
+		// System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
 		fillDomain(sig.returnType, var.value);
-		for (int i = 0; i < sig.argTypes.length; i++) {
-			// if(domains.get(sig.argTypes[i]) == null ||
-			// !domains.get(sig.argTypes[i]).contains(var.params[i]))
-			// System.out.println("adding " + var.params[i] + " to " +
-			// sig.argTypes[i] + " because of " + var);
+		for(int i = 0; i < sig.argTypes.length; i++) {
+			// if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
+			//   System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
 			fillDomain(sig.argTypes[i], var.params[i]);
 		}
 
 		// add the entry to the main store
-		entries.put(var.getKeyString().toLowerCase(), var);
+		entries.put(entryKey, var);
 
 		// update lookup tables for keys
 		// (but only if value is true)
-		Collection<RelationKey> keys = this.model
-				.getRelationKeys(var.functionName);
-		if (keys != null) {
+		Collection<RelationKey> keys = this.model.getRelationKeys(var.functionName);
+		if(keys != null) {
 			// add lookup entry if the variable value is true
-			if (!var.isTrue())
+			if(!var.isTrue())
 				return;
 			// update all keys
-			for (RelationKey key : keys) {
+			for(RelationKey key : keys) {
 				// compute key for map entry
 				StringBuffer sb = new StringBuffer();
 				int i = 0;
-				for (Integer paramIdx : key.keyIndices) {
-					if (i++ > 0)
+				for(Integer paramIdx : key.keyIndices) {
+					if(i++ > 0)
 						sb.append(',');
 					sb.append(var.params[paramIdx]);
 				}
 				// add
 				HashMap<String, String[]> hm = functionalDependencies.get(key);
-				if (hm == null) {
+				if(hm == null) {
 					hm = new HashMap<String, String[]>();
 					functionalDependencies.put(key, hm);
 				}
@@ -243,7 +242,7 @@ public class Database {
 		// System.out.println("doing lookup for " + this.key + " with " +
 		// StringTool.join(", ", keyValues));
 		HashMap<String, String[]> m = functionalDependencies.get(key);
-		if (m == null)
+		if(m == null)
 			return null;
 		return m.get(StringTool.join(",", keyValues));
 	}
@@ -252,59 +251,54 @@ public class Database {
 		readBLOGDB(databaseFilename, false);
 	}
 
-	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes)
-			throws Exception {
+	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
 		boolean verbose = true;
 
 		// read file content
-		if (verbose)
-			System.out
-					.printf("  reading contents of %s...\n", databaseFilename);
+		if(verbose)
+			System.out.printf("  reading contents of %s...\n", databaseFilename);
 		String dbContent = FileUtil.readTextFile(databaseFilename);
 
 		// remove comments
-		if (verbose)
+		if(verbose)
 			System.out.println("  removing comments");
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/",
-				Pattern.MULTILINE | Pattern.DOTALL);
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");
 
 		// read lines
-		if (verbose)
+		if(verbose)
 			System.out.println("  reading items");
-		Pattern re_entry = Pattern
-				.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
+		Pattern re_entry = Pattern.compile("(\\w+)\\(([^\\)]+)\\)\\s*=\\s*([^;]*);?");
 		Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(.*?)\\}");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		int numVars = 0;
-		while ((line = br.readLine()) != null) {
+		while((line = br.readLine()) != null) {
 			line = line.trim();
 			// parse variable assignment
 			matcher = re_entry.matcher(line);
-			if (matcher.matches()) {
+			if(matcher.matches()) {
 				// String key = matcher.group(1) + "(" +
 				// matcher.group(2).replaceAll("\\s*", "") + ")";
-				Variable var = new Variable(matcher.group(1), matcher.group(2)
-						.split("\\s*,\\s*"), matcher.group(3), model);
+				Variable var = new Variable(matcher.group(1), matcher.group(2).split("\\s*,\\s*"), matcher.group(3), model);
 				// System.out.println(var.toString());
-				addVariable(var, ignoreUndefinedNodes);
-				if (++numVars % 100 == 0 && verbose)
+				addVariable(var, ignoreUndefinedNodes, true);
+				if(++numVars % 100 == 0 && verbose)
 					System.out.print("    " + numVars + " vars read\r");
 				continue;
 			}
 			// parse domain decls
 			matcher = re_domDecl.matcher(line);
-			if (matcher.matches()) { // parse domain decls
+			if(matcher.matches()) { // parse domain decls
 				String domName = matcher.group(1);
 				String[] constants = matcher.group(2).split("\\s*,\\s*");
-				for (String c : constants)
+				for(String c : constants)
 					fillDomain(domName, c);
 				continue;
 			}
 			// something else
-			if (line.length() != 0) {
+			if(line.length() != 0) {
 				throw new Exception("Database entry could not be read: " + line);
 			}
 		}
@@ -320,40 +314,33 @@ public class Database {
 	 * @throws Exception
 	 */
 	protected void fillDomain(String type, String value) throws Exception {
-		// if(debug) System.out.printf("  adding %s to domain %s\n", value,
-		// type);
+		// if(debug) System.out.printf("  adding %s to domain %s\n", value, type);
 		// if we are working with a taxonomy, we need to check whether we
 		// previously assigned the value to a super-type of type
 		// and if so, reassign it to the sub-type
-		if (taxonomy != null) {
+		if(taxonomy != null) {
 			String prevType = entity2type.get(value);
-			if (prevType != null) {
-				if (prevType.equals(type))
+			if(prevType != null) {
+				if(prevType.equals(type))
 					return;
-				if (taxonomy.query_isa(type, prevType)) // new type is sub-type
-					// --> reassign
+				// new type is sub-type --> reassign 
+				if(taxonomy.query_isa(type, prevType)) 
 					domains.get(prevType).remove(value);
-				else if (taxonomy.query_isa(prevType, type)) // new type is
-					// supertype -->
-					// do nothing
-					// (old
-					// assignment
-					// was more
-					// specific)
+				// new type is supertype --> do nothing (old assignment was more specific)
+				else if(taxonomy.query_isa(prevType, type)) 
 					return;
 				else
-					;// System.err.printf("Warning: Entity " + value +
-				// " belongs to at least two types (%s, %s) which have no taxonomic relationship; functional mapping of entities to types not well-defined if domains are not merged.");
+					;// System.err.printf("Warning: Entity " + value + " belongs to at least two types (%s, %s) which have no taxonomic relationship; functional mapping of entities to types not well-defined if domains are not merged.");
 			}
 			entity2type.put(value, type);
 		}
 		// add to domain if not already present
 		HashSet<String> dom = domains.get(type);
-		if (dom == null) {
+		if(dom == null) {
 			dom = new HashSet<String>();
 			domains.put(type, dom);
 		}
-		if (!dom.contains(value))
+		if(!dom.contains(value))
 			dom.add(value);
 	}
 
@@ -364,29 +351,26 @@ public class Database {
 	public void checkDomains(boolean verbose) {
 		ArrayList<HashSet<String>> doms = new ArrayList<HashSet<String>>();
 		ArrayList<String> domNames = new ArrayList<String>();
-		for (Entry<String, HashSet<String>> entry : domains.entrySet()) {
+		for(Entry<String, HashSet<String>> entry : domains.entrySet()) {
 			doms.add(entry.getValue());
 			domNames.add(entry.getKey());
 		}
-		for (int i = 0; i < doms.size(); i++) {
-			for (int j = i + 1; j < doms.size(); j++) {
+		for(int i = 0; i < doms.size(); i++) {
+			for(int j = i + 1; j < doms.size(); j++) {
 				// compare the i-th domain to the j-th
 				HashSet<String> dom1 = doms.get(i);
 				HashSet<String> dom2 = doms.get(j);
-				for (String value : dom1) {
-					if (dom2.contains(value)) { // replace all occurrences of
+				for(String value : dom1) {
+					if(dom2.contains(value)) { // replace all occurrences of
 						// the j-th domain by the i-th
-						if (verbose)
-							System.out.println("Domains " + domNames.get(i)
-									+ " and " + domNames.get(j)
-									+ " overlap (both contain " + value
-									+ "). Merging...");
+						if(verbose)
+							System.out.println("Domains " + domNames.get(i) + " and " + domNames.get(j) + " overlap (both contain " + value + "). Merging...");
 						String targetDomName = domNames.get(i);
 						this.model.replaceType(domNames.get(j), targetDomName);
 						// add all elements of j-th domain to the i-th
 						dom1.addAll(dom2);
 						doms.set(j, dom1);
-						for (String v : dom2)
+						for(String v : dom2)
 							entity2type.put(v, targetDomName);
 						break;
 					}
@@ -402,23 +386,22 @@ public class Database {
 	 * @throws Exception
 	 */
 	public Iterable<String> getDomain(String domName) throws Exception {
-		if (taxonomy == null)
+		if(taxonomy == null)
 			return domains.get(domName);
-		else { // if we have a taxonomy, the domain is the combination of
-			// domains of the given type and all of its sub-types
+		else { // if we have a taxonomy, the domain is the combination of domains of the given type and all of its sub-types
 			MultiIterator<String> dom = multiDomains.get(domName);
-			if (dom != null)
+			if(dom != null)
 				return dom;
 			dom = new MultiIterator<String>();
 			boolean isEmpty = true;
-			for (Concept c : taxonomy.getDescendants(domName)) {
+			for(Concept c : taxonomy.getDescendants(domName)) {
 				Iterable<String> subdom = domains.get(c.name);
-				if (subdom != null) {
+				if(subdom != null) {
 					dom.add(subdom);
 					isEmpty = false;
 				}
 			}
-			if (isEmpty)
+			if(isEmpty)
 				dom = null;
 			multiDomains.put(domName, dom);
 			return dom;
@@ -426,36 +409,37 @@ public class Database {
 	}
 
 	/**
-	 * retrieves all entries in the database
+	 * retrieves all entries in the database TODO Because of the prolog database
+	 * extension, calling this method should render the database immutable
 	 * 
 	 * @return
 	 * @throws Exception
 	 */
 	public Collection<Variable> getEntries() throws Exception {
-		// TODO if prolog is not null, extend database (unless it has already
-		// been extended)
-		if (prolog != null && !prologDatabaseExtended) {
+		// If we are using a Prolog KB, extend the database (unless it has already been extended)
+		// TODO This does quite a bit of unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query 
+		if(prolog != null && !prologDatabaseExtended) {			
 			prologDatabaseExtended = true;
-			// Collection<String> rules = model.getPrologRules();
-			for (Signature sig : this.model.getSignatures()) {
-				if (sig.isLogical) {
+			for(Signature sig : this.model.getSignatures()) {
+				if(sig.isLogical) {
 					Collection<String[]> bindings = ParameterGrounder.generateGroundings(sig, this);
-					for (String[] b : bindings) {
-						String[] c = new String[b.length];
-						for (int j = 0; j < b.length; j++)
-							c[j] = b[j].substring(0, 1).toLowerCase() + b[j].substring(1);
-						boolean value = prolog.ask(Signature.formatVarName(
-								sig.functionName, c));
-						Variable var = new Variable(sig.functionName, b,
-								value ? "True" : "False", model);
-						this.addVariable(var);
-						System.out.println("adding " + var
-								+ " computed by Prolog");
+					for(String[] b : bindings) {
+						boolean value = getPrologValue(sig, b);	
+						Variable var = new Variable(sig.functionName, b, value ? "True" : "False", model);
+						this.addVariable(var, false, false);
+						System.out.println("Prolog: computed " + var);
 					}
 				}
-			}
+			}			
 		}
 		return entries.values();
+	}
+	
+	protected boolean getPrologValue(Signature sig, String[] args) throws ParseException {
+		String[] prologArgs = new String[args.length];
+		for(int j = 0; j < args.length; j++)
+			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
+		return prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
 	}
 
 	/**
@@ -468,7 +452,7 @@ public class Database {
 		Collection<Variable> vars = getEntries();
 		String[][] ret = new String[entries.size()][2];
 		int i = 0;
-		for (Variable var : vars) {
+		for(Variable var : vars) {
 			ret[i][0] = var.getKeyString();
 			ret[i][1] = var.value;
 			i++;
@@ -485,27 +469,25 @@ public class Database {
 	 */
 	public void setClosedWorldPred(String predName) throws Exception {
 		Signature sig = this.model.getSignature(predName);
-		if (sig == null)
+		if(sig == null)
 			throw new Exception("Cannot determine signature of " + predName);
 		String[] params = new String[sig.argTypes.length];
 		setClosedWorldPred(sig, 0, params);
 	}
 
-	protected void setClosedWorldPred(Signature sig, int i, String[] params)
-			throws Exception {
-		if (i == params.length) {
+	protected void setClosedWorldPred(Signature sig, int i, String[] params) throws Exception {
+		if(i == params.length) {
 			String varName = Signature.formatVarName(sig.functionName, params);
-			if (!this.contains(varName)) {
-				Variable var = new Variable(sig.functionName, params.clone(),
-						"False", model);
+			if(!this.contains(varName)) {
+				Variable var = new Variable(sig.functionName, params.clone(), "False", model);
 				this.addVariable(var);
 			}
 			return;
 		}
 		Iterable<String> dom = this.getDomain(sig.argTypes[i]);
-		if (dom == null)
+		if(dom == null)
 			return;
-		for (String value : dom) {
+		for(String value : dom) {
 			params[i] = value;
 			setClosedWorldPred(sig, i + 1, params);
 		}
@@ -516,15 +498,13 @@ public class Database {
 	}
 
 	public void printDomain(PrintStream out) {
-		for (Entry<String, HashSet<String>> e : domains.entrySet()) {
-			out
-					.println(e.getKey() + ": "
-							+ StringTool.join(", ", e.getValue()));
+		for(Entry<String, HashSet<String>> e : domains.entrySet()) {
+			out.println(e.getKey() + ": " + StringTool.join(", ", e.getValue()));
 		}
 	}
 
 	public void print() throws Exception {
-		for (Variable v : getEntries())
+		for(Variable v : getEntries())
 			System.out.println(v.toString());
 	}
 
@@ -540,54 +520,46 @@ public class Database {
 	/**
      * 
      * */
-	public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes)
-			throws Exception {
+	public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
 		boolean verbose = false;
 
 		// read file content
-		if (verbose)
+		if(verbose)
 			System.out.printf("reading contents of %s...\n", databaseFilename);
 		String dbContent = FileUtil.readTextFile(databaseFilename);
 
 		// remove comments
 		// if (verbose) System.out.println("  removing comments...");
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/",
-				Pattern.MULTILINE | Pattern.DOTALL);
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(dbContent);
 		dbContent = matcher.replaceAll("");
 
 		// read lines
 		// if (verbose) System.out.println("  reading items...");
-		Pattern re_entry = Pattern
-				.compile("[!]?[a-z]+[\\w]*[(]{1}([a-z|A-Z|0-9]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z|0-9]+[\\w]*[!]?))*[)]{1}");
-		Pattern funcName = Pattern
-				.compile("([!]?\\w+)(\\()(\\s*[A-Z|0-9]+[\\w+\\s*(,)]*\\s*)(\\))");
+		Pattern re_entry = Pattern.compile("[!]?[a-z]+[\\w]*[(]{1}([a-z|A-Z|0-9]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z|0-9]+[\\w]*[!]?))*[)]{1}");
+		Pattern funcName = Pattern.compile("([!]?\\w+)(\\()(\\s*[A-Z|0-9]+[\\w+\\s*(,)]*\\s*)(\\))");
 		Pattern domName = Pattern.compile("[a-z]+\\w+");
-		Pattern domCont = Pattern
-				.compile("\\{([\\s*[A-Z|0-9]+\\w*\\s*[,]?]+)\\}");
-		Pattern re_domDecl = Pattern
-				.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
+		Pattern domCont = Pattern.compile("\\{([\\s*[A-Z|0-9]+\\w*\\s*[,]?]+)\\}");
+		Pattern re_domDecl = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		Variable var;
-		while ((line = br.readLine()) != null) {
+		while((line = br.readLine()) != null) {
 			line = line.trim();
 			// parse variable assignment
 			matcher = re_entry.matcher(line);
-			if (matcher.matches()) {
+			if(matcher.matches()) {
 				matcher = funcName.matcher(line);
-				if (!matcher.matches()) {
+				if(!matcher.matches()) {
 					throw new Exception("Could not parse line: " + line);
 				}
 				matcher.find();
-				if (matcher.group(1).contains("!"))
-					var = new Variable(matcher.group(1).substring(1), matcher
-							.group(3).trim().split("\\s*,\\s*"), "False", model);
+				if(matcher.group(1).contains("!"))
+					var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False", model);
 				else
-					var = new Variable(matcher.group(1), matcher.group(3)
-							.trim().split("\\s*,\\s*"), "True", model);
+					var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True", model);
 
-				addVariable(var, ignoreUndefinedNodes);
+				addVariable(var, ignoreUndefinedNodes, true);
 				// if (++numVars % 100 == 0 && verbose)
 				// System.out.println("    " + numVars + " vars read\r");
 				continue;
@@ -598,18 +570,17 @@ public class Database {
 			Matcher domNamemat = domName.matcher(line);
 			Matcher domConst = domCont.matcher(line);
 
-			if (matcher1.matches() && domNamemat.find() && domConst.find()) { // parse
+			if(matcher1.matches() && domNamemat.find() && domConst.find()) { // parse
 				// domain
 				// decls
 				String domNam = domNamemat.group(0);
-				String[] constants = domConst.group(1).trim()
-						.split("\\s*,\\s*");
-				for (String c : constants)
+				String[] constants = domConst.group(1).trim().split("\\s*,\\s*");
+				for(String c : constants)
 					fillDomain(domNam, c);
 				continue;
 			}
 			// something else
-			if (line.length() != 0)
+			if(line.length() != 0)
 				System.err.println("Line could not be read: " + line);
 		}
 	}
@@ -619,9 +590,8 @@ public class Database {
 	 * @return
 	 */
 	public HashMap<String, HashSet<String>> getDomains() throws Exception {
-		if (taxonomy != null)
-			throw new Exception(
-					"Cannot safely return the set of domains for a model that uses a taxonomy");
+		if(taxonomy != null)
+			throw new Exception("Cannot safely return the set of domains for a model that uses a taxonomy");
 		return domains;
 	}
 
@@ -636,8 +606,8 @@ public class Database {
 	 * @return the type name or null if the constant is unknown
 	 */
 	public String getConstantType(String constant) {
-		for (Entry<String, HashSet<String>> e : this.domains.entrySet()) {
-			if (e.getValue().contains(constant)) {
+		for(Entry<String, HashSet<String>> e : this.domains.entrySet()) {
+			if(e.getValue().contains(constant)) {
 				return e.getKey();
 			}
 		}
@@ -648,18 +618,16 @@ public class Database {
 
 		RelationalModel model;
 
-		public Variable(String functionName, String[] params, String value,
-				RelationalModel model) {
+		public Variable(String functionName, String[] params, String value, RelationalModel model) {
 			super(functionName, params, value);
 			this.model = model;
 		}
 
 		public String getPredicate() {
-			if (isBoolean())
+			if(isBoolean())
 				return functionName + "(" + StringTool.join(",", params) + ")";
 			else
-				return functionName + "(" + StringTool.join(",", params) + ","
-						+ value + ")";
+				return functionName + "(" + StringTool.join(",", params) + "," + value + ")";
 		}
 
 		public boolean isBoolean() {
@@ -668,8 +636,7 @@ public class Database {
 
 		@Override
 		public String toString() {
-			return String.format("%s = %s", Signature.formatVarName(
-					functionName, params), value);
+			return String.format("%s = %s", Signature.formatVarName(functionName, params), value);
 		}
 	}
 }
