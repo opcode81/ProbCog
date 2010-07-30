@@ -11,7 +11,8 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import yprolog.ParseException;
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.prolog.PrologKnowledgeBase;
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
@@ -24,7 +25,7 @@ import edu.tum.cs.util.datastruct.MultiIterator;
  * 
  * @author jain
  */
-public class Database {
+public class Database implements IParameterHandler {
 
 	/**
 	 * maps variable names to Variable objects containing values
@@ -42,7 +43,8 @@ public class Database {
 	protected HashMap<String, String> entity2type;
 	protected HashMap<String, MultiIterator<String>> multiDomains;
 
-	protected boolean debug = true;
+	protected boolean debug = false;
+	protected ParameterHandler paramHandler;
 
 	/**
 	 * constructs an empty database for the given model
@@ -55,6 +57,8 @@ public class Database {
 		entries = new HashMap<String, Variable>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String, String[]>>();
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("debug", "setDebug");
 
 		// fill domains with guaranteed domain elements
 		for(Entry<String, String[]> e : model.getGuaranteedDomainElements().entrySet()) {
@@ -81,6 +85,10 @@ public class Database {
 			entity2type = new HashMap<String, String>();
 			multiDomains = new HashMap<String, MultiIterator<String>>();
 		}
+	}
+	
+	public void setDebug(boolean debug) {
+		this.debug = debug;
 	}
 
 	/**
@@ -161,14 +169,15 @@ public class Database {
 	/**
 	 * adds the given variable to the database if it isn't already present
 	 */
-	public void addVariable(Variable var) throws Exception {
-		addVariable(var, false, true);
+	public boolean addVariable(Variable var) throws Exception {
+		return addVariable(var, false, true);
 	}
 
-	protected void addVariable(Variable var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws Exception {
+	protected boolean addVariable(Variable var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws Exception {
+		boolean ret = false;
 		String entryKey = var.getKeyString().toLowerCase();
 		if(entries.containsKey(entryKey))
-			return;
+			return ret;
 		
 		// if(debug) System.out.println("adding var " + var);
 		
@@ -177,7 +186,7 @@ public class Database {
 		if(sig == null) {
 			// if the predicate is not in the model, end here
 			if(ignoreUndefinedFunctions)
-				return;
+				return ret;
 			else
 				throw new Exception(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
 		}
@@ -191,7 +200,7 @@ public class Database {
 					line += par.substring(0, 1).toLowerCase() + par.substring(1) + ",";
 				}
 				line = line.substring(0, line.length() - 1) + ")";
-				System.out.println(line + ". asserted to Prolog");
+				if(debug) System.out.println("Prolog: asserted " + line);
 				prolog.tell(line + ".");
 			}
 		}
@@ -209,6 +218,7 @@ public class Database {
 
 		// add the entry to the main store
 		entries.put(entryKey, var);
+		ret = true;
 
 		// update lookup tables for keys
 		// (but only if value is true)
@@ -216,7 +226,7 @@ public class Database {
 		if(keys != null) {
 			// add lookup entry if the variable value is true
 			if(!var.isTrue())
-				return;
+				return ret;
 			// update all keys
 			for(RelationKey key : keys) {
 				// compute key for map entry
@@ -235,7 +245,8 @@ public class Database {
 				}
 				hm.put(sb.toString(), var.params);
 			}
-		}
+		}		
+		return ret;
 	}
 
 	public String[] getParameterSet(RelationKey key, String[] keyValues) {
@@ -423,23 +434,31 @@ public class Database {
 			for(Signature sig : this.model.getSignatures()) {
 				if(sig.isLogical) {
 					Collection<String[]> bindings = ParameterGrounder.generateGroundings(sig, this);
-					for(String[] b : bindings) {
-						boolean value = getPrologValue(sig, b);	
-						Variable var = new Variable(sig.functionName, b, value ? "True" : "False", model);
-						this.addVariable(var, false, false);
-						System.out.println("Prolog: computed " + var);
-					}
+					for(String[] b : bindings) 
+						getPrologValue(sig, b);
 				}
 			}			
 		}
 		return entries.values();
 	}
 	
-	protected boolean getPrologValue(Signature sig, String[] args) throws ParseException {
+	/**
+	 * computes the value of a variable via Prolog and adds it to the database
+	 * @param sig
+	 * @param args
+	 * @return
+	 * @throws Exception 
+	 */
+	protected boolean getPrologValue(Signature sig, String[] args) throws Exception {
 		String[] prologArgs = new String[args.length];
 		for(int j = 0; j < args.length; j++)
 			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
-		return prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
+		boolean value = prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
+		Variable var = new Variable(sig.functionName, args, value ? "True" : "False", model);
+		boolean added = addVariable(var, false, false);
+		if(added && debug) 
+			System.out.println("Prolog: computed " + var);
+		return value;
 	}
 
 	/**
@@ -638,5 +657,10 @@ public class Database {
 		public String toString() {
 			return String.format("%s = %s", Signature.formatVarName(functionName, params), value);
 		}
+	}
+
+	@Override
+	public ParameterHandler getParameterHandler() {		
+		return paramHandler;
 	}
 }
