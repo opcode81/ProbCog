@@ -51,6 +51,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		generator = new Random();
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("confidenceIntervalSizeThreshold", "setConfidenceIntervalSizeThreshold");
+		paramHandler.add("randomSeed", "setRandomSeed");
 	}
 	
 	protected void createDistribution() throws Exception {
@@ -206,6 +207,10 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
 		this.evidenceDomainIndices = evidenceDomainIndices;
+	}
+	
+	public void setRandomSeed(int seed) {
+		generator.setSeed(seed);
 	}
 	
 	protected abstract SampledDistribution _infer() throws Exception;
