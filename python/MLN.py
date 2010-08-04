@@ -22,8 +22,19 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 '''
-reads Alchemy-style .mln files (see manual of the Alchemy system)
-with some limitations:
+Your MLN files may contain:
+    - domain declarations, e.g.
+            domainName = {value1, value2, value3}
+    - predicate declarations, e.g.
+            pred1(domainName1, domainName2)
+        mutual exclusiveness and exhaustiveness may be declared simultaneously, e.g.
+        pred1(a,b!) to state that for every constant value that variable a can take on, there is exactly one value that b can take on
+    - formulas, e.g.
+            12   cloudy(d)
+    - C++-style comments (i.e. // and /* */) anywhere
+
+The syntax of .mln files is mostly compatible to the Alchemy system (see manual of the Alchemy system)
+with the following limitations:
     - one line per definition, no line breaks allowed
     - all formulas must be preceded by a weight, which can be expressed as an arithmetic expression such as "1.0/3.0" or "log(0.5)"
       note that formulas are not decomposed into clauses but processed as is.
@@ -36,35 +47,17 @@ with some limitations:
       Like Alchemy, we support the prefix operators * on literals and + on variables to specify templates for formulas.
     - no support for functions
 
-Your MLN files may contain:
-    - domain declarations, e.g.
-            domainName = {value1, value2, value3}
-    - predicate declarations, e.g.
-            pred1(domainName1, domainName2)
-        mutual exclusiveness and exhaustiveness may be declared simultaneously, e.g.
-        pred1(a,b!) to state that for every constant value that variable a can take on, there is exactly one value that b can take on
-    - formulas, e.g.
-            12   cloudy(d)
-    - C++-style comments (i.e. // and /* */) anywhere
-
 As a special construct of our implementation, an MLN file may contain constraints of the sort
     P(foo(x, Bar)) = 0.5
 i.e. constraints on formula probabilities that cause weights to be automatically adjusted to conform to the constraint.
 Note that the MLN must contain the corresponding formula.
 
-We also support an alternate representation where the parameters are factors between 0 and 1 instead of regular weights.
+deprecated features: 
+
+We support an alternate representation where the parameters are factors between 0 and 1 instead of regular weights.
 To use this representation, make use of infer2 rather than infer to compute probabilities.
 To learn factors rather than regular weights, use "LL_fac" rather than "LL" as the method you supply to learnwts.
 (pseudolikelihood is currently unsupported for learning such representations)
-
-
-deprecated features: 
-
-We tried to add dynamic weight scaling based on the number of groundings of a formula:
-  * use the "_scaled" variants of the learning methods for learnwts
-  * use applyFormulaScales prior to inference to perform the scaling
-Currently, we do not think that all this makes a whole lot of sense though... (There are special cases where it actually helps to
-better handle domain shifts though)
 '''
 
 from __future__ import generators # required for jython 2.2
@@ -122,8 +115,8 @@ DYNAMIC_SCALING_THRESHOLD = 1e-3 # maximum difference between desired and comput
 DYNAMIC_SCALING_MAX_STEPS = 20 # maximum number of iterations
 
 class InferenceMethods:
-    exact, GibbsSampling, MCSAT, exactLazy = range(4)
-    _names = {exact: "exact inference", GibbsSampling: "Gibbs sampling", MCSAT: "MC-SAT", exactLazy: "lazy exact inference"}
+    exact, GibbsSampling, MCSAT, exactLazy, IPFPM_exact, IPFPM_MCSAT = range(6)
+    _names = {exact: "exact inference", GibbsSampling: "Gibbs sampling", MCSAT: "MC-SAT", exactLazy: "lazy exact inference", IPFPM_exact: "IPFP-M[exact]", IPFPM_MCSAT: "IPFP-M[MC-SAT]"}
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
@@ -254,7 +247,7 @@ class MLN:
             constructs an MLN object
             at least one of the arguments
                 filename_or_list: either a single filename or a list of filenames (.mln files)
-                mlnContent: string containing an MLN
+                mlnContent: string containing the MLN declarations
             must be given (both possible)
         '''
         t_start = time.time()
@@ -402,14 +395,14 @@ class MLN:
                             if inGroup:
                                 templateIdx2GroupIdx[idxTemplate] = idxGroup
                         except ParseException, e:
-                            sys.stderr.write("Error parsing formula '%s'\n" % formula)
+                            raise Exception("Error parsing formula '%s'\n" % formula)
             except:
                 sys.stderr.write("Error processing line '%s'\n" % line)
                 cls, e, tb = sys.exc_info()
                 traceback.print_tb(tb)
                 raise e
         # materialize formula templates
-        if verbose: print "materializing formula templates..." # TODO extend self.hard_formulas here
+        if verbose: print "materializing formula templates..."
         idxGroup = None
         prevIdxGroup = None
         group = []
@@ -568,14 +561,14 @@ class MLN:
         for f in self.formulas:
             if f.weight is not None:
                 w = str(f.weight)
-                try:
-                    while "$" in w: 
-                        w, numReplacements = re.subn('\$\w+', self._substVar, w)
-                        if numReplacements == 0:
-                            raise Exception("Undefined variable(s) referenced in '%s'" % w)
-                except:
-                    sys.stderr.write("Error substituting variable references in '%s'\n" % w)
-                    raise
+                while "$" in w:
+                    try: 
+                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
+                    except:
+                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
+                        raise
+                    if numReplacements == 0:
+                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
                 w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
                 try:
                     f.weight = eval(w)
@@ -663,25 +656,7 @@ class MLN:
                 sum += wts[gndFormula.idxFormula]
         return math.exp(sum)
 
-    def _calculateWorldValues_scaled(self, wts = None):
-        if wts == None:
-            wts = self._weights()
-        if ('wtsLastWorldValueComputation' in dir(self)) and (self.wtsLastWorldValueComputation == list(wts)): # avoid computing the values we already have
-            return
-        total = 0
-        for world in self.worlds:
-            weights = []
-            for gndFormula in self.gndFormulas:
-                if self._isTrue(gndFormula, world["values"]):
-                    weights.append(self.formulaScales[gndFormula.idxFormula] * wts[gndFormula.idxFormula])
-            exp_sum = math.exp(sum(weights))
-            total += exp_sum            
-            world["sum"] = exp_sum
-            world["weights"] = weights
-        self.partition_function = total
-        self.wtsLastWorldValueComputation = list(wts)
-
-    # get the names of all ground atoms of the given predicate
+   # get the names of all ground atoms of the given predicate
     def _getPredGroundings(self, predName):
         # get the string represenation of the first grounding of the predicate
         domNames = self.predicates[predName]
@@ -769,6 +744,12 @@ class MLN:
             return self.inferGibbs(what, given, verbose, **args)
         elif self.defaultInferenceMethod == InferenceMethods.MCSAT:
             return self.inferMCSAT(what, given, verbose, **args)
+        elif self.defaultInferenceMethod == InferenceMethods.exactLazy:
+            return self.inferExactLazy(what, given, **args)
+        elif self.defaultInferenceMethod == InferenceMethods.IPFPM_exact:
+            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.exact, **args)
+        elif self.defaultInferenceMethod == InferenceMethods.IPFPM_MCSAT:
+            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.MCSAT, **args)
         else:
             raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
 
@@ -900,6 +881,7 @@ class MLN:
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
             inferenceMethod: one of the inference methods defined in InferenceMethods
+            inferenceParams: parameters to pass on to the inference method
             given: if not None, fit parameters of posterior (given the evidence) rather than prior
             queries: queries to compute along the way, results for which will be returned
             threshold:
@@ -1040,10 +1022,12 @@ class MLN:
             # soft evidence
             if l[0] in "0123456789":
                 s = l.find(" ")
-                self.softEvidence.append({"expr": l[s+1:].replace(" ", ""), "p": float(l[:s])})
-                continue
+                gndAtom = l[s+1:].replace(" ", "") 
+                self.softEvidence.append({"expr": gndAtom, "p": float(l[:s])})
+                predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
+                domNames = self.predicates[predName]
             # domain declaration
-            if "{" in l:
+            elif "{" in l:
                 domName, constants = parseDomDecl(l)
                 domNames = [domName for c in constants]
             # literal
@@ -1391,26 +1375,6 @@ class MLN:
         print "grad =", grad
         return grad
 
-    def _negated_grad_pll(self, wt, *args):
-        return -self._grad_pll(wt)
-
-    def _negated_grad_pll_scaled(self, wt):
-        wt_scaled = numpy.zeros(len(wt), numpy.float64)
-        for i in range(len(wt)):
-            wt_scaled[i] = wt[i] * self.formulaScales[i]
-        return -self._grad_pll(wt_scaled)
-
-    def _negated_pll(self, wt, *args):
-        pll = self._pll(wt)
-        print "pll = %f" % pll
-        return -pll   
-
-    def _negated_pll_scaled(self, wt):
-        wt_scaled = numpy.zeros(len(wt), numpy.float64)
-        for i in range(len(wt)):
-            wt_scaled[i] = wt[i] * self.formulaScales[i]
-        return -self._pll(wt_scaled)
-
     def _computeCounts(self):
         self.counts = {}
         # for each possible world
@@ -1533,19 +1497,6 @@ class MLN:
         idxTrainDB = args[0][0]
         self._calculateWorldValues_prob(wt)
         ll = math.log(self.worlds[idxTrainDB]["prod"] / self.partition_function)
-        print "ll =", ll
-        return ll
-
-    def _negated_grad_ll_prob(self, wt, *args):
-        return -self._grad_ll_prob(wt, args)
-
-    def _negated_ll_prob(self, wt, *args):
-        return -self._ll_prob(wt, args)
-
-    def _ll_scaled(self, wt, *args):
-        idxTrainDB = args[0]
-        self._calculateWorldValues_scaled(wt)
-        ll = math.log(self.worlds[idxTrainDB]["sum"] / self.partition_function)
         print "ll =", ll
         return ll
 
@@ -1737,14 +1688,6 @@ class MLN:
     def getBPLL(self):
         return self._blockpll(self._weights())
 
-    def _negated_grad_blockpll(self, wt, *args):
-        return -self._grad_blockpll(wt)
-
-    def _negated_blockpll(self, wt, *args):
-        bpll = self._blockpll(wt)
-        print "bpll = %f" % bpll
-        return -bpll
-
     # creates an array self.pllBlocks that contains tuples (idxGA, block);
     # one of the two tuple items is always None depending on whether the ground atom is in a block or not;
     def _getPllBlocks(self):
@@ -1805,29 +1748,19 @@ class MLN:
             for i in range(len(self.formulas)):
                 wt[i] = self.formulas[i].weight
         # optimization
-        if mode == 'PLL' or mode == 'PLL_scaled':
+        if mode == 'PLL':
             print "computing differences..."
             self._computeDiffs()
             print "  %d differences recorded" % len(self.diffs)
             print "determining relevant formulas for each ground atom..."
             self._getAtomRelevantGroundFormulas()
-            if mode == 'PLL_scaled':
-                self._getFormulaScales()
-                # scale the differences
-                for key, diff in self.diffs.iteritems():
-                    #self.diffs[key] *= self.formulaScales[key[0]]
-                    pass
-                # set functions
-                pllfunc = self._negated_pll_scaled
-                gradfunc = self._negated_grad_pll_scaled
-            else:
-                pllfunc = self._negated_pll
-                gradfunc = self._negated_grad_pll
+            pllfunc = lambda *args: -self._pll(*args)
+            gradfunc = lambda *args: -self._grad_pll(*args)
             print "starting optimization..."
             wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(pllfunc, wt, fprime=gradfunc, full_output=1)
             #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(pllfunc, wt, fprime=gradfunc, full_output=1)
             self.learnwts_message = "pseudo-log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-pll_opt, str(-grad_opt), func_calls, warn_flags)
-        elif mode in ['LL', 'LL_scaled', 'LL_neg', 'LL_fixed', 'LL_fixed_neg']:
+        elif mode in ['LL', 'LL_neg', 'LL_fixed', 'LL_fixed_neg']:
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
                 print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
@@ -1841,15 +1774,7 @@ class MLN:
             idxTrainingDB = self._getEvidenceWorldIndex()
             # mode-specific stuff
             gradfunc = self._grad_ll
-            if mode == 'LL_scaled':
-                self._getFormulaScales()
-                old_function = self._calculateWorldValues
-                self._calculateWorldValues = self._calculateWorldValues_scaled
-                llfunc = self._ll_scaled
-                for (key, count) in self.counts.iteritems():
-                    self.counts[key] *= self.formulaScales[key[1]]
-            else:
-                llfunc = self._ll
+            llfunc = self._ll
             args = [idxTrainingDB]
             if mode == 'LL_fixed' or mode == 'LL_fixed_neg':
                 args.append(params['fixedWeights'])
@@ -1871,8 +1796,6 @@ class MLN:
                 grad_opt = d['grad']
             # add final log likelihood to learnwts status for output
             self.learnwts_message = "log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
-            if mode == 'LL_scaled':
-                self._calculateWorldValues = old_function
         elif mode == 'BPLL':
             # get blocks
             print "constructing blocks..."
@@ -1898,10 +1821,12 @@ class MLN:
                     w1 += 3
                 return
             
-            wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(self._negated_blockpll, wt, fprime=self._negated_grad_blockpll, full_output=1)
-            #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(self._negated_blockpll, wt, fprime=self._negated_grad_blockpll, full_output=1)
-            #wt, func_calls, grad_calls, hcalls, warn_flags  = fmin_ncg(self._negated_blockpll, wt, fprime=self._negated_grad_blockpll, full_output=1)
-            #wt, ll_opt, warn_flags  = fmin_tnc(self._negated_blockpll, wt, fprime=self._negated_grad_blockpll)
+            neg_llfunc = lambda *args: -self._blockpll(*args)
+            neg_grad = lambda wt: -self._grad_blockpll(wt)
+            wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(neg_llfunc, wt, fprime=neg_grad, full_output=1)
+            #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(neg_llfunc, wt, fprime=neg_grad, full_output=1)
+            #wt, func_calls, grad_calls, hcalls, warn_flags  = fmin_ncg(neg_llfunc, wt, fprime=neg_grad, full_output=1)
+            #wt, ll_opt, warn_flags  = fmin_tnc(neg_llfunc, wt, fprime=neg_grad)
             if grad_opt != None:
                 grad_str = "\n%s" % str(-grad_opt)
             else:
@@ -2076,30 +2001,6 @@ class MLN:
 
     def setRigidPredicate(self, predName):
         self.rigidPredicates.append(predName)
-
-    def _getFormulaScales(self):
-        maxcounts = {}
-        counts = []
-        for formula in self.formulas:
-            vars = formula.getVariables(self)
-            domcount = {}
-            for (var,dom) in vars.iteritems():
-                domcount[dom] = domcount.get(dom,0)+1
-            counts.append(domcount)
-            for dom in domcount:
-                maxcounts[dom] = max(maxcounts.get(dom,0), domcount[dom])
-        scales = []
-        for cnt in counts:
-            scale = 1
-            for dom in maxcounts:
-                scale *= len(self.domains[dom]) ** (maxcounts[dom] - cnt.get(dom,0))
-            scales.append(scale)
-        self.formulaScales = scales
-
-    def applyFormulaScales(self):
-        self._getFormulaScales()
-        for i,formula in enumerate(self.formulas):
-            formula.weight *= self.formulaScales[i]
 
     # write a .dot file for use with GraphViz (in order to visualize the current ground Markov network)
     # must call one of the combine* functions first
@@ -2646,6 +2547,8 @@ class GibbsSampler(MCMCInference):
 
 
 class MCSAT(MCMCInference):
+    ''' MC-SAT/MC-SAT-PC '''
+    
     def __init__(self, mln, verbose = False):
         Inference.__init__(self, mln)
         # minimize the formulas' weights by exploiting group information (in order to speed up convergence)
@@ -2843,8 +2746,6 @@ class MCSAT(MCMCInference):
                 add = False
                 if p < se["p"]:
                     add = True
-                #else:
-                #    add = random.uniform(0,1) < se["p"]
                 if add:
                     M.append(se["idxClausePositive"])
             else:
@@ -2852,8 +2753,6 @@ class MCSAT(MCMCInference):
                 add = False
                 if p > se["p"]:
                     add = True
-                #else:
-                #    add = random.uniform(0,1) < se["p"]
                 if add:
                     M.append(se["idxClauseNegative"])
         # (uniformly) sample a state that satisfies them
@@ -2868,7 +2767,7 @@ class MCSAT(MCMCInference):
     def _getProbConstraintsDeviation(self):
         if len(self.mln.softEvidence) == 0:
             return {}
-        se_mean, se_max, se_max_item = 0.0, 0.0, None
+        se_mean, se_max, se_max_item = 0.0, -1, None
         for se in self.mln.softEvidence:
             dev = abs((se["numTrue"] / self.step) - se["p"])
             se_mean += dev
