@@ -214,6 +214,7 @@ class BLNLearn:
         # network output
         dotpos = self.bif_filename.rfind(".")
         ext = self.bif_filename[dotpos+1:]
+        basename = self.bif_filename[:dotpos]
         self.net_output_filename.set("%s.learnt.%s" % (basename, ext))
         
     def showBN(self):
