@@ -262,6 +262,26 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		return sample(cpt_entries, sum, generator);
 	}
 	
+	public double[] getConditionalDistribution(BeliefNode node, int[] nodeDomainIndices) {
+		CPF cpf = node.getCPF();
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		int[] addr = new int[domProd.length];
+		// get the addresses of the first two relevant fields and the difference between them
+		for(int i = 1; i < addr.length; i++)
+			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];		
+		addr[0] = 0; // (the first element in the index into the domain of the node we are sampling)
+		int realAddr = cpf.addr2realaddr(addr);
+		addr[0] = 1;
+		int diff = cpf.addr2realaddr(addr) - realAddr; // diff is the address difference between two consecutive entries in the relevant column
+		// get probabilities for outcomes
+		double[] cpt_entries = new double[domProd[0].getDomain().getOrder()];
+		for(int i = 0; i < cpt_entries.length; i++){
+			cpt_entries[i] = cpf.getDouble(realAddr);
+			realAddr += diff;
+		}
+		return cpt_entries;
+	}
+	
 	public int getNodeIndex(BeliefNode node) {
 		return nodeIndices.get(node);
 	}
