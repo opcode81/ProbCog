@@ -23,7 +23,7 @@ public class InferenceResult implements Comparable<InferenceResult> {
 	}
 	
 	public void print() {
-		System.err.println(varName + ":");
+		System.out.println(varName + ":");
 		if(additionalInfo == null)
 			for(int i = 0; i < domainElements.length; i++)
 				System.out.println(String.format("  %.4f %s", probabilities[i], domainElements[i]));
