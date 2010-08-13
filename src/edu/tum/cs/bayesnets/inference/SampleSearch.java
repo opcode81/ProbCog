@@ -26,6 +26,10 @@ public class SampleSearch extends Sampler {
 		return bn.getTopologicalOrder();
 	}
 	
+	protected void info(int step) {
+		System.out.println("  step " + step);
+	}
+	
 	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
@@ -36,7 +40,7 @@ public class SampleSearch extends Sampler {
 		for(int i = 1; i <= numSamples; i++) {
 			currentStep = i;
 			if(i % infoInterval == 0)
-				System.out.println("  step " + i);			
+				info(i);			
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			if(ret != null) {
 				if(false) { // debugging of weighting
