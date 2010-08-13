@@ -96,7 +96,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			// TODO try string transform: Two formulas are equivalent if they are the same except for the universally quantified variables
 			// TODO Important: equivalence ONLY results if the parent ordering is also the same!!! must ensure this
 			String cpfid; 
-			if(useFormulaSimplification || true) {
+			if(useFormulaSimplification) {
 				cpfid = "F" + i; // treat all formulas differently
 			}
 			else
