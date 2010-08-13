@@ -50,7 +50,7 @@ public class ParameterHandler {
 	public void onAddedSubhandler(ParameterHandler h) throws Exception {
 		// see if the new subhandler allows us to handle unhandled params
 		if(!unhandledParams.isEmpty())
-			handle(submittedParams, unhandledParams, false);		
+			handle(submittedParams, (Collection<String>)unhandledParams.clone(), false);		
 		// notify parents of addition of subhandler
 		for(ParameterHandler parent : this.parenthandlers)
 			parent.onAddedSubhandler(h);		
