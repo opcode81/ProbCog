@@ -237,6 +237,10 @@ class ObjectContainer:
         self.objects.append(object)
     
     def sampleSet(self, minObjects = 1, maxObjects = None):
+        '''
+            samples minObjects to maxObjects from this container (the number is uniformly chosen), returning a new container.
+            If maxObjects is None, at most as many objects are chosen as there are in the container
+        '''
         if maxObjects == None:
             maxObjects = len(self.objects)
         return ObjectContainer(sample(self.objects, random.randint(minObjects, maxObjects)))
@@ -282,6 +286,9 @@ class ObjectContainer:
     
     def filter(self, criterion):
         return ObjectContainer(filter(criterion, self.objects))
+
+    def clear(self):
+        self.objects = []
 
 class World:
     def __init__(self):
@@ -390,7 +397,10 @@ class World:
 
     def __getitem__(self, key):
         return self.getContainer(key)
-
+    
+    def clear(self):
+        for c in self.containers.values():
+            c.clear()
 
 # *** ATTRIBUTE GENERATION ***
 
@@ -574,7 +584,7 @@ class Selector:
 
     def pick(self):
         ''' picks one or more objects, depending on concrete selector semantics; always returns a list '''
-        raise "abstract class"
+        raise Exception("abstract class")
     
     def pickOne(self):
         ''' performs the pick defined by the selector and returns the first object picked (if any) or None '''
@@ -584,6 +594,8 @@ class Selector:
         return None
    
 class SelFixed(Selector):
+    ''' always selects a particular object '''
+    
     def __init__(self, object):
         self.object = object
     
