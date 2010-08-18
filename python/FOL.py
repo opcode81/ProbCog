@@ -729,10 +729,20 @@ class CountConstraint(NonLogicalConstraint):
         if op == "==": op = "="
         return "count(%s | %s) %s %d" % (str(self.literal), ", ".join(self.fixed_params), op, self.count)
     
-    def iterGroundings(self, mln):        
-        other_params = list(set(self.literal.params).difference(self.fixed_params))
-        for assignment in self._iterAssignment(mln, list(self.fixed_params), {}):
+    def iterGroundings(self, mln):
+        a = {}
+        other_params = []
+        for param in self.literal.params:
+            if param[0].isupper():
+                a[param] = param
+            else:
+                if param not in self.fixed_params:
+                    other_params.append(param)
+        #other_params = list(set(self.literal.params).difference(self.fixed_params))
+        # for each assignment of the fixed parameters...
+        for assignment in self._iterAssignment(mln, list(self.fixed_params), a):
             gndAtoms = []
+            # generate a count constraint with all the atoms we obtain by grounding the other params
             for full_assignment in self._iterAssignment(mln, list(other_params), assignment):
                 gndLit = self.literal.ground(mln, full_assignment, None)
                 gndAtoms.append(gndLit.gndAtom)
