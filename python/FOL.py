@@ -846,9 +846,13 @@ class TreeBuilder(object):
             if len(toks) == 2:
                 self.stack.append(Equality(list(toks)))
         elif op == 'count':
-            if len(toks) == 4:
+            print toks
+            if len(toks) in (3,4):                
                 pred, pred_params = toks[0]
-                fixed_params, op, count = list(toks[1]), toks[2], int(toks[3])
+                if len(toks) == 3:
+                    fixed_params, op, count = [], toks[1], int(toks[2])
+                else:
+                    fixed_params, op, count = list(toks[1]), toks[2], int(toks[3])
                 self.stack.append(CountConstraint(pred, pred_params, fixed_params, op, count))
         #print str(self.stack[-1])
                 
@@ -887,7 +891,7 @@ literal = Optional(Literal("!") | Literal("*")) + atom
 predDecl = Group(predName + openRB + predDeclArgs + closeRB) + StringEnd()
 
 varList = Group(delimitedList(variable))
-count_constraint = Literal("count(").suppress() + atom + Literal("|").suppress() + varList + Literal(")").suppress() + (Literal("=") | Literal(">=") | Literal("<=")) + Word(nums)
+count_constraint = Literal("count(").suppress() + atom + Optional(Literal("|").suppress() + varList) + Literal(")").suppress() + (Literal("=") | Literal(">=") | Literal("<=")) + Word(nums)
 
 formula = Forward()
 exist = Literal("EXIST ").suppress() + Group(delimitedList(variable)) + openRB + Group(formula) + closeRB
@@ -924,7 +928,7 @@ def parseFormula(input):
 
 # main app for testing purposes only
 if __name__=='__main__':
-    test = 'NF'
+    test = 'count'
     if test == 'parsing':
         tests = ["numberEats(o,2) <=> EXIST p, p2 (eats(o,p) ^ eats(o,p2) ^ !(o=p) ^ !(o=p2) ^ !(p=p2) ^ !(EXIST q (eats(o,q) ^ !(p=q) ^ !(p2=q))))",
                  "EXIST y (rel(x,y) ^ EXIST y2 (!(y2=y) ^ rel(x,y2)) ^ !(EXIST y3 (!(y3=y) ^ !(y3=y2) ^ rel(x,y3))))",
@@ -959,6 +963,7 @@ if __name__=='__main__':
         f.printStructure()
     elif test == 'count':
         c = "count(directs(a,m)|m) >= 4"
+        c = "count(foo(a,Const)) = 2"
         #c = count_constraint.parseString(c)
         c = parseFormula(c)
         print str(c)
