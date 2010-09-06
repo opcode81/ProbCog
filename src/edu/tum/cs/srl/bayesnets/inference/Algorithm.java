@@ -13,6 +13,7 @@ import edu.tum.cs.bayesnets.inference.BNJPearl;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithChildren;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
+import edu.tum.cs.bayesnets.inference.BeliefPropagation;
 import edu.tum.cs.bayesnets.inference.EnumerationAsk;
 import edu.tum.cs.bayesnets.inference.IJGP;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeighting;
@@ -40,6 +41,7 @@ public enum Algorithm {
 		SampleSearch("SampleSearch: backtracking search for satisfiable states", null, SampleSearch.class),
 		MCSAT("MC-SAT (MCMC method based on SAT-solving)", MCSAT.class, null),
 		IJGP("Iterative Join-Graph Propagation", null, IJGP.class),
+		BeliefPropagation("Belief Propagation", null, BeliefPropagation.class),
 		EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", null, EnumerationAsk.class),
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", null, SmilePearl.class),
