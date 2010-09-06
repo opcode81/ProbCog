@@ -57,10 +57,13 @@ public class GroundAtom extends Formula {
 		return predicate + "(" + StringTool.join(",", args) + ")";
 	}
 
-
-
 	@Override
 	public Formula toCNF() {
+		return this;
+	}
+	
+	@Override
+	public Formula toNNF() {		
 		return this;
 	}
 

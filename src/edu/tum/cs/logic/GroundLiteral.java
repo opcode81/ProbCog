@@ -42,6 +42,11 @@ public class GroundLiteral extends Formula {
 	public Formula toCNF() {		
 		return this;
 	}
+
+	@Override
+	public Formula toNNF() {		
+		return this;
+	}
 	
 	public void negate() {
 		isPositive = !isPositive;

@@ -92,6 +92,20 @@ public class Conjunction extends ComplexFormula {
         return new Conjunction(clauses);
     }
 
+    @Override
+    public Formula toNNF() {
+    	Vector<Formula> conjuncts = new Vector<Formula>();
+    	for(Formula child : this.children) {
+    		Formula newChild = child.toNNF();
+    		if(newChild instanceof Conjunction) { // flatten nested conjunction
+    			for(Formula nestedChild : ((Conjunction)newChild).children)
+    				conjuncts.add(nestedChild);
+    		}
+    		else
+    			conjuncts.add(newChild);			
+    	}
+    	return new Conjunction(conjuncts);
+    }
 
     /**
      * This method simplifies the formula (atoms that are given by the evidence are evaluated to TrueFalse)

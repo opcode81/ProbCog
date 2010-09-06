@@ -50,6 +50,32 @@ public class Negation extends ComplexFormula {
             throw new RuntimeException("CNF conversion of negation of " + children[0].getClass().getSimpleName() + " not handled.");
         }
     }
+    
+    @Override
+    public Formula toNNF() {
+        Formula f = children[0].toNNF();
+        if (f instanceof ComplexFormula) {
+            Vector<Formula> negChildren = new Vector<Formula>();
+            for (Formula child : ((ComplexFormula) f).children)
+                negChildren.add(new Negation(child));
+            if (f instanceof Disjunction)
+                return new Conjunction(negChildren).toNNF();
+            else
+                return new Disjunction(negChildren).toNNF();
+        } else {
+            if (f instanceof GroundLiteral) {
+                GroundLiteral l = (GroundLiteral) f;
+                return new GroundLiteral(!l.isPositive, l.gndAtom);
+            } else if (f instanceof TrueFalse) {
+                TrueFalse tf = (TrueFalse) f;
+                return TrueFalse.getInstance(!tf.isTrue());
+            }
+            else if(f instanceof GroundAtom) {
+            	return new GroundLiteral(false, (GroundAtom)f);
+            }
+            throw new RuntimeException("CNF conversion of negation of " + children[0].getClass().getSimpleName() + " not handled.");
+        }
+    }
 
     /**
      * this method simplifies the formula (atoms of this formula that are given by the evidence are evaluated to TrueFalse)

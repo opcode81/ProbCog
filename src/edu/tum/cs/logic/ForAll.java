@@ -50,4 +50,9 @@ public class ForAll extends UngroundedFormula {
 	public Formula toCNF() {
 		throw new RuntimeException("Cannot convert ungrounded formula to CNF.");
 	}
+	
+	@Override
+	public Formula toNNF() {
+		throw new RuntimeException("Cannot convert ungrounded formula to NNF.");
+	}
 }
