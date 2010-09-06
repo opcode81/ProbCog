@@ -22,6 +22,7 @@ public enum Algorithm {
 	SATIS("SAT-IS: satisfiability-based importance sampling", SATIS_BSampler.class),
 	SampleSearch("SampleSearch: backtracking search for satisfiable states", SampleSearch.class),
 	IJGP("Iterative Join-Graph Propagation", IJGP.class),
+	BeliefPropagation("Belief Propagation", BeliefPropagation.class),
 	EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", EnumerationAsk.class),
 	Pearl("Pearl's algorithm for polytrees (exact)", BNJPearl.class),
 	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", SmilePearl.class),
