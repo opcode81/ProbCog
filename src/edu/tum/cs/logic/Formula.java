@@ -102,6 +102,8 @@ public abstract class Formula {
 	}
 
 	public abstract Formula toCNF();
+	
+	public abstract Formula toNNF();
 
 	/**
 	 * simplifies the formula by removing parts of the formula that can be evaluated 

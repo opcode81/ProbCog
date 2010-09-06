@@ -78,6 +78,21 @@ public class Disjunction extends ComplexFormula {
             return new Conjunction(elems).toCNF();
         }
     }
+    
+    @Override
+    public Formula toNNF() {
+    	Vector<Formula> disjuncts = new Vector<Formula>();
+    	for(Formula child : this.children) {
+    		Formula newChild = child.toNNF();
+    		if(newChild instanceof Disjunction) { // flatten nested disjunction
+    			for(Formula nestedChild : ((Disjunction)newChild).children)
+    				disjuncts.add(nestedChild);
+    		}
+    		else
+    			disjuncts.add(newChild);			
+    	}
+    	return new Disjunction(disjuncts);
+    }
 
     /**
      * This method simplifies the formula (atoms that are given by the evidence are evaluated to TrueFalse)

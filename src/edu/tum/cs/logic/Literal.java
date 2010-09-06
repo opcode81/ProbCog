@@ -31,4 +31,9 @@ public class Literal extends UngroundedFormula {
 	public Formula toCNF() {
 		return this;
 	}
+	
+	@Override
+	public Formula toNNF() {
+		return this;
+	}
 }

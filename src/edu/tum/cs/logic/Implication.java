@@ -28,6 +28,11 @@ public class Implication extends ComplexFormula {
 	public Formula toCNF() {		
 		return new Disjunction(new Negation(children[0]), children[1]).toCNF();
 	}
+	
+	@Override
+	public Formula toNNF() {		
+		return new Disjunction(new Negation(children[0]), children[1]).toNNF();
+	}
 
     @Override
     public Formula simplify(Database evidence) {

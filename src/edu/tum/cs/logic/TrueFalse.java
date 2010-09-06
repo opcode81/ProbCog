@@ -1,6 +1,5 @@
 package edu.tum.cs.logic;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +49,11 @@ public class TrueFalse extends Formula {
 
 	@Override
 	public Formula toCNF() {
+		return this;
+	}
+	
+	@Override
+	public Formula toNNF() {
 		return this;
 	}
 
