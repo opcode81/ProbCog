@@ -4,10 +4,13 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.datastruct.MutableDouble;
 
+/**
+ * (iterative/loopy) belief propagation 
+ * @author waldhers
+ */
 public class BeliefPropagation extends Sampler {
 
 	protected BeliefNode[] nodes;
@@ -37,7 +40,7 @@ public class BeliefPropagation extends Sampler {
 				}
 				piMessages.put(n,initPi);
 			}
-			for (BeliefNode n : bn.bn.getParents(node)){
+			for(BeliefNode n : bn.bn.getParents(node)){
 				int parentOrder = n.getDomain().getOrder();
 				double[] initLambda = new double[parentOrder];
 				for (int i = 0; i < parentOrder; i++){
@@ -72,17 +75,17 @@ public class BeliefPropagation extends Sampler {
 			// determine the variables to sum over
 			Vector<Integer> varsToSumOver = new Vector<Integer>();
 			for (BeliefNode p : lambdaMessages.keySet()){
-				if (p != n && nodeDomainIndices[bn.getNodeIndex(p)] == -1){
-					varsToSumOver.add(bn.getNodeIndex(p));
+				if (p != n && nodeDomainIndices[getNodeIndex(p)] == -1){ // TODO for Stefan to ack: replaced bn.getNodeIndex by this.getNodeIndex, because the former is very inefficient, since it constructs the vector of nodes each time and does a linear search
+					varsToSumOver.add(getNodeIndex(p));
 				}
 			}
 			// actual calculation of lambda message 
 			double normalize = 0.0;
 			for (int i = 0; i < lambdaMessages.get(n).length; i++){
-				nodeDomainIndices[bn.getNodeIndex(n)] = i;
+				nodeDomainIndices[getNodeIndex(n)] = i;
 				double sum = 0.0;
 				for (int j = 0; j < nodeOrder; j++){
-					nodeDomainIndices[bn.getNodeIndex(node)] = j;
+					nodeDomainIndices[getNodeIndex(node)] = j;
 					double prod = lambda.get(node)[j];
 					MutableDouble mutableSum = new MutableDouble(0.0);
 					computeLambdaMessages(n, varsToSumOver,0,nodeDomainIndices,mutableSum);
@@ -104,7 +107,7 @@ public class BeliefPropagation extends Sampler {
 				// multiply with incoming pi messages
 				for (BeliefNode p : bn.bn.getParents(node)){
 					if (n != p){
-						result *= messages.get(p).piMessages.get(node)[nodeDomainIndices[bn.getNodeIndex(p)]];
+						result *= messages.get(p).piMessages.get(node)[nodeDomainIndices[getNodeIndex(p)]];
 					}
 				}
 				sum.value += result;
@@ -146,17 +149,17 @@ public class BeliefPropagation extends Sampler {
 	
 	public void computePi(BeliefNode n, int[] nodeDomainIndices){
 		// determine the variables to sum over
-		if (evidenceDomainIndices[bn.getNodeIndex(n)] != -1)
+		if (evidenceDomainIndices[getNodeIndex(n)] != -1)
 			return;
-		Vector<Integer> varsToSumOver = new Vector<Integer>();
+		Vector<Integer> varsToSumOver = new Vector<Integer>(); // TODO varsToSumOver doesn't change; if need be, we can cache it 
 		for (BeliefNode p : bn.bn.getParents(n)){
-			if (nodeDomainIndices[bn.getNodeIndex(p)] == -1){
-				varsToSumOver.add(bn.getNodeIndex(p));
+			if (nodeDomainIndices[getNodeIndex(p)] == -1){
+				varsToSumOver.add(getNodeIndex(p));
 			}
 		}		
 		double normalize = 0.0;
 		for (int i = 0; i < pi.get(n).length; i++){
-			nodeDomainIndices[bn.getNodeIndex(n)] = i;
+			nodeDomainIndices[getNodeIndex(n)] = i;
 			MutableDouble mutableSum = new MutableDouble(0.0);
 			computePi(n,varsToSumOver,0,nodeDomainIndices,mutableSum);
 			pi.get(n)[i] = mutableSum.value;
@@ -172,7 +175,7 @@ public class BeliefPropagation extends Sampler {
 			double result = getCPTProbability(n, nodeDomainIndices);
 			// multiply with incoming pi messages
 			for (BeliefNode p : bn.bn.getParents(n)){
-				result *= messages.get(p).piMessages.get(n)[nodeDomainIndices[bn.getNodeIndex(p)]];
+				result *= messages.get(p).piMessages.get(n)[nodeDomainIndices[getNodeIndex(p)]];
 			}
 			sum.value += result;
 			return;
@@ -185,7 +188,7 @@ public class BeliefPropagation extends Sampler {
 	}
 	
 	public void computeLambda(BeliefNode n){
-		if (evidenceDomainIndices[bn.getNodeIndex(n)] != -1)
+		if (evidenceDomainIndices[getNodeIndex(n)] != -1)
 			return;
 		double normalize = 0.0;
 		for (int i = 0; i < lambda.get(n).length; i++){
@@ -221,18 +224,18 @@ public class BeliefPropagation extends Sampler {
 		// initialization of lambda and pi.
 		priors = bn.computePriors(evidenceDomainIndices);
 		for (BeliefNode n : nodes){
-			int nodeOrder = n.getDomain().getOrder();
-			int nodeIdx = evidenceDomainIndices[bn.getNodeIndex(n)];
+			int domSize = n.getDomain().getOrder();
+			int domIdx = evidenceDomainIndices[getNodeIndex(n)];
 			// build message function hashmap
 			messages.put(n, new BeliefMessageContainer(n));
 			// initialize probability distribution
-			double[] init = new double[nodeOrder];
+			double[] init = new double[domSize];
 			for (int i = 0; i < init.length; i++){
 				init[i] = 0.0;
 			}
 			// initialize evidence variables
-			if (nodeIdx != -1){
-				init[nodeIdx] = 1.0;
+			if (domIdx != -1){
+				init[domIdx] = 1.0;
 				lambda.put(n, init.clone());
 				pi.put(n, init.clone());
 			}
@@ -245,8 +248,8 @@ public class BeliefPropagation extends Sampler {
 				}
 				// initialize nodes without children
 				if (bn.bn.getChildren(n).length == 0){
-					double normalized = 1 / (double) nodeOrder;
-					double[] uniform = new double[nodeOrder];
+					double normalized = 1 / (double) domSize;
+					double[] uniform = new double[domSize];
 					for (int i = 0; i < uniform.length; i++){
 						uniform[i] = normalized;
 					}
@@ -281,9 +284,9 @@ public class BeliefPropagation extends Sampler {
 		for (int step = 1; step <= this.numSamples; step++) {	
 			// calculate pi(x)
 			for (BeliefNode n : nodes){
-				int[] nodeDomainIndices = evidenceDomainIndices.clone();
+				int[] nodeDomainIndices = evidenceDomainIndices.clone(); // TODO why do we clone each time? Isn't it enough to have one copy to work with for all nodes
 				boolean receivedAll = true;
-				// check, whether n has received all pi messages from it's parents
+				// check whether n has received all pi messages from its parents
 				for (BeliefNode c : bn.bn.getParents(n)){
 					double sum = 0.0;
 					for (double d : messages.get(c).piMessages.get(n)){
@@ -325,12 +328,14 @@ public class BeliefPropagation extends Sampler {
 					sum += d;
 				}
 				if (sum != 0){
-					for (BeliefNode c : bn.bn.getChildren(n)){
+					BeliefNode[] children = bn.bn.getChildren(n); // TODO for Stefan to ack: getChildren was called twice, should avoid because it's an expensive call (always reallocates the vector of children)
+					for (BeliefNode c : children){
 						// ... and lambda received from all children except c
 						boolean receivedAll = true;
-						for (BeliefNode c2 : bn.bn.getChildren(n)){
+						for (BeliefNode c2 : children){
 							if ((c2 != c) && !messages.get(c2).sentLambdaMessageTo(n)){
 								receivedAll = false;
+								break;
 							}
 						}
 						if (receivedAll){
@@ -348,12 +353,13 @@ public class BeliefPropagation extends Sampler {
 					sum += d;
 				}
 				if (sum != 0){
-					for (BeliefNode p : bn.bn.getParents(n)){
+					for (BeliefNode p : bn.bn.getParents(n)){ // TODO note: a slightly better way of getting the parents (because it doesn't allocate any memory) is to use getCPF().getDomainProduct and iterate over the elements 1 to end
 						// ... and pi received from all parents except p
 						boolean receivedAll = true;
 						for (BeliefNode p2 : bn.bn.getParents(n)){
 							if ((p2 != p) && !messages.get(p2).sentPiMessageTo(n)){
 								receivedAll = false;
+								break;
 							}
 						}
 						if (receivedAll){
@@ -403,7 +409,7 @@ public class BeliefPropagation extends Sampler {
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (BeliefNode n : nodes) {
-			int i = bn.getNodeIndex(n);
+			int i = getNodeIndex(n);
 			if (evidenceDomainIndices[i] >= 0) {
 				dist.values[i][evidenceDomainIndices[i]] = 1.0;
 				continue;
