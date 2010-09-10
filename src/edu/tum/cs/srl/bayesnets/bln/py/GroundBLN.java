@@ -47,14 +47,13 @@ public class GroundBLN extends AbstractGroundBLN {
 			String nodeName = "GF" + gf.idxGF;
 			System.out.println(nodeName + ": " + gf);
 			Vector<String> GAs = gf.getGroundAtoms();
-			Pair<BeliefNode, BeliefNode[]> nodeData = addHardFormulaNode(nodeName, GAs);
-			BeliefNode node = nodeData.first;
+			BeliefNode node = addHardFormulaNode(nodeName, GAs);
 			// add edges from ground atoms						
 			sw_structure.stop();
 			// fill CPT according to formula semantics
 			// TODO try to reuse CPFs generated for previous formulas with same formula index
 			sw_cpt.start();
-			fillFormulaCPF(gf, node.getCPF(), nodeData.second, GAs);
+			fillFormulaCPF(gf, node.getCPF(),GAs);
 			sw_cpt.stop();
 		}
 		System.out.println("    structure time: " + sw_structure.getElapsedTimeSecs() + "s");
@@ -69,17 +68,18 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
 	 * @throws Exception
 	 */
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, BeliefNode[] parents, Vector<String> parentGAs) throws Exception {
+	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
-		fillFormulaCPF(gf, cpf, parents, parentGAs, 0, addr);
+		fillFormulaCPF(gf, cpf, parentGAs, 1, addr);
 	}
 	
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, BeliefNode[] parents, Vector<String> parentGAs, int iParent, int[] addr) throws Exception {
+	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs, int iDomProd, int[] addr) throws Exception {
+		BeliefNode[] domprod = cpf.getDomainProduct();
 		// if all parents have been set, determine the truth value of the formula and 
 		// fill the corresponding column of the CPT 
 		State state = ((BayesianLogicNetworkPy)bln).getState();
-		if(iParent == parents.length) {
+		if(iDomProd == domprod.length) {
 			// get truth value of formula
 			double value = gf.isTrue(state) ? 1 : 0;
 			/*
@@ -97,8 +97,8 @@ public class GroundBLN extends AbstractGroundBLN {
 			return;
 		}
 		// otherwise get the next ground atom and consider all of its groundings
-		BeliefNode parent = parents[iParent];
-		String parentGA = parentGAs.get(iParent);
+		BeliefNode parent = domprod[iDomProd];
+		String parentGA = parentGAs.get(iDomProd-1);
 		Discrete domain = (Discrete)parent.getDomain();
 		boolean isBoolean = RelationalBeliefNetwork.isBooleanDomain(domain);		
 		// - get the domain index that corresponds to setting the atom to true
@@ -113,17 +113,6 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 		// - recursively consider all settings
 		for(int i = 0; i < domain.getOrder(); i++) {
-			// TODO make this faster -- contrary to my expectations, the order of the connect calls does not cause there to be a corresponding ordering in the CPF (seems arbitrary, possibly node index or something)
-			// find the correct address index
-			BeliefNode[] domProd = cpf.getDomainProduct();
-			int iDomProd = -1;
-			for(int j = 1; j < domProd.length; j++)
-				if(domProd[j] == parent) {
-					iDomProd = j;
-					break;
-				}
-			if(iDomProd == -1)
-				throw new Exception("Parent could not be found in domain product.");
 			// set address 
 			addr[iDomProd] = i;
 			// set state for logical reasoner
@@ -132,7 +121,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			else
 				state.set(parentGA, false);
 			// recurse
-			fillFormulaCPF(gf, cpf, parents, parentGAs, iParent+1, addr);
+			fillFormulaCPF(gf, cpf, parentGAs, iDomProd+1, addr);
 		}
 	}
 	
