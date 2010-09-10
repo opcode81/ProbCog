@@ -281,7 +281,11 @@ public class BeliefPropagation extends Sampler {
 		
 		// Belief Propagation Steps		
 		
-		for (int step = 1; step <= this.numSamples; step++) {	
+		for (int step = 1; step <= this.numSamples; step++) {
+			
+			if(step % this.infoInterval == 0)
+				System.out.println("step " + step);
+			
 			// calculate pi(x)
 			for (BeliefNode n : nodes){
 				int[] nodeDomainIndices = evidenceDomainIndices.clone(); // TODO why do we clone each time? Isn't it enough to have one copy to work with for all nodes
