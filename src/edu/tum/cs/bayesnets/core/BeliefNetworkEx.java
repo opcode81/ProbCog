@@ -35,6 +35,8 @@ import edu.ksu.cis.bnj.ver3.streams.Exporter;
 import edu.ksu.cis.bnj.ver3.streams.Importer;
 import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
+import edu.ksu.cis.util.graph.core.Graph;
+import edu.ksu.cis.util.graph.core.Vertex;
 import edu.tum.cs.bayesnets.core.io.Converter_ergo;
 import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
@@ -242,6 +244,31 @@ public class BeliefNetworkEx {
 			e2.printStackTrace(System.out);
 			throw e2;
 		}
+	}
+	
+	/** connect two nodes
+	 * @param parent	parent which the bnode will be a child of
+	 * @param child  	node which will be made a child of parent
+	 * @param adjustCPF whether to adjust the CPF as well (otherwise only the graph is altered); should be set to false only if the CPF is manually initialized later on
+	 */
+	public void connect(BeliefNode parent, BeliefNode child, boolean adjustCPF) {
+		Graph graph = bn.getGraph();
+		graph.addDirectedEdge(parent.getOwner(), child.getOwner());
+		if(adjustCPF) {
+			Vertex[] parents = graph.getParents(child.getOwner());
+			BeliefNode[] after = new BeliefNode[parents.length + 1];
+			for (int i = 0; i < parents.length; i++)
+			{
+				after[i + 1] = ((BeliefNode) parents[i].getObject());
+			}
+			after[0] = child;
+			CPF beforeCPF = child.getCPF();
+			child.setCPF(beforeCPF.expand(after));
+		}
+	}
+	
+	public void connect(BeliefNode parent, BeliefNode child) {
+		connect(parent, child, true);
 	}
 	
 	/**
