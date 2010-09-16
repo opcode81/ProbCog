@@ -275,7 +275,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			if(!closedWorld) {
 				String varName = Signature.formatVarName(node.getFunctionName(), params);
 				if(!db.contains(varName))
-					return;
+					throw new Exception("Incomplete data: No value for " + varName);
 			}
 			
 			// to determine if we really have to count the example, we must
