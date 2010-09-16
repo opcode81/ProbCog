@@ -1,12 +1,13 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
@@ -20,7 +21,6 @@ import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.OrderedSet;
-import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * represents a grounded Bayesian logic network (i.e. a mixed network)
@@ -75,6 +75,7 @@ public class GroundBLN extends AbstractGroundBLN {
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
 		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification); 
 		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
+		HashMap<String, Value[]> cpfCache = new HashMap<String, Value[]>();
 		int i = 0;
 		for(Formula gf : gkb) {			
 			if(!useFormulaSimplification)
@@ -86,7 +87,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			// NOTE: we use an ordered set to guarantee that the ordering of nodes is the same 
 			//       across all instances of a formula template; such that (if formulas are not
 			//       simplified using the evidence) we could use the same CPF for all of the
-			//       instances of a formula  (TODO exploit this to save memory)
+			//       instances of a formula
 			Set<GroundAtom> gas = new OrderedSet<GroundAtom>();  
 			gf.getGroundAtoms(gas);
 			System.out.printf("      referenced ground atoms in GF%d: %s\n", i, StringTool.join(", ", gas));
@@ -96,11 +97,10 @@ public class GroundBLN extends AbstractGroundBLN {
 					throw new Exception("null ground atom encountered");
 				parentGAs.add(ga.toString());
 			}
-			BeliefNode node = addHardFormulaNode(nodeName, parentGAs);
+			BeliefNode node = addHardFormulaNode(nodeName, parentGAs); // this establishes connections and initialises the CPF
 			
 			// set CPF id (i.e. equivalence class id)
 			// TODO try string transform: Two formulas are equivalent if they are the same except for the universally quantified variables
-			// TODO Important: equivalence ONLY results if the parent ordering is also the same!!! must ensure this
 			String cpfid; 
 			if(useFormulaSimplification) {
 				cpfid = "F" + i; // treat all formulas differently
@@ -110,7 +110,16 @@ public class GroundBLN extends AbstractGroundBLN {
 			this.cpfIDs.put(node, cpfid);
 
 			// set CPF
-			fillFormulaCPF(gf, node.getCPF(), parentGAs);			
+			Value[] values = cpfCache.get(cpfid);
+			if(values != null) {
+				// Note: A value from the cache can only be used if formula simplification is not applied,
+				//		 because the CPF ids are never equal otherwise.
+				// TODO Is this really 100% safe? What about the case where constants appear in the formula, e.g. in "(x=Const)"? The above-mentioned string transform might be safer. 
+				node.getCPF().setValues(values);
+			}
+			else {
+				fillFormulaCPF(gf, node.getCPF(), parentGAs);
+			}
 			
 			++i;
 		}
