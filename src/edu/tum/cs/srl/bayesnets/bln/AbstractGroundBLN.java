@@ -57,7 +57,7 @@ public abstract class AbstractGroundBLN {
 	 * temporary storage of names of instantiated variables (to avoid duplicate instantiation during grounding)
 	 */
 	protected HashSet<String> instantiatedVariables;
-	protected HashMap<String, Value[]> subCPFCache;
+	protected HashMap<String, Value[]> cpfCache;
 	protected boolean debug = false;	
 	/**
 	 * maps an instantiated ground node to a string identifying the CPF template that was used to create it
@@ -134,7 +134,7 @@ public abstract class AbstractGroundBLN {
 		
 		// go through all function names and generate all groundings for each of them
 		instantiatedVariables = new HashSet<String>();
-		subCPFCache = new HashMap<String, Value[]>();
+		cpfCache = new HashMap<String, Value[]>();
 		for(String functionName : functionTemplates.keySet()) {
 			System.out.println("    " + functionName);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
@@ -145,7 +145,7 @@ public abstract class AbstractGroundBLN {
 		// clean up
 		instantiatedVariables = null;
 		functionTemplates = null;
-		subCPFCache = null;
+		cpfCache = null;
 		
 		// add auxiliary variables for formulaic constraints
 		if(addAuxiliaryVars) {
@@ -258,6 +258,8 @@ public abstract class AbstractGroundBLN {
 		}				
 		// - other case: use combination function
 		else { 
+			ArrayList<BeliefNode> domprod = new ArrayList<BeliefNode>();
+			domprod.add(mainNode);
 			// determine if auxiliary nodes need to be used and connect the parents appropriately			
 			if(!relNode.aggregator.isFunctional) {
 				// create auxiliary nodes, one for each set of parents
@@ -274,39 +276,60 @@ public abstract class AbstractGroundBLN {
 				// connect auxiliary nodes to main node
 				for(BeliefNode parent : auxNodes) {
 					//System.out.printf("connecting %s and %s\n", parent.getName(), mainNode.getName());
-					groundBN.bn.connect(parent, mainNode);
+					groundBN.connect(parent, mainNode, false);
+					domprod.add(parent);
 				}
 			}
 			// if the node is functionally determined by the parents, aux. nodes carrying the CPD in the template node are not required
 			// we link the grounded parents directly
 			else {
-				ArrayList<BeliefNode> domprod = new ArrayList<BeliefNode>(); // vector ordered by parent set (i.e. the parents belonging to a set are grouped)
-				domprod.add(mainNode);
+				// Note: we keep the vector of parents (in domprod) ordered by parent set (i.e. the parents belonging to a set are grouped)				
 				for(Map<Integer, String[]> grounding : groundings) {
 					HashMap<BeliefNode,BeliefNode> src2targetParent = new HashMap<BeliefNode,BeliefNode>();
 					connectParents(grounding, relNode, mainNode, src2targetParent, null);
 					domprod.addAll(src2targetParent.values());
 				}
-				// force parent ordering (ordered by group) in CPF
-				mainNode.getCPF().buildZero(domprod.toArray(new BeliefNode[domprod.size()]), false);
 			}
 			// apply combination function
-			Aggregator combFunc = relNode.aggregator;
-			CPFFiller filler;
+			Aggregator combFunc = relNode.aggregator;			
 			if(combFunc == Aggregator.FunctionalOr || combFunc == Aggregator.NoisyOr) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
-				// set filler
-				if(combFunc == Aggregator.FunctionalOr)
-					filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
-				else
-					filler = new CPFFiller_OR(mainNode);
+				// determine CPF-id
+				String cpfid = combFunc.getFunctionSyntax();
+				switch(combFunc) {
+				case FunctionalOr:
+					cpfid += String.format("-%d-%d", groundings.size(), groundings.firstElement().size());					
+					break;
+				case NoisyOr:
+					cpfid += String.format("-%d", groundings.size());
+					break;
+				}
+				// build the CPF
+				CPF cpf = mainNode.getCPF();
+				BeliefNode[] domprod_arr = domprod.toArray(new BeliefNode[domprod.size()]);
+				// - check if we have a cached CPF that we can reuse
+				Value[] values = cpfCache.get(cpfid);
+				if(values != null)
+					cpf.build(domprod_arr, values);
+				// - otherwise set and apply the filler
+				else {
+					cpf.buildZero(domprod_arr, false);
+					CPFFiller filler;
+					if(combFunc == Aggregator.FunctionalOr)
+						filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
+					else
+						filler = new CPFFiller_OR(mainNode);
+					filler.fill();
+					// store the newly built CPF in the cache
+					cpfCache.put(cpfid, cpf.getValues());
+				}
+				// set the CPF-id
+				cpfIDs.put(mainNode, cpfid); 
 			}
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
-			filler.fill();
-			cpfIDs.put(mainNode, combFunc.getFunctionSyntax()); // TODO does this make sense?
 		}
 		
 		return mainNode;
@@ -340,7 +363,7 @@ public abstract class AbstractGroundBLN {
 					throw new Exception("Could not find node for ground atom " + strGA);
 			}
 			domprod[i++] = parent;
-			groundBN.bn.connect(parent, node);
+			groundBN.connect(parent, node, false);
 		}
 		node.getCPF().buildZero(domprod, false); // ensure correct ordering in CPF
 		return node;
@@ -351,15 +374,18 @@ public abstract class AbstractGroundBLN {
 	}
 	
 	/**
-	 * connects the parents given by the grounding to the target node 
+	 * connects the parents given by the grounding to the target node but does *not* initialize the CPF 
 	 * @param parentGrounding
 	 * @param srcRelNode  the relational node that is to serve as the template for the target node
 	 * @param targetNode  the node in the ground network to connect the parents to
 	 * @param src2targetParent  a mapping in which to store which node in the template model produced which instantiated parent in the ground network (or null)
 	 * @param constantSettings  a mapping in which to store bindings of constants (or null)
+	 * @return the full domain of the target node's CPF 
 	 * @throws Exception 
 	 */
-	protected void connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws Exception {
+	protected Vector<BeliefNode> connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws Exception {
+		Vector<BeliefNode> domprod = new Vector<BeliefNode>();
+		domprod.add(targetNode);
 		HashSet<BeliefNode> handledTargetParents = new HashSet<BeliefNode>();
 		for(Entry<Integer, String[]> entry : parentGrounding.entrySet()) {
 			RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
@@ -381,9 +407,11 @@ public abstract class AbstractGroundBLN {
 				throw new Exception("Error instantiating " + targetNode + " from " + srcRelNode + ": Duplicate parent " + parent);
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
 			handledTargetParents.add(parent);
-			groundBN.bn.connect(parent, targetNode);
+			groundBN.connect(parent, targetNode, false);
+			domprod.add(parent);
 			if(src2targetParent != null) src2targetParent.put(relParent.node, parent);
 		}
+		return domprod;
 	}
 	
 	/**
@@ -397,7 +425,8 @@ public abstract class AbstractGroundBLN {
 		// connect parents, determine domain products, and set constant nodes (e.g. "x") to their respective constant value
 		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
-		connectParents(parentGrounding, srcRelNode, targetNode, src2targetParent, constantSettings);
+		Vector<BeliefNode> vDomProd = connectParents(parentGrounding, srcRelNode, targetNode, src2targetParent, constantSettings);
+		
 		
 		// set decision nodes as constantly true
 		BeliefNode[] srcDomainProd = srcRelNode.node.getCPF().getDomainProduct();
@@ -406,9 +435,9 @@ public abstract class AbstractGroundBLN {
 				constantSettings.put(srcDomainProd[i], 0); // 0 = True
 		}
 		
-		// establish the correct domain product order (which must reflect the order in the source node)
+		// get the correct domain product order (which must reflect the order in the source node)
 		CPF targetCPF = targetNode.getCPF();
-		BeliefNode[] targetDomainProd = targetCPF.getDomainProduct();
+		BeliefNode[] targetDomainProd = vDomProd.toArray(new BeliefNode[vDomProd.size()]);
 		int j = 1;
 		HashSet<BeliefNode> handledParents = new HashSet<BeliefNode>();
 		for(int i = 1; i < srcDomainProd.length; i++) {			
@@ -424,28 +453,27 @@ public abstract class AbstractGroundBLN {
 			}
 		}
 		if(j != targetDomainProd.length)
-			throw new Exception("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);
-		targetCPF.buildZero(targetDomainProd, false);
+			throw new Exception("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);		
 		
 		// transfer the CPF values
 		String cpfID = Integer.toString(srcRelNode.index);
 		// - if the original relational node had exactly the same number of parents as the instance, 
 		//   we can safely transfer its CPT to the instantiated node
 		if(srcDomainProd.length == targetDomainProd.length) {			
-			targetCPF.setValues(srcRelNode.node.getCPF().getValues());
+			targetCPF.build(targetDomainProd, srcRelNode.node.getCPF().getValues());
 		}
 		// - otherwise we must extract the relevant columns that apply to the constant setting
 		else {
 			Value[] subCPF;						
 			// get the subpart from the cache if possible
 			cpfID += constantSettings.toString(); 
-			subCPF = subCPFCache.get(cpfID);
+			subCPF = cpfCache.get(cpfID);
 			if(subCPF == null) {
 				subCPF = getSubCPFValues(srcRelNode.node.getCPF(), constantSettings);
-				subCPFCache.put(cpfID, subCPF);
+				cpfCache.put(cpfID, subCPF);
 			}
 			
-			targetCPF.setValues(subCPF);
+			targetCPF.build(targetDomainProd, subCPF);
 		}		
 		cpfIDs.put(targetNode, cpfID);
 		
