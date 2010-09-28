@@ -36,7 +36,7 @@ public class BeliefPropagation extends Sampler {
 			for (BeliefNode n : bn.bn.getChildren(node)){
 				double[] initPi = new double[nodeOrder];
 				for (int i = 0; i < nodeOrder; i++){
-					initPi[i] = 0.0;
+					initPi[i] = 1.0/nodeOrder;
 				}
 				piMessages.put(n,initPi);
 			}
@@ -44,7 +44,7 @@ public class BeliefPropagation extends Sampler {
 				int parentOrder = n.getDomain().getOrder();
 				double[] initLambda = new double[parentOrder];
 				for (int i = 0; i < parentOrder; i++){
-					initLambda[i] = 0.0;
+					initLambda[i] = 1.0/parentOrder;
 				}
 				lambdaMessages.put(n, initLambda);
 			}
@@ -65,6 +65,8 @@ public class BeliefPropagation extends Sampler {
 			}
 			// normalize
 			if (normalize != 0.0){
+				if (normalize == 0.0)
+					return;
 				for (int i = 0; i < nodeOrder; i++){
 					piMessages.get(n)[i] /= normalize;
 				}
@@ -95,6 +97,8 @@ public class BeliefPropagation extends Sampler {
 				normalize += sum;
 			}
 			if (normalize != 0.0){
+				if (normalize == 0.0)
+					return;
 				for (int i = 0; i < lambdaMessages.get(n).length; i++){
 					lambdaMessages.get(n)[i] /= normalize;
 				}
@@ -165,6 +169,8 @@ public class BeliefPropagation extends Sampler {
 			pi.get(n)[i] = mutableSum.value;
 			normalize += mutableSum.value;
 		}
+		if (normalize == 0.0)
+			return;
 		for (int i = 0; i < pi.get(n).length; i++){
 			pi.get(n)[i] /= normalize;
 		}
@@ -199,6 +205,8 @@ public class BeliefPropagation extends Sampler {
 			lambda.get(n)[i] = prod;
 			normalize += prod;
 		}
+		if (normalize == 0.0)
+			return;
 		for (int i = 0; i < lambda.get(n).length; i++){
 			lambda.get(n)[i] /= normalize;
 		}
@@ -288,7 +296,8 @@ public class BeliefPropagation extends Sampler {
 			
 			// calculate pi(x)
 			for (BeliefNode n : nodes){
-				int[] nodeDomainIndices = evidenceDomainIndices.clone(); // TODO why do we clone each time? Isn't it enough to have one copy to work with for all nodes
+				int[] nodeDomainIndices = evidenceDomainIndices.clone(); // TODO why do we clone each time? Isn't it enough to have one copy to work with for all nodes.
+																		 // Not cloning this lead to complications in the IJGP algo so I continued cloning here.
 				boolean receivedAll = true;
 				// check whether n has received all pi messages from its parents
 				for (BeliefNode c : bn.bn.getParents(n)){
@@ -425,6 +434,8 @@ public class BeliefPropagation extends Sampler {
 				normalize += dist.values[i][j]; 
 			}
 			for (int j = 0; j < domSize; j++) {
+				if (normalize == 0.0)
+					continue;
 				dist.values[i][j] /= normalize;
 			}
 		}
