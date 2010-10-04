@@ -73,6 +73,11 @@ public class Clause extends ComplexFormula {
 
     @Override
     public Formula simplify(Database evidence) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    	throw new UnsupportedOperationException("Not supported yet.");
     }
+
+	@Override
+	public Formula toNNF() {
+		return this;	
+	}
 }
