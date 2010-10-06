@@ -118,10 +118,12 @@ public class ParentGrounder {
 				Signature s = bn.getSignature(n);
 				// check all of the parent's parameters
 				for(String param : n.params) {			
+					//System.out.println("trying to handle " + param + " in " + n);
 					if(!handledVars.contains(param) && !RelationalNode.isConstant(param)) {
 						// check if we can handle this parameter via a functional lookup
 						// - if we already have a functional lookup for this node, we definitely can
 						if(flookup != null) {
+							handledVars.add(param);
 							++numHandledParams;
 							++gains;
 						}
@@ -137,6 +139,7 @@ public class ParentGrounder {
 											++c;
 									}
 									if(c == key.keyIndices.size()) {
+										//System.out.println(key + " can handle " + param);
 										handledVars.add(param);
 										flookup = new FunctionalLookup(key, n);
 										functionalLookups.add(flookup);
