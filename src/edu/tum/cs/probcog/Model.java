@@ -1,8 +1,11 @@
 package edu.tum.cs.probcog;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.Map.Entry;
+
+import edu.tum.cs.srl.Signature;
 
 public abstract class Model {
 	private HashMap<String,String> parameters;
@@ -26,6 +29,7 @@ public abstract class Model {
 	}
 	protected abstract void _setEvidence(Iterable<String[]> evidence) throws Exception;
 	public abstract void instantiate() throws Exception;
+	
 	/**
 	 * runs the actual inference method, without mapping constants  
 	 * @param queries
@@ -33,9 +37,29 @@ public abstract class Model {
 	 * @throws Exception
 	 */
 	protected abstract java.util.Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception;
-	public abstract Vector<String[]> getPredicates();
 	public abstract Vector<String[]> getDomains();
 
+	public abstract Vector<String[]> getPredicates();
+	
+	protected static Vector<String[]> getPredicatesFromSignatures(Collection<Signature> sigs) {
+		Vector<String[]> ret = new Vector<String[]>();
+		for(Signature sig : sigs) {
+			int numArgTypes = sig.argTypes.length; 
+			if(!sig.isBoolean())
+				numArgTypes++;
+			String[] a = new String[1+numArgTypes];
+			a[0] = sig.functionName;
+			for(int i = 1; i < a.length; i++) {
+				if(i-1 < sig.argTypes.length)
+					a[i] = sig.argTypes[i-1];
+				else
+					a[i] = sig.returnType;
+			}
+			ret.add(a);
+		}
+		return ret;
+	}
+	
 	public void setEvidence(Iterable<String[]> evidence) throws Exception {
 		// map constants, filtering evidence where constants are mapped to null
 		Vector<String[]> newEvidence = new Vector<String[]>();

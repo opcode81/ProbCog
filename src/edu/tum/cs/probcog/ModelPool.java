@@ -75,7 +75,8 @@ public class ModelPool {
 					m = new BLNModel(name, new File(fPath, files.get("decls")).getPath(), new File(fPath, files.get("network")).getPath(), new File(fPath, files.get("logic")).getPath());
 				}
 				else if(type.equals("MLN")) {
-					throw new RuntimeException("MLNs not yet supported");
+					checkFileTypes(new String[]{"network"});
+					m = new MLNModel(name, files.get("network"));
 				}
 				else
 					throw new Exception(String.format("Unknown model type '%s'", type));

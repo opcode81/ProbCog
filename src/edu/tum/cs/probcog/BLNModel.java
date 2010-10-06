@@ -59,12 +59,12 @@ public class BLNModel extends Model {
 				 params = fullParams;
 			 }
 			 for(int i = 0; i < res.domainElements.length; i++) {
-				 if(!isBool)
-					 params[params.length-1] = res.domainElements[i];
+				 if(!isBool) 
+					 params[params.length-1] = res.domainElements[i];					 
 				 else
 					 if(!res.domainElements[i].equalsIgnoreCase("True"))
 						 continue;
-				 ret.add(new InferenceResult(var.first, params, res.probabilities[i]));
+				 ret.add(new InferenceResult(var.first, params.clone(), res.probabilities[i]));
 			 }
 		}
 		return ret;
@@ -98,22 +98,7 @@ public class BLNModel extends Model {
 
 	@Override
 	public Vector<String[]> getPredicates() {
-		Vector<String[]> ret = new Vector<String[]>();
-		for(Signature sig : this.bln.rbn.getSignatures()) {
-			int numArgTypes = sig.argTypes.length; 
-			if(!sig.isBoolean())
-				numArgTypes++;
-			String[] a = new String[1+numArgTypes];
-			a[0] = sig.functionName;
-			for(int i = 1; i < a.length; i++) {
-				if(i-1 < sig.argTypes.length)
-					a[i] = sig.argTypes[i-1];
-				else
-					a[i] = sig.returnType;
-			}
-			ret.add(a);
-		}
-		return ret;
+		return getPredicatesFromSignatures(this.bln.rbn.getSignatures());
 	}
 	
 	public Vector<String[]> getDomains() {
