@@ -563,5 +563,19 @@ public class RelationalNode extends ExtendedNode {
 	public HashMap<String,String> getParameterBinding(String[] actualParams, Database db) throws Exception {
 		return getParentGrounder().generateParameterBindings(actualParams, db);
 	}
+	
+	public Vector<RelationalNode> getPreconditionParents() {
+		Vector<RelationalNode> ret = new Vector<RelationalNode>();
+		BeliefNode[] domprod = this.node.getCPF().getDomainProduct();
+		for(int i = 1; i < domprod.length; i++) {
+			ExtendedNode n = this.bn.getExtendedNode(domprod[i]);
+			if(n instanceof RelationalNode) {
+				RelationalNode rn = (RelationalNode)n;
+				if(rn.isPrecondition)
+					ret.add(rn);
+			}			
+		}	
+		return ret;
+	}
 }
 
