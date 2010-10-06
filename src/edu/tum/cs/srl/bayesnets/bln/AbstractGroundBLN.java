@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -26,7 +27,6 @@ import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
-import edu.tum.cs.util.datastruct.Pair;
 
 public abstract class AbstractGroundBLN {
 	/**
@@ -177,7 +177,9 @@ public abstract class AbstractGroundBLN {
 		// consider all the relational nodes that could be used to instantiate the variable
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
 		if(templates == null)
-			throw new Exception("No templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
+			throw new Exception("There are no templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
+		
+		// check potentially applicable templates
 		for(RelationalNode relNode : templates) {
 			
 			// if the node is subject to preconditions (decision node parents), check if they are met
@@ -191,9 +193,11 @@ public abstract class AbstractGroundBLN {
 			if(!preconditionsMet)
 				continue;
 			
+			// this template is applicable
 			suitableTemplates++;
-			if(suitableTemplates > 1)
-				throw new Exception("More than one relational node could serve as the template for the variable " + varName);
+			if(suitableTemplates > 1) {
+				throw new Exception("More than one relational node could serve as the template for the variable " + varName + " but no combining rule was specified");
+			}
 			
 			ret = instantiateVariable(relNode, params);
 		}
@@ -229,10 +233,30 @@ public abstract class AbstractGroundBLN {
 	 * @throws Exception
 	 */
 	protected BeliefNode instantiateVariable(RelationalNode relNode, String[] actualParams) throws Exception {
+		// get groundings of parents
+		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
+		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(actualParams, db);
+
+		// if there are precondition parents, 
+		// filter out the inadmissible parent groundings
+		Vector<RelationalNode> preconds = relNode.getPreconditionParents();
+		for(RelationalNode precond : preconds) {
+			Iterator<Map<Integer, String[]>> iter = groundings.iterator();
+			while(iter.hasNext()) {
+				Map<Integer, String[]> grounding = iter.next();
+				String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
+				if(!value.equals("True"))
+					iter.remove();
+			}
+		}
+		// if there are no groundings left, there is nothing to instantiate
+		if(groundings.isEmpty())
+			return null;
+		
 		// keep track of instantiated variables
 		String mainNodeName = relNode.getVariableName(actualParams);
 		instantiatedVariables.add(mainNodeName);
-		if(debug) 
+		if(debug)
 			System.out.println("      " + mainNodeName);
 
 		// add the node itself to the network				
@@ -241,8 +265,6 @@ public abstract class AbstractGroundBLN {
 		onAddGroundAtomNode(relNode, actualParams, mainNode);
 
 		// add edges from the parents
-		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
-		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(actualParams, db);
 		// - normal case: just CPF application for one set of parents
 		if(!relNode.hasAggregator()) {
 			if(groundings.size() != 1) 
