@@ -59,7 +59,8 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		ParentGrounder pg = bn.getParentGrounder(node);
 		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
 		if(groundings == null) {
-			System.err.println("Variable " + Signature.formatVarName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
+			if(debug)
+				System.err.println("Variable " + Signature.formatVarName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
 			return;
 		}
 
@@ -139,10 +140,32 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		}
 		// precomputations done... now the actual counting starts
 			
-		// set the domain indices of all relevant nodes (node itself and parents)			
+		// set the domain indices of all relevant nodes (node itself and parents)
 		for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
-			// consider the concrete parents
+			// check precondition parents
+			// TODO do we really need this? Preconditions are checked in ParentGrounder?
 			boolean countExample = true;
+			//System.out.println("checking preconditions of grounding of " + node.getVariableName(paramSets.get(node.index)));
+			for(int i = 1; i < counter.nodeIndices.length; i++) {
+				ExtendedNode extCurrent = bn.getExtendedNode(counter.nodeIndices[i]);
+				if(!(extCurrent instanceof RelationalNode))
+					continue;
+				RelationalNode ndCurrent = (RelationalNode)extCurrent;								
+				if(ndCurrent.isPrecondition) {
+					String[] actualParams = paramSets.get(ndCurrent.index);
+					String value = ndCurrent.getValueInDB(actualParams, db, closedWorld);					
+					// preconditions are required to be "True"
+					if(!value.equalsIgnoreCase("true")) {
+						countExample = false;
+						break;
+					}					
+				}				
+			}
+			//System.out.println("checking preconditions done");
+			if(!countExample)
+				continue;
+
+			// if preconditions were met, handle set domain indices of all parents		
 			int domainIndices[] = new int[this.nodes.length];
 			for(int i = 0; i < counter.nodeIndices.length; i++) {
 				int domain_idx = -1;
@@ -156,6 +179,11 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				else {
 					// get the corresponding RelationalNode object
 					RelationalNode ndCurrent = (RelationalNode)extCurrent;
+					// preconditions were handled above/in ParentGrounder
+					if(ndCurrent.isPrecondition) {
+						domainIndices[extCurrent.index] = 0; // 0 is true
+						continue;
+					}
 					// determine the value of the node given the parameter settings implied by the main node
 					String[] actualParams = paramSets.get(ndCurrent.index);
 					if(actualParams == null) {
@@ -167,12 +195,6 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					String value = ndCurrent.getValueInDB(actualParams, db, closedWorld);
 					if(value == null)
 						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
-					// if the node is a precondition, i.e. it is required to be true, check that it really is
-					if(ndCurrent.isPrecondition && !value.equalsIgnoreCase("true")) {
-						// it's not, so skip this example
-						countExample = false;
-						break;
-					}
 					// get the current node's domain and the index of its setting
 					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
 					domain_idx = dom.findName(value);
@@ -191,24 +213,22 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				}
 				domainIndices[extCurrent.index] = domain_idx;
 			}		
-			
-			// count this example
-			if(countExample) {
-				counter.count(domainIndices, exampleWeight);
-				numExamples++;
-				if(debug && verbose) { // just debug output
-					StringBuffer condition = new StringBuffer();
-					for(Entry<Integer, String[]> e : paramSets.entrySet()) {
-						if(e.getKey() == node.index)
-							continue;
-						RelationalNode rn = bn.getRelationalNode(e.getKey());
-						condition.append(' ');
-						condition.append(rn.getVariableName(e.getValue()));
-						condition.append('=');
-						condition.append(rn.getDomain().getName(domainIndices[rn.index]));
-					}
-					System.out.println("    " + node.getVariableName(params) + "=" + node.getDomain().getName(domainIndices[node.index]) + " |" + condition);
+		
+			// count this example			
+			counter.count(domainIndices, exampleWeight);
+			numExamples++;
+			if(debug && verbose) { // just debug output
+				StringBuffer condition = new StringBuffer();
+				for(Entry<Integer, String[]> e : paramSets.entrySet()) {
+					if(e.getKey() == node.index)
+						continue;
+					RelationalNode rn = bn.getRelationalNode(e.getKey());
+					condition.append(' ');
+					condition.append(rn.getVariableName(e.getValue()));
+					condition.append('=');
+					condition.append(rn.getDomain().getName(domainIndices[rn.index]));
 				}
+				System.out.println("    " + node.getVariableName(params) + "=" + node.getDomain().getName(domainIndices[node.index]) + " |" + condition);
 			}
 			
 			// keep track of counts (just debugging)
@@ -242,7 +262,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 */
 	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
 		this.verbose = verbose;
-		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;		
+		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
+		
+		// construct parent grounders for relevant nodes
+		// (to check early on whether the structure is OK)
+		for(RelationalNode node : bn.getRelationalNodes()) {
+			if(node.isConstant || node.isBuiltInPred() || !node.hasCPT())
+				continue;
+			node.getParentGrounder();
+		}
+ 
+		// learn CPTs
 		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
 			if(node.isConstant || node.isBuiltInPred()) // ignore constant nodes as they do not correspond to logical atoms 
 				continue;
