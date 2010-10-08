@@ -28,7 +28,15 @@ public class ParentGrounder {
 			this.node = node;
 		}
 		
-		public void doLookup(Database db, HashMap<String,String> varBindings) throws Exception {
+		/**
+		 * perform the functional lookup, extending the given variable binding with the result
+		 * @param db
+		 * @param varBindings the variable binding to extend with the results of the lookup
+		 * @throws Exception if a lookup that is required to work failed
+		 * @return true if the lookup could be performed to extend the variable binding,
+		 * false if the lookup is not applicable because the precondition is not met
+		 */
+		public boolean doLookup(Database db, HashMap<String,String> varBindings) throws Exception {
 			// build the key values
 			String[] keyValues = new String[key.keyIndices.size()];
 			int i = 0;
@@ -37,11 +45,17 @@ public class ParentGrounder {
 			// perform the lookup			
 			String[] params = db.getParameterSet(this.key, keyValues);
 			if(params == null) { // lookup yielded no values
+				// if the node is a precondition, we report that the lookup failed, indicating that
+				// there is no valid instantiation of all variables
+				if(this.node.isPrecondition)  
+					return false;
+				// if the lookup failed but does not refer to a required precondition,
+				// we have an error case
 				String[] buf = new String[node.params.length];
 				for(int k = 0; k < node.params.length; k++) buf[k] = "_";
 				int j = 0;
 				for(Integer k : key.keyIndices) buf[k] = keyValues[j++];
-				throw new Exception("Could not perform lookup for " + Signature.formatVarName(node.getFunctionName(), buf));
+				throw new Exception("Could not perform required lookup for " + Signature.formatVarName(node.getFunctionName(), buf));
 			}
 			// update the variable bindings
 			java.util.Iterator<Integer> iter = key.keyIndices.iterator();
@@ -53,6 +67,7 @@ public class ParentGrounder {
 				}
 				varBindings.put(node.params[i], params[i]);
 			}
+			return true;
 		}
 	}	
 	
@@ -186,8 +201,9 @@ public class ParentGrounder {
 	/**
 	 * generates a grounding of all parent nodes (and the main node itself), i.e. a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the man node for which this parameter grounding should be performed
-	 * @return mapping of node indices to lists of corresponding actual parameters
+	 * @return mapping of node indices to lists of corresponding actual parameters or null
 	 * @throws Exception 
+	 * @deprecated this method is apparently not required; it is not referenced anywhere
 	 */
 	public Map<Integer, String[]> generateParameterSets(String[] actualParameters, Database db) throws Exception {
 		HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();			
@@ -211,7 +227,7 @@ public class ParentGrounder {
 	/**
 	 * generates all possible groundings of all parent nodes (and the main node itself), where a grounding is a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the main node for which this parameter grounding should be performed
-	 * @return vector of mappings of node indices to lists of corresponding actual parameters
+	 * @return vector of mappings of node indices to lists of corresponding actual parameters or null if there is no valid binding for the given actual parameters of the main node
 	 * @throws Exception 
 	 */
 	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, Database db) throws Exception {
@@ -277,7 +293,8 @@ public class ParentGrounder {
 			bindings.put(mainNode.params[i], actualParameters[i]);
 		// perform functional lookups
 		for(FunctionalLookup fl : this.functionalLookups)
-			fl.doLookup(db, bindings);
+			if(!fl.doLookup(db, bindings)) // if a functional lookup cannot be applied, there is no full parameter binding (probably because a precondition is not applicable)
+				return null;
 		return bindings;
 	}
 }
