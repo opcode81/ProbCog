@@ -36,6 +36,6 @@ public class RelationKey {
 	}
 	
 	public String toString() {
-		return relation + "(" + StringTool.join(",", arguments) + ")";
+		return "relationKey " + relation + "(" + StringTool.join(",", arguments) + ");";
 	}
 }
