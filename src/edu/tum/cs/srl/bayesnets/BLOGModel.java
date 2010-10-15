@@ -3,6 +3,7 @@ package edu.tum.cs.srl.bayesnets;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
@@ -14,6 +15,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
@@ -337,6 +339,12 @@ public class BLOGModel extends RelationalBeliefNetwork {
 			out.printf("random %s %s(%s);\n", sig.returnType,
 					node.functionName, StringTool.join(", ", sig.argTypes));
 		}
+		out.println();
+		
+		// relation keys
+		for(Collection<RelationKey> c : this.relationKeys.values())
+			for(RelationKey relKey : c)
+				out.println(relKey.toString());
 		out.println();
 	}
 
