@@ -19,6 +19,7 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.bayesnets.CombiningRule;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
@@ -27,6 +28,7 @@ import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 public abstract class AbstractGroundBLN {
 	/**
@@ -171,13 +173,16 @@ public abstract class AbstractGroundBLN {
 		if(instantiatedVariables.contains(varName))
 			return groundBN.getNode(varName);
 		
-		int suitableTemplates = 0;
 		BeliefNode ret = null;
 		
 		// consider all the relational nodes that could be used to instantiate the variable
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
 		if(templates == null)
 			throw new Exception("There are no templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
+		
+		boolean combiningRuleNeeded = false;
+		
+		Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>>(); 
 		
 		// check potentially applicable templates
 		for(RelationalNode relNode : templates) {
@@ -193,16 +198,41 @@ public abstract class AbstractGroundBLN {
 			if(!preconditionsMet)
 				continue;
 			
-			// this template is applicable
-			suitableTemplates++;
-			if(suitableTemplates > 1) {
-				throw new Exception("More than one relational node could serve as the template for the variable " + varName + " but no combining rule was specified");
-			}
+			// get groundings of parents
+			ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
+			Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
 			
-			ret = instantiateVariable(relNode, params);
+			// if there are precondition parents, 
+			// filter out the inadmissible parent groundings
+			Vector<RelationalNode> preconds = relNode.getPreconditionParents();
+			for(RelationalNode precond : preconds) {
+				Iterator<Map<Integer, String[]>> iter = groundings.iterator();
+				while(iter.hasNext()) {
+					Map<Integer, String[]> grounding = iter.next();
+					String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
+					if(!value.equals("True"))
+						iter.remove();
+				}
+			}
+			// if there are no groundings left, there is nothing to instantiate
+			if(groundings.isEmpty())
+				continue;
+
+			// this template is applicable
+			
+			// if we have more than one grounding, we need a combining rule if no aggregator is given
+			if(groundings.size() > 1 && !relNode.hasAggregator())
+				combiningRuleNeeded = true;			
+			
+			// we also need a cominbing rule if we already have a suitable template
+			if(!suitableTemplates.isEmpty())
+				combiningRuleNeeded = true;
+
+			suitableTemplates.add(new Pair<RelationalNode, Vector<Map<Integer, String[]>>>(relNode, groundings));
 		}
-		
-		if(suitableTemplates == 0) {
+
+		// if there are no suitable template, we may have an error case
+		if(suitableTemplates.isEmpty()) {
 			if(!this.bln.rbn.isEvidenceFunction(functionName))			
 				throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
 			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
@@ -221,40 +251,13 @@ public abstract class AbstractGroundBLN {
 					System.out.println("      " + varName + " (skipped, is evidence)");
 			}			
 	    }
-
-		return ret;
-	}
-	
-	/**
-	 * instantiates a variable from the given node template for the actual parameters
-	 * @param relNode		the node that is to serve as the template
-	 * @param actualParams	actual parameters
-	 * @return
-	 * @throws Exception
-	 */
-	protected BeliefNode instantiateVariable(RelationalNode relNode, String[] actualParams) throws Exception {
-		// get groundings of parents
-		ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
-		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(actualParams, db);
-
-		// if there are precondition parents, 
-		// filter out the inadmissible parent groundings
-		Vector<RelationalNode> preconds = relNode.getPreconditionParents();
-		for(RelationalNode precond : preconds) {
-			Iterator<Map<Integer, String[]>> iter = groundings.iterator();
-			while(iter.hasNext()) {
-				Map<Integer, String[]> grounding = iter.next();
-				String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
-				if(!value.equals("True"))
-					iter.remove();
-			}
-		}
-		// if there are no groundings left, there is nothing to instantiate
-		if(groundings.isEmpty())
-			return null;
 		
-		// keep track of instantiated variables
-		String mainNodeName = relNode.getVariableName(actualParams);
+		// get the first applicable template
+		Pair<RelationalNode, Vector<Map<Integer, String[]>>> template = suitableTemplates.iterator().next();
+		RelationalNode relNode = template.first;
+		
+		// keep track of instantiated variables		
+		String mainNodeName = relNode.getVariableName(params);
 		instantiatedVariables.add(mainNodeName);
 		if(debug)
 			System.out.println("      " + mainNodeName);
@@ -262,15 +265,37 @@ public abstract class AbstractGroundBLN {
 		// add the node itself to the network				
 		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
 		groundNode2TemplateNode.put(mainNode, relNode);
-		onAddGroundAtomNode(relNode, actualParams, mainNode);
+		onAddGroundAtomNode(relNode, params, mainNode);
+		
+		// we can now instantiate the variable based on the suitable templates
+		if(!combiningRuleNeeded) {			
+			instantiateVariableFromSingleTemplate(mainNode, template.first, template.second);			
+		}
+		else { // need to use combining rule
+			CombiningRule r = bln.rbn.getCombiningRule(functionName);
+			if(r == null)
+				throw new Exception("More than one group of parents for variable " + varName + " but no combining rule was specified");
+			instantiateVariableWithCombiningRule(mainNode, suitableTemplates, r);			
+		}
 
+		return mainNode;
+	}
+	
+	/**
+	 * instantiates a variable from the given node template for the actual parameters
+	 * @param relNode		the node that is to serve as the template
+	 * @param groundings	a vector of node groundings, i.e. mappings from node indices to parameter lists 
+	 * @return
+	 * @throws Exception
+	 */
+	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<Map<Integer, String[]>> groundings) throws Exception {
 		// add edges from the parents
 		// - normal case: just CPF application for one set of parents
 		if(!relNode.hasAggregator()) {
 			if(groundings.size() != 1) 
-				throw new Exception("Cannot instantiate " + mainNodeName + " for " + groundings.size() + " groups of parents.");			
+				throw new Exception("Cannot instantiate " + mainNode.getName() + " for " + groundings.size() + " groups of parents.");			
 			if(debug) {
-				System.out.println("        relevant nodes/parents from " + pg.toString());
+				System.out.println("        relevant nodes/parents");
 				Map<Integer, String[]> grounding = groundings.firstElement();						
 				for(Entry<Integer, String[]> e : grounding.entrySet()) {							
 					System.out.println("          " + bln.rbn.getRelationalNode(e.getKey()).getVariableName(e.getValue()));
@@ -351,11 +376,110 @@ public abstract class AbstractGroundBLN {
 				cpfIDs.put(mainNode, cpfid); 
 			}
 			else
-				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNodeName + " with unhandled aggregator " + relNode.aggregator);
+				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNode.getName() + " with unhandled aggregator " + relNode.aggregator);
 		}
+	}
+	
+	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates, CombiningRule r) throws Exception {
+		// get the parent set
+		HashMap<BeliefNode, Integer> parentIndices = new HashMap<BeliefNode, Integer>();
+		Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap = new Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>>(); 
+		int domProdIndex = 1;
+		for(Pair<RelationalNode, Vector<Map<Integer, String[]>>> template : suitableTemplates) {
+			RelationalNode relNode = template.first;
+			Vector<Map<Integer, String[]>> nodeGroundings = template.second;
+			for(Map<Integer, String[]> nodeGrounding : nodeGroundings) {
+				Map<BeliefNode,Integer> relParentIndex2domprodIndex = new HashMap<BeliefNode,Integer>();
+				for(Entry<Integer,String[]> entry : nodeGrounding.entrySet()) {
+					RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
+					if(relParent == relNode)
+						continue;
+					BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
+					if(parent == null)
+						throw new Exception();
+					Integer index = parentIndices.get(parent);					
+					if(index == null) {
+						index = domProdIndex++;
+						parentIndices.put(parent, index);
+					}
+					relParentIndex2domprodIndex.put(relParent.node, index);
+				}				
+				templateDomprodMap.add(new Pair<RelationalNode, Map<BeliefNode,Integer>>(relNode, relParentIndex2domprodIndex));
+			}
+		}
+		
+		// initialize CPF & connect parents
+		CPF cpf = mainNode.getCPF();
+		BeliefNode[] domprod = new BeliefNode[1 + parentIndices.size()];
+		domprod[0] = mainNode;
+		for(Entry<BeliefNode, Integer> e : parentIndices.entrySet()) {
+			domprod[e.getValue()] = e.getKey();
+			this.groundBN.connect(e.getKey(), mainNode, false);
+		}
+		cpf.buildZero(domprod, false);
+		
+		// fill the CPF
+		fillCPFCombiningRule(cpf, 1, new int[domprod.length], templateDomprodMap, r);
 		
 		return mainNode;
 	}
+	
+	protected void fillCPFCombiningRule(CPF cpf, int i, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) {
+		BeliefNode[] domprod = cpf.getDomainProduct();
+		if(i == domprod.length) {
+			if(r.booleanSemantics) {
+				double trueCase = fillCPFCombiningRule_computeColumnEntry(0, addr, templateDomprodMap, r);
+				cpf.put(addr, new ValueDouble(trueCase));
+				addr[0] = 1;
+				cpf.put(addr, new ValueDouble(1.0-trueCase));
+			}
+			else { // normalization semantics
+				int domSize = domprod[0].getDomain().getOrder();
+				double[] values = new double[domSize];
+				double Z = 0.0;
+				for(int j = 0; j < domSize; j++) {
+					values[j] = fillCPFCombiningRule_computeColumnEntry(j, addr, templateDomprodMap, r);
+					Z += values[j];
+				}				
+				for(int j = 0; j < domSize; j++) {
+					values[j] /= Z;
+					addr[0] = j;
+					cpf.put(addr, new ValueDouble(values[j]));
+				}				
+			}
+			return;
+		}
+		
+		int domSize = domprod[i].getDomain().getOrder();
+		for(int domIdx = 0; domIdx < domSize; domIdx++) {
+			addr[i] = domIdx;
+			fillCPFCombiningRule(cpf, i+1, addr, templateDomprodMap, r);
+		}
+	}
+	
+	protected double fillCPFCombiningRule_computeColumnEntry(int idx0, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) {
+		// collect values from individual CPFs
+		addr[0] = idx0;
+		Vector<Double> values = new Vector<Double>();
+		for(Pair<RelationalNode, Map<BeliefNode, Integer>> m : templateDomprodMap) {
+			RelationalNode relNode = m.first;
+			CPF cpf2 = relNode.node.getCPF();
+			BeliefNode[] domprod2 = cpf2.getDomainProduct();
+			int[] addr2 = new int[domprod2.length];
+			addr2[0] = addr[0];
+			for(int i2 = 1; i2 < domprod2.length; i2++) {
+				Integer i1 = m.second.get(domprod2[i2]);
+				if(i1 != null)
+					addr2[i2] = addr[i1];
+				else
+					addr2[i2] = 0;					
+			}				
+			Double v = cpf2.getDouble(addr2);
+			values.add(v);
+		}
+		return r.compute(values);
+	}
+
 	
 	protected void init() {}
 	
@@ -425,6 +549,8 @@ public abstract class AbstractGroundBLN {
 				continue;
 			}
 			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
+			if(parent == null)
+				throw new Exception("Error instantiating parent '" + Signature.formatVarName(relParent.getFunctionName(), entry.getValue()) + "' while instantiating " + targetNode);
 			if(handledTargetParents.contains(parent))
 				throw new Exception("Error instantiating " + targetNode + " from " + srcRelNode + ": Duplicate parent " + parent);
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());

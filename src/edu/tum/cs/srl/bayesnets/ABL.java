@@ -2,15 +2,18 @@ package edu.tum.cs.srl.bayesnets;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
+import edu.tum.cs.util.StringTool;
 
 /**
  * Advanced Bayesian Logical (ABL) Model
@@ -84,6 +87,30 @@ public class ABL extends BLOGModel {
 				rule += ".";
 			prologRules.add(rule);
 			return true;
+		}
+		// combining rule
+		if(line.startsWith("combining-rule")) {
+			Pattern pat = Pattern.compile("combining-rule\\s+(\\w+)\\s+([-\\w]+)\\s*;?");
+			Matcher matcher = pat.matcher(line);
+			if(matcher.matches()) {
+				String function = matcher.group(1);
+				String strRule = matcher.group(2);
+				Signature sig = getSignature(function);
+				CombiningRule rule;
+				if(sig == null) 
+					throw new Exception("Defined combining rule for unknown function '" + function + "'");
+				try {
+					rule = CombiningRule.fromString(strRule);
+				}
+				catch(IllegalArgumentException e) {
+					Vector<String> v = new Vector<String>();
+					for(CombiningRule cr : CombiningRule.values()) 
+						v.add(cr.stringRepresention);
+					throw new Exception("Invalid combining rule '" + strRule + "'; valid options: " + StringTool.join(", ", v));
+				}
+				this.combiningRules.put(function, rule);
+				return true;
+			}
 		}
 		return false;
 	}
