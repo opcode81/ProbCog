@@ -19,7 +19,6 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
@@ -37,12 +36,18 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * maps a function/predicate name to the signature of the corresponding function
 	 */
 	protected Map<String, Signature> signatures;
-	protected HashMap<String, String[]> guaranteedDomElements;
-	
+	/**
+	 * maps the name of a fixed domain to the vector of elements it contains
+	 */
+	protected HashMap<String, String[]> guaranteedDomElements;	
 	/**
 	 * a mapping of function/relation names to RelationKey objects which signify argument groups that are keys of the relation (which may be used for a functional lookup)
 	 */
 	protected Map<String, Collection<RelationKey>> relationKeys;
+	/**
+	 * maps function/relation names to combining rules 
+	 */
+	protected Map<String, CombiningRule> combiningRules = new HashMap<String, CombiningRule>();
 	
 	/**
 	 * a set of functions/predicates that are required to be fully specified in the evidence
@@ -830,6 +835,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	@Override
 	public Collection<String> getPrologRules() {
 		return prologRules;
+	}
+	
+	public CombiningRule getCombiningRule(String function) {
+		return this.combiningRules.get(function);
 	}
 }
 
