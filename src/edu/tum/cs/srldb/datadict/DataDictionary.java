@@ -248,7 +248,7 @@ public class DataDictionary implements java.io.Serializable {
 		for(Entry<String,String> attr : item.getAttributes().entrySet()) {
 			String attribName = attr.getKey();
 			if(!allowedAttributes.contains(attribName))
-				throw new DDException("Undefined attribute " + attribName + " for item type " + ddItem.getName());
+				throw new DDException("Undefined attribute '" + attribName + "' for item type '" + ddItem.getName() + "' or the attribute was applied to more than one type of object.");
 			if(getAttribute(attribName).isDiscarded())
 				continue;
 			Domain domain = ddItem.getAttributes().get(attribName).getDomain();
