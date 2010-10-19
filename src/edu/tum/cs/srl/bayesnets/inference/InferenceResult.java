@@ -42,4 +42,17 @@ public class InferenceResult implements Comparable<InferenceResult> {
 	public int getDomainSize() {
 		return domainElements.length;
 	}
+	
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer(varName + " ~ ");
+		for(int i = 0; i < this.domainElements.length; i++) {
+			if(i > 0)
+				sb.append(", ");
+			sb.append(domainElements[i]);
+			sb.append(": ");
+			sb.append(probabilities[i]);
+		}
+		return sb.toString();
+	}
 }
