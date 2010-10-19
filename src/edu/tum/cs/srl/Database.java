@@ -67,7 +67,7 @@ public class Database implements IParameterHandler {
 		}
 
 		Collection<String> prologRules = model.getPrologRules();
-		if(!prologRules.isEmpty()) {
+		if(prologRules != null && !prologRules.isEmpty()) {
 			System.out.println("  building prolog knowledge base... ");
 			prolog = new PrologKnowledgeBase(); // TODO: If no rules in ABL
 												// (just logical definition)
