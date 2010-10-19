@@ -76,7 +76,7 @@ public class ModelPool {
 				}
 				else if(type.equals("MLN")) {
 					checkFileTypes(new String[]{"network"});
-					m = new MLNModel(name, files.get("network"));
+					m = new MLNModel(name, new File(fPath, files.get("network")).getPath());
 				}
 				else
 					throw new Exception(String.format("Unknown model type '%s'", type));
