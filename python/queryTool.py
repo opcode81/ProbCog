@@ -2,7 +2,7 @@
 
 # MLN Query Tool
 #
-# (C) 2006-2007 by Dominik Jain
+# (C) 2006-2010 by Dominik Jain
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -330,7 +330,7 @@ class MLNQuery:
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
                     # create MLN and evidence conjunction
                     mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods._byName.get(method))
-                    evidence = MLN.evidence2conjunction(mln.combineDB(db, verbose=True))
+                    mln.combineDB(db, verbose=True)
                     # set closed-world predicates
                     cwPreds = map(str.strip, self.settings["cwPreds"].split(","))
                     for pred in cwPreds:
@@ -355,7 +355,7 @@ class MLNQuery:
                     if "printGroundAtoms" in args:
                         mln.printGroundAtoms()
                     # invoke inference
-                    results = mln.infer(queries, evidence, **args)
+                    results = mln.infer(queries, **args)
                     # close output file and open if requested
                     if outFile != None:
                         outFile.close()

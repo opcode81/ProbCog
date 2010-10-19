@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Markov Logic Networks
 #
 # (C) 2006-2010 by Dominik Jain (jain@cs.tum.edu)
@@ -199,8 +200,8 @@ def strFormula(f):
         s = s2
     return s
 
-# converts the evidence obtained from a database (dict mapping ground atom names to truth values) to a conjunction (string)
 def evidence2conjunction(evidence):
+    ''' converts the evidence obtained from a database (dict mapping ground atom names to truth values) to a conjunction (string) '''
     evidence = map(lambda x: {True:"", False:"!"}[x[1]] + x[0], evidence.iteritems())
     return " ^ ".join(evidence)
 
@@ -277,7 +278,7 @@ class MLN:
             if not type(filename_or_list) == list:
                 filename_or_list = [filename_or_list]
             for filename in filename_or_list:
-                print filename
+                #print filename
                 f = file(filename)
                 text += f.read()
                 f.close()
@@ -582,7 +583,8 @@ class MLN:
         for f in self.hard_formulas:
             #if verbose: print "  ", strFormula(f)
             f.weight = hard_weight
-        self.printGroundFormulas()
+        if verbose:
+            self.printGroundFormulas()
     
     def domSize(self, domName):
         return len(self.domains[domName])
@@ -731,9 +733,11 @@ class MLN:
         
     # infer a probability P(F1 | F2) where F1 and F2 are formulas - using the default inference method specified for this MLN
     #   what: a formula, e.g. "foo(A,B)", or a list of formulas
-    #   given: another formula, e.g. "bar(A,B) ^ !baz(A,B)"
-    #          may be None if the prior probability of F1 is to be computed
-    #          If it'S not None, it can be an arbitrary formula only for exact inference, otherwise it must be a conjunction
+    #   given: either
+    #            * another formula, e.g. "bar(A,B) ^ !baz(A,B)"
+    #              Note: it can be an arbitrary formula only for exact inference, otherwise it must be a conjunction
+    #              This will overwrite any evidence previously set in the MLN
+    #            * None if the evidence currently set in the MLN is to be used
     #   verbose: whether to print the results
     #   args: any additional arguments to pass on to the actual inference method
     def infer(self, what, given = None, verbose = True, **args):
@@ -1049,29 +1053,44 @@ class MLN:
                     d.append(constants[i])
         return (domains, evidence)
 
-    # This method serves two purposes:
-    # a) extend the domain - analogous to method combine only that the constants are taken from a database base file rather than a dictionary
-    # b) stores the literals in the given db as evidence for future use (e.g. as a training database for weight learning)
-    # dbfile: name of a database file
-    # returns the evidence defined in the database (dictionary mapping ground atom strings to truth values)
     def combineDB(self, dbfile, verbose=False, groundFormulas = True):
+        '''
+          This method serves two purposes:
+            a) extend the domain - analogous to method 'combine' only that the constants are taken from a database base file rather than a dictionary
+            b) stores the literals in the given db as evidence for future use (e.g. as a training database for weight learning)
+          dbfile: name of a database file
+          returns the evidence defined in the database (dictionary mapping ground atom strings to truth values)
+        '''
         domain, evidence = self._readDBFile(dbfile)
         # combine domains
         self.combine(domain, verbose=verbose, groundFormulas=groundFormulas)
-        # keep evidence in list (ground atom indices)
+        # set evidence
+        self.setEvidence(evidence)
+        
+        return evidence
+    
+    def setEvidence(self, evidence):
+        '''
+          sets the evidence, which is to be given as a dictionary that maps ground atom strings to their truth values.
+          Any previous evidence is cleared.
+          The closed-world assumption is applied to any predicates for which it was declared.
+        '''
         self._clearEvidence()
-        for gndAtom in evidence:
-            idx = self.gndAtoms[gndAtom].idx
-            value = evidence[gndAtom]
+        for gndAtom, value in evidence.iteritems():
+            idx = self.gndAtoms[gndAtom].idx            
             self._setEvidence(idx, value)
-            # set evidence for other vars in block (if any)
-            if idx in self.gndBlockLookup and evidence[gndAtom]:
+            # If the value is true, set evidence for other vars in block (if any)
+            if value == True and idx in self.gndBlockLookup:
                 block = self.gndBlocks[self.gndBlockLookup[idx]]
                 for i in block:
                     if i != idx:
                         self._setEvidence(i, False)
+        # handle closed-world predicates: Set all their instances that aren't yet known to false
+        for pred in self.closedWorldPreds:
+            for idxGA in self._getPredGroundingsAsIndices(pred):
+                if self._getEvidence(idxGA, False) == None:
+                    self._setEvidence(idxGA, False)
         
-        return evidence
     
     def combineDBDomain(self, dbfile, requestDomain):
         '''
@@ -2061,26 +2080,16 @@ class Inference:
     # set evidence in the MLN according to the given conjunction of ground literals
     def _setEvidence(self, conjunction):
         if conjunction is not None:
-            givenAtoms = map(lambda x: x.strip().replace(" ", ""), conjunction.split("^"))
-            for gndAtom in givenAtoms:
+            literals = map(lambda x: x.strip().replace(" ", ""), conjunction.split("^"))
+            evidence = {}
+            for gndAtom in literals:
                 if gndAtom == '': continue
                 tv = True
                 if(gndAtom[0] == '!'):
                     tv = False
                     gndAtom = gndAtom[1:]
-                idxGA = self.mln.gndAtoms[gndAtom].idx
-                self.mln._setEvidence(idxGA, tv) # set evidence in MLN
-                if idxGA in self.mln.gndBlockLookup: # if the ground atom is in a block and its value is true, set all the other atoms in the same block to false
-                    block = self.mln.gndBlocks[self.mln.gndBlockLookup[idxGA]]
-                    if tv:
-                        for i in block:
-                            if i != idxGA:
-                                self.mln._setEvidence(i, False)
-        # handle closed-world predicates: Set all their instances that aren't yet known to false
-        for pred in self.mln.closedWorldPreds:
-            for idxGA in self.mln._getPredGroundingsAsIndices(pred):
-                if self.mln._getEvidence(idxGA, False) == None:
-                    self.mln._setEvidence(idxGA, False)
+                evidence[gndAtom] = tv
+            self.mln.setEvidence(evidence)
 
     def _getElapsedTime(self):
         ''' returns a pair (t,s) where t is the time in seconds elapsed thus far (since construction) and s is a readable string representation thereof '''
@@ -2098,8 +2107,6 @@ class Inference:
             queries: a list of queries - either strings (predicate names or partially/fully grounded atoms) or ground formulas
         '''
         self.given = given
-        self.evidenceString = given
-        if self.evidenceString == None: self.evidenceString = "True"
         # read queries
         self._readQueries(queries)
         self.additionalQueryInfo = [""] * len(self.queries)
@@ -2131,7 +2138,13 @@ class Inference:
             maxLen = 0
             for q in self.queries:
                 maxLen = max(maxLen, len(strFormula(q)))
-        # print sorted results, one per line        
+        # if necessary, get string representation of evidence
+        if not shortOutput:
+            if self.given is not None:
+                evidenceString = given
+            else:
+                evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+        # print sorted results, one per line
         strQueries = map(strFormula, self.queries)
         query2Index = {}
         for i, q in enumerate(strQueries): query2Index[q] = i
@@ -2139,7 +2152,7 @@ class Inference:
             i = query2Index[q]
             addInfo = self.additionalQueryInfo[i]
             if not shortOutput:
-                out.write("P(%s | %s) = %f  %s\n" % (q, self.evidenceString, results[i], addInfo))
+                out.write("P(%s | %s) = %f  %s\n" % (q, evidenceString, results[i], addInfo))
             else:
                 out.write("%f  %-*s  %s\n" % (results[i], maxLen, q, addInfo))
     
@@ -2175,16 +2188,13 @@ class ExactInference(Inference):
         if verbose and details: print "  %d worlds instantiated" % len(self.mln.worlds)
         # get the query formula(s)
         what = self.queries
-        # ground evidence formula
-        # - set evidence according to given conjunction (plus apply the closed-world assumption if requested)
-        self._setEvidence(self.given)
-        # - get the new evidence conjunction
-        given = evidence2conjunction(self.mln.getEvidenceDatabase())
-        # - obtain the corresponding formula object
-        if given is not None and given.strip() == "": given = None
-        if given != None:
-            given = FOL.parseFormula(given)
-            given = given.ground(self.mln, {})
+        # if we have no explicit evidence, get the evidence that is set in the MLN as a conjunction
+        given = self.given
+        if given is None:
+            given = evidence2conjunction(self.mln.getEvidenceDatabase())        
+        # ground the evidence formula
+        given = FOL.parseFormula(given)
+        given = given.ground(self.mln, {})
         # start summing
         if verbose and details: print "summing..."
         numerators = [0.0 for i in range(len(what))]
@@ -2232,16 +2242,13 @@ class ExactInferenceLazy(Inference):
     def _infer(self, verbose = True, details = False, shortOutput = False, debug = False, debugLevel = 1, **args):
         # get the query formula(s)
         what = self.queries
-        # ground evidence formula
-        # - set evidence according to given conjunction (plus apply the closed-world assumption if requested)
-        self._setEvidence(self.given)
-        # - get the new evidence conjunction
-        given = evidence2conjunction(self.mln.getEvidenceDatabase())
-        # - obtain the corresponding formula object
-        if given is not None and given.strip() == "": given = None
-        if given != None:
-            given = FOL.parseFormula(given)
-            given = given.ground(self.mln, {})
+        # if we have no explicit evidence, get the evidence that is set in the MLN as a conjunction
+        given = self.given
+        if given is None:
+            given = evidence2conjunction(self.mln.getEvidenceDatabase())        
+        # ground the evidence formula
+        given = FOL.parseFormula(given)
+        given = given.ground(self.mln, {})
         # start summing
         if verbose and details: print "summing..."
         wts = self.mln._weights()
@@ -2251,7 +2258,7 @@ class ExactInferenceLazy(Inference):
         for world in self._iterWorlds([], 0):
             precond = (given == None)
             if not precond:
-                precond = given.isTrue(world["values"])
+                precond = given.isTrue(world)
             if precond:
                 # compute world value
                 worldValue = self.mln._calculateWorldExpSum(world, wts)
@@ -2338,33 +2345,30 @@ class MCMCInference(Inference):
                     state[idxGA] = bool(chosen)
 
     def _readEvidence(self, conjunction):
-        if conjunction == "": conjunction = None
+        # set evidence
+        self._setEvidence(conjunction)
+        # build up data structures
         self.evidence = conjunction
         self.evidenceBlocks = [] # list of pll block indices where we know the true one (and thus the setting for all of the block's atoms)
         self.blockExclusions = {} # dict: pll block index -> list (of indices into the block) of atoms that mustn't be set to true
-        self.mln._clearEvidence() # clear any existing evidence
-        if conjunction != None:
-            # read atoms in evidence conjunction and set evidence accordingly
-            self._setEvidence(conjunction)
-            # fill the list of blocks that we have evidence for
-            for idxBlock, (idxGA, block) in enumerate(self.mln.pllBlocks):
-                if block != None:
-                    haveTrueone = False
-                    falseones = []
-                    for i, idxGA in enumerate(block):
-                        ev = self.mln._getEvidence(idxGA, False)
-                        if ev == True:
-                            haveTrueone = True
-                            break
-                        elif ev == False:
-                            falseones.append(i)
-                    if haveTrueone:
-                        self.evidenceBlocks.append(idxBlock)
-                    elif len(falseones) > 0:
-                        self.blockExclusions[idxBlock] = falseones
-                else:
-                    if self.mln._getEvidence(idxGA, False) != None:
-                        self.evidenceBlocks.append(idxBlock)
+        for idxBlock, (idxGA, block) in enumerate(self.mln.pllBlocks): # fill the list of blocks that we have evidence for
+            if block != None:
+                haveTrueone = False
+                falseones = []
+                for i, idxGA in enumerate(block):
+                    ev = self.mln._getEvidence(idxGA, False)
+                    if ev == True:
+                        haveTrueone = True
+                        break
+                    elif ev == False:
+                        falseones.append(i)
+                if haveTrueone:
+                    self.evidenceBlocks.append(idxBlock)
+                elif len(falseones) > 0:
+                    self.blockExclusions[idxBlock] = falseones
+            else:
+                if self.mln._getEvidence(idxGA, False) != None:
+                    self.evidenceBlocks.append(idxBlock)
 
     class Chain:
         def __init__(self, inferenceObject, queries):
@@ -3320,9 +3324,9 @@ if __name__ == '__main__':
     #sys.argv = [sys.argv[0], "test", "graph"]
     args = sys.argv[1:]
     if len(args) == 0:
-        print "\nMLNs in Python - helper tool\n\n  usage: mln.py <action> <params>\n\n"
+        print "\nMLNs in Python - helper tool\n\n  usage: MLN <action> <params>\n\n"
         print "  actions: print <mln file>"
-        print "              print the MLN file\n"
+        print "              print the MLN\n"
         print "           printGF <mln file> <db file>"
         print "              print the ground formulas we obtain when instantiating an MRF with the given database\n"
         print "           printGC <mln file> <db file>"
