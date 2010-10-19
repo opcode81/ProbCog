@@ -53,10 +53,18 @@ public class MLNModel extends Model {
 				throw new Exception("Function '" + functionName + "' appearing in evidence not found in model " + name);
 			String value;
 			String[] params;
-			params = new String[tuple.length-2];
-			for(int i = 0; i < params.length; i++)
-				params[i] = tuple[i+1];
-			value = tuple[tuple.length-1];
+			if(sig.argTypes.length == tuple.length-1) {
+				params = new String[tuple.length-1];
+				for(int i = 0; i < params.length; i++)
+					params[i] = tuple[i+1];
+				value = "True";
+			}
+			else {
+				params = new String[tuple.length-2];
+				for(int i = 0; i < params.length; i++)
+					params[i] = tuple[i+1];
+				value = tuple[tuple.length-1];
+			}
 			db.addVariable(new Database.Variable(functionName, params, value, mln));
 		}
 	}
