@@ -64,6 +64,7 @@ class Object(object):
     def __init__(self, objtype, constantName = None, **args):
         global GUID
         self.links = {}
+		self.partners = {}
         self.objtype = objtype
         self.attributes = {}
         GUID += 1
@@ -115,16 +116,29 @@ class Object(object):
         others.insert(0, other)
         args = [self] + others
         linkobj = Link(linkName, *args)
+		# add link to list of links
         if linkName in self.links:
             if not linkobj in self.links[linkName]: # check if same relation already added
                 self.links[linkName].append(linkobj)
         else:
             self.links[linkName] = [linkobj]
+		# add other(s) to list of partners
+		if linkName not in self.partners:
+			self.partners[linkName] = []
+		if len(moreothers) == 0:
+			self.partners[linkName].append(other)
+		else:
+			self.partners[linkName].append(others)
+		# return the link object
         return linkobj
 
     def linkfrom(self, linkName, other, *moreothers):
         return other.linkto(linkName, self, *moreothers)
 
+	def getPartners(self, linkName):
+		''' gets the list of partners (in case of a binary relation) or list of lists of partners (in case of a higher-arity relation) for the given link name '''
+		return self.partners.get(linkName, [])
+		
     def name(self):
         return "%s%d" % (self.objtype, self.guid)
     
@@ -670,6 +684,7 @@ class SelDist(Selector):
         i = sampleDist(self.probabilities)
         return self.selectors[i].pick()
 
+		
 # legacy stuff
 
 class RelationGenerator:
