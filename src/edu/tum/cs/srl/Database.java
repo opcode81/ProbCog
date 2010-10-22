@@ -209,7 +209,8 @@ public class Database implements IParameterHandler {
 			throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");
 		// if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
 		// System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
-		fillDomain(sig.returnType, var.value);
+		if(!sig.isBoolean())
+			fillDomain(sig.returnType, var.value);
 		for(int i = 0; i < sig.argTypes.length; i++) {
 			// if(domains.get(sig.argTypes[i]) == null || !domains.get(sig.argTypes[i]).contains(var.params[i]))
 			//   System.out.println("adding " + var.params[i] + " to " + sig.argTypes[i] + " because of " + var);
@@ -555,11 +556,10 @@ public class Database implements IParameterHandler {
 
 		// read lines
 		// if (verbose) System.out.println("  reading items...");
-		Pattern re_entry = Pattern.compile("[!]?[a-z]+[\\w]*[(]{1}([a-z|A-Z|0-9]+[\\w]*[!]?){1}(,[\\s]*([a-z|A-Z|0-9]+[\\w]*[!]?))*[)]{1}");
-		Pattern funcName = Pattern.compile("([!]?\\w+)(\\()(\\s*[A-Z|0-9]+[\\w+\\s*(,)]*\\s*)(\\))");
-		Pattern domName = Pattern.compile("[a-z]+\\w+");
-		Pattern domCont = Pattern.compile("\\{([\\s*[A-Z|0-9]+\\w*\\s*[,]?]+)\\}");
-		Pattern re_domDecl = Pattern.compile("[\\s]*[a-z]+[\\w]*[\\s]*[=][\\s]*[{][\\s]*[\\w]*[\\s]*([,][\\s]*[\\w]*[\\s]*)*[}][\\s]*");
+		String arg = "\\w+";
+		String argList = "\\s*" + arg + "\\s*(?:,\\s*" + arg + "\\s*)*";
+		Pattern re_entry = Pattern.compile("(!?\\w+)\\((" + argList + ")\\)");
+		Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(" + argList + ")\\}");
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		Variable var;
@@ -568,15 +568,10 @@ public class Database implements IParameterHandler {
 			// parse variable assignment
 			matcher = re_entry.matcher(line);
 			if(matcher.matches()) {
-				matcher = funcName.matcher(line);
-				if(!matcher.matches()) {
-					throw new Exception("Could not parse line: " + line);
-				}
-				matcher.find();
-				if(matcher.group(1).contains("!"))
-					var = new Variable(matcher.group(1).substring(1), matcher.group(3).trim().split("\\s*,\\s*"), "False", model);
+				if(matcher.group(1).startsWith("!"))
+					var = new Variable(matcher.group(1).substring(1), matcher.group(2).trim().split("\\s*,\\s*"), "False", model);
 				else
-					var = new Variable(matcher.group(1), matcher.group(3).trim().split("\\s*,\\s*"), "True", model);
+					var = new Variable(matcher.group(1), matcher.group(2).trim().split("\\s*,\\s*"), "True", model);
 
 				addVariable(var, ignoreUndefinedNodes, true);
 				// if (++numVars % 100 == 0 && verbose)
@@ -584,16 +579,11 @@ public class Database implements IParameterHandler {
 				continue;
 			}
 
-			// parse domain decls
-			Matcher matcher1 = re_domDecl.matcher(line);
-			Matcher domNamemat = domName.matcher(line);
-			Matcher domConst = domCont.matcher(line);
-
-			if(matcher1.matches() && domNamemat.find() && domConst.find()) { // parse
-				// domain
-				// decls
-				String domNam = domNamemat.group(0);
-				String[] constants = domConst.group(1).trim().split("\\s*,\\s*");
+			// parse domain extension
+			matcher = re_domDecl.matcher(line);
+			if(matcher.matches()) { // parse
+				String domNam = matcher.group(1);
+				String[] constants = matcher.group(2).trim().split("\\s*,\\s*");
 				for(String c : constants)
 					fillDomain(domNam, c);
 				continue;
