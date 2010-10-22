@@ -6,7 +6,7 @@ try:
     from edu.tum.cs import srldb
     import jarray
 except:
-    sys.stderr.write("Error: Could not import Java packages! Database generation disabled.")
+    #sys.stderr.write("Note: Could not import Java packages - database generation disabled.")
     HAVE_JAVA = 0
 #print "java: ",HAVE_JAVA
 import random
@@ -203,14 +203,14 @@ class ObjectGenerator:
         '''
             objtype: a string representing the name of the type of the objects that this generator is to generate
             world_or_container:
-                either the world object (which is expected to have a container for objtype) or
+                either the world object (if it has a container for objtype, it is used for generated objects; otherwise the container is added) or
                 directly a container (ObjectContainer instance) in which to store the generated object
             attrgens: a mapping of attribute names to attribute generator objects (e.g. AttrFixed or AttrDist)
         '''
         if isinstance(world_or_container, World):
             self.container = world_or_container.getContainer(objtype)
             if self.container is None:
-                raise Exception("World object does not have a container for '%s'" % objtype)
+                self.container = world_or_container.addContainer(objtype)
         else:
             self.container = world_or_container
         if attrgens is None: attrgens = {}
@@ -220,10 +220,10 @@ class ObjectGenerator:
     def setAttrGen(attr, gen):
         self.attrgens[attr] = gen
        
-    def generate(self, **args):
-        o = Object(self.objtype, **args)
-        self._createAttributes(o, **args)
-        self._createLinks(o, **args)
+    def generate(self, **kwargs):
+        o = Object(self.objtype, **kwargs)
+        self._createAttributes(o, **kwargs)
+        self._createLinks(o, **kwargs)
         self.container.add(o)
         return o
     
@@ -437,12 +437,16 @@ class AttrFixed(AttrGen):
         return [self.value]
 
 class AttrDist(AttrGen):
-    ''' attribute value distribution (for sampling from a distribution): instantiate as AttrDist({"value": prob, "value2": prob2, ...}) (probs are automatically normalized) '''
+    '''
+        attribute value distribution (for sampling from a distribution):
+        instantiate as AttrDist({"value1": prob1, "value2": prob2, ...}) (probs are automatically normalized)
+        or alternatively using AttrDist(value1=prob1, value2=prob2, ...)
+    '''
     
     def __init__(self, distribution=None, **convenient_distribution_specification):
         if distribution is None:
             distribution = {}
-        distribuction = dict(distribution) # copying for safety reasons
+        distribution = dict(distribution) # copying for safety reasons
         distribution.update(convenient_distribution_specification)
         self.distribution = distribution
         sum = 0.0
