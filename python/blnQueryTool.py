@@ -1,6 +1,6 @@
 # BLN Query Tool
 #
-# (C) 2008 by Dominik Jain
+# (C) 2008-2010 by Dominik Jain
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -118,7 +118,7 @@ class BLNQuery:
         col += 1
         frame.columnconfigure(col, weight=1)
         self.maxSteps = var = StringVar(master)
-        var.set(self.settings.get("maxSteps", ""))
+        var.set(self.settings.get("maxSteps", "1000"))
         self.entry_steps = entry = Entry(frame, textvariable = var)
         entry.grid(row=0, column=col, sticky="NEW")        
         # - interval entry
