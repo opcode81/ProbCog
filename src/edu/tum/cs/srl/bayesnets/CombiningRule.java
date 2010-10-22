@@ -65,7 +65,6 @@ public enum CombiningRule {
 			double prod = 0.0;
 			for(Double v : values)
 				prod += Math.log(1.0 - v);	
-			System.out.println(1.0 - Math.exp(prod));
 			return 1.0 - Math.exp(prod);
 		}
 	},
