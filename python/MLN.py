@@ -1,4 +1,5 @@
 # -*- coding: iso-8859-1 -*-
+#
 # Markov Logic Networks
 #
 # (C) 2006-2010 by Dominik Jain (jain@cs.tum.edu)
@@ -293,7 +294,6 @@ class MLN:
         text = stripComments(text)
         # read lines
         self.hard_formulas = []
-        max_weight = -1000000
         if verbose: print "reading MLN..."
         templateIdx2GroupIdx = {}
         inGroup = False
@@ -375,15 +375,7 @@ class MLN:
                             formula = line[:-1]
                         else: # with weight
                             spacepos = line.find(' ')
-                            try: 
-                                #weight = eval(line[:spacepos])
-                                weight = line[:spacepos]
-                            except:
-                                raise Exception("Could not evaluate weight '%s'" % (line[:spacepos]))
-                            try:
-                                max_weight = max(max_weight, eval(weight))
-                            except:
-                                pass
+                            weight = line[:spacepos]
                             formula = line[spacepos:].strip()
                         try:
                             formula = FOL.parseFormula(formula)
