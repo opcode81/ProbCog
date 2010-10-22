@@ -108,6 +108,8 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     	}
     	else {
     		Iterable<String> dom = db.getDomain(sig.argTypes[i]);
+    		if(dom == null)
+    			throw new Exception("Domain '" + sig.argTypes[i] + "' not found in the database");
     		for(String value : dom) {
     			args[i] = value;
     			groundVariables(sig, args, i+1, functionallyDeterminedArg);
