@@ -440,6 +440,11 @@ public class CPTLearner extends Learner {
 			for(int i = 0; i < nodes.length; i++)
 				nodeIndices[i] = bn.getNodeIndex(nodes[i]);	
 		}
+		
+		public ExampleCounter(CPF cpf, int[] nodeIndices) {
+			this.cpf = cpf;
+			this.nodeIndices = nodeIndices;
+		}
 	
 		/**
 		 * increments the value in the CPT that corresponds to the example
