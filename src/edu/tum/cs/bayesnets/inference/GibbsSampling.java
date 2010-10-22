@@ -25,18 +25,18 @@ public class GibbsSampling extends Sampler {
 		createDistribution();		
 
 		// get initial setting with non-zero evidence probability
-		System.out.println("initial setting...");
+		out.println("initial setting...");
 		WeightedSample s = bn.getWeightedSample(nodeOrder, evidenceDomainIndices, generator);
 		if(s == null)
 			throw new Exception("Could not find an initial state with non-zero probability in given number of trials.");
 		
 		// do Gibbs sampling
-		System.out.println("Gibbs sampling...");
+		out.println("Gibbs sampling...");
 		sw.start();		
 		// - get a bunch of samples
 		for(int i = 1; i <= numSamples; i++) {
 			if(i % infoInterval == 0)
-				System.out.println("  step " + i);
+				out.println("  step " + i);
 			gibbsStep(evidenceDomainIndices, s);
 			s.trials = 1;
 			s.weight = 1;
@@ -44,7 +44,7 @@ public class GibbsSampling extends Sampler {
 		}
 
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
+		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
 		return dist;
 	}
 	

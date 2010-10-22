@@ -190,7 +190,7 @@ public class SATIS_BSampler extends BackwardSampling {
 			int domIdx = coupling.getVariableValue(var, state);
 			s.nodeDomainIndices[this.getNodeIndex(var)] = domIdx;
 			/*if(true) {				
-				System.out.printf("%s = %s\n", var.toString(), var.getDomain().getName(domIdx));
+				out.printf("%s = %s\n", var.toString(), var.getDomain().getName(domIdx));
 			}*/
 		}
 	}
@@ -251,7 +251,7 @@ public class SATIS_BSampler extends BackwardSampling {
 				forwardSampledNodes.add(nodes[i]);
 		}
 		
-		System.out.println("node ordering: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
+		out.println("node ordering: " + outsideSamplingOrder.size() + " outside order, " + backwardSampledNodes.size() + " backward, " + forwardSampledNodes.size() + " forward");
 	}
 	
 	@Override

@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 
 public abstract class AbstractBayesianLogicNetwork {
@@ -10,4 +11,6 @@ public abstract class AbstractBayesianLogicNetwork {
 		this.rbn = rbn;
 		this.logicFile = logicFile;
 	}
+	
+	public abstract AbstractGroundBLN ground(Database db) throws Exception;
 }

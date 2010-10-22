@@ -18,6 +18,7 @@ import edu.tum.cs.util.Stopwatch;
  */
 public abstract class Sampler implements IParameterHandler {
 	protected boolean debug = false;
+	protected boolean verbose = true;
 	protected int numSamples = 1000;
 	protected int infoInterval = 100;
 	protected ParameterHandler paramHandler;
@@ -31,6 +32,7 @@ public abstract class Sampler implements IParameterHandler {
 		paramHandler.add("maxSteps", "setNumSamples");
 		paramHandler.add("infoInterval", "setInfoInterval");
 		paramHandler.add("debug", "setDebugMode");
+		paramHandler.add("verbose", "setVerbose");
 	}
 		
 	/**
@@ -84,6 +86,10 @@ public abstract class Sampler implements IParameterHandler {
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 	
 	public ParameterHandler getParameterHandler() {

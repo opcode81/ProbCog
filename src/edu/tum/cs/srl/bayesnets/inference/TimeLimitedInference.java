@@ -15,7 +15,7 @@ public class TimeLimitedInference extends edu.tum.cs.bayesnets.inference.TimeLim
 
 	Sampler inference;
 	
-	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) {
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws Exception {
 		super(inference, time, interval);
 		this.inference = (Sampler)inference;
 	}

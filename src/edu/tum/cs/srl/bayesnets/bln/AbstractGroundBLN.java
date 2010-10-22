@@ -16,6 +16,7 @@ import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
@@ -60,7 +61,9 @@ public abstract class AbstractGroundBLN {
 	 */
 	protected HashSet<String> instantiatedVariables;
 	protected HashMap<String, Value[]> cpfCache;
+	protected boolean verbose = true;
 	protected boolean debug = false;	
+	protected ParameterHandler paramHandler;
 	/**
 	 * maps an instantiated ground node to a string identifying the CPF template that was used to create it
 	 */
@@ -76,7 +79,6 @@ public abstract class AbstractGroundBLN {
 	
 	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
 		this.databaseFile = databaseFile;
-		System.out.println("reading evidence...");
 		Database db = new Database(bln.rbn);
 		db.readBLOGDB(databaseFile, true);
 		init(bln, db);
@@ -106,11 +108,11 @@ public abstract class AbstractGroundBLN {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
-		System.out.println("generating network...");
+		if(verbose) System.out.println("generating network...");
 		groundBN = new BeliefNetworkEx();
 		
 		// ground regular probabilistic nodes (i.e. ground atoms)
-		System.out.println("  regular nodes");
+		if(verbose) System.out.println("  regular nodes");
 		RelationalBeliefNetwork rbn = bln.rbn;
 		
 		// collect the RelationalNodes that can be used as templates to ground variables for the various functions		
@@ -138,7 +140,7 @@ public abstract class AbstractGroundBLN {
 		instantiatedVariables = new HashSet<String>();
 		cpfCache = new HashMap<String, Value[]>();
 		for(String functionName : functionTemplates.keySet()) {
-			System.out.println("    " + functionName);
+			if(verbose) System.out.println("    " + functionName);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
 			for(String[] params : parameterSets) 
 				instantiateVariable(functionName, params);
@@ -151,13 +153,15 @@ public abstract class AbstractGroundBLN {
 		
 		// add auxiliary variables for formulaic constraints
 		if(addAuxiliaryVars) {
-			System.out.println("  formulaic nodes");
+			if(verbose) System.out.println("  formulaic nodes");
 			hardFormulaNodes = new Vector<BeliefNode>();
 			groundFormulaicNodes();
 		}
 		
-		System.out.println("network size: " + getGroundNetwork().bn.getNodes().length + " nodes");
-		System.out.println(String.format("construction time: %.4fs", sw.getElapsedTimeSecs()));
+		if(verbose) {
+			System.out.println("network size: " + getGroundNetwork().bn.getNodes().length + " nodes");
+			System.out.println(String.format("construction time: %.4fs", sw.getElapsedTimeSecs()));
+		}
 	}
 	
 	/**
@@ -834,5 +838,9 @@ public abstract class AbstractGroundBLN {
 	 */
 	public Vector<BeliefNode> getAuxiliaryVariables() {
 		return this.hardFormulaNodes;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 }

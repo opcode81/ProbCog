@@ -291,7 +291,7 @@ public class BeliefPropagation extends Sampler {
 		
 		for (int step = 1; step <= this.numSamples; step++) {
 			
-			if(step % this.infoInterval == 0)
+			if(verbose && step % this.infoInterval == 0)
 				System.out.println("step " + step);
 			
 			// calculate pi(x)
@@ -418,7 +418,7 @@ public class BeliefPropagation extends Sampler {
 			
 		}
 		// compute probabilities and store results in distribution
-		System.out.println("computing results....");
+		if(verbose) System.out.println("computing results....");
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (BeliefNode n : nodes) {

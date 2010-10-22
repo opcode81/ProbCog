@@ -1,5 +1,6 @@
 package edu.tum.cs.bayesnets.inference;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
@@ -22,6 +23,8 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected ParameterHandler paramHandler;
 	protected Collection<Integer> queryVars = null;
 	protected StringBuffer report = new StringBuffer();
+	protected boolean verbose;
+	protected PrintStream out;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -49,9 +52,11 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 			nodeIndices.put(nodes[i], i);
 		}
 		generator = new Random();
+		setVerbose(true);
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("confidenceIntervalSizeThreshold", "setConfidenceIntervalSizeThreshold");
 		paramHandler.add("randomSeed", "setRandomSeed");
+		paramHandler.add("verbose", "setVerbose");
 	}
 	
 	protected void createDistribution() throws Exception {
@@ -88,7 +93,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 				max = Math.max(max, interval.getSize());
 			}
 			if(max <= confidenceIntervalSizeThreshold) {
-				System.out.printf("Convergence criterion reached: maximum confidence interval size = %f\n", max);
+				if(verbose) System.out.printf("Convergence criterion reached: maximum confidence interval size = %f\n", max);
 				return true;
 			}
 		}
@@ -220,7 +225,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		sw.start();
 		SampledDistribution ret = _infer();		
 		samplingTime = sw.getElapsedTimeSecs();
-		System.out.print(report.toString());
+		if(verbose) out.print(report.toString());
 		return ret;
 	}
 	
@@ -288,6 +293,14 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+		if(verbose)
+			out = System.out;
+		else
+			out = new PrintStream(new java.io.OutputStream() { public void write(int b){} });
 	}
 	
 	public String getAlgorithmName() {

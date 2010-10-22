@@ -33,7 +33,7 @@ public class VariableElimination extends Sampler {
 			for(int i = 0; i < domprod.length; i++) {
 				if(evidenceDomainIndices[getNodeIndex(domprod[i])] != 0) {
 					cpf = removeEvidence(cpf);
-					break;					
+					break;	
 				}
 			}
 		}
@@ -186,7 +186,7 @@ public class VariableElimination extends Sampler {
 				newFacs.add(f);
 		}
 		Factor joinedFac = join(joinFacs);
-		if(debug) System.out.println("Summing out " + n + " from " + joinedFac);
+		if(debug) out.println("Summing out " + n + " from " + joinedFac);
 		newFacs.add(joinedFac.sumOut(n));
 		return newFacs;
 	}
@@ -194,20 +194,20 @@ public class VariableElimination extends Sampler {
 	protected void computeMarginal(BeliefNode Q) {
 		Vector<Factor> factors = new Vector<Factor>();
 		for(int i = nodeOrder.length-1; i >= 0; i--) {
-			if(!debug) System.out.printf("  %s  %d \r", Q.getName(), i);
+			if(!debug) out.printf("  %s  %d \r", Q.getName(), i);
 			int nodeIdx = nodeOrder[i];
 			BeliefNode node = nodes[nodeIdx];
-			if(debug) System.out.println("Current node: " + node);			
+			if(debug) out.println("Current node: " + node);			
 			
 			factors.add(new Factor(node));
-			if(debug) System.out.println(factors);
+			if(debug) out.println(factors);
 			
 			if(evidenceDomainIndices[nodeIdx] == -1 && node != Q)				
 				factors = sumout(factors, node);			
 		}
-		if(!debug) System.out.println();
+		if(!debug) out.println();
 		
-		if(debug) System.out.printf("%d final factors: %s\n", factors.size(), StringTool.join(", ", factors));
+		if(debug) out.printf("%d final factors: %s\n", factors.size(), StringTool.join(", ", factors));
 		
 		// save results to distribution
 		int nodeIdx = getNodeIndex(Q);
@@ -219,7 +219,7 @@ public class VariableElimination extends Sampler {
 			for(Factor f : factors) {			
 				marginal[i] *= f.getValue(nodeDomainIndices);
 			}
-			//System.out.println(factors.get(0).getValue(nodeDomainIndices));
+			//out.println(factors.get(0).getValue(nodeDomainIndices));
 			Z += marginal[i];
 		}
 		for(int i = 0; i < marginal.length; i++)

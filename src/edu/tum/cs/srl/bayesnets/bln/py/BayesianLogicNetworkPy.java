@@ -5,8 +5,10 @@ import java.util.Properties;
 import org.python.core.PyObject.ConversionException;
 import org.python.util.PythonInterpreter;
 
+import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
+import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.tools.JythonInterpreter;
 
 /**
@@ -49,5 +51,10 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	
 	public GroundFormulaIteration iterGroundFormulas() throws ConversionException {
 		return new GroundFormulaIteration(this);
+	}
+
+	@Override
+	public GroundBLN ground(Database db) throws Exception {
+		return new GroundBLN(this, db);
 	}
 }

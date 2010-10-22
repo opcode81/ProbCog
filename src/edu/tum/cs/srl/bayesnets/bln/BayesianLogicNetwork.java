@@ -33,4 +33,9 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		}
 		return converter.getMLN();
 	}
+
+	@Override
+	public GroundBLN ground(Database db) {
+		return new GroundBLN(this, db);
+	}
 }
