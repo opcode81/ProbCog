@@ -14,6 +14,7 @@ import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.srl.bayesnets.inference.Sampler;
+import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
 
 public class BLNModel extends Model {
@@ -80,17 +81,19 @@ public class BLNModel extends Model {
 				throw new Exception("Function '" + functionName + "' appearing in evidence not found in model " + name);
 			String value;
 			String[] params;
-			if(!sig.isBoolean()) { // non-boolean function
-				params = new String[tuple.length-2];
-				for(int i = 0; i < params.length; i++)
-					params[i] = tuple[i+1];
-				value = tuple[tuple.length-1];
-			}
-			else { // predicate
-				value = "True";
+			if(sig.argTypes.length == tuple.length-1) {
 				params = new String[tuple.length-1];
 				for(int i = 0; i < params.length; i++)
 					params[i] = tuple[i+1];
+				value = "True";
+			}
+			else {
+				if(tuple.length < sig.argTypes.length+2)
+					throw new Exception("Evidence entry has too few parameters: " + StringTool.join(", ", tuple));
+				params = new String[sig.argTypes.length];
+				for(int i = 0; i < params.length; i++)
+					params[i] = tuple[i+1];
+				value = tuple[params.length+1];
 			}
 			db.addVariable(new Database.Variable(functionName, params, value, this.bln.rbn));
 		}
@@ -122,23 +125,6 @@ public class BLNModel extends Model {
 	protected String _getConstantType(String constant) {
 		return db.getConstantType(constant);
 	}
-	
-    /**
-     * reads data via Java Prolog 
-     * @throws Exception 
-     */
-    public void learnViaJPL(String prologModule) throws Exception {
-    	// TODO extend db with data from prolog 
-    	for(Signature sig : this.bln.rbn.getSignatures()) {
-    		String predName = sig.functionName;
-    		// for every func/pred, issue query to prolog and 
-    		// assert the results to the db
-    		String[] params; String value;
-    		//db.addVariable(new Variable(predName, params, value, bln.rbn));
-    	}
-    	db.print();
-    	// TODO start learning (wie learnBLOG)
-    }
     
     @Override
     public String toString() {
