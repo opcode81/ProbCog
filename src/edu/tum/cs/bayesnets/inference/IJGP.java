@@ -46,7 +46,7 @@ public class IJGP extends Sampler {
 		}
 		// construct join-graph
 		if(verbose)
-			System.out.printf("constructing join-graph with i-bound %d...\n", ibound);
+			out.printf("constructing join-graph with i-bound %d...\n", ibound);
 		jg = new JoinGraph(bn, ibound);
 		//jg.writeDOT(new File("jg.dot"));
 	}
@@ -58,23 +58,23 @@ public class IJGP extends Sampler {
 
 	/*
 	 * public IJGP(BeliefNetworkEx bn, int bound) { super(bn); this.nodes =
-	 * bn.bn.getNodes(); jg = new JoinGraph(bn, bound); jg.print(System.out);
+	 * bn.bn.getNodes(); jg = new JoinGraph(bn, bound); jg.print(out);
 	 * jgNodes = jg.getTopologicalorder(); // construct join-graph }
 	 */
 
 	@Override
 	public SampledDistribution _infer() throws Exception {
 		// Create topological order
-		if(verbose) System.out.println("determining order...");
+		if(verbose) out.println("determining order...");
 		jgNodes = jg.getTopologicalorder();
 		if(debug) {
-			System.out.println("Topological Order: ");
+			out.println("Topological Order: ");
 			for (int i = 0; i < jgNodes.size(); i++) {
-				System.out.println(jgNodes.get(i).getShortName());
+				out.println(jgNodes.get(i).getShortName());
 			}
 		}
 		// process observed variables
-		if(verbose) System.out.println("processing observed variables...");
+		if(verbose) out.println("processing observed variables...");
 		for (JoinGraph.Node n : jgNodes) {
 			Vector<BeliefNode> nodes = new Vector<BeliefNode>(n.getNodes());
 			for (BeliefNode belNode : nodes) {
@@ -84,9 +84,9 @@ public class IJGP extends Sampler {
 					n.nodes.remove(belNode);
 			}
 		}
-		System.out.printf("running propagation (%d steps)...\n", this.numSamples);
+		out.printf("running propagation (%d steps)...\n", this.numSamples);
 		for (int step = 1; step <= this.numSamples; step++) {
-			System.out.printf("step %d\n", step);
+			out.printf("step %d\n", step);
 			// for every node in JG in topological order and back:
 			int s = jgNodes.size();
 			boolean direction = true;
@@ -99,7 +99,7 @@ public class IJGP extends Sampler {
 					direction = false;
 				}
 				JoinGraph.Node u = jgNodes.get(i);
-				//System.out.printf("step %d, %d/%d: %-60s\r", step, j, 2*s, u.getShortName());
+				//out.printf("step %d, %d/%d: %-60s\r", step, j, 2*s, u.getShortName());
 				int topIndex = jgNodes.indexOf(u);
 				for (JoinGraph.Node v : u.getNeighbors()) {
 					if ((direction && jgNodes.indexOf(v) < topIndex)
@@ -113,7 +113,7 @@ public class IJGP extends Sampler {
 					// Include in cluster_H each function in cluster_u which
 					// scope does not contain variables in elim(u,v)
 					HashSet<BeliefNode> elim = new HashSet<BeliefNode>(u.nodes);
-					// System.out.println(" Node " + u.getShortName() +
+					// out.println(" Node " + u.getShortName() +
 					// " and node " +v.getShortName() + " have separator " +
 					// StringTool.join(", ", arc.separator));
 					elim.removeAll(arc.separator);
@@ -123,9 +123,9 @@ public class IJGP extends Sampler {
 					cluster_A.subtractCluster(cluster_H);
 					// DEBUG OUTPUT
 					if (debug) {
-						System.out.println("  cluster_v(u): \n" + cluster_u);
-						System.out.println("  A: \n" + cluster_A);
-						System.out.println("  H_(u,v): \n" + cluster_H);
+						out.println("  cluster_v(u): \n" + cluster_u);
+						out.println("  A: \n" + cluster_A);
+						out.println("  H_(u,v): \n" + cluster_H);
 					}
 					// convert eliminator into varsToSumOver
 					int[] varsToSumOver = new int[elim.size()];
@@ -149,18 +149,18 @@ public class IJGP extends Sampler {
 		}
 
 		// compute probabilities and store results in distribution
-		System.out.println("computing results...");
+		out.println("computing results...");
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
-			//System.out.println("Computing: " + nodes[i].getName() + "\n");
+			//out.println("Computing: " + nodes[i].getName() + "\n");
 			if (evidenceDomainIndices[i] >= 0) {
 				dist.values[i][evidenceDomainIndices[i]] = 1.0;
 				continue;
 			}
 			// For every node X let u be a vertex in the join graph such that X
 			// is in u
-			// System.out.println(nodes[i]);
+			// out.println(nodes[i]);
 			JoinGraph.Node u = null;
 			for (JoinGraph.Node node : jgNodes) {
 				if (node.nodes.contains(nodes[i])) {
@@ -172,8 +172,8 @@ public class IJGP extends Sampler {
 				throw new Exception(
 						"Could not find vertex in join graph containing variable "
 								+ nodes[i].getName());
-			// System.out.println("\nCalculating results for " + nodes[i]);
-			// System.out.println(u);
+			// out.println("\nCalculating results for " + nodes[i]);
+			// out.println(u);
 			// compute sum for each domain value of i-th node
 			int domSize = dist.values[i].length;
 			double Z = 0.0;
@@ -191,7 +191,7 @@ public class IJGP extends Sampler {
 			for (int j = 0; j < domSize; j++)
 				dist.values[i][j] /= Z;
 		}
-		// dist.print(System.out);
+		// dist.print(out);
 		return dist;
 	}
 
@@ -335,11 +335,11 @@ public class IJGP extends Sampler {
 		public double product(int[] nodeDomainIndices) {
 			double ret = 1.0;
 			for (BeliefNode n : cpts) {
-				// System.out.println("  " + n.getCPF().toString());
+				// out.println("  " + n.getCPF().toString());
 				ret *= getCPTProbability(n, nodeDomainIndices);
 			}
 			for (MessageFunction f : this.functions) {
-				// System.out.println("  " + f);
+				// out.println("  " + f);
 				ret *= f.compute(nodeDomainIndices);
 			}
 			return ret;
@@ -724,15 +724,15 @@ public class IJGP extends Sampler {
 			nodes = new HashSet<Node>();
 			// apply procedure schematic mini-bucket(bound)
 			SchematicMiniBucket smb = new SchematicMiniBucket(bn, bound);
-			// System.out.println("\nJoin graph decomposition:");
-			// smb.print(System.out);
+			// out.println("\nJoin graph decomposition:");
+			// smb.print(out);
 			Vector<MiniBucket> minibuckets = smb.getMiniBuckets();
 			// associate each minibucket with a node
-			// System.out.println("\nJoin graph nodes:");
+			// out.println("\nJoin graph nodes:");
 			for (MiniBucket mb : minibuckets) {
-				// System.out.println(mb);
+				// out.println(mb);
 				Node newNode = new Node(mb);
-				// System.out.println(newNode);
+				// out.println(newNode);
 				nodes.add(newNode);
 				bucket2node.put(mb, newNode);
 			}
@@ -793,18 +793,18 @@ public class IJGP extends Sampler {
 					nodesLeft.remove(n);
 				}
 			}
-			// System.out.println("Start topological order with "
+			// out.println("Start topological order with "
 			// +StringTool.join(", ", topOrder));
 			int i = 0;
 			while (!nodesLeft.isEmpty() && i < 10) {
 				HashSet<Node> removeNodes = new HashSet<Node>();
-				// System.out.println(" Current order: " +StringTool.join(", ",
+				// out.println(" Current order: " +StringTool.join(", ",
 				// topOrder));
 				for (Node n : nodesLeft) {
-					// System.out.println("   - Check for " + n.getShortName() +
+					// out.println("   - Check for " + n.getShortName() +
 					// " with parents " + StringTool.join(", ", n.mb.parents));
 					if (topOrder.containsAll(n.parents)) {
-						// System.out.println("    -- Can be inserted!");
+						// out.println("    -- Can be inserted!");
 						topOrder.add(n);
 						removeNodes.add(n);
 					}

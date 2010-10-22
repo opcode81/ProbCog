@@ -25,29 +25,29 @@ public class EnumerationAsk extends Sampler {
 		numPathsPruned = 0;
 		numWorldsPruned = numWorldsCounted = 0;
 		createDistribution();
-		System.out.printf("enumerating %s worlds...\n", numTotalWorlds);
+		if(verbose) out.printf("enumerating %s worlds...\n", numTotalWorlds);
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
 		timer = new Stopwatch();
 		timer.start();		
 		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0, 1); 
 		sw.stop();
-		System.out.println(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPathsPruned));
+		report(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPathsPruned));
 		return dist;
 	}
 	
 	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws Exception {
-		//System.out.printf("enum %s, domain size = %d\n", nodes[nodeOrder[i]].getName(), nodes[nodeOrder[i]].getDomain().getOrder());
+		//out.printf("enum %s, domain size = %d\n", nodes[nodeOrder[i]].getName(), nodes[nodeOrder[i]].getDomain().getOrder());
 		// status messages
 		if(timer.getElapsedTimeSecs() > 1) {
 			double numDone = numWorldsCounted+numWorldsPruned;
-			System.out.printf(" ~ %.4f%% done (%s worlds handled, %d paths pruned)\r", 100.0*numDone/numTotalWorlds, numDone, numPathsPruned);  
+			if(verbose) out.printf(" ~ %.4f%% done (%s worlds handled, %d paths pruned)\r", 100.0*numDone/numTotalWorlds, numDone, numPathsPruned);  
 			timer = new Stopwatch();
 			timer.start();			
 		}
 		// if we have completed the world, we are done and can add the world as a sample
 		if(i == nodes.length) {
-			//System.out.println("counting sample");
+			//out.println("counting sample");
 			addSample(s);
 			numWorldsCounted++;
 			return;
@@ -62,7 +62,7 @@ public class EnumerationAsk extends Sampler {
 			double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 			s.weight *= prob;
 			if(prob == 0.0) { // we have reached zero, so we can save us the trouble of further ramifications
-				//System.out.println("zero reached");
+				//out.println("zero reached");
 				numPathsPruned++;
 				numWorldsPruned += numTotalWorlds / combinationsHandled; 
 				return;
@@ -73,13 +73,13 @@ public class EnumerationAsk extends Sampler {
 		else {
 			Domain d = nodes[nodeIdx].getDomain();
 			int order = d.getOrder();
-			//System.out.println("  enumerating all " + order + " cases for " + nodes[nodeIdx].getName());			
+			//out.println("  enumerating all " + order + " cases for " + nodes[nodeIdx].getName());			
 			double weight = s.weight;
 			for(int j = 0; j < order; j++) { 
 				s.nodeDomainIndices[nodeIdx] = j;
 				double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 				if(prob == 0.0) {
-					//System.out.println("zero reached");
+					//out.println("zero reached");
 					numPathsPruned++;
 					numWorldsPruned += numTotalWorlds / combinationsHandled;
 					continue;

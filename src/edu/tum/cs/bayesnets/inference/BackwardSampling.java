@@ -168,7 +168,7 @@ public class BackwardSampling extends Sampler {
 	 * @return true if sampling succeeded, false otherwise
 	 */
 	protected boolean sampleBackward(BeliefNode node, WeightedSample s) {		
-		//System.out.println("backward sampling from " + node);
+		//out.println("backward sampling from " + node);
 		// get the distribution from which to sample 		
 		BackSamplingDistribution d = getBackSamplingDistribution(node, s);
 		// sample
@@ -185,7 +185,7 @@ public class BackwardSampling extends Sampler {
 		for(int i = 1; i < state.length; i++) {
 			int nodeIdx = this.nodeIndices.get(domProd[i]);
 			s.nodeDomainIndices[nodeIdx] = state[i];
-			//System.out.println("  sampled node " + domProd[i]);
+			//out.println("  sampled node " + domProd[i]);
 		}
 		return true;
 	}
@@ -200,9 +200,9 @@ public class BackwardSampling extends Sampler {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		getOrdering(evidenceDomainIndices);
 		if(debug) {
-			System.out.println("sampling backward: " + this.backwardSampledNodes);
-			System.out.println("sampling forward: " + this.forwardSampledNodes);
-			System.out.println("not in order: " + this.outsideSamplingOrder);
+			out.println("sampling backward: " + this.backwardSampledNodes);
+			out.println("sampling forward: " + this.forwardSampledNodes);
+			out.println("not in order: " + this.outsideSamplingOrder);
 		}
 	}
 	
@@ -214,11 +214,11 @@ public class BackwardSampling extends Sampler {
 		this.prepareInference(evidenceDomainIndices);
 		
 		this.createDistribution();
-		System.out.println("sampling...");
+		if(verbose) out.println("sampling...");
 		WeightedSample s = new WeightedSample(this.bn, evidenceDomainIndices.clone(), 1.0, null, 0);
 		for(currentStep = 1; currentStep <= this.numSamples; currentStep++) {	
-			if(currentStep % infoInterval == 0)
-				System.out.println("  step " + currentStep);
+			if(verbose && currentStep % infoInterval == 0)
+				out.println("  step " + currentStep);
 			getSample(s);
 			this.addSample(s);
 			onAddedSample(s);
@@ -227,7 +227,7 @@ public class BackwardSampling extends Sampler {
 		}
 		
 		sw.stop();
-		System.out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
+		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
 		return this.dist;
 	}
 	
@@ -244,11 +244,11 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 			// backward sampling
 			for(BeliefNode node : backwardSampledNodes) {
 				if(!sampleBackward(node, s)) {
-					if(debug) System.out.println("!!! backward sampling failed at " + node + " in step " + currentStep);
+					if(debug) out.println("!!! backward sampling failed at " + node + " in step " + currentStep);
 					continue loop1;
 				}				
 			}
-			//System.out.println("after backward: weight = " + s.weight);
+			//out.println("after backward: weight = " + s.weight);
 			// forward sampling
 			for(BeliefNode node : forwardSampledNodes) {
 				if(!sampleForward(node, s)) {
@@ -261,12 +261,12 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 							cond.append(domain_product[i].getName()).append(" = ");
 							cond.append(domain_product[i].getDomain().getName(s.nodeDomainIndices[this.getNodeIndex(domain_product[i])]));
 						}*/						
-						System.out.println("!!! forward sampling failed at " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
+						out.println("!!! forward sampling failed at " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					}
 					continue loop1;
 				}
 			}
-			//System.out.println("after forward: weight = " + s.weight);
+			//out.println("after forward: weight = " + s.weight);
 			// nodes outside the sampling order: adjust weight
 			for(BeliefNode node : outsideSamplingOrder) {
 				double p = this.getCPTProbability(node, s.nodeDomainIndices);
@@ -275,10 +275,10 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 					if(p != 0.0)
 						throw new Exception("Precision loss in weight calculation");
 					// error diagnosis					
-					if(debug) System.out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
+					if(debug) out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					if(debug && this instanceof BackwardSamplingWithPriors) {
 						double[] dist = ((BackwardSamplingWithPriors)this).priors.get(node);
-						System.out.println("prior: " + StringTool.join(", ", dist) + " value=" + s.nodeDomainIndices[getNodeIndex(node)]);
+						out.println("prior: " + StringTool.join(", ", dist) + " value=" + s.nodeDomainIndices[getNodeIndex(node)]);
 						CPF cpf = node.getCPF();
 						BeliefNode[] domProd = cpf.getDomainProduct();						
 						int[] addr = new int[domProd.length];
@@ -288,7 +288,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
 							addr[0] = i;
 							dist[i] = cpf.getDouble(addr);
 						}
-						System.out.println("cpd: " + StringTool.join(", ", dist));
+						out.println("cpd: " + StringTool.join(", ", dist));
 					}
 					continue loop1;
 				}

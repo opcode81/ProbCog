@@ -74,7 +74,7 @@ public class GroundBLN extends AbstractGroundBLN {
 		boolean useFormulaSimplification = false; // TODO: maybe simplification should depend on the algorithm that is used
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
 		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification); 
-		System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
+		if(verbose) System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		HashMap<String, Value[]> cpfCache = new HashMap<String, Value[]>();
 		int i = 0;
 		for(Formula gf : gkb) {			
@@ -83,14 +83,14 @@ public class GroundBLN extends AbstractGroundBLN {
 			
 			// add node and connections
 			String nodeName = "GF" + i;
-			System.out.printf("    %s: %s\n", nodeName, gf.toString());
+			if(verbose) System.out.printf("    %s: %s\n", nodeName, gf.toString());
 			// NOTE: we use an ordered set to guarantee that the ordering of nodes is the same 
 			//       across all instances of a formula template; such that (if formulas are not
 			//       simplified using the evidence) we could use the same CPF for all of the
 			//       instances of a formula
 			Set<GroundAtom> gas = new OrderedSet<GroundAtom>();  
 			gf.getGroundAtoms(gas);
-			System.out.printf("      referenced ground atoms in GF%d: %s\n", i, StringTool.join(", ", gas));
+			//System.out.printf("      referenced ground atoms in GF%d: %s\n", i, StringTool.join(", ", gas));
 			Vector<String> parentGAs = new Vector<String>();
 			for(GroundAtom ga : gas) {
 				if(ga == null)

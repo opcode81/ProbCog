@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Signature;
 
-public abstract class Model {
-	private HashMap<String,String> parameters;
+public abstract class Model implements IParameterHandler {
+	protected HashMap<String,String> parameters;
 	/**
 	 * maps from ProbCog constants to external constants
 	 */
@@ -21,11 +23,13 @@ public abstract class Model {
 	 * name of the model
 	 */
 	protected String name;
+	protected ParameterHandler paramHandler;
 	
 	public Model(String name) {
 		parameters = new HashMap<String,String>();
 		this.name = name;
 		constantMapFromProbCog = null;
+		paramHandler = new ParameterHandler(this);
 	}
 	protected abstract void _setEvidence(Iterable<String[]> evidence) throws Exception;
 	public abstract void instantiate() throws Exception;
@@ -175,5 +179,9 @@ public abstract class Model {
 	
 	public String getName() {
 		return name;
+	}
+	
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }

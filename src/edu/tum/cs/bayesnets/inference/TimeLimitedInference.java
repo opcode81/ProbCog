@@ -9,12 +9,14 @@ package edu.tum.cs.bayesnets.inference;
 import java.util.Vector;
 
 import edu.tum.cs.inference.BasicSampledDistribution;
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionEntryComparison;
 import edu.tum.cs.inference.BasicSampledDistribution.MeanSquaredError;
 import edu.tum.cs.util.Stopwatch;
 
-public class TimeLimitedInference {
+public class TimeLimitedInference implements IParameterHandler {
 
 	protected ITimeLimitedInference inference;
 	protected double time, interval;
@@ -25,12 +27,20 @@ public class TimeLimitedInference {
 	 */	
 	protected Vector<Double> MSEs = null;
 	protected Vector<Class<? extends DistributionEntryComparison>> comparisonClasses;
+	protected ParameterHandler paramHandler;
+	protected boolean verbose = true;
 
-	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) {
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws Exception {
 		this.inference = inference;
 		this.time = time;
 		this.interval = interval;
 		comparisonClasses = new Vector<Class<? extends DistributionEntryComparison>>();
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("verbose", "setVerbose");
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 	
 	public void setReferenceDistribution(BasicSampledDistribution dist) {
@@ -53,9 +63,9 @@ public class TimeLimitedInference {
 		else {
 			while(sw.getElapsedTimeSecs() < time && thread.isAlive()) {				
 				Thread.sleep((int)(1000*interval));
-				System.out.println("polling results after " + sw.getElapsedTimeSecs() + "s...");
-				SampledDistribution dist = pollResults(false);
-				if(dist != null) System.out.printf("%d samples taken\n", dist.steps);
+				if(verbose) System.out.println("polling results after " + sw.getElapsedTimeSecs() + "s...");
+				SampledDistribution dist = pollResults(true);
+				if(verbose && dist != null) System.out.printf("%d samples taken\n", dist.steps);
 				if(referenceDistribution != null) {
 					double mse;
 					if(dist == null)
@@ -84,9 +94,9 @@ public class TimeLimitedInference {
 		return dc;
 	}
 	
-	public SampledDistribution pollResults(boolean print) throws Exception {
+	public SampledDistribution pollResults(boolean allowPrint) throws Exception {
 		SampledDistribution dist = thread.pollResults();
-		if(print && dist != null)
+		if(allowPrint && verbose && dist != null)
 			printResults(dist);
 		return dist;
 	}
@@ -117,5 +127,10 @@ public class TimeLimitedInference {
 		public SampledDistribution pollResults() throws Exception {
 			return inference.pollResults();
 		}
+	}
+
+	@Override
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }

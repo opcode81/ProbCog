@@ -6,7 +6,6 @@
  */
 package edu.tum.cs.bayesnets.inference;
 
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;

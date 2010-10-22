@@ -253,11 +253,10 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		probSW = new Stopwatch();
 		distSW = new Stopwatch();
 		SampledDistribution d = super.infer();
-		System.out.println("prob time: " + probSW.getElapsedTimeSecs());
-		System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
-		System.out.println("dist time: " + distSW.getElapsedTimeSecs());
-		System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.distCache.getHitRatio(), this.distCache.getNumAccesses()));
-		System.out.println();
+		report("prob time: " + probSW.getElapsedTimeSecs());
+		report(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
+		report("dist time: " + distSW.getElapsedTimeSecs());
+		report(String.format("  cache hit ratio: %f (%d accesses)", this.distCache.getHitRatio(), this.distCache.getNumAccesses()));
 		return d;
 	}
 }

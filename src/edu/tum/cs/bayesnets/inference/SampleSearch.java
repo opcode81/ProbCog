@@ -27,14 +27,14 @@ public class SampleSearch extends Sampler {
 	}
 	
 	protected void info(int step) {
-		System.out.println("  step " + step);
+		out.println("  step " + step);
 	}
 	
 	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		createDistribution();
-		System.out.println("sampling...");
+		out.println("sampling...");
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
 		for(int i = 1; i <= numSamples; i++) {
@@ -44,21 +44,21 @@ public class SampleSearch extends Sampler {
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			if(ret != null) {
 				if(false) { // debugging of weighting
-					System.out.print("w=" + ret.weight);
+					out.print("w=" + ret.weight);
 					double prod = 1.0;
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
 						if(true || evidenceDomainIndices[j] == -1) {
 							BeliefNode node = nodes[j];							
-							System.out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
+							out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
 							double p = bn.getCPTProbability(node, s.nodeDomainIndices);
-							System.out.printf(" %f", p);
+							out.printf(" %f", p);
 							if(p == 0.0)
 								throw new Exception("Sample has 0 probability.");							
 							prod *= p;
 							if(prod == 0.0)
 								throw new Exception("Precision loss - product became 0");
 						}
-					System.out.println();
+					out.println();
 				}
 				
 				addSample(ret);
@@ -97,7 +97,7 @@ public class SampleSearch extends Sampler {
 				for(int j=0; j<excluded.length; j++)
 					if(excluded[j])
 						numex++;
-				System.out.printf("    step %d, node %d '%s' (%d/%d exclusions)\n", currentStep, i, nodes[nodeIdx].getName(), numex, excluded.length);
+				out.printf("    step %d, node %d '%s' (%d/%d exclusions)\n", currentStep, i, nodes[nodeIdx].getName(), numex, excluded.length);
 			}
 			// for evidence nodes, we can continue if the evidence probability was non-zero
 			if(domainIdx >= 0) { 
@@ -110,7 +110,7 @@ public class SampleSearch extends Sampler {
 				}
 				else {
 					if(debug)
-						System.out.println("      evidence with probability 0.0; backtracking...");
+						out.println("      evidence with probability 0.0; backtracking...");
 				}
 			} 
 			// for non-evidence nodes, do forward sampling
@@ -124,7 +124,7 @@ public class SampleSearch extends Sampler {
 					continue;
 				}
 				else if(debug)
-					System.out.println("      impossible case; backtracking...");
+					out.println("      impossible case; backtracking...");
 			}
 			// if we get here, we need to backtrack to the last non-evidence node
 			// TODO better: backtrack to last (non-evidence) parent of current node

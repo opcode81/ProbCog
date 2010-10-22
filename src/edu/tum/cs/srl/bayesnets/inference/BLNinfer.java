@@ -12,13 +12,15 @@ import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
+import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
+import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
-import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.py.BayesianLogicNetworkPy;
 import edu.tum.cs.util.Stopwatch;
 
@@ -26,13 +28,12 @@ import edu.tum.cs.util.Stopwatch;
  * BLN inference tool
  * @author jain
  */
-public class BLNinfer {
+public class BLNinfer implements IParameterHandler {
 	
 	String declsFile = null;
 	String networkFile = null;
 	String logicFile = null;
 	String dbFile = null;
-	String query = null;
 	int maxSteps = 1000;
 	boolean useMaxSteps = false;
 	int maxTrials = 5000;
@@ -41,6 +42,7 @@ public class BLNinfer {
 	String[] cwPreds = null;
 	boolean showBN = false;
 	boolean usePython = false;
+	boolean verbose = true;
 	boolean debug = false;
 	boolean saveInstance = false;
 	boolean skipFailedSteps = false;
@@ -50,11 +52,20 @@ public class BLNinfer {
 	boolean timeLimitedInference = false;
 	String outputDistFile = null, referenceDistFile = null;
 	HashMap<String,String> params = new HashMap<String,String>();
+	AbstractBayesianLogicNetwork bln = null;
+	Database db = null;
+	Iterable<String> queries = null;
+	ParameterHandler paramHandler;
 	
 	// computed stuff
 	Collection<InferenceResult> results;
 	double samplingTime;
 	int stepsTaken;
+	
+	public BLNinfer() throws Exception {
+		paramHandler = new ParameterHandler(this);
+		//paramHandler.add("verbose", "setVerbose");
+	}
 
 	public void readArgs(String[] args) throws Exception {
 		// read arguments
@@ -65,8 +76,25 @@ public class BLNinfer {
 				networkFile = args[++i];
 			else if(args[i].equals("-l"))
 				logicFile = args[++i];
-			else if(args[i].equals("-q"))
-				query = args[++i];
+			else if(args[i].equals("-q")) {
+				String query = args[++i];
+				Pattern comma = Pattern.compile("\\s*,\\s*");
+				String[] candQueries = comma.split(query);
+				Vector<String> queries = new Vector<String>();
+				String q = "";
+				for(int j = 0; j < candQueries.length; j++) {
+					if(!q.equals(""))
+						q += ",";
+					q += candQueries[j];
+					if(balancedParentheses(q)) {
+						queries.add(q);
+						q = "";
+					}
+				}
+				this.queries = queries;
+				if(!q.equals(""))
+					throw new IllegalArgumentException("Unbalanced parentheses in queries");
+			}
 			else if(args[i].equals("-e"))
 				dbFile = args[++i];				
 			else if(args[i].equals("-s"))
@@ -125,37 +153,43 @@ public class BLNinfer {
 		}				
 	}
 	
+	public void setBLN(BayesianLogicNetwork bln) {
+		this.bln = bln;
+	}
+	
+	public void setDatabase(Database db) {
+		this.db = db;
+	}
+	
+	public void setParameters(java.util.Map<String,String> params) {
+		this.params.putAll(params);
+	}
+	
+	public void setQueries(Iterable<String> queries) {
+		this.queries = queries;
+	}
+	
 	public void run() throws Exception {
-		if(networkFile == null)
+		if(networkFile == null && bln == null)
 			throw new IllegalArgumentException("No fragment network given");
-		if(dbFile == null)
+		if(dbFile == null && db == null)
 			throw new IllegalArgumentException("No evidence given");
-		if(declsFile == null)
+		if(declsFile == null && bln == null)
 			throw new IllegalArgumentException("No model declarations given");
-		if(logicFile == null)
+		if(logicFile == null && bln == null)
 			throw new IllegalArgumentException("No logical constraints definitions given");
-		if(query == null)
+		if(queries == null)
 			throw new IllegalArgumentException("No queries given");			
 		
-		// determine queries
-		Pattern comma = Pattern.compile("\\s*,\\s*");
-		String[] candQueries = comma.split(query);
-		Vector<String> queries = new Vector<String>();
-		String q = "";
-		for(int i = 0; i < candQueries.length; i++) {
-			if(!q.equals(""))
-				q += ",";
-			q += candQueries[i];
-			if(balancedParentheses(q)) {
-				queries.add(q);
-				q = "";
-			}
-		}
-		if(!q.equals(""))
-			throw new IllegalArgumentException("Unbalanced parentheses in queries");
-
+		// handle local parameters
+		paramHandler.handle(params, false);
+		
 		// load relational model
-		ABL blog = new ABL(declsFile, networkFile);
+		RelationalBeliefNetwork blog;
+		if(bln == null)
+			blog = new ABL(declsFile, networkFile);
+		else
+			blog = bln.rbn;
 		
 		// (on request) remove deterministic dependencies in CPTs
 		if(removeDeterministicCPTEntries) {
@@ -170,26 +204,26 @@ public class BLNinfer {
 		}
 		
 		// read evidence database
-		Database db = new Database(blog);
-		db.getParameterHandler().handle(params, false);
-		db.readBLOGDB(dbFile);
+		if(db == null)
+			db = new Database(blog);
+		paramHandler.addSubhandler(db.getParameterHandler());
+		if(dbFile != null)
+			db.readBLOGDB(dbFile);
 		if(cwPreds != null) {
 			for(String predName : cwPreds)
 				db.setClosedWorldPred(predName);
-		}			
+		}
 		
 		// instantiate ground model
-		AbstractGroundBLN gbln;
-		if(!usePython) {
-			BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, logicFile);
-			gbln = new GroundBLN(bln, db);
+		if(bln == null) {
+			if(!usePython) 
+				bln = new BayesianLogicNetwork(blog, logicFile);
+			else
+				bln = new BayesianLogicNetworkPy(blog, logicFile);			
 		}
-		else {
-			BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(blog, logicFile);
-			gbln = new edu.tum.cs.srl.bayesnets.bln.py.GroundBLN(bln, db);
-		}
+		AbstractGroundBLN gbln = bln.ground(db);
 		gbln.setDebugMode(debug);
-		gbln.instantiateGroundNetwork();
+		gbln.instantiateGroundNetwork();		
 		if(showBN) {
 			gbln.getGroundNetwork().show();
 		}
@@ -218,7 +252,7 @@ public class BLNinfer {
 		}
 		sampler.setNumSamples(maxSteps);
 		sampler.setInfoInterval(infoInterval);
-		sampler.getParameterHandler().handle(params, false);
+		paramHandler.addSubhandler(sampler.getParameterHandler());
 		// - run inference
 		SampledDistribution dist;		
 		if(timeLimitedInference) {
@@ -253,7 +287,7 @@ public class BLNinfer {
 		}
 		
 		// report any unhandled parameters
-		Collection<String> unhandledParams = sampler.getParameterHandler().getUnhandledParams();
+		Collection<String> unhandledParams = paramHandler.getUnhandledParams();
 		if(!unhandledParams.isEmpty())
 			System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: " + sampler.getParameterHandler().getHandledParameters().toString());
 		
@@ -358,5 +392,10 @@ public class BLNinfer {
 		dc.addEntryComparison(new BasicSampledDistribution.HellingerDistance(d1));
 		dc.compare();		
 		dc.printResults();
+	}
+
+	@Override
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }

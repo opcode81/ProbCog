@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Vector;
 
+import edu.tum.cs.util.StringTool;
+
 public class ParameterHandler {
 	/**
 	 * maps parameter names to ParameterMapping objects that can apply them
@@ -28,6 +30,12 @@ public class ParameterHandler {
 		this.owner = owner;
 	}
 	
+	/**
+	 * 
+	 * @param paramName
+	 * @param setterMethodName
+	 * @throws Exception 
+	 */
 	public void add(String paramName, String setterMethodName) throws Exception {
 		for(Method m : owner.getClass().getMethods()) {
 			if(m.getName().equals(setterMethodName)) {
@@ -44,43 +52,36 @@ public class ParameterHandler {
 	public void addSubhandler(ParameterHandler h) throws Exception {		
 		subhandlers.add(h);
 		h.parenthandlers.add(this);
-		onAddedSubhandler(h);
-	}
-	
-	public void onAddedSubhandler(ParameterHandler h) throws Exception {
-		// see if the new subhandler allows us to handle unhandled params
-		if(!unhandledParams.isEmpty())
-			handle(submittedParams, (Collection<String>)unhandledParams.clone(), false);		
-		// notify parents of addition of subhandler
-		for(ParameterHandler parent : this.parenthandlers)
-			parent.onAddedSubhandler(h);		
-	}
-	
-	public void handle(Map<String, String> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {		
-		for(String param : paramsToHandle) {
-			String value = paramMapping.get(param);
-			if(handle(param, value)) {
-				if(unhandledParams.contains(param))
-					unhandledParams.remove(param);
-			}
-			else {
-				if(exceptionIfUnhandledParam)
-					throw new Exception("Parameter " + param + " unhandled! Known parameters: " + this.getHandledParameters().toString());
-				else {
-					unhandledParams.add(param);
-				}
-			}
-		}
+		// if parameters were previously submitted, pass them on to the new subhandler;
+		// if previously unhandled parameters can be handled, parent handlers will be notified 
+		if(submittedParams != null)
+			h.handle(submittedParams, false);
 	}
 	
 	/**
-	 * 
-	 * @param paramMapping
+	 * handles a subset of the parameters given in the mapping
+	 * @param paramMapping a mapping from parameter names to values
+	 * @param paramsToHandle a list of parameter names that should be handled
+	 * @param exceptionIfUnhandledParam  whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
+	 * @throws Exception
+	 */
+	public void handle(Map<String, String> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {
+		submittedParams = paramMapping;
+		for(String param : paramsToHandle) {
+			String value = paramMapping.get(param);
+			handle(param, value);
+		}
+		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
+			throw new Exception("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
+	}
+	
+	/**
+	 * handles all of the parameters given in a parameter mapping
+	 * @param paramMapping a mapping from parameter names to values
 	 * @param exceptionIfUnhandledParam whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
 	 * @throws Exception
 	 */
-	public void handle(Map<String, String> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {
-		submittedParams = paramMapping;
+	public void handle(Map<String, String> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {		
 		handle(paramMapping, paramMapping.keySet(), exceptionIfUnhandledParam);
 	}
 	
@@ -89,18 +90,38 @@ public class ParameterHandler {
 	}
 	
 	protected boolean handle(String paramName, String value) throws Exception {
+		// try to handle here
 		ParameterMapping m = mappings.get(paramName);
 		boolean handled = false;
 		if(m != null) {
 			m.apply(value);
 			handled = true;
 		}
+		// pass parameter on to subhandlers
 		for(ParameterHandler h : subhandlers)
 			if(h.handle(paramName, value))
 				handled = true;
+		// if the parameter could be handled, notify
+		if(handled)
+			onHandled(paramName);
+		// otherwise store as unhandled
+		else
+			unhandledParams.add(paramName);
 		return handled;
 	}
 	
+	protected void onHandled(String paramName) {
+		if(unhandledParams.contains(paramName))
+			unhandledParams.remove(paramName);
+		// notify parents of handling
+		for(ParameterHandler h : this.parenthandlers)
+			onHandled(paramName);
+	}
+	
+	/**
+	 * gets the names of all parameters that can be handled
+	 * @return
+	 */
 	public Vector<String> getHandledParameters() {
 		Vector<String> ret = new Vector<String>();
 		getHandledParameters(ret);
