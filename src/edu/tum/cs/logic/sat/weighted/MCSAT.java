@@ -6,7 +6,6 @@
  */
 package edu.tum.cs.logic.sat.weighted;
 
-import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -46,6 +45,7 @@ public class MCSAT implements IParameterHandler {
 		sat = new SampleSAT(state, vars, db.getEntries());				
 		paramHandler.addSubhandler(sat.getParameterHandler());
 		paramHandler.add("infoInterval", "setInfoInterval");
+		paramHandler.add("verbose", "setVerbose");
 	}
 	
 	public WeightedClausalKB getKB() {

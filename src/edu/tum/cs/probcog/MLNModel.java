@@ -6,6 +6,7 @@
  */
 package edu.tum.cs.probcog;
 
+import java.util.Map;
 import java.util.Vector;
 
 import edu.tum.cs.srl.Database;
@@ -30,12 +31,18 @@ public class MLNModel extends Model {
 	protected String _getConstantType(String constant) {
 		return db.getConstantType(constant);
 	}
+	
+	@Override
+	public void beginSession(Map<String, Object> params) throws Exception {
+		super.beginSession(params);
+		db = new Database(mln);
+	}
 
 	@Override
 	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
 		InferenceAlgorithm ia = new MCSAT(mrf);
 		Vector<InferenceResult> res = new Vector<InferenceResult>();
-		int maxSteps = getIntParameter("maxSteps", 5000);
+		int maxSteps = 5000;
 		for(edu.tum.cs.srl.mln.inference.InferenceResult r : ia.infer(queries, maxSteps)) {
 			InferenceResult r2 = new InferenceResult(r.ga.predicate, r.ga.args, r.value);
 			res.add(r2);
@@ -45,7 +52,6 @@ public class MLNModel extends Model {
 
 	@Override
 	protected void _setEvidence(Iterable<String[]> evidence) throws Exception {
-		db = new Database(mln);
 		for(String[] tuple : evidence) {
 			String functionName = tuple[0];
 			Signature sig = mln.getSignature(functionName);

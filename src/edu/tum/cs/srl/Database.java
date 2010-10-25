@@ -44,6 +44,7 @@ public class Database implements IParameterHandler {
 	protected HashMap<String, MultiIterator<String>> multiDomains;
 
 	protected boolean debug = false;
+	protected boolean verbose = false;
 	protected ParameterHandler paramHandler;
 
 	/**
@@ -59,6 +60,7 @@ public class Database implements IParameterHandler {
 		functionalDependencies = new HashMap<RelationKey, HashMap<String, String[]>>();
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebug");
+		paramHandler.add("debug", "setVerbose");
 
 		// fill domains with guaranteed domain elements
 		for(Entry<String, String[]> e : model.getGuaranteedDomainElements().entrySet()) {
@@ -264,8 +266,6 @@ public class Database implements IParameterHandler {
 	}
 
 	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
-		boolean verbose = true;
-
 		// read file content
 		if(verbose)
 			System.out.printf("  reading contents of %s...\n", databaseFilename);
@@ -652,5 +652,9 @@ public class Database implements IParameterHandler {
 	@Override
 	public ParameterHandler getParameterHandler() {		
 		return paramHandler;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 }

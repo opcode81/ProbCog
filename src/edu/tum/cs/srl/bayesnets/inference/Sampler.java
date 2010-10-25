@@ -30,6 +30,7 @@ public abstract class Sampler implements IParameterHandler {
 		this.gbln = gbln;
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("maxSteps", "setNumSamples");
+		paramHandler.add("numSamples", "setNumSamples");
 		paramHandler.add("infoInterval", "setInfoInterval");
 		paramHandler.add("debug", "setDebugMode");
 		paramHandler.add("verbose", "setVerbose");

@@ -20,7 +20,7 @@ public class ParameterHandler {
 	protected Object owner;
 	protected Vector<ParameterHandler> subhandlers;
 	protected Vector<ParameterHandler> parenthandlers;
-	protected Map<String,String> submittedParams = null;
+	protected Map<String,Object> submittedParams = null;
 	protected HashSet<String> unhandledParams = new HashSet<String>();
 	
 	public ParameterHandler(IParameterHandler owner) {
@@ -49,13 +49,19 @@ public class ParameterHandler {
 		throw new Exception("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
 	}
 	
-	public void addSubhandler(ParameterHandler h) throws Exception {		
+	public void addSubhandler(ParameterHandler h) throws Exception {
+		if(h == null)
+			throw new Exception("Subhandler cannot be null");
 		subhandlers.add(h);
 		h.parenthandlers.add(this);
 		// if parameters were previously submitted, pass them on to the new subhandler;
 		// if previously unhandled parameters can be handled, parent handlers will be notified 
 		if(submittedParams != null)
 			h.handle(submittedParams, false);
+	}
+	
+	public void addSubhandler(IParameterHandler h) throws Exception {
+		addSubhandler(h.getParameterHandler());
 	}
 	
 	/**
@@ -65,10 +71,10 @@ public class ParameterHandler {
 	 * @param exceptionIfUnhandledParam  whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
 	 * @throws Exception
 	 */
-	public void handle(Map<String, String> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {
+	public void handle(Map<String, Object> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {
 		submittedParams = paramMapping;
 		for(String param : paramsToHandle) {
-			String value = paramMapping.get(param);
+			Object value = paramMapping.get(param);
 			handle(param, value);
 		}
 		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
@@ -81,7 +87,7 @@ public class ParameterHandler {
 	 * @param exceptionIfUnhandledParam whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
 	 * @throws Exception
 	 */
-	public void handle(Map<String, String> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {		
+	public void handle(Map<String, Object> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {		
 		handle(paramMapping, paramMapping.keySet(), exceptionIfUnhandledParam);
 	}
 	
@@ -89,7 +95,7 @@ public class ParameterHandler {
 		return unhandledParams; 
 	}
 	
-	protected boolean handle(String paramName, String value) throws Exception {
+	protected boolean handle(String paramName, Object value) throws Exception {
 		// try to handle here
 		ParameterMapping m = mappings.get(paramName);
 		boolean handled = false;
@@ -115,7 +121,7 @@ public class ParameterHandler {
 			unhandledParams.remove(paramName);
 		// notify parents of handling
 		for(ParameterHandler h : this.parenthandlers)
-			onHandled(paramName);
+			h.onHandled(paramName);
 	}
 	
 	/**
@@ -142,25 +148,30 @@ public class ParameterHandler {
 			this.setterMethod = setterMethod;
 		}
 		
-		public void apply(String value) throws Exception {
+		public void apply(Object value) throws Exception {			
 			Class<?> paramType = setterMethod.getParameterTypes()[0];
-			if(paramType == Double.class || paramType == double.class) {
-				setterMethod.invoke(owner, Double.parseDouble(value));
-				return;
+			if(value instanceof String) {
+				String strValue = (String)value;
+				if(paramType == Double.class || paramType == double.class) {
+					setterMethod.invoke(owner, Double.parseDouble(strValue));
+					return;
+				}
+				if(paramType == Integer.class || paramType == int.class) {
+					setterMethod.invoke(owner, Integer.parseInt(strValue));
+					return;
+				}
+				if(paramType == Boolean.class || paramType == boolean.class) {
+					setterMethod.invoke(owner, Boolean.parseBoolean(strValue));
+					return;
+				}
+				if(paramType == String.class) {
+					setterMethod.invoke(owner, strValue);
+					return;
+				}
+				throw new Exception("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
 			}
-			if(paramType == Integer.class || paramType == int.class) {
-				setterMethod.invoke(owner, Integer.parseInt(value));
-				return;
-			}
-			if(paramType == Boolean.class || paramType == boolean.class) {
-				setterMethod.invoke(owner, Boolean.parseBoolean(value));
-				return;
-			}
-			if(paramType == String.class) {
-				setterMethod.invoke(owner, value);
-				return;
-			}
-			throw new Exception("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
+			else
+				setterMethod.invoke(owner, value);			
 		}
 	}
 }

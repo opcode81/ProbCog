@@ -16,6 +16,7 @@ import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
@@ -31,7 +32,7 @@ import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
 
-public abstract class AbstractGroundBLN {
+public abstract class AbstractGroundBLN implements IParameterHandler {
 	/**
 	 * the ground Bayesian network (or ground auxiliary Bayesian network)
 	 */
@@ -73,7 +74,7 @@ public abstract class AbstractGroundBLN {
 	 */
 	protected HashMap<BeliefNode, RelationalNode> groundNode2TemplateNode;
 	
-	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
+	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		init(bln, db);
 	}
 	
@@ -84,11 +85,17 @@ public abstract class AbstractGroundBLN {
 		init(bln, db);
 	}
 	
-	protected void init(AbstractBayesianLogicNetwork bln, Database db) {
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("verbose", "setVerbose");
 		this.bln = bln;
 		this.db = db;		
 		cpfIDs = new HashMap<BeliefNode, String>();
 		groundNode2TemplateNode = new HashMap<BeliefNode, RelationalNode>();
+	}
+	
+	public AbstractBayesianLogicNetwork getBLN() {
+		return this.bln;
 	}
 
 	/**
@@ -842,5 +849,9 @@ public abstract class AbstractGroundBLN {
 	
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
+	}
+	
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }

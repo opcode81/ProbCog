@@ -3,6 +3,7 @@ package edu.tum.cs.probcog;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -13,9 +14,7 @@ import edu.tum.cs.srl.bayesnets.ABL;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
-import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.srl.bayesnets.inference.BLNinfer;
-import edu.tum.cs.srl.bayesnets.inference.Sampler;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
 
@@ -29,35 +28,30 @@ public class BLNModel extends Model {
 	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
 		super(modelName);
 		this.filenames = String.format("%s;%s;%s", blogFile, networkFile, logicFile);
-		this.bln = new BayesianLogicNetwork(new ABL(blogFile, networkFile), logicFile);
-		db = new Database(bln.rbn);
+		this.bln = new BayesianLogicNetwork(new ABL(blogFile, networkFile), logicFile);		
 	}
 	
 	@Override
 	public void instantiate() throws Exception {
-		gbln = bln.instantiate(db);		
+		gbln = bln.ground(db);
+		paramHandler.addSubhandler(gbln);
+		gbln.instantiateGroundNetwork();
+	}
+	
+	@Override
+	public void beginSession(Map<String, Object> params) throws Exception {
+		super.beginSession(params);
+		db = new Database(bln.rbn);
+		paramHandler.addSubhandler(db);
 	}
 
 	@Override
-	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
-		/*
-		Sampler sampler;
-		// determine inference method and instantiate sampler
-		String inferenceMethod = getParameter("inferenceMethod", "LikelihoodWeighting");		
-		sampler = Algorithm.valueOf(inferenceMethod).createSampler(gbln);
-		// run inference
-		sampler.setNumSamples(getIntParameter("numSamples", 1000));
-		sampler.setQueries(queries);
-		Vector<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = sampler.inferQueries();		
-		*/
-
-		BLNinfer inference = new BLNinfer();
-		inference.setBLN(bln);
-		inference.setDatabase(db);
-		inference.setParameters(parameters);
+	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {		
+		BLNinfer inference = new BLNinfer(actualParams);
+		paramHandler.addSubhandler(inference);		
+		inference.setGroundBLN(gbln);
 		inference.setQueries(queries);
-		inference.run();
-		Collection<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = inference.getResults();
+		Collection<edu.tum.cs.srl.bayesnets.inference.InferenceResult> results = inference.run();
 		
 		// store results in common InferenceResult format
 		Vector<InferenceResult> ret = new Vector<InferenceResult>();
@@ -86,7 +80,6 @@ public class BLNModel extends Model {
 
 	@Override
 	protected void _setEvidence(Iterable<String[]> evidence) throws Exception {
-		db = new Database(bln.rbn);
 		for(String[] tuple : evidence) {
 			String functionName = tuple[0];
 			Signature sig = bln.rbn.getSignature(functionName);

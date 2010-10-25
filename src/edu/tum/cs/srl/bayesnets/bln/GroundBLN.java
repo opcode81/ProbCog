@@ -38,7 +38,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	 */
 	protected KnowledgeBase gkb;	
 	
-	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) {
+	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		super(bln, db);
 	}
 	
@@ -47,7 +47,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 	
 	@Override
-	protected void init(AbstractBayesianLogicNetwork bln, Database db) {
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		super.init(bln, db);
 		coupling = new VariableLogicCoupling();
 	}
