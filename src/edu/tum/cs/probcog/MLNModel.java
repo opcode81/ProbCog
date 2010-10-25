@@ -41,6 +41,7 @@ public class MLNModel extends Model {
 	@Override
 	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
 		InferenceAlgorithm ia = new MCSAT(mrf);
+		paramHandler.addSubhandler(ia);
 		Vector<InferenceResult> res = new Vector<InferenceResult>();
 		int maxSteps = 5000;
 		for(edu.tum.cs.srl.mln.inference.InferenceResult r : ia.infer(queries, maxSteps)) {
