@@ -2,6 +2,7 @@ package edu.tum.cs.srl.bayesnets.inference;
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -28,22 +29,17 @@ import edu.tum.cs.util.Stopwatch;
  * BLN inference tool
  * @author jain
  */
-public class BLNinfer implements IParameterHandler {
-	
+public class BLNinfer implements IParameterHandler {	
 	String declsFile = null;
 	String networkFile = null;
 	String logicFile = null;
 	String dbFile = null;
-	int maxSteps = 1000;
 	boolean useMaxSteps = false;
-	int maxTrials = 5000;
-	int infoInterval = 100;
 	Algorithm algo = Algorithm.LikelihoodWeighting;
 	String[] cwPreds = null;
 	boolean showBN = false;
 	boolean usePython = false;
 	boolean verbose = true;
-	boolean debug = false;
 	boolean saveInstance = false;
 	boolean skipFailedSteps = false;
 	boolean removeDeterministicCPTEntries = false;
@@ -51,8 +47,9 @@ public class BLNinfer implements IParameterHandler {
 	double timeLimit = 10.0, infoIntervalTime = 1.0;
 	boolean timeLimitedInference = false;
 	String outputDistFile = null, referenceDistFile = null;
-	HashMap<String,String> params = new HashMap<String,String>();
+	Map<String,Object> params;
 	AbstractBayesianLogicNetwork bln = null;
+	AbstractGroundBLN gbln = null;
 	Database db = null;
 	Iterable<String> queries = null;
 	ParameterHandler paramHandler;
@@ -63,8 +60,43 @@ public class BLNinfer implements IParameterHandler {
 	int stepsTaken;
 	
 	public BLNinfer() throws Exception {
+		this(new HashMap<String,Object>());
+	}
+	
+	public BLNinfer(Map<String,Object> params) throws Exception {
 		paramHandler = new ParameterHandler(this);
-		//paramHandler.add("verbose", "setVerbose");
+		paramHandler.add("verbose", "setVerbose");		
+		paramHandler.add("maxSteps", "setMaxSteps");
+		paramHandler.add("numSamples", "setMaxSteps");
+		paramHandler.add("inferenceMethod", "setInferenceMethod");
+		paramHandler.add("timeLimit", "setTimeLimit");
+		this.params = params;
+	}
+	
+	public void setVerbose(Boolean verbose) {
+		params.put("verbose", verbose); // ensure that value is passed on
+		this.verbose = verbose;
+	}
+	
+	public void setMaxSteps(Integer steps) {
+		params.put("numSamples", steps); // ensure that value is passed on
+		useMaxSteps = true;
+	}
+	
+	public void setInferenceMethod(String methodName) {
+		try {
+			algo = Algorithm.valueOf(methodName);
+		}
+		catch(IllegalArgumentException e) {
+			System.err.println("Error: Unknown inference algorithm '" + methodName + "'");	
+			Algorithm.printList("");
+			System.exit(1);
+		}
+	}
+	
+	public void setTimeLimit(double seconds) {
+		timeLimitedInference = true;
+		this.timeLimit = seconds;
 	}
 
 	public void readArgs(String[] args) throws Exception {
@@ -112,29 +144,21 @@ public class BLNinfer implements IParameterHandler {
 			else if(args[i].equals("-cw"))
 				cwPreds = args[++i].split(",");		
 			else if(args[i].equals("-maxSteps")) {
-				maxSteps = Integer.parseInt(args[++i]);
-				useMaxSteps = true;
+				setMaxSteps(Integer.parseInt(args[++i]));
 			}
 			else if(args[i].equals("-maxTrials"))
-				maxTrials = Integer.parseInt(args[++i]);
-			else if(args[i].equals("-ia")) {
-				try {
-					algo = Algorithm.valueOf(args[++i]);
-				}
-				catch(IllegalArgumentException e) {
-					System.err.println("Error: Unknown inference algorithm '" + args[i] + "'");	
-					Algorithm.printList("");
-					System.exit(1);
-				}
-			}
+				params.put("maxTrials", args[++i]);
+			else if(args[i].equals("-ia"))
+				setInferenceMethod(args[++i]);
 			else if(args[i].equals("-infoInterval"))
-				infoInterval = Integer.parseInt(args[++i]);
+				params.put("infoInterval", args[++i]);
 			else if(args[i].equals("-debug"))
-				debug = true;
+				params.put("debug", Boolean.TRUE);
 			else if(args[i].equals("-t")) {
-				timeLimitedInference = true;
 				if(i+1 < args.length && !args[i+1].startsWith("-"))
-					timeLimit = Double.parseDouble(args[++i]);					
+					setTimeLimit(Double.parseDouble(args[++i]));
+				else
+					setTimeLimit(timeLimit);
 			}
 			else if(args[i].equals("-infoTime")) 
 				infoIntervalTime = Double.parseDouble(args[++i]);
@@ -153,7 +177,7 @@ public class BLNinfer implements IParameterHandler {
 		}				
 	}
 	
-	public void setBLN(BayesianLogicNetwork bln) {
+	public void setBLN(AbstractBayesianLogicNetwork bln) {
 		this.bln = bln;
 	}
 	
@@ -161,15 +185,17 @@ public class BLNinfer implements IParameterHandler {
 		this.db = db;
 	}
 	
-	public void setParameters(java.util.Map<String,String> params) {
-		this.params.putAll(params);
-	}
-	
 	public void setQueries(Iterable<String> queries) {
 		this.queries = queries;
 	}
 	
-	public void run() throws Exception {
+	public void setGroundBLN(AbstractGroundBLN gbln) {
+		this.gbln = gbln;
+		setBLN(gbln.getBLN());
+		setDatabase(gbln.getDatabase());		
+	}
+	
+	public Collection<InferenceResult> run() throws Exception {
 		if(networkFile == null && bln == null)
 			throw new IllegalArgumentException("No fragment network given");
 		if(dbFile == null && db == null)
@@ -180,9 +206,9 @@ public class BLNinfer implements IParameterHandler {
 			throw new IllegalArgumentException("No logical constraints definitions given");
 		if(queries == null)
 			throw new IllegalArgumentException("No queries given");			
-		
-		// handle local parameters
-		paramHandler.handle(params, false);
+
+		// handle parameters
+		paramHandler.handle(params, false);		
 		
 		// load relational model
 		RelationalBeliefNetwork blog;
@@ -215,15 +241,17 @@ public class BLNinfer implements IParameterHandler {
 		}
 		
 		// instantiate ground model
-		if(bln == null) {
-			if(!usePython) 
-				bln = new BayesianLogicNetwork(blog, logicFile);
-			else
-				bln = new BayesianLogicNetworkPy(blog, logicFile);			
+		if(gbln == null) {
+			if(bln == null) {
+				if(!usePython) 
+					bln = new BayesianLogicNetwork(blog, logicFile);
+				else
+					bln = new BayesianLogicNetworkPy(blog, logicFile);
+			}
+			gbln = bln.ground(db);
+			paramHandler.addSubhandler(gbln);
+			gbln.instantiateGroundNetwork();		
 		}
-		AbstractGroundBLN gbln = bln.ground(db);
-		gbln.setDebugMode(debug);
-		gbln.instantiateGroundNetwork();		
 		if(showBN) {
 			gbln.getGroundNetwork().show();
 		}
@@ -241,17 +269,10 @@ public class BLNinfer implements IParameterHandler {
 		// run inference
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		// - create sampler 
+		// - create sampler and pass on parameters
 		Sampler sampler = algo.createSampler(gbln);
 		sampler.setQueries(queries);
 		// - set options
-		sampler.setDebugMode(debug);
-		if(sampler instanceof BNSampler) {
-			((BNSampler)sampler).setMaxTrials(maxTrials);
-			((BNSampler)sampler).setSkipFailedSteps(skipFailedSteps);
-		}
-		sampler.setNumSamples(maxSteps);
-		sampler.setInfoInterval(infoInterval);
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 		// - run inference
 		SampledDistribution dist;		
@@ -278,18 +299,14 @@ public class BLNinfer implements IParameterHandler {
 		sw.stop();
 		
 		// print results
-		for(InferenceResult res : results) {
-			boolean show = true;
-			if(resultsFilterEvidence)
-				if(db.contains(res.varName))
-					show = false;
-			if(show) res.print();
-		}
-		
-		// report any unhandled parameters
-		Collection<String> unhandledParams = paramHandler.getUnhandledParams();
-		if(!unhandledParams.isEmpty())
-			System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: " + sampler.getParameterHandler().getHandledParameters().toString());
+		if(verbose) 
+			for(InferenceResult res : results) {
+				boolean show = true;
+				if(resultsFilterEvidence)
+					if(db.contains(res.varName))
+						show = false;
+				if(show) res.print();
+			}
 		
 		// save output distribution
 		if(outputDistFile != null) {
@@ -305,6 +322,8 @@ public class BLNinfer implements IParameterHandler {
 			System.out.println("comparing to reference distribution...");
 			compareDistributions(referenceDist, dist);
 		}
+		
+		return results;
 	}
 	
 	/**
@@ -334,8 +353,13 @@ public class BLNinfer implements IParameterHandler {
 	public static void main(String[] args) {
 		try {
 			BLNinfer infer = new BLNinfer();
-			infer.readArgs(args);	
+			infer.readArgs(args);
 			infer.run();
+			// report any unhandled parameters
+			ParameterHandler handler = infer.getParameterHandler();
+			Collection<String> unhandledParams = handler.getUnhandledParams();
+			if(!unhandledParams.isEmpty())
+				System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: " + handler.getHandledParameters().toString());
 		}
 		catch(IllegalArgumentException e) {
 			System.err.println(e);

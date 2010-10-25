@@ -2,6 +2,7 @@ package edu.tum.cs.probcog;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -10,7 +11,10 @@ import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Signature;
 
 public abstract class Model implements IParameterHandler {
-	protected HashMap<String,String> parameters;
+	/**
+	 * default parameters to be used with this model
+	 */
+	protected Map<String,Object> defaultParameters;
 	/**
 	 * maps from ProbCog constants to external constants
 	 */
@@ -24,13 +28,15 @@ public abstract class Model implements IParameterHandler {
 	 */
 	protected String name;
 	protected ParameterHandler paramHandler;
+	protected HashMap<String, Object> actualParams;
 	
 	public Model(String name) {
-		parameters = new HashMap<String,String>();
+		defaultParameters = new HashMap<String,Object>();
 		this.name = name;
 		constantMapFromProbCog = null;
 		paramHandler = new ParameterHandler(this);
 	}
+	
 	protected abstract void _setEvidence(Iterable<String[]> evidence) throws Exception;
 	public abstract void instantiate() throws Exception;
 	
@@ -62,6 +68,17 @@ public abstract class Model implements IParameterHandler {
 			ret.add(a);
 		}
 		return ret;
+	}
+	
+	public void beginSession(Map<String, Object> params) throws Exception {
+		actualParams = new HashMap<String, Object>(defaultParameters);
+		if(params != null)
+			actualParams.putAll(params);
+		paramHandler.handle(actualParams, false);
+	}
+	
+	public void beginSession() throws Exception {
+		beginSession(null);
 	}
 	
 	public void setEvidence(Iterable<String[]> evidence) throws Exception {
@@ -96,27 +113,17 @@ public abstract class Model implements IParameterHandler {
 		return mappedResults;
 	}
 	
-	public String getParameter(String key) {
-		return parameters.get(key);
+	/**
+	 * sets a default parameter for this model
+	 * @param key
+	 * @param value
+	 */
+	public void setDefaultParameter(String key, Object value) {
+		defaultParameters.put(key, value);
 	}
 	
-	public String getParameter(String key, String defaultValue) {
-		String value = parameters.get(key);
-		if(value == null)
-			return defaultValue;
-		return value;
-	}
-	
-	public Integer getIntParameter(String key, Integer defaultValue) {
-		return Integer.parseInt(getParameter(key, defaultValue.toString()));
-	}
-	
-	public void setParameter(String key, String value) {
-		parameters.put(key, value);
-	}
-	
-	public void setParameters(HashMap<String,String> params) {
-		this.parameters = params;
+	public void setDefaultParameters(Map<String,Object> params) {
+		this.defaultParameters = params;
 	}
 	
 	/**

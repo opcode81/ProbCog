@@ -37,7 +37,7 @@ public class MLNinfer {
 			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
 			boolean debug = false;
-			HashMap<String,String> params = new HashMap<String,String>();
+			HashMap<String,Object> params = new HashMap<String,Object>();
 			
 			// read arguments
 			for(int i = 0; i < args.length; i++) {

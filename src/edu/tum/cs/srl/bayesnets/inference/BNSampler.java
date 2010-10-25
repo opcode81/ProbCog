@@ -27,6 +27,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		super(gbln);
 		maxTrials = 5000;
 		this.paramHandler.add("maxTrials", "setMaxTrials");
+		this.paramHandler.add("skipFailedSteps", "setSkipFailedSteps");
 		this.samplerClass = samplerClass;
 	}
 	
@@ -45,7 +46,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
 		// initialize sampler		
-		System.out.println("initializing...");		
+		if(verbose) System.out.println("initializing...");		
 		sampler = getSampler();
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 		sampler.setEvidence(evidenceDomainIndices);
@@ -57,7 +58,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		sampler.setSkipFailedSteps(skipFailedSteps);
 		
 		// run inference
-		System.out.printf("running %s...\n", sampler.getAlgorithmName());
+		if(verbose) System.out.printf("running %s...\n", sampler.getAlgorithmName());
 		SampledDistribution dist = sampler.infer();
 		return dist;
 	}

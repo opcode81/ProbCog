@@ -5,7 +5,6 @@
 package edu.tum.cs.srl.mln.inference;
 
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -24,15 +23,21 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 	protected MarkovRandomField mrf;
 	protected ParameterHandler paramHandler;
 	protected boolean debug = false;	
+	protected boolean verbose = true;
 	
 	public InferenceAlgorithm(MarkovRandomField mrf) throws Exception {
 		this.mrf = mrf;
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebugMode");
+		paramHandler.add("verbose", "setVerbose");
 	}
 	
 	public void setDebugMode(boolean active) {
 		debug = active;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 	
 	public abstract double getResult(GroundAtom ga);	

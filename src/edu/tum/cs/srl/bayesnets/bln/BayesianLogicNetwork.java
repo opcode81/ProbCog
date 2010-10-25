@@ -18,12 +18,6 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		super(rbn, logicFile);
 		kb = new KnowledgeBase(logicFile);
 	}
-
-	public GroundBLN instantiate(Database db) throws Exception {
-		GroundBLN gbln = new GroundBLN(this, db);
-		gbln.instantiateGroundNetwork();
-		return gbln;
-	}
 	
 	public MarkovLogicNetwork toMLN() throws Exception {
 		MLNConverter.MLNObjectWriter converter = new MLNConverter.MLNObjectWriter();
@@ -35,7 +29,7 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	}
 
 	@Override
-	public GroundBLN ground(Database db) {
+	public GroundBLN ground(Database db) throws Exception {
 		return new GroundBLN(this, db);
 	}
 }
