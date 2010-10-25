@@ -11,8 +11,8 @@ importjar("log4j-1.2.9.jar")
 importjar("ssj.jar")
 importjar("optimization.jar")
 
-from edu.tum.cs.probcog import ModelPool
-from java.util import Vector
+from edu.tum.cs.probcog import ModelPool as _ModelPool
+from java.util import Vector, HashMap
 from java.lang import String
 import jarray
 
@@ -67,19 +67,29 @@ class Evidence:
 	def clear(self):
 		self.vector.clear()
 
-def query(pool, modelName, queries, evidence):
-	'''
-		pool: a ModelPool instance
-		modelName: the name of a model
-		queries: a list of queries
-		evidence: an Evidence instance or a list of string literals
-	'''
-	model = pool.getModel(modelName)
-	if type(evidence) != Evidence:
-		evidence = Evidence(*evidence)
-	model.setEvidence(evidence.getData())
-	model.instantiate()
-	return model.infer(queries)
+class ModelPool:
+	def __init__(self, filename):
+		self.pool = _ModelPool(filename)
+	
+	def query(self, modelName, queries, evidence, **params):
+	    '''
+	        modelName: the name of a model
+	        queries: a list of queries
+	        evidence: an Evidence instance or a list of string literals
+	    '''
+	    javaParams = HashMap()
+	    for key, value in params.iteritems():
+	        javaParams.put(key, String(str(value)))
+	    model = self.pool.getModel(modelName)
+	    model.beginSession(javaParams)
+	    if not isinstance(evidence, Evidence):
+	        evidence = Evidence(*evidence)
+	    model.setEvidence(evidence.getData())
+	    model.instantiate()
+	    return model.infer(queries)
+	
+	def getModel(self, modelName):
+		self.pool.getModel(modelName)
 
 # example usage
 if __name__=='__main__':
@@ -94,18 +104,15 @@ if __name__=='__main__':
 		"tornado(Freiburg)",
 		"neighborhood(James, Average)",
 		"neighborhood(Stefan, Bad)"]	
-	for modelName in ("alarm_mln", "alarm_bln"):
-		print "\n\n%s:" % modelName
-		for result in query(pool, modelName, ["alarm(x)", "burglary(Stefan)"], evidence):
+	for modelName, params in {"alarm_mln": {}, "alarm_bln": {"inferenceMethod":"EnumerationAsk"}}.iteritems():
+		print "\n%s:" % modelName
+		for result in pool.query(modelName, ["alarm(x)", "burglary(Stefan)"], evidence, verbose=True, **params):
 			print result
 	
-	# query meals BLN by using the pool directly
-	evidence = Evidence()
-	evidence.add("takesPartIn", "P", "M")
-	evidence.add("takesPartIn", "P2", "M")
-	evidence.add("consumesAnyIn", "P", "Cereals", "M")	
-	model = pool.getModel("meals_bln")
-	model.setEvidence(evidence.getData())
-	model.instantiate()
-	for result in model.infer(["mealT", "usesAnyIn(x,Bowl,M)"]):
+	# query meals BLN
+	queries = ["mealT", "usesAnyIn(x,Bowl,M)"]
+	evidence = ["takesPartIn(P, M)", "takesPartIn(P2, M)", "consumesAnyIn(P, Cereals, M)"]
+	params = {"verbose": False, "inferenceMethod": "foo"}
+	print "\nmeals:"
+	for result in pool.query("meals_bln", queries, evidence, **params):
 		print result
