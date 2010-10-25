@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import edu.tum.cs.util.StringTool;
 
@@ -65,30 +66,18 @@ public class ParameterHandler {
 	}
 	
 	/**
-	 * handles a subset of the parameters given in the mapping
-	 * @param paramMapping a mapping from parameter names to values
-	 * @param paramsToHandle a list of parameter names that should be handled
-	 * @param exceptionIfUnhandledParam  whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
-	 * @throws Exception
-	 */
-	public void handle(Map<String, Object> paramMapping, Collection<String> paramsToHandle, boolean exceptionIfUnhandledParam) throws Exception {
-		submittedParams = paramMapping;
-		for(String param : paramsToHandle) {
-			Object value = paramMapping.get(param);
-			handle(param, value);
-		}
-		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
-			throw new Exception("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
-	}
-	
-	/**
 	 * handles all of the parameters given in a parameter mapping
 	 * @param paramMapping a mapping from parameter names to values
 	 * @param exceptionIfUnhandledParam whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
 	 * @throws Exception
 	 */
 	public void handle(Map<String, Object> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {		
-		handle(paramMapping, paramMapping.keySet(), exceptionIfUnhandledParam);
+		submittedParams = paramMapping;
+		for(Entry<String,Object> param : paramMapping.entrySet()) {
+			handle(param.getKey(), param.getValue());
+		}
+		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
+			throw new Exception("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
 	}
 	
 	public Collection<String> getUnhandledParams() {

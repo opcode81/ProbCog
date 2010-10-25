@@ -73,13 +73,11 @@ public class BLNinfer implements IParameterHandler {
 		this.params = params;
 	}
 	
-	public void setVerbose(Boolean verbose) {
-		params.put("verbose", verbose); // ensure that value is passed on
+	public void setVerbose(Boolean verbose) {		
 		this.verbose = verbose;
 	}
 	
-	public void setMaxSteps(Integer steps) {
-		params.put("numSamples", steps); // ensure that value is passed on
+	public void setMaxSteps(Integer steps) {		
 		useMaxSteps = true;
 	}
 	
@@ -144,7 +142,9 @@ public class BLNinfer implements IParameterHandler {
 			else if(args[i].equals("-cw"))
 				cwPreds = args[++i].split(",");		
 			else if(args[i].equals("-maxSteps")) {
-				setMaxSteps(Integer.parseInt(args[++i]));
+				int steps = Integer.parseInt(args[++i]);
+				params.put("numSamples", steps); 
+				setMaxSteps(steps);
 			}
 			else if(args[i].equals("-maxTrials"))
 				params.put("maxTrials", args[++i]);
@@ -273,7 +273,7 @@ public class BLNinfer implements IParameterHandler {
 		Sampler sampler = algo.createSampler(gbln);
 		sampler.setQueries(queries);
 		// - set options
-		paramHandler.addSubhandler(sampler.getParameterHandler());
+		paramHandler.addSubhandler(sampler);
 		// - run inference
 		SampledDistribution dist;		
 		if(timeLimitedInference) {
@@ -284,6 +284,7 @@ public class BLNinfer implements IParameterHandler {
 				sampler.setNumSamples(Integer.MAX_VALUE);
 			sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
 			TimeLimitedInference tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
+			paramHandler.addSubhandler(tli);
 			tli.setReferenceDistribution(referenceDist);
 			dist = tli.run();
 			if(referenceDist != null)
