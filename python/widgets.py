@@ -209,9 +209,10 @@ class SyntaxHighlightingText(ScrolledText2):
             self.change_hook()
     
     def ctrl(self, key):
-        if key.keysym == 'c': self.copy()
-        elif key.keysym == 'x': self.cut()
-        elif key.keysym == 'v': self.paste()
+        #if key.keysym == 'c': self.copy()
+        #elif key.keysym == 'x': self.cut()
+        #elif key.keysym == 'v': self.paste()
+        pass # apparently now implemented in the control itself
 
     def colorize(self, cline):
         cursorPos = self.index(INSERT)
@@ -486,6 +487,7 @@ class FilePickEdit(Frame):
         self.select(selected_item)
     
     def get(self):
+        ''' gets the name of the currently selected file, saving it first if necessary '''
         filename = self.save_name.get()
         if self.unmodified == False:
             self.unmodified = True
@@ -500,6 +502,10 @@ class FilePickEdit(Frame):
                 self.list.destroy()
                 self.makelist()
             # set it as the new pick
+            #if havePMW:
+            #    self.picked_name.selectitem(self.files.index(filename), 1)
+            #else:
+            #    self.picked_name.set(filename)
             self.select(filename)
             self.save_edit.configure(state=DISABLED)
         return filename
