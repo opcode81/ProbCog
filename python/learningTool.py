@@ -284,19 +284,19 @@ class LearnWeights:
                 editor = config.editor
                 print "starting editor %s %s" % (editor, self.settings["output_filename"])
                 os.spawnl(os.P_NOWAIT, editor, editor, self.settings["output_filename"])
-            
-            # restore gui
-            self.master.deiconify() 
-            self.setGeometry()
         except:
             cls, e, tb = sys.exc_info()
             print "Error: %s " % str(e)
             traceback.print_tb(tb)
+        finally:
+            # restore gui
+            self.master.deiconify() 
+            self.setGeometry()
 
 # -- main app --
 
 if __name__ == '__main__':
-    #os.chdir("d:/java/ai/da/mln/ball_actions-reduced-test")
+    from sys import argv
     settings = {}
     if os.path.exists("learnweights.config.dat"):
         try:
@@ -304,6 +304,9 @@ if __name__ == '__main__':
         except:
             pass
     root = Tk()    
-    app = LearnWeights(root, ".", settings)    
-    root.mainloop()
+    app = LearnWeights(root, ".", settings)
+    if "-run" in argv:
+        app.learn()
+    else:
+        root.mainloop()
     
