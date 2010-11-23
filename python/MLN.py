@@ -510,12 +510,19 @@ class MLN:
     def _createPossibleWorlds(self):
         self.worldCode2Index = {}
         self.worlds = []
-        self.__createPossibleWorlds([], 0, 0, 1)
+        self.__createPossibleWorlds([], 0, 0, 1)   
 
     # get the possible world with the given one-based world number
     def getWorld(self, worldNo):
         self._getWorlds()
         return self.worlds[worldNo-1]
+
+    def getSoftEvidence(self, gndAtom, hardEvidence):
+        s = strFormula(gndAtom)
+        for se in self.softEvidence:
+            if se["expr"] == s:
+                return se["p"]
+        return 1.0 if hardEvidence[gndAtom.idx] else 0.0
 
     def _groundFormula(self, formula, variables, assignment, idxFormula):
         # if all variables have been grounded...
@@ -1387,6 +1394,7 @@ class MLN:
         return grad
 
     def _computeCounts(self):
+        ''' computes the number of true groundings of each formula in each possible world '''
         self.counts = {}
         # for each possible world
         for i in range(len(self.worlds)):
@@ -1400,6 +1408,7 @@ class MLN:
                     self.counts[key] = cnt
 
     def _computeCounts2(self):
+        ''' computes the number of true and false groundings of each formula in each possible world '''
         self.counts = {}
         # for each possible world
         for i in range(len(self.worlds)):
@@ -1413,6 +1422,38 @@ class MLN:
                 else:
                     cnt[1] += 1
                 self.counts[key] = cnt
+
+    def _computeCountsSoft(self):
+        ''' computes  '''
+        self.counts = {}
+        # for each possible world
+        for i in range(len(self.worlds)):
+            world = self.worlds[i]
+            # count how many true groundings there are for each formula
+            for gf in self.gndFormulas:
+                cnf = gf.toCNF()
+                prod = 1.0
+                if isinstance(cnf, FOL.Conjunction):
+                    for disj in cnf.children:
+                       prod *= self._noisyor(world, disj) 
+                else:
+                    prod *= self._noisyor(world, cnf) 
+                key = (i, gf.idxFormula)
+                cnt = self.counts.get(key, 0)
+                cnt += prod
+                self.counts[key] = cnt
+
+    def _noisyor(self, world, disj):
+        if isinstance(disj, FOL.GroundLit):
+            lits = [disj]
+        else:
+            lits = disj.children
+        prod = 1.0
+        for lit in lits:
+            p = self.getSoftEvidence(lit.gndAtom, world)            
+            factor =  p if lit.isTrue(world) else 1-p
+            prof *= 1-factor
+        return 1.0-prod                
 
     # computes the gradient of the log-likelihood given the weight vector wt
     def _grad_ll(self, wt, *args):
@@ -1873,6 +1914,37 @@ class MLN:
             func_calls = d['funcalls']
             grad_opt = d['grad']
             self.learnwts_message = "log-likelihood: %f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
+        elif mode == 'LL_ISE': # log-likelihood with independent soft evidence
+            # create possible worlds if neccessary
+            if not 'worlds' in dir(self):
+                print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
+                self._createPossibleWorlds()
+                print "  %d worlds created." % len(self.worlds)
+            # set soft evidence variables to true in evidence
+            for se in self.softEvidence:
+                self._setEvidence(self.gndAtoms[se["expr"]].idx, True)
+            # compute counts
+            print "computing counts..."
+            self._computeCountsSoft()
+            print "  %d counts recorded." % len(self.counts)
+            # get the possible world index of the training database
+            idxTrainingDB = self._getEvidenceWorldIndex()
+            # mode-specific stuff
+            gradfunc = self._grad_ll
+            llfunc = self._ll
+            args = [idxTrainingDB]
+            # opt
+            print "starting optimization..."
+            gtol = 1.0000000000000001e-005
+            neg_llfunc = lambda params, *args: -llfunc(params, *args)
+            neg_gradfunc = lambda params, *args: -gradfunc(params, *args)
+            bounds = [(-100, 0.0) for i in range(len(wt))]
+            wt, ll_opt, d = fmin_l_bfgs_b(neg_llfunc, wt, fprime=neg_gradfunc, args=args, bounds=bounds)
+            warn_flags = d['warnflag']
+            func_calls = d['funcalls']
+            grad_opt = d['grad']
+            # add final log likelihood to learnwts status for output
+            self.learnwts_message = "log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
         else:
             raise Exception("Unknown mode")
         # use obtained vector to reset formula weights
