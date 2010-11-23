@@ -1436,16 +1436,24 @@ class MLN:
                     cnt[1] += 1
                 self.counts[key] = cnt
 
-    def _computeCountsSoft(self):
+    def _computeCountsSoft(self, mode):
         ''' computes  '''
-        # compute regular counts
-        self._computeCounts()
-        # add another world for soft beliefs
-        idxTrainingDB = self._getEvidenceWorldIndex()
-        baseWorld = self.worlds[idxTrainingDB]
-        self.worlds.append({"values": baseWorld["values"]})
-        # compute soft counts for that world
-        for i in [len(self.worlds)-1]:
+        self.idxTrainingDB = self._getEvidenceWorldIndex()
+        if mode == 0:
+            # compute regular counts for all posible worlds
+            self._computeCounts()
+            # add another world for soft beliefs            
+            baseWorld = self.worlds[self.idxTrainingDB]
+            self.worlds.append({"values": baseWorld["values"]})
+            self.idxTrainingDB = len(self.worlds)-1
+            # and compute soft counts only for that world
+            softCountWorldIndices = [self.idxTrainingDB]
+        else:
+            # compute soft counts for all possible worlds
+            self.counts = {}
+            softCountWorldIndices = xrange(len(self.worlds))
+        # compute soft counts        
+        for i in softCountWorldIndices:
             world = self.worlds[i]            
             for gf in self.gndFormulas:
                 cnf = gf.toCNF()
@@ -1454,13 +1462,12 @@ class MLN:
                     for disj in cnf.children:
                        prod *= self._noisyor(world["values"], disj) 
                 else:
-                    prod *= self._noisyor(world["values"], cnf) 
-                prod2 = float(gf.isTrue(world["values"]))
+                    prod *= self._noisyor(world["values"], cnf)                
                 key = (i, gf.idxFormula)
                 cnt = self.counts.get(key, 0)
                 cnt += prod
                 self.counts[key] = cnt
-        print self.counts
+                #print "%f %s" % (prod, str(gf))
 
     def _noisyor(self, worldValues, disj):
         if isinstance(disj, FOL.GroundLit):
@@ -1946,15 +1953,12 @@ class MLN:
                 self._setEvidence(self.gndAtoms[se["expr"]].idx, True)
             # compute counts
             print "computing counts..."
-            self._computeCountsSoft()
+            self._computeCountsSoft(1)
             print "  %d counts recorded." % len(self.counts)
-            # get the possible world index of the training database
-            idxTrainingDB = len(self.worlds)-1 #self._getEvidenceWorldIndex()
-            #idxTrainingDB = self._getEvidenceWorldIndex()
             # mode-specific stuff
             gradfunc = self._grad_ll
             llfunc = self._ll
-            args = [idxTrainingDB]
+            args = [self.idxTrainingDB] # computed in computeSoftCounts
             # opt
             print "starting optimization..."
             gtol = 1.0000000000000001e-005
