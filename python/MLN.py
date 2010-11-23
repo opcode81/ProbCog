@@ -122,9 +122,9 @@ class InferenceMethods:
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
-    LL, PLL, BPLL = range(3)
-    _names = {LL: "log-likelihood", PLL: "pseudo-log-likelihood", BPLL: "pseudo-log-likelihood with blocking"}
-    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL"}
+    LL, PLL, BPLL, LL_ISE = range(4)
+    _names = {LL: "log-likelihood", PLL: "pseudo-log-likelihood", BPLL: "pseudo-log-likelihood with blocking", LL_ISE: "log-likelihood with independent soft evidence"}
+    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", LL_ISE : "LL_ISE"}
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
 
 # TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
@@ -517,12 +517,14 @@ class MLN:
         self._getWorlds()
         return self.worlds[worldNo-1]
 
-    def getSoftEvidence(self, gndAtom, hardEvidence):
+    def getSoftEvidence(self, gndAtom, worldValues):
         s = strFormula(gndAtom)
         for se in self.softEvidence:
             if se["expr"] == s:
-                return se["p"]
-        return 1.0 if hardEvidence[gndAtom.idx] else 0.0
+                softEvidence = se["p"] if worldValues[gndAtom.idx] else 1.0 - se["p"]
+                #print softEvidence , se["p"] , worldValues[gndAtom.idx]
+                return softEvidence
+        return 1.0 if worldValues[gndAtom.idx] else 0.0
 
     def _groundFormula(self, formula, variables, assignment, idxFormula):
         # if all variables have been grounded...
@@ -633,18 +635,29 @@ class MLN:
     def _calculateWorldValues(self, wts = None):
         if wts == None:
             wts = self._weights()
-        if ('wtsLastWorldValueComputation' in dir(self)) and (self.wtsLastWorldValueComputation == list(wts)): # avoid computing the values we already have
+        if hasattr(self, 'wtsLastWorldValueComputation') and self.wtsLastWorldValueComputation == list(wts): # avoid computing the values we already have
             return
         total = 0
-        for world in self.worlds:
-            weights = []
-            for gndFormula in self.gndFormulas:
-                if self._isTrue(gndFormula, world["values"]):
-                    weights.append(wts[gndFormula.idxFormula])
-            exp_sum = math.exp(sum(weights))
-            total += exp_sum
-            world["sum"] = exp_sum
-            world["weights"] = weights
+        # mode of computation based on precomputed counts (sufficient statistics)
+        if hasattr(self, 'counts'):
+            for world in self.worlds:
+                world["sum"] = 0
+            for ((idxWorld, idxFormula), count) in self.counts.iteritems():
+                self.worlds[idxWorld]["sum"] += wts[idxFormula] * count
+            for world in self.worlds:
+                world["sum"] = math.exp(world["sum"])
+                total += world["sum"]
+        # regular computation from scratch (i.e. by evaluating all ground formulas explicitly)
+        else:
+            for world in self.worlds:
+                weights = []
+                for gndFormula in self.gndFormulas:
+                    if self._isTrue(gndFormula, world["values"]):
+                        weights.append(wts[gndFormula.idxFormula])
+                exp_sum = math.exp(sum(weights))
+                total += exp_sum
+                world["sum"] = exp_sum
+                world["weights"] = weights
         self.partition_function = total
         self.wtsLastWorldValueComputation = list(wts)
     
@@ -1425,34 +1438,42 @@ class MLN:
 
     def _computeCountsSoft(self):
         ''' computes  '''
-        self.counts = {}
-        # for each possible world
-        for i in range(len(self.worlds)):
-            world = self.worlds[i]
-            # count how many true groundings there are for each formula
+        # compute regular counts
+        self._computeCounts()
+        # add another world for soft beliefs
+        idxTrainingDB = self._getEvidenceWorldIndex()
+        baseWorld = self.worlds[idxTrainingDB]
+        self.worlds.append({"values": baseWorld["values"]})
+        # compute soft counts for that world
+        for i in [len(self.worlds)-1]:
+            world = self.worlds[i]            
             for gf in self.gndFormulas:
                 cnf = gf.toCNF()
                 prod = 1.0
                 if isinstance(cnf, FOL.Conjunction):
                     for disj in cnf.children:
-                       prod *= self._noisyor(world, disj) 
+                       prod *= self._noisyor(world["values"], disj) 
                 else:
-                    prod *= self._noisyor(world, cnf) 
+                    prod *= self._noisyor(world["values"], cnf) 
+                prod2 = float(gf.isTrue(world["values"]))
                 key = (i, gf.idxFormula)
                 cnt = self.counts.get(key, 0)
                 cnt += prod
                 self.counts[key] = cnt
+        print self.counts
 
-    def _noisyor(self, world, disj):
+    def _noisyor(self, worldValues, disj):
         if isinstance(disj, FOL.GroundLit):
             lits = [disj]
+        elif isinstance(disj, FOL.TrueFalse):
+            return 1.0 if disj.isTrue(worldValues) else 0.0
         else:
             lits = disj.children
         prod = 1.0
         for lit in lits:
-            p = self.getSoftEvidence(lit.gndAtom, world)            
-            factor =  p if lit.isTrue(world) else 1-p
-            prof *= 1-factor
+            p = self.getSoftEvidence(lit.gndAtom, worldValues)     
+            factor = p if not lit.negated else 1.0-p
+            prod *= 1.0-factor
         return 1.0-prod                
 
     # computes the gradient of the log-likelihood given the weight vector wt
@@ -1928,7 +1949,8 @@ class MLN:
             self._computeCountsSoft()
             print "  %d counts recorded." % len(self.counts)
             # get the possible world index of the training database
-            idxTrainingDB = self._getEvidenceWorldIndex()
+            idxTrainingDB = len(self.worlds)-1 #self._getEvidenceWorldIndex()
+            #idxTrainingDB = self._getEvidenceWorldIndex()
             # mode-specific stuff
             gradfunc = self._grad_ll
             llfunc = self._ll
@@ -1938,11 +1960,8 @@ class MLN:
             gtol = 1.0000000000000001e-005
             neg_llfunc = lambda params, *args: -llfunc(params, *args)
             neg_gradfunc = lambda params, *args: -gradfunc(params, *args)
-            bounds = [(-100, 0.0) for i in range(len(wt))]
-            wt, ll_opt, d = fmin_l_bfgs_b(neg_llfunc, wt, fprime=neg_gradfunc, args=args, bounds=bounds)
-            warn_flags = d['warnflag']
-            func_calls = d['funcalls']
-            grad_opt = d['grad']
+            wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_llfunc, wt, gtol=gtol, fprime=neg_gradfunc, args=args, full_output=True)
+            print wt
             # add final log likelihood to learnwts status for output
             self.learnwts_message = "log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
         else:
