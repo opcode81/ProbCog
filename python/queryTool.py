@@ -468,6 +468,8 @@ class MLNQuery:
             # reload the files (in case they changed)
             self.selected_mln.reloadFile()
             self.selected_db.reloadFile()
+            
+            sys.stdout.flush()
         #except Exception, e:
         #    print e
         #    sys.exit(1)
