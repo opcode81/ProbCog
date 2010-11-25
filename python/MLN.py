@@ -122,9 +122,10 @@ class InferenceMethods:
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
-    LL, PLL, BPLL, LL_ISE = range(4)
-    _names = {LL: "log-likelihood", PLL: "pseudo-log-likelihood", BPLL: "pseudo-log-likelihood with blocking", LL_ISE: "log-likelihood with independent soft evidence"}
-    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", LL_ISE : "LL_ISE"}
+    LL, PLL, BPLL, LL_ISE, PLL_ISE = range(5)
+    _names = {LL: "log-likelihood", PLL: "pseudo-log-likelihood", BPLL: "pseudo-log-likelihood with blocking", 
+              LL_ISE: "log-likelihood with independent soft evidence", PLL_ISE: "pseudo-log-likelihood with independent soft evidence"}
+    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", LL_ISE : "LL_ISE", PLL_ISE : "PLL_ISE"}
     _byName = dict([(x,y) for (y,x) in _names.iteritems()])
 
 # TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
@@ -517,7 +518,7 @@ class MLN:
         self._getWorlds()
         return self.worlds[worldNo-1]
 
-    def getSoftEvidence(self, gndAtom, worldValues):
+    def _getSoftEvidence(self, gndAtom, worldValues):
         s = strFormula(gndAtom)
         for se in self.softEvidence:
             if se["expr"] == s:
@@ -525,6 +526,13 @@ class MLN:
                 #print softEvidence , se["p"] , worldValues[gndAtom.idx]
                 return softEvidence
         return 1.0 if worldValues[gndAtom.idx] else 0.0
+    
+    def _setSoftEvidence(self, gndAtom, value):
+        s = strFormula(gndAtom)
+        for se in self.softEvidence:
+            if se["expr"] == s:
+                se["p"] = value
+                return
 
     def _groundFormula(self, formula, variables, assignment, idxFormula):
         # if all variables have been grounded...
@@ -1187,7 +1195,7 @@ class MLN:
     # gets the probability of the ground atom with index idxGndAtom when given its Markov blanket (evidence set)
     # using the specified weight vector
     def _getAtomProbMB(self, idxGndAtom, wt, relevantGroundFormulas = None):            
-        old_tv = self._getEvidence(idxGndAtom)
+        #old_tv = self._getEvidence(idxGndAtom)
         # check if the ground atom is in a block
         block = None
         if idxGndAtom in self.gndBlockLookup and PMB_METHOD != 'old':
@@ -1217,21 +1225,31 @@ class MLN:
                 relevantGroundFormulas = self.gndFormulas
                 checkRelevance = True
         # check the ground formulas
+        print self.gndAtomsByIdx[idxGndAtom]
         if PMB_METHOD == 'old' or block == None: # old method (only consider formulas that contain the ground atom)
             for gf in relevantGroundFormulas:
                 if checkRelevance:
                     if not gf.containsGndAtom(idxGndAtom):
                         continue
                 # gnd atom maintains regular truth value
-                if self._isTrueGndFormulaGivenEvidence(gf):
-                    wts_regular += wt[gf.idxFormula]
-                    wr.append(wt[gf.idxFormula])
+                prob1 = self._getTruthDegreeGivenEvidence(gf)
+                if prob1 > 0:
+                    wts_regular += wt[gf.idxFormula] * prob1
+                    wr.append(wt[gf.idxFormula] * prob1)
                 # flipped truth value
-                self._setTemporaryEvidence(idxGndAtom, not old_tv)
-                if self._isTrueGndFormulaGivenEvidence(gf):
-                    wts_inverted += wt[gf.idxFormula]
-                    wi.append(wt[gf.idxFormula])
-                self._removeTemporaryEvidence()
+                #self._setTemporaryEvidence(idxGndAtom, not old_tv)
+                self._setInvertedEvidence(idxGndAtom)
+                #if self._isTrueGndFormulaGivenEvidence(gf):
+                #    wts_inverted += wt[gf.idxFormula]
+                #    wi.append(wt[gf.idxFormula])
+                prob2 = self._getTruthDegreeGivenEvidence(gf)
+                if prob2 > 0:
+                    wts_inverted += wt[gf.idxFormula] * prob2
+                    wi.append(wt[gf.idxFormula] * prob2)
+                #self._removeTemporaryEvidence()
+                print "  F%d %f %s %f -> %f" % (gf.idxFormula, wt[gf.idxFormula], str(gf), prob1, prob2)
+                self._setInvertedEvidence(idxGndAtom)
+            print "  %s %s" % (wts_regular, wts_inverted)
             return math.exp(wts_regular) / (math.exp(wts_regular) + math.exp(wts_inverted))
         elif PMB_METHOD == 'excl' or PMB_METHOD == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
             for gf in relevantGroundFormulas: # !!! here the relevant ground formulas may not be sufficient!!!! they are different than in the other case
@@ -1271,6 +1289,27 @@ class MLN:
                     return expsums[idxBlockTrueone] / (expsums[idxBlockTrueone] + expsums[idxBlockMainGA])
         else:
             raise Exception("Unknown PMB_METHOD")
+    
+    def _setInvertedEvidence(self, idxGndAtom):
+        old_tv = self._getEvidence(idxGndAtom)
+        self._setEvidence(idxGndAtom, not old_tv)
+
+    def _setInvertedEvidenceSoft(self, idxGndAtom):
+        s = strFormula(self.gndAtomsByIdx[idxGndAtom])
+        isSoftEvidence = False
+        for se in self.softEvidence:
+            if se["expr"] == s:
+                isSoftEvidence = True
+                old_tv = se["p"]
+                break
+        if isSoftEvidence:
+            self._setSoftEvidence(self.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+        else:
+            old_tv = self._getEvidence(idxGndAtom)
+            self._setEvidence(idxGndAtom, not old_tv)
+    
+    def _getTruthDegreeGivenEvidence(self, gndFormula):
+        return 1.0 if self._isTrueGndFormulaGivenEvidence(gndFormula) else 0.0
 
     # prints the probability of each ground atom truth assignment given its Markov blanket
     def printAtomProbsMB(self):
@@ -1354,8 +1393,11 @@ class MLN:
 
     def _pll(self, wt):
         self._calculateAtomProbsMB(wt)
-        probs = map(lambda x: {True: 1e-10, False:x}[x==0], self.atomProbsMB) # prevent 0 probs
-        return sum(map(math.log, probs))
+        print self.atomProbsMB
+        probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
+        pll = sum(map(math.log, probs))
+        print "log-likelihood:",pll
+        return pll
 
     def _addToDiff(self, idxFormula, idxGndAtom, diff):
         key = (idxFormula, idxGndAtom)
@@ -1394,6 +1436,38 @@ class MLN:
                                         self._addToDiff(gndFormula.idxFormula, i, diff)
                                     else:
                                         self._addToDiff(gndFormula.idxFormula, i, diff/(len(block)-1))
+
+
+    def _computeDiffsSoft(self):
+        self.diffs = {}
+        for gndFormula in self.gndFormulas:
+            cnt1 = self._getTruthDegreeGivenEvidenceSoft(gndFormula)
+            for idxGndAtom in gndFormula.idxGroundAtoms():
+                # check if formula is true if gnd atom's truth value is inversed
+                cnt2 = 0
+                # check if it really is a soft evidence:
+                s = strFormula(self.gndAtomsByIdx[idxGndAtom])
+                isSoftEvidence = False
+                 
+                for se in self.softEvidence:
+                    if se["expr"] == s:
+                        isSoftEvidence = True
+                        old_tv = se["p"]
+                        break
+                if isSoftEvidence:
+                    self._setSoftEvidence(self.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+                    cnt2 = self._getTruthDegreeGivenEvidenceSoft(gndFormula)
+                    self._setSoftEvidence(self.gndAtomsByIdx[idxGndAtom], old_tv)
+                else:
+                    old_tv = self._getEvidence(idxGndAtom)
+                    self._setTemporaryEvidence(idxGndAtom, not old_tv)
+                    if self._isTrueGndFormulaGivenEvidence(gndFormula): cnt2 = 1
+                    self._removeTemporaryEvidence()
+                    
+                # save difference
+                diff = cnt2-cnt1
+                if diff != 0:
+                    self._addToDiff(gndFormula.idxFormula, idxGndAtom, diff) 
 
 
     def _grad_pll(self, wt):        
@@ -1459,13 +1533,7 @@ class MLN:
         for i in softCountWorldIndices:
             world = self.worlds[i]            
             for gf in self.gndFormulas:
-                cnf = gf.toCNF()
-                prod = 1.0
-                if isinstance(cnf, FOL.Conjunction):
-                    for disj in cnf.children:
-                        prod *= self._noisyor(world["values"], disj) 
-                else:
-                    prod *= self._noisyor(world["values"], cnf)                
+                prod = self._getTruthDegreeGivenEvidenceSoft(gf, world["values"])
                 key = (i, gf.idxFormula)
                 cnt = self.counts.get(key, 0)
                 cnt += prod
@@ -1494,6 +1562,17 @@ class MLN:
             
             print " %f %s" % (otherWorldsMeanCounts[j], strFormula(self.formulas[j]))
               
+              
+    def _getTruthDegreeGivenEvidenceSoft(self, gf, worldValues = None):
+        if worldValues is None: worldValues = self.evidence
+        cnf = gf.toCNF()
+        prod = 1.0
+        if isinstance(cnf, FOL.Conjunction):
+            for disj in cnf.children:
+                prod *= self._noisyor(worldValues, disj) 
+        else:
+            prod *= self._noisyor(worldValues, cnf)  
+        return prod  
 
     def _noisyor(self, worldValues, disj):
         if isinstance(disj, FOL.GroundLit):
@@ -1504,7 +1583,7 @@ class MLN:
             lits = disj.children
         prod = 1.0
         for lit in lits:
-            p = self.getSoftEvidence(lit.gndAtom, worldValues)     
+            p = self._getSoftEvidence(lit.gndAtom, worldValues)     
             factor = p if not lit.negated else 1.0-p
             prod *= 1.0-factor
         return 1.0-prod                
@@ -1854,7 +1933,17 @@ class MLN:
             for i in range(len(self.formulas)):
                 wt[i] = self.formulas[i].weight
         # optimization
-        if mode == 'PLL':
+        if mode == 'PLL' or mode == 'PLL_ISE':
+            if mode == 'PLL_ISE':
+                if PMB_METHOD != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
+                # set all soft evidence values to true
+                for se in self.softEvidence:
+                    self._setEvidence(self.gndAtoms[se["expr"]].idx, True)
+                # overwrite methods
+                self._computeDiffs = self._computeDiffsSoft
+                self._setInvertedEvidence = self._setInvertedEvidenceSoft
+                self._getTruthDegreeGivenEvidence = self._getTruthDegreeGivenEvidenceSoft
+            print "%s %s" % (mode, str(params))
             print "computing differences..."
             self._computeDiffs()
             print "  %d differences recorded" % len(self.diffs)
