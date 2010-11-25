@@ -292,6 +292,8 @@ class LearnWeights:
             # restore gui
             self.master.deiconify() 
             self.setGeometry()
+            
+            sys.stdout.flush()
 
 # -- main app --
 
