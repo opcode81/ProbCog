@@ -273,16 +273,16 @@ public class BeliefPropagation extends Sampler {
 		}
 		
 		if (debug){
-			System.out.println("After initialization process");
+			out.println("After initialization process");
 			for (BeliefNode n : nodes){
-				System.out.println(" Node: " + n);
-				System.out.println("   Pi(x):" + n);
+				out.println(" Node: " + n);
+				out.println("   Pi(x):" + n);
 				for(int i = 0; i < pi.get(n).length; i++){
-					System.out.println("    " + i + ": " + pi.get(n)[i]);
+					out.println("    " + i + ": " + pi.get(n)[i]);
 				}
-				System.out.println("   Lambda(x):" + n);
+				out.println("   Lambda(x):" + n);
 				for(int i = 0; i < lambda.get(n).length; i++){
-					System.out.println("    " + i + ": " + lambda.get(n)[i]);
+					out.println("    " + i + ": " + lambda.get(n)[i]);
 				}
 			}
 		}
@@ -292,7 +292,7 @@ public class BeliefPropagation extends Sampler {
 		for (int step = 1; step <= this.numSamples; step++) {
 			
 			if(verbose && step % this.infoInterval == 0)
-				System.out.println("step " + step);
+				out.println("step " + step);
 			
 			// calculate pi(x)
 			for (BeliefNode n : nodes){
@@ -384,33 +384,33 @@ public class BeliefPropagation extends Sampler {
 			}
 			
 			if(debug){
-				System.out.println("\n\n****After step " + step + "****");
-				System.out.println("\n     Pi and Lambda Functions");
+				out.println("\n\n****After step " + step + "****");
+				out.println("\n     Pi and Lambda Functions");
 				for (BeliefNode n : nodes){
-					System.out.println(" Node: " + n);
-					System.out.println("   Pi(x):" + n);
+					out.println(" Node: " + n);
+					out.println("   Pi(x):" + n);
 					for(int i = 0; i < pi.get(n).length; i++){
-						System.out.println("    " + i + ": " + pi.get(n)[i]);
+						out.println("    " + i + ": " + pi.get(n)[i]);
 					}
-					System.out.println("   Lambda(x):" + n);
+					out.println("   Lambda(x):" + n);
 					for(int i = 0; i < lambda.get(n).length; i++){
-						System.out.println("    " + i + ": " + lambda.get(n)[i]);
+						out.println("    " + i + ": " + lambda.get(n)[i]);
 					}
 				}
 				
-				System.out.println("\n     Message Functions");
+				out.println("\n     Message Functions");
 				for (BeliefNode n : nodes){
-					System.out.println("Node: " + n);
+					out.println("Node: " + n);
 					for (BeliefNode c : messages.get(n).piMessages.keySet()){
-						System.out.println("   Pi-Message to " + c + ":");
+						out.println("   Pi-Message to " + c + ":");
 						for(int i = 0; i < messages.get(n).piMessages.get(c).length; i++){
-							System.out.println("    " + i + ": " + messages.get(n).piMessages.get(c)[i]);
+							out.println("    " + i + ": " + messages.get(n).piMessages.get(c)[i]);
 						}
 					}
 					for (BeliefNode c : messages.get(n).lambdaMessages.keySet()){
-						System.out.println("   Lambda to (x):" + c);
+						out.println("   Lambda to (x):" + c);
 						for(int i = 0; i < messages.get(n).lambdaMessages.get(c).length; i++){
-							System.out.println("    " + i + ": " + messages.get(n).lambdaMessages.get(c)[i]);
+							out.println("    " + i + ": " + messages.get(n).lambdaMessages.get(c)[i]);
 						}
 					}
 				}
@@ -418,7 +418,7 @@ public class BeliefPropagation extends Sampler {
 			
 		}
 		// compute probabilities and store results in distribution
-		if(verbose) System.out.println("computing results....");
+		if(verbose) out.println("computing results....");
 		this.createDistribution();
 		dist.Z = 1.0;
 		for (BeliefNode n : nodes) {

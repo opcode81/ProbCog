@@ -53,7 +53,7 @@ loop:	while(!successful) {
 					double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 					if(prob == 0.0) {
 						if(debug)
-							System.out.println("!!! evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
+							out.println("!!! evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
 						continue loop;
 					}
 					s.weight *= prob;
@@ -81,7 +81,7 @@ loop:	while(!successful) {
 					domainIdx = sampleForward(nodes[nodeIdx], s.nodeDomainIndices);
 					if(domainIdx < 0) {
 						if(debug)
-							System.out.println("!!! could not sample forward because of column with only 0s in CPT of " + nodes[nodeIdx].getName() + " in step " + (dist.steps+1));
+							out.println("!!! could not sample forward because of column with only 0s in CPT of " + nodes[nodeIdx].getName() + " in step " + (dist.steps+1));
 						bn.removeAllEvidences();
 						continue loop;
 					}
