@@ -29,8 +29,9 @@ public abstract class Model implements IParameterHandler {
 	protected String name;
 	protected ParameterHandler paramHandler;
 	protected HashMap<String, Object> actualParams;
+	protected boolean haveSession = false;
 	
-	public Model(String name) {
+	public Model(String name) throws Exception {
 		defaultParameters = new HashMap<String,Object>();
 		this.name = name;
 		constantMapFromProbCog = null;
@@ -82,6 +83,8 @@ public abstract class Model implements IParameterHandler {
 	}
 	
 	public void setEvidence(Iterable<String[]> evidence) throws Exception {
+		if(haveSession == false)
+			beginSession();
 		// map constants, filtering evidence where constants are mapped to null
 		Vector<String[]> newEvidence = new Vector<String[]>();
 		for(String[] s : evidence) {
