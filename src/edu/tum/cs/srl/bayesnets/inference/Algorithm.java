@@ -28,7 +28,7 @@ import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 public enum Algorithm {
 		LikelihoodWeighting("likelihood weighting", null, LikelihoodWeighting.class), 
 		LWU("likelihood weighting with uncertain evidence", null, LikelihoodWeightingWithUncertainEvidence.class), 
-		GibbsSampling("Gibbs sampling (MCMC)", GibbsSampling.class, null), 
+		GibbsSampling("Gibbs sampling (MCMC)", null, edu.tum.cs.bayesnets.inference.GibbsSampling.class), 
 		EPIS("importance sampling based on evidence prepropagation [SMILE]", null, SmileEPIS.class), 
 		BackwardSampling("backward simulation", null, BackwardSampling.class),			 
 		BackwardSamplingPriors("backward simulation with prior bias", null, BackwardSamplingWithPriors.class), 
