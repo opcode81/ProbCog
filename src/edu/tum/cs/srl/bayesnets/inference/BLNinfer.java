@@ -1,6 +1,9 @@
 package edu.tum.cs.srl.bayesnets.inference;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -32,7 +35,7 @@ import edu.tum.cs.util.Stopwatch;
 public class BLNinfer implements IParameterHandler {	
 	String declsFile = null;
 	String networkFile = null;
-	String logicFile = null;
+	String logicFile = null; 
 	String dbFile = null;
 	boolean useMaxSteps = false;
 	Algorithm algo = Algorithm.LikelihoodWeighting;
@@ -52,7 +55,32 @@ public class BLNinfer implements IParameterHandler {
 	AbstractGroundBLN gbln = null;
 	Database db = null;
 	Iterable<String> queries = null;
-	ParameterHandler paramHandler;
+	ParameterHandler paramHandler;	
+	
+	enum SortOrder implements Comparator<InferenceResult> { 
+		Atom {
+			public int compare(InferenceResult o1, InferenceResult o2) {
+				return o1.varName.compareTo(o2.varName);
+			}
+		},
+		Probability {
+			public int compare(InferenceResult o1, InferenceResult o2) {
+				return -Double.compare(o1.probabilities[0], o2.probabilities[0]);
+			}
+		},
+		PredicateProbability  {
+			public int compare(InferenceResult o1, InferenceResult o2) {
+				String pred1 = o1.varName.substring(0, o1.varName.indexOf('('));
+				String pred2 = o2.varName.substring(0, o2.varName.indexOf('('));
+				int res = pred1.compareTo(pred2);
+				if(res != 0)
+					return res;
+				else
+					return -Double.compare(o1.probabilities[0], o2.probabilities[0]);
+			}
+		};
+	};	
+	SortOrder resultsSortOrder = SortOrder.Atom;
 	
 	// computed stuff
 	Collection<InferenceResult> results;
@@ -166,6 +194,17 @@ public class BLNinfer implements IParameterHandler {
 				outputDistFile = args[++i];	
 			else if(args[i].equals("-cd"))
 				referenceDistFile = args[++i];
+			else if(args[i].startsWith("-O")) {
+				String order = args[i].substring(2);
+				if(order.equals("a"))
+					resultsSortOrder = SortOrder.Atom;
+				else if(order.equals("p"))
+					resultsSortOrder = SortOrder.Probability;
+				else if(order.equals("pp"))
+					resultsSortOrder = SortOrder.PredicateProbability;
+				else
+					throw new Exception("Unknown sort order '" + order + "'");
+			}
 			else if(args[i].startsWith("-p") || args[i].startsWith("--")) { // algorithm-specific parameter
 				String[] pair = args[i].substring(2).split("=");
 				if(pair.length != 2)
@@ -300,14 +339,17 @@ public class BLNinfer implements IParameterHandler {
 		sw.stop();
 		
 		// print results
-		if(verbose) 
-			for(InferenceResult res : results) {
+		if(verbose) {
+			ArrayList<InferenceResult> sortedResults = new ArrayList<InferenceResult>(results);
+			Collections.sort(sortedResults, this.resultsSortOrder);
+			for(InferenceResult res : sortedResults) {
 				boolean show = true;
 				if(resultsFilterEvidence)
 					if(db.contains(res.varName))
 						show = false;
 				if(show) res.print();
 			}
+		}
 		
 		// save output distribution
 		if(outputDistFile != null) {
@@ -388,6 +430,7 @@ public class BLNinfer implements IParameterHandler {
 						         "     -rfe             filter evidence in results\n" +
 						         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
 						         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
+						         "     -O<a|p|pp>       order printed results by atom name (a), probability (p), predicate then probability (pp)\n" +
 						         "     -od <file>       save output distribution to file\n" +
 						         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
 						         "     -py              use Python-based logic engine [deprecated]\n");
