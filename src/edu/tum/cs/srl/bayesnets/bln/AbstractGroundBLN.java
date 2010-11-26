@@ -198,35 +198,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		// check potentially applicable templates
 		for(RelationalNode relNode : templates) {
 			
-			// if the node is subject to preconditions (decision node parents), check if they are met
-			boolean preconditionsMet = true;
-			for(DecisionNode decision : relNode.getDecisionParents()) {					
-				if(!decision.isTrue(relNode.params, params, db, false)) {
-					preconditionsMet = false;
-					break;
-				}
-			}
-			if(!preconditionsMet)
-				continue;
-			
-			// get groundings of parents
-			ParentGrounder pg = bln.rbn.getParentGrounder(relNode);
-			Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
-			
-			// if there are precondition parents, 
-			// filter out the inadmissible parent groundings
-			Vector<RelationalNode> preconds = relNode.getPreconditionParents();
-			for(RelationalNode precond : preconds) {
-				Iterator<Map<Integer, String[]>> iter = groundings.iterator();
-				while(iter.hasNext()) {
-					Map<Integer, String[]> grounding = iter.next();
-					String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
-					if(!value.equals("True"))
-						iter.remove();
-				}
-			}
-			// if there are no groundings left, there is nothing to instantiate
-			if(groundings.isEmpty())
+			Vector<Map<Integer, String[]>> groundings = relNode.checkTemplateApplicability(params, db);
+			if(groundings == null)
 				continue;
 
 			// this template is applicable

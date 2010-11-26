@@ -2,6 +2,7 @@ package edu.tum.cs.srl.bayesnets;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -36,6 +37,10 @@ public class RelationalNode extends ExtendedNode {
 	 * additional parameters that are free in some parents, necessitating the use of an aggregator
 	 */
 	public String[] addParams;
+	/**
+	 * collection of indices of parameters that are constants rather than variables
+	 */
+	public Vector<Integer> constantParamIndices = new Vector<Integer>();
 	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
 	/**
 	 * specification of an aggregation to handle a variable number of parent sets
@@ -164,6 +169,11 @@ public class RelationalNode extends ExtendedNode {
 			this.params = new String[]{name};
 			this.isConstant = true;
 		}
+		
+		// check if any parameters are not variables but constants
+		for(int i = 0; i < params.length; i++)
+			if(isConstant(params[i]))
+				constantParamIndices.add(i);
 		
 		if(isPrecondition)
 			bn.setEvidenceFunction(functionName);
@@ -576,6 +586,49 @@ public class RelationalNode extends ExtendedNode {
 			}			
 		}	
 		return ret;
+	}
+	
+	public Vector<Map<Integer, String[]>> checkTemplateApplicability(String[] params, Database db) throws Exception {
+		RelationalNode relNode = this;
+		
+		// check constant parameters of this fragment
+		for(Integer i : this.constantParamIndices)
+			if(!params[i].equals(this.params[i]))
+				return null;
+		
+		// if the node is subject to preconditions (decision node parents), check if they are met
+		boolean preconditionsMet = true;
+		for(DecisionNode decision : relNode.getDecisionParents()) {					
+			if(!decision.isTrue(relNode.params, params, db, false)) {
+				preconditionsMet = false;
+				break;
+			}
+		}
+		if(!preconditionsMet)
+			return null;
+		
+		// get groundings of parents
+		ParentGrounder pg = this.bn.getParentGrounder(relNode);
+		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+		
+		// if there are precondition parents, 
+		// filter out the inadmissible parent groundings
+		Vector<RelationalNode> preconds = relNode.getPreconditionParents();
+		for(RelationalNode precond : preconds) {
+			Iterator<Map<Integer, String[]>> iter = groundings.iterator();
+			while(iter.hasNext()) {
+				Map<Integer, String[]> grounding = iter.next();
+				String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
+				if(!value.equals("True"))
+					iter.remove();
+			}
+		}
+		
+		// if there are no groundings left, there is nothing to instantiate
+		if(groundings.isEmpty())
+			return null;
+		
+		return groundings;
 	}
 }
 
