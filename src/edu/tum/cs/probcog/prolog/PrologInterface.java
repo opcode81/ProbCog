@@ -36,7 +36,7 @@ public class PrologInterface {
 
 	private static String modelPool = "/home/tenorth/work/srldb/models/models.xml";
 
-	private static String modelName = "tableSetting_fall09";
+	private static String modelName = "tableSetting_fall10";
 
 	private static Server server = null;
 
