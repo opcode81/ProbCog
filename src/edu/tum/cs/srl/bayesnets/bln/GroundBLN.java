@@ -36,7 +36,12 @@ public class GroundBLN extends AbstractGroundBLN {
 	/**
 	 * grounded knowledge base of hard constraints
 	 */
-	protected KnowledgeBase gkb;	
+	protected KnowledgeBase gkb;
+	/**
+	 * whether to simplify any ground formulas as far as possible
+	 * TODO: maybe simplification should depend on the algorithm that is used
+	 */
+	protected boolean useFormulaSimplification = false;
 	
 	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		super(bln, db);
@@ -50,6 +55,11 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		super.init(bln, db);
 		coupling = new VariableLogicCoupling();
+		this.paramHandler.add("simplifyFormulas", "setFormulaSimplification");
+	}
+	
+	protected void setFormulaSimplification(boolean enabled) {
+		useFormulaSimplification = enabled;
 	}
 	
 	@Override
@@ -71,7 +81,6 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected void groundFormulaicNodes() throws Exception {
 		WorldVariables worldVars = coupling.getWorldVars();
 		state = new PossibleWorld(worldVars);
-		boolean useFormulaSimplification = false; // TODO: maybe simplification should depend on the algorithm that is used
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
 		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification); 
 		if(verbose) System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
