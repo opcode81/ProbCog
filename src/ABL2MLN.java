@@ -1,7 +1,7 @@
-import edu.tum.cs.srl.bayesnets.BLOGModel;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 
 
-public class BLOG2MLN {
+public class ABL2MLN {
 
 	/**
 	 * @param args
@@ -28,7 +28,7 @@ public class BLOG2MLN {
 					return;
 				}
 			}
-			BLOGModel b = new BLOGModel(args[0].split(","), args[1]);
+			ABLModel b = new ABLModel(args[0].split(","), args[1]);
 			if(guessSigs)
 				b.guessSignatures();
 			b.toMLN(System.out, false, compact, numericWeights);
