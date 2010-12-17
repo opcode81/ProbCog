@@ -9,7 +9,7 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.bayesnets.BLOGModel;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -139,7 +139,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			
 			if(test == 0) {
 				String dir = "/usr/wiss/jain/work/code/SRLDB/bln/test/";
-				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
+				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new ABLModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
 				Stopwatch sw = new Stopwatch();
 				sw.start();		
@@ -151,7 +151,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			}
 			if(test == 1) {
 				String dir = "/usr/wiss/jain/work/code/SRLDB/blog/kitchen/meal_goods2/";
-				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new BLOGModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
+				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new ABLModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
 				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
 				gbln.show();
 				//Algorithm.LikelihoodWeighting.createSampler(gbln).infer(Arrays.asList("prop1(X)","prop2(Y)"));
