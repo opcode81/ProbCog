@@ -159,7 +159,13 @@ public class VariableElimination extends Sampler {
 			for(Factor f : factors) {
 				value *= f.getValue(nodeDomainIndices);
 			}
-			cpf.put(addr, new ValueDouble(value));
+			try {
+				cpf.put(addr, new ValueDouble(value));
+			}
+			catch(Exception e) {
+				System.err.println(StringTool.join(", ", cpf.getDomainProduct()));
+				throw new RuntimeException(e);
+			}
 			return;
 		}
 		BeliefNode[] domProd = cpf.getDomainProduct(); 
