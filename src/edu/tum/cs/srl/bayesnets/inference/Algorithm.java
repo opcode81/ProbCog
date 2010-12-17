@@ -19,22 +19,20 @@ import edu.tum.cs.bayesnets.inference.IJGP;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeighting;
 import edu.tum.cs.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import edu.tum.cs.bayesnets.inference.SampleSearch;
-import edu.tum.cs.bayesnets.inference.SmileBackwardSampling;
-import edu.tum.cs.bayesnets.inference.SmileEPIS;
-import edu.tum.cs.bayesnets.inference.SmilePearl;
 import edu.tum.cs.bayesnets.inference.VariableElimination;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 
 public enum Algorithm {
+	  	// NOTE: Algorithms that may not exist in some distributions are specified using the string constructor
 		LikelihoodWeighting("likelihood weighting", null, LikelihoodWeighting.class), 
 		LWU("likelihood weighting with uncertain evidence", null, LikelihoodWeightingWithUncertainEvidence.class), 
 		GibbsSampling("Gibbs sampling (MCMC)", null, edu.tum.cs.bayesnets.inference.GibbsSampling.class), 
-		EPIS("importance sampling based on evidence prepropagation [SMILE]", null, SmileEPIS.class), 
+		EPIS("importance sampling based on evidence prepropagation [SMILE]", "edu.tum.cs.bayesnets.inference.SmileEPIS"), 
 		BackwardSampling("backward simulation", null, BackwardSampling.class),			 
 		BackwardSamplingPriors("backward simulation with prior bias", null, BackwardSamplingWithPriors.class), 
 		BackwardSamplingChildren("backward simulation with extended context", null, BackwardSamplingWithChildren.class),
 		LiftedBackwardSampling("a lifted version of backw. sampling with ext. context", LiftedBackwardSampling.class, null),
-		SmileBackwardSampling("backward simulation [SMILE]", null, SmileBackwardSampling.class),						 
+		SmileBackwardSampling("backward simulation [SMILE]", "edu.tum.cs.bayesnets.inference.SmileBackwardSampling"),						 
 		SATIS("SAT-IS: satisfiability-based importance sampling", SATIS.class, null), 
 		SATISEx("SAT-IS, extended with constraints from CPDs", SATISEx.class, null),
 		SATISExGibbs("SAT-IS extended with interspersed Gibbs Sampling steps", SATISExGibbs.class, null),
@@ -44,7 +42,7 @@ public enum Algorithm {
 		BeliefPropagation("Belief Propagation", null, BeliefPropagation.class),
 		EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", null, EnumerationAsk.class),
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
-		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", null, SmilePearl.class),
+		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
 		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearchIB"),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),

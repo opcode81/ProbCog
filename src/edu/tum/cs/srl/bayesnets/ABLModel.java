@@ -476,7 +476,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	public static void main(String[] args) {
 		try {
 			String bifFile = "abl/kitchen-places/actseq.xml";
-			ABL bn = new ABL(new String[] { "abl/kitchen-places/actseq.abl" },
+			ABLModel bn = new ABLModel(new String[] { "abl/kitchen-places/actseq.abl" },
 					bifFile);
 			String dbFile = "abl/kitchen-places/train.blogdb";
 			// read the training database

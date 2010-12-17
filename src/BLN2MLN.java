@@ -1,6 +1,6 @@
 import java.io.File;
 
-import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
@@ -28,7 +28,7 @@ public class BLN2MLN {
 					return;
 				}
 			}
-			RelationalBeliefNetwork rbn = new ABL(args[0], args[1]);
+			RelationalBeliefNetwork rbn = new ABLModel(args[0], args[1]);
 			BayesianLogicNetwork bln = new BayesianLogicNetwork(rbn, args[2]);
 			String outfile = args[3];
 			System.out.println("converting...");
