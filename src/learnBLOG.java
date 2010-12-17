@@ -5,23 +5,18 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.bayesnets.ABL;
-import edu.tum.cs.srl.bayesnets.BLOGModel;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
 
 public class learnBLOG {	
 	
-	public static enum Mode {
-		BLOG, ABL
-	}
-	
-	public static void learn(Mode mode, String[] args) {
+	public static void main(String[] args) {
 		try {
-			String acronym = mode == Mode.ABL ? "ABL" : "BLOG";
+			String acronym = "ABL";
 			
 			boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, toMLN = false, debug = false, uniformDefault = false;
-			String blogFile = null, bifFile = null, dbFile = null, outFileBLOG = null, outFileNetwork = null;
+			String declsFile = null, bifFile = null, dbFile = null, outFileDecls = null, outFileNetwork = null;
 			boolean noNormalization = false;
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-s"))
@@ -31,13 +26,13 @@ public class learnBLOG {
 				else if(args[i].equals("-i"))
 					ignoreUndefPreds = true;
 				else if(args[i].equals("-b"))
-					blogFile = args[++i];
+					declsFile = args[++i];
 				else if(args[i].equals("-x"))
 					bifFile = args[++i];
 				else if(args[i].equals("-t"))
 					dbFile = args[++i];
 				else if(args[i].equals("-ob"))
-					outFileBLOG = args[++i];
+					outFileDecls = args[++i];
 				else if(args[i].equals("-ox"))
 					outFileNetwork = args[++i];
 				else if(args[i].equals("-mln"))
@@ -49,7 +44,7 @@ public class learnBLOG {
 				else if(args[i].equals("-debug"))
 					debug = true;					
 			}			
-			if(bifFile == null || dbFile == null || outFileBLOG == null || outFileNetwork == null) {
+			if(bifFile == null || dbFile == null || outFileDecls == null || outFileNetwork == null) {
 				System.out.println("\n usage: learn" + acronym + " [-b <" + acronym + " file>] <-x <network file>> <-t <training db pattern>> <-ob <" + acronym + " output>> <-ox <network output>> [-s] [-d]\n\n"+
 							         "    -b      " + acronym + " file from which to read function signatures\n" +
 						             "    -s      show learned fragment network\n" +
@@ -62,19 +57,11 @@ public class learnBLOG {
 				return;
 			}
 			// create a BLOG model
-			BLOGModel bn;
-			if(mode == Mode.BLOG) {
-				if(blogFile != null)
-					bn = new BLOGModel(blogFile, bifFile);
-				else
-					bn = new BLOGModel(bifFile);
-			}
-			else {
-				if(blogFile != null)
-					bn = new ABL(blogFile, bifFile);
-				else
-					bn = new BLOGModel(bifFile);
-			}
+			ABLModel bn;
+			if(declsFile != null)
+				bn = new ABLModel(declsFile, bifFile);
+			else
+				bn = new ABLModel(bifFile);
 			
 			// prepare it for learning
 			bn.prepareForLearning();
@@ -131,8 +118,8 @@ public class learnBLOG {
 				if(!noNormalization)
 					cptLearner.finish();
 				// write learnt BLOG/ABL model
-				System.out.println("Writing "+ acronym + " output to " + outFileBLOG + "...");
-				PrintStream out = new PrintStream(new File(outFileBLOG));
+				System.out.println("Writing "+ acronym + " output to " + outFileDecls + "...");
+				PrintStream out = new PrintStream(new File(outFileDecls));
 				bn.write(out);			
 				out.close();
 				// write parameters to Bayesian network template
@@ -141,9 +128,9 @@ public class learnBLOG {
 			}
 			// write MLN
 			if(toMLN) {
-				String filename = outFileBLOG + ".mln";
+				String filename = outFileDecls + ".mln";
 				System.out.println("Writing MLN " + filename);
-				PrintStream out = new PrintStream(new File(outFileBLOG + ".mln"));
+				PrintStream out = new PrintStream(new File(outFileDecls + ".mln"));
 				bn.toMLN(out, false, false, false);
 			}
 			// show bayesian network
@@ -155,9 +142,5 @@ public class learnBLOG {
 		catch(Exception e) {
 			e.printStackTrace();
 		}		
-	}
-	
-	public static void main(String[] args) {
-		learn(Mode.BLOG, args);
 	}
 }
