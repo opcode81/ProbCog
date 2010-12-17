@@ -25,22 +25,30 @@ import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
 
-public class BLOGModel extends RelationalBeliefNetwork {
+/**
+ * Advanced Bayesian Logical (ABL) Model
+ * 
+ * This class contains reading and writing methods that are specific to an implementation
+ * of a relational belief network  
+ * 
+ * @author jain
+ */
+public class ABLModel extends RelationalBeliefNetwork {
 
 	/**
-	 * constructs a BLOG model by obtaining the node data from a fragment
-	 * network and declarations from one or more BLOG files.
+	 * constructs a model by obtaining the node data from a fragment
+	 * network and declarations from one or more files.
 	 * 
-	 * @param blogFiles
+	 * @param declarationsFiles
 	 * @param networkFile
-	 *            a Bayesian network file
+	 *            a fragment network file
 	 * @throws Exception
 	 */
-	public BLOGModel(String[] blogFiles, String networkFile) throws Exception {
+	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {
 		super(networkFile);
 
 		// read the blog files
-		String blog = readBlogContent(blogFiles);
+		String blog = readBlogContent(declarationsFiles);
 
 		// remove comments
 		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/",
@@ -204,7 +212,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @param xmlbifFile
 	 * @throws Exception
 	 */
-	public BLOGModel(String blogFile, String networkFile) throws Exception {
+	public ABLModel(String blogFile, String networkFile) throws Exception {
 		this(new String[] { blogFile }, networkFile);
 	}
 
@@ -215,7 +223,7 @@ public class BLOGModel extends RelationalBeliefNetwork {
 	 * @param xmlbifFile
 	 * @throws Exception
 	 */
-	public BLOGModel(String xmlbifFile) throws Exception {
+	public ABLModel(String xmlbifFile) throws Exception {
 		super(xmlbifFile);
 		this.guessSignatures();
 	}
