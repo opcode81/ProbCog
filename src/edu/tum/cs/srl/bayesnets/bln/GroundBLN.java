@@ -58,7 +58,7 @@ public class GroundBLN extends AbstractGroundBLN {
 		this.paramHandler.add("simplifyFormulas", "setFormulaSimplification");
 	}
 	
-	protected void setFormulaSimplification(boolean enabled) {
+	public void setFormulaSimplification(boolean enabled) {
 		useFormulaSimplification = enabled;
 	}
 	
