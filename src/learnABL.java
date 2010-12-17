@@ -9,7 +9,7 @@ import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
 import edu.tum.cs.srl.bayesnets.learning.DomainLearner;
 
-public class learnBLOG {	
+public class learnABL {	
 	
 	public static void main(String[] args) {
 		try {

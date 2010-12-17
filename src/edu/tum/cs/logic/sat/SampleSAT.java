@@ -3,7 +3,6 @@ package edu.tum.cs.logic.sat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
 
@@ -16,7 +15,7 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.util.Stopwatch;
@@ -605,7 +604,7 @@ public class SampleSAT implements IParameterHandler {
 		String net = "meals_any_for_functional.xml";
 		String blnfile = "meals_any_for_functional.bln";
 		String dbfile = "lorenzExample.blogdb";
-		BayesianLogicNetwork bln = new BayesianLogicNetwork(new ABL(blog, net), blnfile);
+		BayesianLogicNetwork bln = new BayesianLogicNetwork(new ABLModel(blog, net), blnfile);
 		// read evidence
 		Database db = new Database(bln.rbn);
 		db.readBLOGDB(dbfile);

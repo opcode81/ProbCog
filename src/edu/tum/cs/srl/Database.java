@@ -421,8 +421,9 @@ public class Database implements IParameterHandler {
 	}
 
 	/**
-	 * retrieves all entries in the database TODO Because of the prolog database
-	 * extension, calling this method should render the database immutable
+	 * retrieves all entries in the database 
+	 * 
+	 * TODO Because of the prolog database extension, calling this method should render the database immutable
 	 * 
 	 * @return
 	 * @throws Exception

@@ -20,7 +20,7 @@ import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.bayesnets.ABL;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -252,7 +252,7 @@ public class BLNinfer implements IParameterHandler {
 		// load relational model
 		RelationalBeliefNetwork blog;
 		if(bln == null)
-			blog = new ABL(declsFile, networkFile);
+			blog = new ABLModel(declsFile, networkFile);
 		else
 			blog = bln.rbn;
 		

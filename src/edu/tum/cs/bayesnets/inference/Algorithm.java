@@ -14,18 +14,18 @@ public enum Algorithm {
 	LikelihoodWeighting("likelihood weighting", LikelihoodWeighting.class), 
 	LWU("likelihood weighting with uncertain evidence", LikelihoodWeightingWithUncertainEvidence.class), 
 	GibbsSampling("Gibbs sampling (MCMC)", GibbsSampling.class), 
-	EPIS("importance sampling based on evidence prepropagation [SMILE]", SmileEPIS.class), 
+	EPIS("importance sampling based on evidence prepropagation [SMILE]", "edu.tum.cs.bayesnets.inference.SmileEPIS"), 
 	BackwardSampling("backward simulation", BackwardSampling.class),			 
 	BackwardSamplingPriors("backward simulation with prior bias", BackwardSamplingWithPriors.class), 
 	BackwardSamplingWithChildren("backward simulation with extended context", BackwardSamplingWithChildren.class),
-	SmileBackwardSampling("backward simulation [SMILE]", SmileBackwardSampling.class),						 
+	SmileBackwardSampling("backward simulation [SMILE]", "edu.tum.cs.bayesnets.inference.SmileBackwardSampling"),						 
 	SATIS("SAT-IS: satisfiability-based importance sampling", SATIS_BSampler.class),
 	SampleSearch("SampleSearch: backtracking search for satisfiable states", SampleSearch.class),
 	IJGP("Iterative Join-Graph Propagation", IJGP.class),
 	BeliefPropagation("Belief Propagation", BeliefPropagation.class),
 	EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", EnumerationAsk.class),
 	Pearl("Pearl's algorithm for polytrees (exact)", BNJPearl.class),
-	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", SmilePearl.class),
+	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 	//VarElim("variable elimination (exact)", BNJVariableElimination.class),
 	VarElim("variable elimination (exact)", VariableElimination.class),
 	Experimental("an experimental algorithm (usually beta)", SampleSearch.class);
@@ -36,6 +36,16 @@ public enum Algorithm {
 	private Algorithm(String description, Class<? extends Sampler> samplerClass) {
 		this.description = description;
 		this.samplerClass = samplerClass;		
+	}
+
+	@SuppressWarnings("unchecked")
+	private Algorithm(String description, String className) {
+		this.description = description;
+		try {
+			this.samplerClass = (Class<? extends Sampler>) Class.forName(className);
+		} 
+		catch(ClassNotFoundException e) {
+		}		
 	}
 	
 	public Sampler createSampler(BeliefNetworkEx bn) throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
