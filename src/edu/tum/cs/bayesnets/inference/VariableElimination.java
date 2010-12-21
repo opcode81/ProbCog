@@ -147,7 +147,16 @@ public class VariableElimination extends Sampler {
 				domain.add(n);
 		}
 		BeliefNode[] domProd = domain.toArray(new BeliefNode[domain.size()]);
-		CPF cpf = new CPF(domProd);
+		CPF cpf;
+		try {
+			cpf = new CPF(domProd);
+		} catch (OutOfMemoryError e) {
+			e.printStackTrace();
+			double size = 1;
+			for(int i = 0; i < domProd.length; i++)
+				size *= domProd[i].getDomain().getOrder();
+			throw new RuntimeException("Out of memory: Needed at least " + size*8 + " bytes to represent function");
+		}
 		int[] addr = new int[domProd.length];
 		fillCPF(factors, cpf, 0, addr);
 		return new Factor(cpf);
