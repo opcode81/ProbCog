@@ -26,7 +26,7 @@ public class Equality extends UngroundedFormula {
 		if(a == null) a = left;
 		String b = binding.get(right);
 		if(b == null) b = right;
-		return TrueFalse.getInstance(a == b);
+		return TrueFalse.getInstance(a.equals(b));
 	}
 
 	@Override
