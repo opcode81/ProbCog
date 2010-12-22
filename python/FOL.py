@@ -236,6 +236,19 @@ class Lit(Formula):
                     raise Exception("Variable '%s' bound to more than one domain" % varname)
                 vars[varname] = domain
         return vars
+    
+    def getSingleVariableIndex(self, mln):
+        paramDomains = mln.predicates[self.predName]
+        if len(paramDomains) != len(self.params): raise Exception("Wrong number of parameters in '%s'; expected %d!" % (str(self), len(paramDomains)))
+        varIndex = -1
+        for i,param in enumerate(self.params):
+            if param[0].islower():
+                if varIndex == -1:
+                    varIndex = i
+                else:
+                    return -1
+        return varIndex
+        
 
     def _getTemplateVariables(self, mln, vars = None):
         if vars == None: vars = {}
