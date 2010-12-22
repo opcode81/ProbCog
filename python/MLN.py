@@ -217,7 +217,7 @@ def strFormula(f):
 
 def evidence2conjunction(evidence):
     ''' converts the evidence obtained from a database (dict mapping ground atom names to truth values) to a conjunction (string) '''
-    evidence = map(lambda x: {True:"", False:"!"}[x[1]] + x[0], evidence.iteritems())
+    evidence = map(lambda x: ("" if x[1] else "!") + x[0], evidence.iteritems())
     return " ^ ".join(evidence)
 
 # -- Markov logic network
@@ -543,7 +543,7 @@ class MLN:
                     possible_settings.remove(False)
         # recursive descent
         for x in possible_settings:
-            self.__createPossibleWorlds(values + [x], idx + 1, code + {True: bit, False: 0}[x], bit << 1)
+            self.__createPossibleWorlds(values + [x], idx + 1, code + (bit if x else 0), bit << 1)
         
     def _createPossibleWorlds(self):
         self.worldCode2Index = {}
@@ -1338,6 +1338,7 @@ class MLN:
                         continue
                 # gnd atom maintains regular truth value
                 prob1 = self._getTruthDegreeGivenEvidence(gf)
+                #print "gf: ", str(gf), " index: ", gf.idxFormula, ", wt size:", len(wt), " formula size:", len(self.formulas)
                 if prob1 > 0:
                     wts_regular += wt[gf.idxFormula] * prob1
                     wr.append(wt[gf.idxFormula] * prob1)
@@ -2284,8 +2285,12 @@ class MLN:
                 self.atom2BlockIdx[idxGA] = idxBlock
 
     def _collectFixationCandidates(self):
+        '''
+        determines formulas that are candidates for fixed weights
+        '''
         candidates = {}
         for i in range(len(self.formulas)):
+            # candidates are positive literals
             if type(self.formulas[i]) == FOL.Lit and self.formulas[i].negated == False: # We only want to collect positive Literals
                 sVarIndex = self.formulas[i].getSingleVariableIndex(self)
                 if sVarIndex != - 1:
@@ -2307,24 +2312,24 @@ class MLN:
             assignment = []
             for i in xrange(0, len(domainList)):
                 assignment.append(0)
-        else:
-            if depth == len(domainList):
-                anyFormulaMatches = False
-                for fIdx, formula in enumerate(formulaList):
-                    formulaMatch = True
-                    for idParam, param in enumerate(formula.params):
-                        if idParam != varIndex:
-                            if param != self.domains[domainList[idParam]][assignment[idParam]]:
-                                formulaMatch = False
-                                break
-                                
-                    if formulaMatch:
-                        anyFormulaMatches = True
-                        self._formulaByAssignment[tuple(assignment)] = formula
-                        del formulaList[fIdx]
-                        break
-        
-                return anyFormulaMatches
+
+        if depth == len(domainList):
+            anyFormulaMatches = False
+            for fIdx, formula in enumerate(formulaList):
+                formulaMatch = True
+                for idParam, param in enumerate(formula.params):
+                    if idParam != varIndex:
+                        if param != self.domains[domainList[idParam]][assignment[idParam]]:
+                            formulaMatch = False
+                            break
+                            
+                if formulaMatch:
+                    anyFormulaMatches = True
+                    self._formulaByAssignment[tuple(assignment)] = formula
+                    del formulaList[fIdx]
+                    break
+    
+            return anyFormulaMatches
         
         for i in xrange(0, len(self.domains[domainList[depth]])):
             assignment[depth] = i
@@ -2335,8 +2340,20 @@ class MLN:
             return False
         
         return True
-        
+    
     def _fixUnitaryClauses(self):
+        fixationCandidates = self._collectFixationCandidates() # TODO: collection of candidates questionable
+        self._fixedClauses = {}
+        for candList in fixationCandidates.values():
+            for formula in candList:
+                c = 0.0
+                Z = 0.0
+                for gf, referencedAtoms in formula.iterGroundings(self):
+                    Z += 1
+                    c += self._getTruthDegreeGivenEvidence(gf)
+                self._fixedClauses[formula] = logx(c/Z)
+        
+    def _fixUnitaryClauses_OLD(self):
         self._fixedClauses = {}            
         self._formulaByAssignment = {}
         
@@ -2344,13 +2361,14 @@ class MLN:
         fixationCandidates = self._collectFixationCandidates()
         print "candidates: ", fixationCandidates, "fixationSet:", self.fixationSet
         # check all candidates
-        for key, candList in fixationCandidates.iteritems():
+        for (predName, varIndex), candList in fixationCandidates.iteritems():
             # candidates whose predicate is not defined in the pre-specified fixation set can be omitted
-            if hasattr(self,'fixationSet') and key[0] not in self.fixationSet:
+            if hasattr(self,'fixationSet') and predName not in self.fixationSet:
                 continue
-             
-            if self._isUnitaryClauseFixableDFS(key[0], key[1], list(candList)):
-                self._computeUnitClauseStatistics(key[0], key[1], list(candList))
+            # if candidates are indeed fixable, compute the statistics
+            if self._isUnitaryClauseFixableDFS(predName, varIndex, list(candList)):
+                self._computeUnitClauseStatistics(predName, varIndex, list(candList))
+            # clean up
             self._formulaByAssignment = {}
 
     def _computeUnitClauseStatistics(self, predName, varIndex, candList):
@@ -2402,7 +2420,7 @@ class MLN:
             for i in range(len(self.formulas)):
                 wt[i] = self.formulas[i].weight
         # optimization
-        if mode == 'NPL_fixed':
+        if mode == 'NPL_fixed': # this mode actually removes the respective formulas from the weight vector, whereas other fixed methods just use bounds on the weight
             self._fixUnitaryClauses()
             print "computing differences..."
             self._computeDiffs()
@@ -2455,8 +2473,9 @@ class MLN:
             wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(pllfunc, wt, fprime=gradfunc, gtol=gtol, full_output=1)
                 
             if mode == 'PLL_fixed':
+                print "formulas with fixed weights: %d" % len(self._fixedClauses)
                 #wtD = numpy.zeros(len(self.formulas)-len(self._fixedClauses.items()), numpy.float64)
-                b = []
+                b = [] 
                 for i, formula in enumerate(self.formulas):
                     if formula in self._fixedClauses:
                         wt[i] = self._fixedClauses[formula]
