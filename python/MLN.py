@@ -337,7 +337,7 @@ class MLN:
                     else:
                         self.fixationSet = set([predName])
                     continue
-                elif line.startswith("#AdaptiveMLNDependency"):
+                elif line.startswith("#AdaptiveMLNDependency"): # declared as "#AdaptiveMLNDependency:pred:domain"; seems to be deprecated
                     depPredicate,domain = line.split(":")[1:3]
                     if hasattr(self,'AdaptiveDependencyMap'):
                         if depPredicate in self.AdaptiveDependencyMap:
@@ -2215,7 +2215,7 @@ class MLN:
                 wtD[i] = wt[wtIndex]
                 wtIndex = wtIndex + 1
 
-        return self._negated_blockpll(wtD, *args)
+        return -self._blockpll(wtD, *args)
     
     def _negated_grad_blockpll_with_fixation(self, wt, *args):
         wtD = numpy.zeros(len(self.formulas), numpy.float64)
@@ -2228,7 +2228,7 @@ class MLN:
                 wtD[i] = wt[wtIndex]
                 wtIndex = wtIndex + 1
 
-        grad_pll_without_fixation = self._negated_grad_blockpll(wtD, *args)
+        grad_pll_without_fixation = -self._grad_blockpll(wtD, *args)
         
         grad_pll_fixed = numpy.zeros(len(self.formulas) - len(self._fixedClauses.items()), numpy.float64)
         #grad_pll_fixed = numpy.array([mpmath.mpf(0) for i in xrange( len(self.formulas) - len(self._fixedClauses.items()) )])
@@ -2341,7 +2341,7 @@ class MLN:
         
         return True
     
-    def _fixUnitaryClauses(self):
+    def _fixUnitaryClauses_NEW(self):
         fixationCandidates = self._collectFixationCandidates() # TODO: collection of candidates questionable
         self._fixedClauses = {}
         for candList in fixationCandidates.values():
@@ -2353,7 +2353,7 @@ class MLN:
                     c += self._getTruthDegreeGivenEvidence(gf)
                 self._fixedClauses[formula] = logx(c/Z)
         
-    def _fixUnitaryClauses_OLD(self):
+    def _fixUnitaryClauses(self):
         self._fixedClauses = {}            
         self._formulaByAssignment = {}
         
@@ -2750,8 +2750,12 @@ class MLN:
                     if excl[i]: f.write("!")
                 f.write(")\n")
         f.write("\n// formulas\n")
-        for formula in self.formulas:
-            f.write("%10.6f  %s\n" % (float(eval(str(formula.weight))), strFormula(formula)))
+        for formula in self.formulas:            
+            try:
+                weight = "%-10.6f" % float(eval(str(formula.weight)))
+            except:
+                weight = str(formula.weight)
+            f.write("%s  %s\n" % (weight, strFormula(formula)))
 
     def _countNumTrueGroundingsInWorld(self, idxFormula, world):
         numTrue = 0
