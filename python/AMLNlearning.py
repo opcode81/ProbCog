@@ -10,40 +10,15 @@ from numpy import *
 
 from scipy import linalg
 
-import psyco # Don't use Psyco when debugging!
-psyco.full()
+#import psyco # Don't use Psyco when debugging!
+#psyco.full()
   
 plotStyle = 'LaTeX'
-
-if __name__ == '__main__':
-    from matplotlib import rc
-    rc('text', usetex=True)
-    rc('font',**{'family':'serif'})
-    if plotStyle == 'LaTeX':
-        import pylab
-        fig_width_pt = 234.8775 
-        inches_per_pt = 1.0/72.27 
-        golden_mean = float(3)/4#(sqrt(5)-1.0)/2.0   
-        fig_width = fig_width_pt*inches_per_pt  
-        fig_height = fig_width*golden_mean
-        fig_size =  [fig_width,fig_height]
-        pylab.rcParams.update({'backend': 'pdf',
-                               'axes.titlesize': 11,
-                               'axes.labelsize': 10,
-                               'text.fontsize': 10,
-                               'legend.fontsize': 8,
-                               'xtick.labelsize': 8,
-                               'ytick.labelsize': 8,
-                               'text.latex.preamble' : ["\usepackage[cmex10]{amsmath}","\usepackage{amsfonts}","\usepackage{amssymb}","\\renewcommand{\\rmdefault}{cmr}"],
-                               'text.usetex': True,
-                               'figure.figsize': fig_size})
-
-    import matplotlib.pyplot as plot
-
 
 class DynamicWeightLearner:
     def __init__(self, mln_file):
         self.mln_file = mln_file
+        self.learningMethod = MLN.ParameterLearningMeasures.BPLL_fixed
         
     def _getDomainsInvolvedinFormula(self, f, mln):
         domsInvolved = set([])
@@ -61,49 +36,57 @@ class DynamicWeightLearner:
     def _registerGradNorm(self, domSizes, gradNorm):
         self.gradNormOpt.append((domSizes, gradNorm))
         
+    def _learn(self, db_file, wtAndDomSizes):
+        self.tmpMLN = MLN.MLN(self.mln_file)
+        self.tmpMLN.combineDB(db_file)
+        print "Learning ", db_file
+        self.tmpMLN.learnwts(self.learningMethod)
+            
+        if float(self.tmpMLN.grad_opt_norm) > 1:
+            print " "
+            print " !!!! - Norm of gradient too big: ", float(self.tmpMLN.grad_opt_norm)
+            print " "
+            #continue                
+        
+        for formula in self.tmpMLN.formulas:
+            domainsInvolved = self._getDomainsInvolvedinFormula(formula,self.tmpMLN)
+            if type(formula) == FOL.Lit and hasattr(self.tmpMLN,'AdaptiveDependencyMap') and formula.predName in self.tmpMLN.AdaptiveDependencyMap:
+                domainsInvolved.update(self.tmpMLN.AdaptiveDependencyMap[formula.predName])
+            
+            domSizes = {}
+            for domain in domainsInvolved:
+                domSizes[domain] = len(self.tmpMLN.domains[domain])
+                if domain in self.domainRange:
+                    self.domainRange[domain][0] = min(self.domainRange[domain][0], domSizes[domain])
+                    self.domainRange[domain][1] = max(self.domainRange[domain][1], domSizes[domain])
+                else:
+                    self.domainRange[domain] = [domSizes[domain], domSizes[domain]]
+            if str(formula) in self.wtAndDomSizes:
+                wtAndDomSizes[str(formula)].append([formula.weight, domSizes])
+            else:
+                wtAndDomSizes[str(formula)] = [[formula.weight, domSizes]]
+                
+            self._registerGradNorm(domSizes,self.tmpMLN.grad_opt_norm)
+            
+        return self.tmpMLN
+        
     def learnWeights(self, db_files):
         self.db_files = db_files
-        self.mln_dict = {}
-        self.wtAndDomSizes = {}
+        self.mln_dict = {} # maps database filename to learnt MLN
+        self.wtAndDomSizes = {} # maps formula string to 
         self.domainRange = {}
         self.gradNormOpt = []
         self.exceptionDBs = []
+        
+        # compute MLNs with individual weights for all the training databases
         for db_file in self.db_files:
-            self.tmpMLN = MLN.MLN(self.mln_file)
-            self.tmpMLN.combineDB(db_file)
-            print "Learning ", db_file
             try:
-                self.tmpMLN.learnwts(MLN.ParameterLearningMeasures.BPLL_fixed)
+                mln = self._learn(db_file, self.wtAndDomSizes)
             except:
                 self.exceptionDBs.append(db_file)
-                continue
-                
-            if float(self.tmpMLN.grad_opt_norm) > 1:
-                print " "
-                print " !!!! - Norm of gradient too big: ", float(self.tmpMLN.grad_opt_norm)
-                print " "
-            #    continue
-            #numpy.float.__s
-            for formula in self.tmpMLN.formulas:
-                domainsInvolved = self._getDomainsInvolvedinFormula(formula,self.tmpMLN)
-                if type(formula) == FOL.Lit and hasattr(self.tmpMLN,'AdaptiveDependencyMap') and formula.predName in self.tmpMLN.AdaptiveDependencyMap:
-                    domainsInvolved.update(self.tmpMLN.AdaptiveDependencyMap[formula.predName])
-                    
-                domSizes = {}
-                for domain in domainsInvolved:
-                    domSizes[domain] = len(self.tmpMLN.domains[domain])
-                    if domain in self.domainRange:
-                        self.domainRange[domain][0] = min(self.domainRange[domain][0], domSizes[domain])
-                        self.domainRange[domain][1] = max(self.domainRange[domain][1], domSizes[domain])
-                    else:
-                        self.domainRange[domain] = [domSizes[domain], domSizes[domain]]
-                if str(formula) in self.wtAndDomSizes:
-                    self.wtAndDomSizes[str(formula)].append([formula.weight, domSizes])
-                else:
-                    self.wtAndDomSizes[str(formula)] = [[formula.weight, domSizes]]
-                self._registerGradNorm(domSizes,self.tmpMLN.grad_opt_norm)            
+                raise
             
-            self.mln_dict[db_file] = self.tmpMLN
+            self.mln_dict[db_file] = mln
         
         self.constantWeightFormulas = set([])
         
@@ -117,6 +100,7 @@ class DynamicWeightLearner:
                             else:
                                 self.constantWeightFormulas.add(formula)
 
+        # for each formula set up and solve least squares optimization problem
         self.smartWeight = {}
         self.A = {}
         self.wts = {}
@@ -144,7 +128,8 @@ class DynamicWeightLearner:
                     j = j + 2
                 i = i + 1            
             self.smartWeight[formula] = linalg.lstsq(self.A[formula],self.wts[formula])
-            
+        
+        # write output MLN with dynamic weights
         result = MLN.MLN(self.mln_file)
         for formula in result.formulas:
             smartWeight = self.smartWeight[str(formula)][0]
@@ -364,11 +349,9 @@ class DynamicWeightLearner:
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    if len(args) < 3:
-        print "\nMLNs for variable domain sizes in Python - helper tool\n\n  usage: MLNWeightCurveFitting.py <mln-file-to-learn> <dir-with-db-files-to-learn> <dir-with-db-files-to-test>\n\n"
+    if len(args) not in (2,3):
+        print "\nAdaptive MLN Learnining Tool: Dynamic Weights for Variable Domain Sizes in Python - Helper Tool\n\n  usage: AMLNlearning <mln-file> <dir-with-db-files-to-learn> [dir-with-db-files-to-test]\n\n"
         sys.exit(0)
-
-    dwl = DynamicWeightLearner(args[0])
 
     db_files = []
     for filename in os.listdir(args[1]):
@@ -376,12 +359,42 @@ if __name__ == '__main__':
             db_files.append(args[1] + "/" + filename)
     
     db_test_files = []
-    for filename in os.listdir(args[2]):
-        if fnmatch.fnmatch(filename, "*.db"):
-            db_test_files.append(args[2] + "/" + filename)
-            
+    if len(args) >= 3:
+        for filename in os.listdir(args[2]):
+            if fnmatch.fnmatch(filename, "*.db"):
+                db_test_files.append(args[2] + "/" + filename)
+                
     outFile = file(args[0][:-3]+"a.mln","w")
+    dwl = DynamicWeightLearner(args[0])
     dwl.learnWeights(db_files).write(outFile)
     outFile.close()
-    dwl.analyzeError(db_test_files)
+    
+    if len(db_test_files) > 0:
+
+        from matplotlib import rc
+        rc('text', usetex=True)
+        rc('font',**{'family':'serif'})
+        if plotStyle == 'LaTeX':
+            import pylab
+            fig_width_pt = 234.8775 
+            inches_per_pt = 1.0/72.27 
+            golden_mean = float(3)/4#(sqrt(5)-1.0)/2.0   
+            fig_width = fig_width_pt*inches_per_pt  
+            fig_height = fig_width*golden_mean
+            fig_size =  [fig_width,fig_height]
+            pylab.rcParams.update({'backend': 'pdf',
+                                   'axes.titlesize': 11,
+                                   'axes.labelsize': 10,
+                                   'text.fontsize': 10,
+                                   'legend.fontsize': 8,
+                                   'xtick.labelsize': 8,
+                                   'ytick.labelsize': 8,
+                                   'text.latex.preamble' : ["\usepackage[cmex10]{amsmath}","\usepackage{amsfonts}","\usepackage{amssymb}","\\renewcommand{\\rmdefault}{cmr}"],
+                                   'text.usetex': True,
+                                   'figure.figsize': fig_size})
+    
+        import matplotlib.pyplot as plot
+
+        dwl.analyzeError(db_test_files)
+    
     print "Done."
