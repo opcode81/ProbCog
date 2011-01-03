@@ -78,7 +78,7 @@ class BNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN":"EPIS", "SAT-IS":"SATIS", "SampleSearch":"SampleSearch", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingWithChildren", "Experimental": "Experimental", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP", "Belief Propagation": "BeliefPropagation"}
+        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN":"EPIS", "SAT-IS":"SATIS", "SampleSearch":"SampleSearch","BackwardSampleSearch":"BackwardSampleSearch","Backward Sampling":"BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingWithChildren", "Experimental": "Experimental", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP", "Belief Propagation": "BeliefPropagation"}
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
