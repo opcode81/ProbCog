@@ -28,7 +28,7 @@ public class BackwardSampling extends Sampler {
 	protected HashSet<BeliefNode> outsideSamplingOrder;
 	protected int currentStep;
 	
-	protected static class BackSamplingDistribution {
+	public static class BackSamplingDistribution {
 		public Vector<Double> distribution;
 		public Vector<int[]> states;
 		double Z;

@@ -8,6 +8,8 @@ package edu.tum.cs.bayesnets.inference;
 
 import java.lang.reflect.InvocationTargetException;
 
+import dev.BackwardSampleSearch;
+
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public enum Algorithm {
@@ -28,6 +30,7 @@ public enum Algorithm {
 	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 	//VarElim("variable elimination (exact)", BNJVariableElimination.class),
 	VarElim("variable elimination (exact)", VariableElimination.class),
+	BackwardSampleSearch("Backward Sample Searching","dev.BackwardSampleSearch" ),
 	Experimental("an experimental algorithm (usually beta)", SampleSearch.class);
 	
 	String description;

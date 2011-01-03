@@ -8,6 +8,8 @@ package edu.tum.cs.srl.bayesnets.inference;
 
 import java.lang.reflect.Constructor;
 
+import dev.BackwardSampleSearch;
+
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.BNJPearl;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
@@ -46,7 +48,9 @@ public enum Algorithm {
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
 		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearchIB"),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
+		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch" ),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2");
+		
 		
 		protected String description;
 		protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> bnClass;
