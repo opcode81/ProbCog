@@ -714,7 +714,7 @@ class MLN:
                 self.worlds[idxWorld]["sum"] += wts[idxFormula] * count
 
             for worldIndex, world in enumerate(self.worlds):
-                world["sum"] = math.exp(world["sum"])
+                world["sum"] = exp(world["sum"])
                 #if allSoft == False, we added a new world for training (duplicated, but with soft evidence)  
                 #  exclude this new one from the normalization (partition_function)
                 if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or worldIndex != self.idxTrainingDB:
@@ -1921,23 +1921,13 @@ class MLN:
         self._calculateWorldValues(wts) #only to calculate partition function here:
         #print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
         
-        evidenceWorldSum = 0
-        if hasattr(self, 'counts'):
+        #calculate only once as they do not change
+        if False == hasattr(self, 'worldProbabilities'):
+            self.worldProbabilities = {}
+            #TODO: or (opimized) generate only world by flipping the soft evidences
+            #discard all world where at least one non-soft evidence is different from the generated
             for idxWorld, world in enumerate(self.worlds):
-                worldWeights = 0
-                for formula in self.formulas:                
-                    #if self._isTrue(gf, world["values"]):
-                    # TODO: get sum from calculateWorldValues
-                    key = (idxWorld, formula.idxFormula)
-                    cnt = self.counts.get(key, 0)
-                    worldWeights += wts[formula.idxFormula] * cnt
-                    #print "  ", strFormula(formula), wts[formula.idxFormula], "*", cnt, "=", worldWeights
-                        
                 worldProbability = 1
-
-                #TODO: or (opimized) generate only world by flipping the soft evidences
-                    
-                #discard all world where at least one non-soft evidence is different from the generated
                 discardWorld = False
                 for gndAtom in self.gndAtoms.values():
                     if world["values"][gndAtom.idx] != self.worlds[self.idxTrainingDB]["values"][gndAtom.idx]:
@@ -1962,16 +1952,15 @@ class MLN:
                     worldProbability *= evidenceValue    
                     print "  ", "evidence, gndAtom", evidenceValue, se["expr"]#, self.evidence, world["values"]
                     
-                #for se in self.softEvidence:
-                #    worldProbability *= self._getSoftEvidence(self.gndAtoms[se["expr"]], world["values"])
-                print "world:", idxWorld, "worldWeights", worldWeights, "worldProbability", worldProbability
-                evidenceWorldSum += exp(worldWeights) * worldProbability
-                    
-                #world["sum"] = math.exp(world["sum"])
-                #if allSoft == False, we added a new world for training (duplicated, but with soft evidence)  
-                #  exclude this new one from the normalization (partition_function)
-        else: 
-            raise Exception("need to calculate counts prior to calling _ll_iseww()")  
+                if worldProbability > 0:
+                    self.worldProbabilities[idxWorld] = worldProbability
+        
+        evidenceWorldSum = 0
+        for idxWorld, world in enumerate(self.worlds):
+                
+            if idxWorld in self.worldProbabilities:
+                print "world:", idxWorld, "exp(worldWeights)", world["sum"], "worldProbability", self.worldProbabilities[idxWorld]
+                evidenceWorldSum += world["sum"] * self.worldProbabilities[idxWorld]
                   
         print "wts =", wts
         print "evidenceWorldSum, self.partition_function", evidenceWorldSum, self.partition_function
