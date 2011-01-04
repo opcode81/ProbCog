@@ -297,6 +297,7 @@ class MLN:
         self.parameterType = parameterType
         self.formulaGroups = []
         self.closedWorldPreds = []
+        self.learnWtsMode = None
         formulatemplates = []
         self.vars = {}
         self.allSoft = False
@@ -993,7 +994,8 @@ class MLN:
         for req in probConstraints:
             gotit = False
             for idxFormula, formula in enumerate(self.formulas):
-                if strFormula(formula) == req["expr"]:
+                print strFormula(formula), req["expr"]
+                if strFormula(formula).replace(" ", "") == req["expr"]:
                     # instantiate a ground formula
                     vars = formula.getVariables(self)
                     groundVars = {}
@@ -1002,6 +1004,7 @@ class MLN:
                     gndFormula = formula.ground(self, groundVars)
                     gotit = True
                     req["gndExpr"] = str(gndFormula)
+                    req["gndFormula"] = gndFormula
                     req["idxFormula"] = idxFormula
                     break
             if not gotit:
@@ -1009,7 +1012,7 @@ class MLN:
         # iterative fitting algorithm        
         step = 1 # fitting round
         fittingStep = 1 # actual IPFP iteration
-        what = [r["gndExpr"] for r in probConstraints] + queries
+        what = [r["gndFormula"] for r in probConstraints] + queries
         done = False
         while step <= maxSteps and not done:            
             # calculate probabilities of the constrained formulas (ground formula)                
@@ -2921,7 +2924,7 @@ class MLN:
                 print "%s=%s" % (self._strBlock(block), str(self.gndAtomsByIdx[trueone]))
 
 
-class Inference:
+class Inference(object):
     def __init__(self, mln):
         self.mln = mln
         self.t_start = time.time()
@@ -2974,6 +2977,7 @@ class Inference:
         self._readQueries(queries)
         self.additionalQueryInfo = [""] * len(self.queries)
         # perform actual inference (polymorphic)
+        print type(self)
         self.results = self._infer(verbose=verbose, details=details, **args)
         self.totalInferenceTime = self._getElapsedTime()
         # output
@@ -3056,8 +3060,11 @@ class ExactInference(Inference):
         if given is None:
             given = evidence2conjunction(self.mln.getEvidenceDatabase())        
         # ground the evidence formula
-        given = FOL.parseFormula(given)
-        given = given.ground(self.mln, {})
+        if given == "":
+            given = None
+        else:
+            given = FOL.parseFormula(given)
+            given = given.ground(self.mln, {})
         # start summing
         if verbose and details: print "summing..."
         numerators = [0.0 for i in range(len(what))]
@@ -4086,7 +4093,9 @@ class IPFPM(Inference):
             raise Exception("Application of IPFP-M inappropriate! IPFP-M is a wrapper method for other inference algorithms that allows to fit probability constraints. An application is not sensical of the model contains no such constraints.")
         Inference.__init__(self, mln)
     
-    def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None, maxThreshold=None, greedy=False):
+    def _infer(self, verbose = True, details = False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None, maxThreshold=None, greedy=False, **args):
+        if inferenceParams is None: inferenceParams = {}
+        inferenceParams.update(args)
         results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams, maxThreshold=maxThreshold, greedy=greedy)
         return results
 
