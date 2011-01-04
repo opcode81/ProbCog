@@ -83,11 +83,18 @@ else: # using Jython (assuming 2.2)
 try:
     import numpy
     from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b, fsolve, fmin_slsqp
-    import mpmath
-    mpmath.mp.dps = 80
     #from minfx import bfgs
 except:
     sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
+
+try:
+    import mpmath
+    mpmath.mp.dps = 80
+    from mpmath import exp, fsum
+except:
+    from math import exp, fsum
+    sys.stderr.write("Warning: Falling back to standard math module because mpmath is not installed. If overflow errors occur, consider installing mpmath.")
+
 
 from math import exp, log, floor, ceil, e, sqrt
 import platform
@@ -293,6 +300,7 @@ class MLN:
         formulatemplates = []
         self.vars = {}
         self.allSoft = False
+        self.fixedWeightFormulas = []
         # read MLN file
         text = ""
         if filename_or_list is not None:
@@ -318,6 +326,8 @@ class MLN:
         templateIdx2GroupIdx = {}
         inGroup = False
         idxGroup = - 1
+        fixWeightOfNextFormula = False 
+        fixedWeightTemplateIndices = []
         for line in text.split("\n"):
             line = line.strip()
             try:
@@ -329,6 +339,9 @@ class MLN:
                     continue
                 elif line == "#group.":
                     inGroup = False
+                    continue
+                elif line.startswith("#fixWeightFreq"):
+                    fixWeightOfNextFormula = True
                     continue
                 elif line.startswith("#fixUnitary:"):
                     predName = line[12:len(line)]
@@ -423,7 +436,10 @@ class MLN:
                             idxTemplate = len(formulatemplates)
                             formulatemplates.append(formula)
                             if inGroup:
-                                templateIdx2GroupIdx[idxTemplate] = idxGroup
+                                templateIdx2GroupIdx[idxTemplate] = idxGroup                        
+                            if fixWeightOfNextFormula == True:
+                                fixWeightOfNextFormula = False
+                                fixedWeightTemplateIndices.append(idxTemplate)
                         except ParseException, e:
                             raise Exception("Error parsing formula '%s'\n" % formula)
             except:
@@ -456,6 +472,9 @@ class MLN:
                 # add the formula indices to the group if any
                 if idxGroup != None:
                     group.append(idxFormula)
+                # fix weight of formulas
+                if idxTemplate in fixedWeightTemplateIndices:
+                    self.fixedWeightFormulas.append(f)
         if group != []: # add the last group (if any)
             self.formulaGroups.append(group)
         #print "time taken: %fs" % (time.time()-t_start)
@@ -1527,8 +1546,8 @@ class MLN:
             print "done."
 
     def _pll(self, wt):
-        self._calculateAtomProbsMB(wt)
-        print self.atomProbsMB
+        self._calculateAtomProbsMB(self._reconstructFullWeightVectorWithFixedWeights(wt))
+        #print self.atomProbsMB
         probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
         pll = sum(map(math.log, probs))
         print "pseudo-log-likelihood:",pll
@@ -1608,22 +1627,21 @@ class MLN:
 
     def _grad_pll(self, wt):        
         grad = numpy.zeros(len(self.formulas), numpy.float64)
-        #[mpmath.mpf(0) for i in xrange(len(self.formulas))]
-        
-        self._calculateAtomProbsMB(wt)
+        fullWt = self._reconstructFullWeightVectorWithFixedWeights(wt)
+        self._calculateAtomProbsMB(fullWt)
         for (idxFormula, idxGndAtom), diff in self.diffs.iteritems():
             v = diff * (self.atomProbsMB[idxGndAtom] - 1)
-            grad[idxFormula] += v
-        #print "wts =", wt
-        #print "grad =", grad
-        return grad #numpy.array(grad)
-
+            grad[idxFormula] += v            
+        print "wts =", fullWt
+        print "grad =", grad
+        return self._projectVectorToNonFixedWeightIndices(grad)
+    
     def _negated_pll_with_fixation(self, wt, *args):
         #wtD = wtD = numpy.zeros(len(self.formulas))
         #wtIndex = 0
         #for i,formula in enumerate(self.formulas):
-        #    if (formula in self._fixedClauses):
-        #        wtD[i] = self._fixedClauses[formula]
+        #    if (formula in self._fixedWeightFormulas):
+        #        wtD[i] = self._fixedWeightFormulas[formula]
         #    else:
         #        wtD.append(wt[wtIndex])
         #        wtIndex = wtIndex + 1
@@ -1634,19 +1652,19 @@ class MLN:
     
     
     def _eqConstraints_with_fixation(self, wt, *args):
-        result = numpy.zeros(len(self._fixedClauses.keys()), numpy.float64)
+        result = numpy.zeros(len(self._fixedWeightFormulas.keys()), numpy.float64)
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
-                result[wtIndex] = result[wtIndex] + wt[i] - self._fixedClauses[formula]
+            if (formula in self._fixedWeightFormulas):
+                result[wtIndex] = result[wtIndex] + wt[i] - self._fixedWeightFormulas[formula]
                 wtIndex = wtIndex + 1
         return result
 
     def _eqConstraints_with_fixation_prime(self, wt, *args):
-        result = numpy.zeros((len(self._fixedClauses.keys()), len(wt)), numpy.float64)
+        result = numpy.zeros((len(self._fixedWeightFormulas.keys()), len(wt)), numpy.float64)
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
+            if (formula in self._fixedWeightFormulas):
                 result[(wtIndex, i)] = 1
                 wtIndex = wtIndex + 1
             
@@ -1666,7 +1684,7 @@ class MLN:
         prob = float(1)
         for x in self.atomProbsMB:
             prob = prob * x
-        print - prob
+        #print - prob
         return prob
 
     def _negated_grad_pll(self, wt, *args):
@@ -1690,33 +1708,55 @@ class MLN:
         return - self._pll(wt_scaled)
 
     def _negated_pl_with_fixation(self, wt, *args):
+        return - self._pl(self._reconstructFullWeightVectorWithFixedWeights(wt), *args)
+    
+    
+    def _reconstructFullWeightVectorWithFixedWeights(self, wt):
+        
+        if len(self._fixedWeightFormulas) == 0:
+            return wt
+        
         wtD = numpy.zeros(len(self.formulas), numpy.float64)
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
-                wtD[i] = self._fixedClauses[formula]
+            if (formula in self._fixedWeightFormulas):
+                wtD[i] = self._fixedWeightFormulas[formula]
             else:
                 wtD[i] = wt[wtIndex]
                 wtIndex = wtIndex + 1
+        return wtD
+    
+    def _projectVectorToNonFixedWeightIndices(self, wt):
 
-        return - self._pl(wtD, *args)
+        if len(self._fixedWeightFormulas) == 0:
+            return wt
+
+        wtD = numpy.zeros(len(self.formulas) - len(self._fixedWeightFormulas.items()), numpy.float64)
+        #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas) - len(self._fixedWeightFormulas.items()))])
+        wtIndex = 0
+        for i, formula in enumerate(self.formulas):
+            if (formula in self._fixedWeightFormulas):
+                continue
+            wtD[wtIndex] = wt[i] #mpmath.mpf(wt[i])
+            wtIndex = wtIndex + 1   
+        return wtD
     
     def _negated_grad_pll_with_fixation(self, wt, *args):
         #wtD = numpy.zeros(len(self.formulas), numpy.float64)
         #wtIndex = 0
         #for i,formula in enumerate(self.formulas):
-        #    if (formula in self._fixedClauses):
-        #        wtD[i] = self._fixedClauses[formula]
+        #    if (formula in self._fixedWeightFormulas):
+        #        wtD[i] = self._fixedWeightFormulas[formula]
         #    else:
         #        wtD[i] = wt[wtIndex]
         #        wtIndex = wtIndex + 1
                 
         grad_pll_fixed = self._negated_grad_pll(wt, *args)
         
-        #grad_pll_fixed = numpy.zeros(len(self.formulas)-len(self._fixedClauses.items()), numpy.float64)
+        #grad_pll_fixed = numpy.zeros(len(self.formulas)-len(self._fixedWeightFormulas.items()), numpy.float64)
         #wtIndex = 0
         #for i,formula in enumerate(self.formulas):
-        #    if (formula in self._fixedClauses):
+        #    if (formula in self._fixedWeightFormulas):
         #        continue
         #    grad_pll_fixed[wtIndex] = grad_pll_without_fixation[i]
         #    wtIndex = wtIndex + 1
@@ -2094,7 +2134,7 @@ class MLN:
             #sums = map(lambda x: x-avgsum, sums)
             #print sums
             #expsums = map(math.exp, sums)
-            return float(expsums[idxInBlockTrueone] / mpmath.fsum(expsums))
+            return float(expsums[idxInBlockTrueone] / fsum(expsums))
 
     def _getBlockTrueone(self, block):
         idxGATrueone = - 1
@@ -2154,7 +2194,7 @@ class MLN:
                 world_values[block[i]] = value
                 
         # return the list of exponentiated sums
-        return map(mpmath.exp, sums)
+        return map(exp, sums)
 
     def _getAtomExpsums(self, idxGndAtom, wt, world_values, relevantGroundFormulas=None):
         sums = [0, 0]
@@ -2209,8 +2249,8 @@ class MLN:
         #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas))])
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
-                wtD[i] = self._fixedClauses[formula]
+            if (formula in self._fixedWeightFormulas):
+                wtD[i] = self._fixedWeightFormulas[formula]
             else:
                 wtD[i] = wt[wtIndex]
                 wtIndex = wtIndex + 1
@@ -2222,19 +2262,19 @@ class MLN:
         #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas))])
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
-                wtD[i] = self._fixedClauses[formula]
+            if (formula in self._fixedWeightFormulas):
+                wtD[i] = self._fixedWeightFormulas[formula]
             else:
                 wtD[i] = wt[wtIndex]
                 wtIndex = wtIndex + 1
 
         grad_pll_without_fixation = -self._grad_blockpll(wtD, *args)
         
-        grad_pll_fixed = numpy.zeros(len(self.formulas) - len(self._fixedClauses.items()), numpy.float64)
-        #grad_pll_fixed = numpy.array([mpmath.mpf(0) for i in xrange( len(self.formulas) - len(self._fixedClauses.items()) )])
+        grad_pll_fixed = numpy.zeros(len(self.formulas) - len(self._fixedWeightFormulas.items()), numpy.float64)
+        #grad_pll_fixed = numpy.array([mpmath.mpf(0) for i in xrange( len(self.formulas) - len(self._fixedWeightFormulas.items()) )])
         wtIndex = 0
         for i, formula in enumerate(self.formulas):
-            if (formula in self._fixedClauses):
+            if (formula in self._fixedWeightFormulas):
                 continue
             grad_pll_fixed[wtIndex] = grad_pll_without_fixation[i]
             wtIndex = wtIndex + 1
@@ -2341,20 +2381,19 @@ class MLN:
         
         return True
     
-    def _fixUnitaryClauses_NEW(self):
-        fixationCandidates = self._collectFixationCandidates() # TODO: collection of candidates questionable
-        self._fixedClauses = {}
-        for candList in fixationCandidates.values():
-            for formula in candList:
-                c = 0.0
-                Z = 0.0
-                for gf, referencedAtoms in formula.iterGroundings(self):
-                    Z += 1
-                    c += self._getTruthDegreeGivenEvidence(gf)
-                self._fixedClauses[formula] = logx(c/Z)
+    def _fixFormulaWeights(self):
+        self._fixedWeightFormulas = {}
+        for formula in self.fixedWeightFormulas:
+            c = 0.0
+            Z = 0.0
+            for gf, referencedAtoms in formula.iterGroundings(self):
+                Z += 1
+                print "self._getTruthDegreeGivenEvidence(gf), gf", self._getTruthDegreeGivenEvidence(gf), gf
+                c += self._getTruthDegreeGivenEvidence(gf)
+            self._fixedWeightFormulas[formula] = logx(c/Z)
         
     def _fixUnitaryClauses(self):
-        self._fixedClauses = {}            
+        self._fixedWeightFormulas = {}            
         self._formulaByAssignment = {}
         
         # determine candidates for fixation
@@ -2393,11 +2432,11 @@ class MLN:
             for assignment, formula in self._formulaByAssignment.iteritems():
                 if assignment in uclStatistics:
                     if uclStatistics[assignment] > 0:
-                        self._fixedClauses[formula] = log(float(uclStatistics[assignment]) / totalRelevantGndAtoms)
+                        self._fixedWeightFormulas[formula] = log(float(uclStatistics[assignment]) / totalRelevantGndAtoms)
                     else:
-                        self._fixedClauses[formula] = -10
+                        self._fixedWeightFormulas[formula] = -10
                 else:
-                    self._fixedClauses[formula] = -10
+                    self._fixedWeightFormulas[formula] = -10
         
     # learn the weights of the mln given the training data previously loaded with combineDB
     #   mode: the measure that is used
@@ -2427,10 +2466,10 @@ class MLN:
             print "  %d differences recorded" % len(self.diffs)
             print "determining relevant formulas for each ground atom..."
             self._getAtomRelevantGroundFormulas()            
-            wtD = numpy.zeros(len(self.formulas) - len(self._fixedClauses.items()), numpy.float64)
+            wtD = numpy.zeros(len(self.formulas) - len(self._fixedWeightFormulas.items()), numpy.float64)
             wtIndex = 0
             for i, formula in enumerate(self.formulas):
-                if (formula in self._fixedClauses):
+                if (formula in self._fixedWeightFormulas):
                     continue
                 wtD[wtIndex] = wt[i]
                 wtIndex = wtIndex + 1   
@@ -2440,8 +2479,8 @@ class MLN:
             wtD = numpy.zeros(len(self.formulas), numpy.float64)
             wtIndex = 0
             for i, formula in enumerate(self.formulas):
-                if (formula in self._fixedClauses):
-                    wtD[i] = self._fixedClauses[formula]
+                if (formula in self._fixedWeightFormulas):
+                    wtD[i] = self._fixedWeightFormulas[formula]
                 else:
                     wtD[i] = wt[wtIndex]
                     wtIndex = wtIndex + 1
@@ -2449,8 +2488,7 @@ class MLN:
             wt = wtD            
         elif mode == 'PLL' or mode == 'PLL_ISE' or mode == 'PLL_fixed':
             print "%s %s" % (mode, str(params))
-            if mode == 'PLL_fixed':
-                self._fixUnitaryClauses()
+            
             if mode == 'PLL_ISE':
                 if PMB_METHOD != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
                 # set all soft evidence values to true
@@ -2459,7 +2497,13 @@ class MLN:
                 # overwrite methods
                 self._computeDiffs = self._computeDiffsSoft
                 self._setInvertedEvidence = self._setInvertedEvidenceSoft
-                self._getTruthDegreeGivenEvidence = self._getTruthDegreeGivenEvidenceSoft
+                self._getTruthDegreeGivenEvidence = self._getTruthDegreeGivenEvidenceSoft            
+            
+            if mode == 'PLL_fixed':
+                self._fixUnitaryClauses()
+            else:
+                self._fixFormulaWeights()
+
 
             print "computing differences..."
             self._computeDiffs()
@@ -2470,56 +2514,32 @@ class MLN:
             gradfunc = lambda *args: -self._grad_pll(*args)
             gtol = 1.0000000000000001e-005#020
             print "starting optimization..." #, fprime=gradfunc
-            wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(pllfunc, wt, fprime=gradfunc, gtol=gtol, full_output=1)
+            #wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(pllfunc, wt, fprime=gradfunc, gtol=gtol, full_output=1)
                 
             if mode == 'PLL_fixed':
-                print "formulas with fixed weights: %d" % len(self._fixedClauses)
-                #wtD = numpy.zeros(len(self.formulas)-len(self._fixedClauses.items()), numpy.float64)
+                print "formulas with fixed weights: %d" % len(self._fixedWeightFormulas)
+                #wtD = numpy.zeros(len(self.formulas)-len(self._fixedWeightFormulas.items()), numpy.float64)
                 b = [] 
                 for i, formula in enumerate(self.formulas):
-                    if formula in self._fixedClauses:
-                        wt[i] = self._fixedClauses[formula]
+                    if formula in self._fixedWeightFormulas:
+                        wt[i] = self._fixedWeightFormulas[formula]
                         b.append((wt[i], wt[i]))
                     else:
                         b.append((- 1.0E12, 1.0E12))
-#                        continue
-#                    wtD[wtIndex] = wt[i]
- #                   wtIndex = wtIndex + 1   
-                                             
-                #wt, pll_opt, func_calls, grad_calls, warn_flags, h_calls  = fmin_ncg(self._negated_pll_with_fixation, wtD, fprime=self._negated_grad_pll_with_fixation, full_output=1)
-                #wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags  = fmin_bfgs(self._negated_pll_with_fixation, wtD, fprime=self._negated_grad_pll_with_fixation, gtol=1.0000000000000001e-05, full_output=1)
-                #print dir(minfx)
-                #print minfx.__all__
-                #result = bfgs.bfgs(func=self._negated_pll_with_fixation, dfunc=self._negated_grad_pll_with_fixation, args=(), x0=wtD, min_options=("Nocedal Wright Int",), func_tol=1e-95, grad_tol=1e-05, maxiter=1e3, a0=1.0, mu=0.0001, eta=0.9, full_output=1, print_flag=3, print_prefix="> ")
-                #wt,pll_opt,d  = fmin_l_bfgs_b(self._negated_pll_with_fixation, wt, fprime=self._negated_grad_pll_with_fixation, bounds=b)#, full_output=1)
-                #wt = fmin_tnc(self._negated_pll_with_fixation, wt, fprime=self._negated_grad_pll_with_fixation, bounds=b)#, full_output=1)
-                #bounds = b, f_ieqcons=self._ieqConstraints_with_fixation, fprime_ieqcons=self._ieqConstraints_with_fixation_prime, bounds = b, 
                 self.slsqp_result = fmin_slsqp(self._negated_pll_with_fixation, wt, bounds=b, f_eqcons=self._eqConstraints_with_fixation, fprime=self._negated_grad_pll_with_fixation, fprime_eqcons=self._eqConstraints_with_fixation_prime, args=(), iter=100, acc=1.0E8, iprint=1, full_output=1)
                 
                 wt = self.slsqp_result[0]
                 pll_opt = self.slsqp_result[1]
-                #, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags
-                #grad_opt = d['grad']
-                #self.grad_opt_norm = sqrt(sum(map(lambda x: x*x, grad_opt)))          
-                
-                #wt = result[0]
-                #pll_opt = result[1]
-                
-                #wtD = numpy.zeros(len(self.formulas), numpy.float64)
-                #wtIndex = 0
-                #for i,formula in enumerate(self.formulas):
-                #    if (formula in self._fixedClauses):
-                #        wtD[i] = self._fixedClauses[formula]
-                #    else:
-#                        if 
-                #        wtD[i] = wt[wtIndex]
-                #        wtIndex = wtIndex + 1
-                        
-                #wt = wtD
             else:
-                wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(pllfunc, wt, fprime=gradfunc, full_output=1)
-            #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(pllfunc, wt, fprime=gradfunc, full_output=1)
-            #self.learnwts_message = "pseudo-log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-pll_opt, str(-grad_opt), func_calls, warn_flags)
+                wtD = self._projectVectorToNonFixedWeightIndices(wt)
+                #,
+                wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(pllfunc, wtD, fprime=gradfunc , full_output=1)
+                wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
+                
+                
+                #wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(pllfunc, wt, fprime=gradfunc, full_output=1)
+                #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(pllfunc, wt, fprime=gradfunc, full_output=1)
+                #self.learnwts_message = "pseudo-log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-pll_opt, str(-grad_opt), func_calls, warn_flags)
         elif mode in ['LL', 'LL_neg', 'LL_fixed', 'LL_fixed_neg']:
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
@@ -2562,7 +2582,7 @@ class MLN:
                     self._fixUnitaryClauses()
                 except:
                     print "BPLL_fixed: Unable to fix unitary clauses!"                    
-                    self._fixedClauses = {}
+                    self._fixedWeightFormulas = {}
             # get blocks
             print "constructing blocks..."
             self._getPllBlocks()
@@ -2588,11 +2608,11 @@ class MLN:
                 return
             
             if mode == 'BPLL_fixed':
-                wtD = numpy.zeros(len(self.formulas) - len(self._fixedClauses.items()), numpy.float64)
-                #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas) - len(self._fixedClauses.items()))])
+                wtD = numpy.zeros(len(self.formulas) - len(self._fixedWeightFormulas.items()), numpy.float64)
+                #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas) - len(self._fixedWeightFormulas.items()))])
                 wtIndex = 0
                 for i, formula in enumerate(self.formulas):
-                    if (formula in self._fixedClauses):
+                    if (formula in self._fixedWeightFormulas):
                         continue
                     wtD[wtIndex] = wt[i] #mpmath.mpf(wt[i])
                     wtIndex = wtIndex + 1   
@@ -2606,8 +2626,8 @@ class MLN:
                 wtD = numpy.zeros(len(self.formulas), numpy.float64)
                 wtIndex = 0
                 for i, formula in enumerate(self.formulas):
-                    if (formula in self._fixedClauses):
-                        wtD[i] = self._fixedClauses[formula]
+                    if (formula in self._fixedWeightFormulas):
+                        wtD[i] = self._fixedWeightFormulas[formula]
                     else:
                         wtD[i] = wt[wtIndex]
                         wtIndex = wtIndex + 1
@@ -2707,6 +2727,8 @@ class MLN:
             #, fprime=neg_gradfunc
             wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_llfunc, wt, gtol=gtol, args=args, full_output=True)
             #wt, ll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(neg_llfunc, wt, args=args, fprime=neg_gradfunc, full_output=1)
+            
+            
             print wt
             
             # add final log likelihood to learnwts status for output
