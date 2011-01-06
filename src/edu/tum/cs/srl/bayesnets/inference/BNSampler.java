@@ -40,13 +40,12 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	protected void initialize() throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);
 	
-		// initialize sampler		
-		if(verbose) System.out.println("initializing...");		
+		// initialize sampler				
 		sampler = getSampler();
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 		sampler.setEvidence(evidenceDomainIndices);
@@ -56,7 +55,10 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		sampler.setInfoInterval(infoInterval);
 		sampler.setMaxTrials(maxTrials);
 		sampler.setSkipFailedSteps(skipFailedSteps);
-		
+	}
+	
+	@Override
+	public SampledDistribution _infer() throws Exception {
 		// run inference
 		if(verbose) System.out.printf("running %s...\n", sampler.getAlgorithmName());
 		SampledDistribution dist = sampler.infer();
