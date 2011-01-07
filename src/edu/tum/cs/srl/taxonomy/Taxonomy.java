@@ -6,6 +6,7 @@
  */
 package edu.tum.cs.srl.taxonomy;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -21,6 +22,10 @@ public class Taxonomy {
 	
 	public Concept getConcept(String name) {
 		return concepts.get(name);
+	}
+	
+	public Collection<Concept> getConcepts() {
+		return concepts.values();
 	}
 	
 	/**
