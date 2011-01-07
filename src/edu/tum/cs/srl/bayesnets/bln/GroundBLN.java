@@ -147,7 +147,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected void fillFormulaCPF(Formula gf, CPF cpf, Vector<String> parentGAs) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
-		assert parentGAs.size() == addr.length;
+		assert parentGAs.size() == addr.length-1 : "Address length: " + addr.length + " but number of parents is " + parentGAs.size();
 		fillFormulaCPF(gf, cpf, parentGAs, 1, addr);
 	}
 	
