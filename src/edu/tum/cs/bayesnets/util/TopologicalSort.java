@@ -30,7 +30,7 @@ public class TopologicalSort {
 		int[] indeg = new int[vertices.length];
 		for(Vertex v : vertices) {
 			for(Vertex child : g.getChildren(v)) {
-				assert vertices[child.loc()] != child;
+				assert vertices[child.loc()] == child;
 				indeg[child.loc()]++;
 			}
 		}
