@@ -87,8 +87,14 @@ public class GroundBLN extends AbstractGroundBLN {
 		HashMap<String, Value[]> cpfCache = new HashMap<String, Value[]>();
 		int i = 0;
 		for(Formula gf : gkb) {			
+			// get the template from which the ground formula was instantiated (after simplification, we can't retrieve it)		
+			Integer templateID = gkb.getTemplateID(gf);
+			assert templateID != null : "Ground formula " + gf + " has no template ID";
+			
+			// if formulas weren't fully simplified, still apply basic simplification (i.e. without using the database)
+			// note: there may still be TrueFalse instances due to equalities, e.g. !(x=y))
 			if(!useFormulaSimplification)
-				gf = gf.simplify(null); // still do basic simplification (there may still be TrueFalse instances due to equalities, e.g. !(x=y))
+				gf = gf.simplify(null); 
 			
 			// add node and connections
 			String nodeName = "GF" + i;
@@ -111,11 +117,12 @@ public class GroundBLN extends AbstractGroundBLN {
 			// set CPF id (i.e. equivalence class id)
 			// TODO try string transform: Two formulas are equivalent if they are the same except for the universally quantified variables
 			String cpfid; 
-			if(useFormulaSimplification) {
-				cpfid = "F" + i; // treat all formulas differently
+			if(useFormulaSimplification) { // treat all formulas differently
+				cpfid = "F" + i; 
 			}
-			else
-				cpfid = "F" + gkb.getTemplateID(gf); // treat all instances of a formula template the same	
+			else { // treat all instances of a formula template the same
+				cpfid = "F" + templateID; 
+			}
 			this.cpfIDs.put(node, cpfid);
 
 			// set CPF
