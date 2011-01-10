@@ -22,7 +22,7 @@ import edu.tum.cs.util.FileUtil;
 public class KnowledgeBase implements Iterable<Formula> {
 	protected Vector<Formula> formulas;
 	/**
-	 * stores for ground KBs the index of the original formula from which the formula was instantiated
+	 * stores, for ground KBs, the index of the original formula from which the formula was instantiated
 	 */
 	protected HashMap<Formula, Integer> templateIDs;
 	
@@ -81,7 +81,7 @@ public class KnowledgeBase implements Iterable<Formula> {
 			int i = ret.formulas.size();
 			f.addAllGroundingsTo(ret.formulas, db, worldVars, simplify);
 			for(; i < ret.formulas.size(); i++) {
-				templateIDs.put(ret.formulas.get(i), formulaID);
+				ret.templateIDs.put(ret.formulas.get(i), formulaID);
 			}
 			formulaID++;
 		}
