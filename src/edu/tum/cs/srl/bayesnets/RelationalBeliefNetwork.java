@@ -59,6 +59,14 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	public Collection<RelationKey> getRelationKeys(String relation) {
 		return relationKeys.get(relation.toLowerCase());
 	}
+
+	public RelationalBeliefNetwork() throws Exception {
+		super();
+		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
+		signatures = new HashMap<String, Signature>();
+		relationKeys = new HashMap<String, Collection<RelationKey>>();
+		guaranteedDomElements = new HashMap<String, String[]>();
+	}
 	
 	public RelationalBeliefNetwork(String networkFile) throws Exception {
 		super(networkFile);
@@ -247,16 +255,22 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	protected void checkSignatures() throws Exception {		
 		for(RelationalNode node : getRelationalNodes()) {
-			if(node.isFragment()) {
-				MultiIterator<RelationalNode> relevantNodes = new MultiIterator<RelationalNode>();
-				relevantNodes.add(node);
-				relevantNodes.add(getRelationalParents(node));				
-				checkFragment(node, relevantNodes);
-			}			
+			if(node.isFragment()) 
+				checkFragment(node);
 		}			
 	}
 	
-	protected void checkFragment(RelationalNode fragment, Iterable<RelationalNode> relevantNodes) throws Exception {		
+	/**
+	 * checks the given fragment for type inconsistencies
+	 * @param fragment
+	 * @param relevantNodes
+	 * @throws Exception
+	 */
+	protected void checkFragment(RelationalNode fragment) throws Exception {		
+		MultiIterator<RelationalNode> relevantNodes = new MultiIterator<RelationalNode>();
+		relevantNodes.add(fragment);
+		relevantNodes.add(getRelationalParents(fragment));
+		
 		HashMap<String,String> types = new HashMap<String,String>(); // parameter/argument -> type name mapping
 		for(RelationalNode node : relevantNodes) {
 			if(node.isBuiltInPred())
@@ -285,7 +299,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					else {
 						if(!prevType.equals(sig.argTypes[i])) {
 							boolean error = true;
-							if(taxonomy != null && taxonomy.query_isa(prevType, sig.argTypes[i]))
+							if (taxonomy != null && (taxonomy.query_isa(prevType, sig.argTypes[i]) || taxonomy.query_isa(sig.argTypes[i], prevType)))
 								error = false;
 							if(error)
 								throw new Exception(String.format("Type mismatch while processing fragment '%s': '%s' has incompatible types '%s' and '%s'", fragment.getName(), key, prevType, sig.argTypes[i]));
