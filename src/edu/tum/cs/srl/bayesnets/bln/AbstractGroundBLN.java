@@ -146,7 +146,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		// go through all function names and generate all groundings for each of them
 		instantiatedVariables = new HashSet<String>();
 		cpfCache = new HashMap<String, Value[]>();
-		for(String functionName : functionTemplates.keySet()) {
+		Iterable<String> functionNames = this.bln.rbn.getFunctionNames(); // functionTemplates.keySet(); 
+		for(String functionName : functionNames) {
 			if(verbose) System.out.println("    " + functionName);
 			Collection<String[]> parameterSets = ParameterGrounder.generateGroundings(bln.rbn, functionName, db);
 			for(String[] params : parameterSets) 
@@ -188,9 +189,44 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		
 		// consider all the relational nodes that could be used to instantiate the variable
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
-		if(templates == null)
-			throw new Exception("There are no templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
+		if(templates == null) {
+			// TODO reuse data structures
+			if(this.bln.rbn.usesUniformDefault(functionName)) {
+				Signature sig = this.bln.rbn.getSignature(functionName);
+				String[] aOutcomes;
+				ValueDouble[] dist;
+				if(sig.isBoolean()) {
+					aOutcomes = new String[]{"True", "False"};
+					ValueDouble half = new ValueDouble(0.5);
+					dist = new ValueDouble[]{half, half};
+				}
+				else {
+					Iterable<String> outcomes = db.getDomain(sig.returnType);
+					int c = 0;
+					for(String o : outcomes)
+						c++;
+					aOutcomes = new String[c];
+					int i = 0;
+					double p = 1.0 / c;
+					dist = new ValueDouble[c];
+					for(String o : outcomes) {
+						dist[i] = new ValueDouble(p);
+						aOutcomes[i++] = o;
+					}
+				}
+				Discrete domain = new Discrete(aOutcomes);
+				BeliefNode mainNode = this.groundBN.addNode(varName, domain);				
+				CPF cpf = new CPF();
+				cpf.build(new BeliefNode[]{mainNode}, dist);
+				mainNode.setCPF(cpf);
+				groundNode2TemplateNode.put(mainNode, null); // TODO fix null
+				onAddGroundAtomNode(mainNode, params, sig);
+				return mainNode;
+			}	
 		
+			throw new Exception("There are no templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
+		}
+			
 		boolean combiningRuleNeeded = false;
 		
 		Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>>(); 
@@ -233,7 +269,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				 */				
 				if(debug)
 					System.out.println("      " + varName + " (skipped, is evidence)");
-			}			
+			}
 	    }
 		
 		// get the first applicable template
@@ -249,7 +285,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		// add the node itself to the network				
 		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
 		groundNode2TemplateNode.put(mainNode, relNode);
-		onAddGroundAtomNode(relNode, params, mainNode);
+		onAddGroundAtomNode(mainNode, params, relNode.getSignature());
 		
 		// we can now instantiate the variable based on the suitable templates
 		if(!combiningRuleNeeded) {			
@@ -469,7 +505,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	protected abstract void groundFormulaicNodes() throws Exception;
 	
-	protected abstract void onAddGroundAtomNode(RelationalNode relNode, String[] params, BeliefNode instance);
+	protected abstract void onAddGroundAtomNode(BeliefNode instance, String[] params, Signature sig);
 	
 	/**
 	 * adds a node corresponding to a hard constraint to the network - along with the necessary edges
