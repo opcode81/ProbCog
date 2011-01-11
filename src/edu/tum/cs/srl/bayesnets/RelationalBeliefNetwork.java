@@ -48,6 +48,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * maps function/relation names to combining rules 
 	 */
 	protected Map<String, CombiningRule> combiningRules = new HashMap<String, CombiningRule>();
+	/**
+	 * list of of function names for which a uniform distribution is assumed by default if no
+	 * fragment is found.
+	 */
+	protected Vector<String> uniformDefaultFunctions = new Vector<String>();
 	
 	/**
 	 * a set of functions/predicates that are required to be fully specified in the evidence
@@ -207,6 +212,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	public Signature getSignature(String functionName) {
 		return signatures.get(functionName/*.toLowerCase()*/);
+	}
+	
+	public Set<String> getFunctionNames() {
+		return signatures.keySet();
 	}
 	
 	public Signature getSignature(RelationalNode node) {
@@ -853,6 +862,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	public CombiningRule getCombiningRule(String function) {
 		return this.combiningRules.get(function);
+	}
+	
+	public boolean usesUniformDefault(String functionName) {
+		return uniformDefaultFunctions.contains(functionName);
 	}
 }
 

@@ -9,9 +9,9 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
-import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.util.Stopwatch;
@@ -163,8 +163,8 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 
 	@Override
-	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params,
-			BeliefNode instance) {
+	protected void onAddGroundAtomNode(BeliefNode instance, String[] params,
+			Signature sig) {
 		// TODO Auto-generated method stub
 		
 	}

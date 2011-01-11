@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -119,7 +120,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 		// read type information
 		if (line.startsWith("type") || line.startsWith("Type")) {
-			if (taxonomy == null)
+			if (taxonomy == null) 
 				taxonomy = new Taxonomy();
 			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?);?");
 			Matcher matcher = pat.matcher(line);
@@ -181,6 +182,16 @@ public class ABLModel extends RelationalBeliefNetwork {
 				this.combiningRules.put(function, rule);
 				return true;
 			}
+		}
+		if(line.startsWith("uniform-default")) {
+			Pattern pat = Pattern.compile("uniform-default\\s+([-\\w]+(?:\\s*,\\s*[-\\w]+)*)\\s*;?");
+			Matcher matcher = pat.matcher(line);
+			if(matcher.matches()) {
+				String[] functions = matcher.group(1).split("\\s*,\\s*");
+				for(String f : functions)
+					this.uniformDefaultFunctions.add(f);
+			}
+			return true;
 		}
 		return false;
 	}

@@ -16,8 +16,8 @@ import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
-import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.OrderedSet;
@@ -63,13 +63,13 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 	
 	@Override
-	protected void onAddGroundAtomNode(RelationalNode relNode, String[] params, BeliefNode var) {
-		if(relNode.isBoolean()) {			
-			coupling.addBooleanVariable(var, relNode.getFunctionName(), params);
+	protected void onAddGroundAtomNode(BeliefNode var, String[] params, Signature sig) {
+		if(sig.isBoolean()) {			
+			coupling.addBooleanVariable(var, sig.functionName, params);
 		}
 		else {
 			// node is non-Boolean, so add one block containing the ground atoms for each possible value
-			coupling.addBlockVariable(var, relNode.getDomain(), relNode.getFunctionName(), params);
+			coupling.addBlockVariable(var, (Discrete)var.getDomain(), sig.functionName, params);
 		}
 	}
 	
