@@ -1900,70 +1900,87 @@ class MLN:
         self._calculateWorldValues(wtFull) #calculate sum for evidence world only
         
         #sample worlds for Z, set self.partition_function:
-
-        self.currentWeights = wtFull
-        self.partition_function = 0
-
-        what = [FOL.TrueFalse(True)]
-#        for idxFormula, formula in enumerate(self.formulas):
-#            what += [str(formula)]
-#        print what
-        #given = "" # TODO
+        print "SLL_ISE: sample worlds:"
+        self._sll_sampleWorlds(wtFull)
         
-        self.setWeights(wtFull)
-        print "calling MCSAT with weights:", wtFull
-        self.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sll_ise_sampleCallback, maxSteps=1000, verbose=False)
-        
-        self.partition_function += self.worlds[idxTrainDB]["sum"]
+        #only here: add evidence world to partition function to guarantee that ll <= 0
+        partition_function = self.partition_function + self.worlds[idxTrainDB]["sum"]
         
         #print self.worlds
-        print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
-        ll = math.log(self.worlds[idxTrainDB]["sum"] / self.partition_function)
+        print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , partition_function
+        ll = math.log(self.worlds[idxTrainDB]["sum"] / partition_function)
         print "ll =", ll
         print 
         return ll    
+        
     
+    def _grad_sll_ise(self, wt, *args):
+        idxTrainDB = args[0]
+        
+        wtFull = self._reconstructFullWeightVectorWithFixedWeights(wt)
+        
+        # sample other worlds:
+        print "GRAD_SLL_ISE: sample worlds:"
+        self._sll_sampleWorlds(wtFull)
+        
+        #calculate gradient
+        grad = numpy.zeros(len(self.formulas), numpy.float64)
+        for ((idxWorld, idxFormula), count) in self.counts.iteritems():
+            if idxTrainDB == idxWorld:                
+                grad[idxFormula] += count        
+
+        grad = grad - self.weightedFormulaCount / self.partition_function
+
+        grad = self._projectVectorToNonFixedWeightIndices(grad)
+
+        print "grad =", grad
+        print
+        
+        #TODO: figure out why the cache-reset is necessary to get non-0 weights
+        self.wtsLastSLLWorldSampling = []
+        
+        return grad
+    
+    #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
+    def _sll_sampleWorlds(self, wtFull):
+        
+        #weights have changed => calculate new values
+        if  ('wtsLastSLLWorldSampling' not in dir(self)) or self.wtsLastSLLWorldSampling != list(wtFull):
+            self.wtsLastSLLWorldSampling = list(wtFull)
+            
+            self.weightedFormulaCount = numpy.zeros(len(self.formulas), numpy.float64)
+            self.currentWeights = wtFull
+            self.partition_function = 0
+            what = [FOL.TrueFalse(True)]      
+            self.setWeights(wtFull)
+            print "calling MCSAT with weights:", wtFull
+            self.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sll_ise_sampleCallback, maxSteps=100000, verbose=False)
+        else:
+            print "use cached values, do not sample (weights did not change)"
+            #use cached values for self.weightedFormulaCount and self.partition_function, do nothing here
+            
     #sampel is the chainGroup
     #step is step-number
     def _sll_ise_sampleCallback(self, sample, step):
         #print "_sll_ise_sampleCallback:", sample, step
+        
+        sampleWorldFormulaCounts = numpy.zeros(len(self.formulas), numpy.float64)
         #there is only one chain:
         sampleWorld = sample.chains[0].state
         weights = []
         for gndFormula in self.gndFormulas:
             if self._isTrue(gndFormula, sampleWorld):
+                sampleWorldFormulaCounts[gndFormula.idxFormula] += 1
                 weights.append(self.currentWeights[gndFormula.idxFormula])
         exp_sum = math.exp(sum(weights))
         
+        self.partition_function += exp_sum      
+        self.weightedFormulaCount += sampleWorldFormulaCounts * exp_sum
+        
         if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
-        
-        self.partition_function += exp_sum
-        
-    
-    def _grad_sll_ise(self, wt, *args):
-        #TODO
-        idxTrainDB = args[0]
-        self._calculateWorldValues(wt)        
-        grad = numpy.zeros(len(self.formulas), numpy.float64)
-        #ctraining = [0 for i in range(len(self.formulas))]
-        #cothers = [0 for i in range(len(self.formulas))]
-        for ((idxWorld, idxFormula), count) in self.counts.iteritems():
-            #print ((idxWorld, idxFormula), count)
-            if idxTrainDB == idxWorld:                
-                grad[idxFormula] += count
-                #ctraining[idxFormula] += count
-            if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or idxTrainDB != idxWorld:
-                n = count * self.worlds[idxWorld]["sum"] / self.partition_function
-                grad[idxFormula] -= n
-            #cothers[idxFormula] += n
-        #print "grad_ll"
-        print "wts =", wt
-        print "grad =", grad
-        print
-        return grad
-    
-    
+            
+            
     def _ll_iseww(self, wts, *args):
 
         idxTrainDB = args[0]
@@ -2779,7 +2796,7 @@ class MLN:
             wtD = self._projectVectorToNonFixedWeightIndices(wt)
             
             #,#optimizer = fmin_cg # fprime=neg_gradfunc,
-            wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_llfunc, wtD, gtol=gtol, args=args, full_output=True, epsilon=0.001)
+            wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_llfunc, wtD, fprime=neg_gradfunc, gtol=gtol, args=args, full_output=True, epsilon=0.001)
             
             wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
 
