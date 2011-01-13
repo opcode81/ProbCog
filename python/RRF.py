@@ -73,6 +73,7 @@ class RRFConstantLeaf(RRF):
 # Essentially, it is a regular MLN that has an additional 'children' member, which contains 
 # a recursive random field representation of each ground formula.
 # Exact inference is based on the RRF part.
+'''
 class RRFMLN(RRF, MLN.MLN):
     def __init__(self, mlnFile, domain):
         MLN.MLN.__init__(self, mlnFile)
@@ -99,6 +100,7 @@ class RRFMLN(RRF, MLN.MLN):
             world["weights"] = weights
         print total
         self.partition_function = total
+'''
 
 if __name__=='__main__':
     #rrf = RRFMLN("kitchen/wts.meal_goods_any-simplest.mln", {"objType_p": ["P"], "objType_g": ["G1", "G2"]})
