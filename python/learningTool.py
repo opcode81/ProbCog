@@ -183,7 +183,7 @@ class LearnWeights:
     def changedMethod(self, name, index, mode):
         self.setOutputFilename()
 
-    def learn(self):
+    def learn(self, saveGeometry=True):
         try:
             # update settings
             mln = self.selected_mln.get()
@@ -197,7 +197,8 @@ class LearnWeights:
             self.settings["params%d" % int(self.internalMode)] = params
             self.settings["engine"] = self.selected_engine.get()
             self.settings["method%d" % int(self.internalMode)] = method
-            self.settings["geometry"] = self.master.winfo_geometry()
+            if saveGeometry:
+                self.settings["geometry"] = self.master.winfo_geometry()
             #print "dumping config..."
             pickle.dump(self.settings, file("learnweights.config.dat", "w+"))
             
@@ -307,8 +308,8 @@ if __name__ == '__main__':
             pass
     root = Tk()    
     app = LearnWeights(root, ".", settings)
-    if "-run" in argv:
-        app.learn()
+    if "-run" in argv or "--run" in argv:
+        app.learn(saveGeometry=False)
     else:
         root.mainloop()
     

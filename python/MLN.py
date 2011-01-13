@@ -134,7 +134,7 @@ class InferenceMethods:
     _byName = dict([(x, y) for (y, x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
-    LL, PLL, BPLL, PLL_fixed, BPLL_fixed, NPL_fixed, LL_ISE, PLL_ISE, LL_ISEWW = range(9)
+    LL, PLL, BPLL, PLL_fixed, BPLL_fixed, NPL_fixed, LL_ISE, PLL_ISE, LL_ISEWW, SLL_ISE = range(10)
     _names = {LL: "log-likelihood", 
               PLL: "pseudo-log-likelihood", 
               BPLL: "pseudo-log-likelihood with blocking", 
@@ -143,9 +143,10 @@ class ParameterLearningMeasures:
               NPL_fixed: "negative pseudo-likelihood with fixed unitary clauses",
               LL_ISE: "log-likelihood with independent soft evidence and weighting of formulas", 
               PLL_ISE: "pseudo-log-likelihood with independent soft evidence",
-              LL_ISEWW: "log-likelihood with independent soft evidence and weighting of worlds"
+              LL_ISEWW: "log-likelihood with independent soft evidence and weighting of worlds",
+              SLL_ISE: "sampled log-likelihood with independent soft evidence and weighting of formulas" # sampled worlds for Z and for gradient
     }
-    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", PLL_fixed: "PLL_fixed", BPLL_fixed: "BPLL_fixed", NPL_fixed: "NPL_fixed", LL_ISE : "LL_ISE", PLL_ISE : "PLL_ISE", LL_ISEWW : "LL_ISEWW"}
+    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", PLL_fixed: "PLL_fixed", BPLL_fixed: "BPLL_fixed", NPL_fixed: "NPL_fixed", LL_ISE : "LL_ISE", PLL_ISE : "PLL_ISE", LL_ISEWW : "LL_ISEWW", SLL_ISE: "SLL_ISE"}
     _byName = dict([(x, y) for (y, x) in _names.iteritems()])
 
 # TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
@@ -1377,7 +1378,7 @@ class MLN:
                 #self._removeTemporaryEvidence()
                 #print "  F%d %f %s %f -> %f" % (gf.idxFormula, wt[gf.idxFormula], str(gf), prob1, prob2)
                 self._setInvertedEvidence(idxGndAtom)
-            print "  %s %s" % (wts_regular, wts_inverted)
+            #print "  %s %s" % (wts_regular, wts_inverted)
             return math.exp(wts_regular) / (math.exp(wts_regular) + math.exp(wts_inverted))
         elif PMB_METHOD == 'excl' or PMB_METHOD == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
             for gf in relevantGroundFormulas: # !!! here the relevant ground formulas may not be sufficient!!!! they are different than in the other case
@@ -1802,7 +1803,10 @@ class MLN:
     def _computeCountsSoft(self, allSoft):
         ''' computes  '''
         print "number of worlds:", len(self.worlds)
-        self.idxTrainingDB = self._getEvidenceWorldIndex()
+        if not hasattr(self, "worldCode2Index"):
+            self.idxTrainingDB = 0 #there is only the training world
+        else:
+            self.idxTrainingDB = self._getEvidenceWorldIndex()
         if allSoft == False:
             # compute regular counts for all posible worlds
             self._computeCounts()
@@ -1913,6 +1917,69 @@ class MLN:
         ll = math.log(self.worlds[idxTrainDB]["sum"] / self.partition_function)
         print "ll =", ll
         return ll
+    
+    
+    def _sll_ise(self, wt, *args):
+
+        idxTrainDB = args[0]
+        self._calculateWorldValues(wt) #calculate sum for evidence world only
+        
+        #sample worlds for Z, set self.partition_function:
+
+        self.currentWeights = wt
+        self.partition_function = 0
+
+        what = []
+        for idxFormula, formula in enumerate(self.formulas):
+            what += [str(formula)]
+        print what
+        #given = "" # TODO
+        self.inferMCSAT(what, given = "", softEvidence = {}, sampleCallback=self._sll_ise_sampleCallback, maxSteps=100)
+        
+        
+        print self.worlds
+        print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
+        ll = math.log(self.worlds[idxTrainDB]["sum"] / self.partition_function)
+        print "ll =", ll
+        return ll    
+    
+    #sampel is the chainGroup
+    #step is step-number
+    def _sll_ise_sampleCallback(self, sample, step):
+        print "_sll_ise_sampleCallback:", sample, step
+        #there is only one chain:
+        sampleWorld = sample.chains[0].state
+        weights = []
+        for gndFormula in self.gndFormulas:
+            if self._isTrue(gndFormula, sampleWorld):
+                weights.append(self.currentWeights[gndFormula.idxFormula])
+        exp_sum = math.exp(sum(weights))
+        print "sum(weights)", sum(weights)
+        
+        self.partition_function += exp_sum
+        
+    
+    def _grad_sll_ise(self, wt, *args):
+        #TODO
+        idxTrainDB = args[0]
+        self._calculateWorldValues(wt)        
+        grad = numpy.zeros(len(self.formulas), numpy.float64)
+        #ctraining = [0 for i in range(len(self.formulas))]
+        #cothers = [0 for i in range(len(self.formulas))]
+        for ((idxWorld, idxFormula), count) in self.counts.iteritems():
+            #print ((idxWorld, idxFormula), count)
+            if idxTrainDB == idxWorld:                
+                grad[idxFormula] += count
+                #ctraining[idxFormula] += count
+            if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or idxTrainDB != idxWorld:
+                n = count * self.worlds[idxWorld]["sum"] / self.partition_function
+                grad[idxFormula] -= n
+            #cothers[idxFormula] += n
+        #print "grad_ll"
+        print "wts =", wt
+        print "grad =", grad
+        print
+        return grad
     
     
     def _ll_iseww(self, wts, *args):
@@ -2383,7 +2450,7 @@ class MLN:
                 print "self._getTruthDegreeGivenEvidence(gf), gf", self._getTruthDegreeGivenEvidence(gf), gf
                 c += self._getTruthDegreeGivenEvidence(gf)
             self._fixedWeightFormulas[formula] = logx(c/Z)
-        
+            print "c/Z:", (c/Z), str(formula)
     def _fixUnitaryClauses(self):
         self._fixedWeightFormulas = {}            
         self._formulaByAssignment = {}
@@ -2450,6 +2517,8 @@ class MLN:
         if initialWts:
             for i in range(len(self.formulas)):
                 wt[i] = self.formulas[i].weight
+                
+        print mode, "learning %s" % str(params)        
         # optimization
         if mode == 'NPL_fixed': # this mode actually removes the respective formulas from the weight vector, whereas other fixed methods just use bounds on the weight
             self._fixUnitaryClauses()
@@ -2479,7 +2548,6 @@ class MLN:
                         
             wt = wtD            
         elif mode == 'PLL' or mode == 'PLL_ISE' or mode == 'PLL_fixed':
-            print "%s %s" % (mode, str(params))
             
             if mode == 'PLL_ISE':
                 if PMB_METHOD != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
@@ -2665,7 +2733,6 @@ class MLN:
             grad_opt = d['grad']
             self.learnwts_message = "log-likelihood: %f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (- ll_opt, str(- grad_opt), func_calls, warn_flags)
         elif mode == 'LL_ISE': # log-likelihood with independent soft evidence and weighting of formulas (soft counts)
-            print "LL_ISE learning %s" % str(params)
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
                 print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
@@ -2695,8 +2762,41 @@ class MLN:
             
             # add final log likelihood to learnwts status for output
             self.learnwts_message = "log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
+        elif mode == 'SLL_ISE': # log-likelihood with independent soft evidence and weighting of formulas (soft counts)
+            print "copying evidence world (%d ground atoms)..." % len(self.gndAtoms)
+            self.worlds = []
+            self.worlds.append({"values": self.evidence})
+            #self.worlds contains only one world, which is the evidence world
+            #the sampled worlds are not taken into account in self.worlds here!
+            
+            # set soft evidence variables to true in evidence
+            for se in self.softEvidence:
+                self._setEvidence(self.gndAtoms[se["expr"]].idx, True)
+            # compute counts
+            print "computing soft counts for evidence world..."
+            #there is just one world, the evidence world, and this one is soft:
+            self.allSoft = True #also used in _calculateWorldValues in _ll
+            self._computeCountsSoft(self.allSoft) #
+            print "  %d counts recorded (for evidence world)." % len(self.counts)
+            # mode-specific stuff
+            gradfunc = self._grad_sll_ise
+            llfunc = self._sll_ise
+            args = [self.idxTrainingDB] # computed in computeSoftCounts
+            # opt
+            print "starting optimization..."
+            gtol = 1.0000000000000001e-005
+            neg_llfunc = lambda params, *args: -llfunc(params, *args)
+            neg_gradfunc = lambda params, *args: -gradfunc(params, *args)
+            #optimizer = fmin_cg # fprime=neg_gradfunc,
+            wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_llfunc, wt, gtol=gtol,  args=args, full_output=True)
+            #wt, ll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(neg_llfunc, wt, args=args, fprime=neg_gradfunc, full_output=1)
+            print wt
+            
+            # add final log likelihood to learnwts status for output
+            self.learnwts_message = "sampled log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
+                
+        
         elif mode == 'LL_ISEWW': # log-likelihood with independent soft evidence and weighting of worlds
-            print mode, "learning %s" % str(params)
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
                 print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
@@ -2997,7 +3097,7 @@ class Inference(object):
         # if necessary, get string representation of evidence
         if not shortOutput:
             if self.given is not None:
-                evidenceString = given
+                evidenceString = self.given
             else:
                 evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
         # print sorted results, one per line
@@ -3417,13 +3517,9 @@ class MCSAT(MCMCInference):
         # minimize the formulas' weights by exploiting group information (in order to speed up convergence)
         if verbose: print "normalizing weights..."
         #mln.minimizeGroupWeights() # TODO!!! disabled because weights are not yet evaluated
-        # initialize the KB and gather required info
-        self._initKB(verbose)
         # get the pll blocks
         if verbose: print "getting blocks..."
         mln._getPllBlocks()
-        # get the list of relevant ground atoms for each block (!!! only needed for SAMaxWalkSAT actually)
-        mln._getBlockRelevantGroundFormulas()
         # get the block index for each ground atom
         mln._getAtom2BlockIdx()
     
@@ -3457,7 +3553,7 @@ class MCSAT(MCMCInference):
                 # next clause index
                 idxClause += 1
         # add clauses for soft evidence atoms
-        for se in self.mln.softEvidence:
+        for se in self.softEvidence:
             se["numTrue"] = 0.0
             gndAtom = self.mln.gndAtoms.get(se["expr"])            
             if gndAtom is None: raise Exception("Soft evidence atom '%s' corresponds to no ground atom" % se["expr"])
@@ -3469,7 +3565,7 @@ class MCSAT(MCMCInference):
             se["idxClauseNegative"] = idxClause
             idxClause += 1
     
-    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None):
+    def _infer(self, numChains = 1, maxSteps = 5000, verbose = True, shortOutput = False, details = True, debug = False, debugLevel = 1, initAlgo = "SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p = 0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback = None, softEvidence = None):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
@@ -3482,7 +3578,20 @@ class MCSAT(MCMCInference):
         keepResultsHistory: whether to store the history of results (at each resultsInterval)
         referenceResults: reference results to compare obtained results to
         saveHistoryFile: if not None, save history to given filename
+        sampleCallback: function that is called for every sample with the sample and step number as parameters
+        softEvidence: if None, use soft evidence from MLN, otherwise use given dictionary of soft evidence
         '''
+
+        if softEvidence is None:
+            self.softEvidence = self.mln.softEvidence
+        else:
+            self.softEvidence = softEvidence 
+
+        # initialize the KB and gather required info
+        self._initKB(verbose)
+        # get the list of relevant ground atoms for each block (!!! only needed for SAMaxWalkSAT actually)
+        self.mln._getBlockRelevantGroundFormulas()
+        
         self.p = p
         self.debug = debug
         self.debugLevel = debugLevel
@@ -3503,6 +3612,7 @@ class MCSAT(MCMCInference):
         # read evidence
         if details: print "reading evidence..."
         self._readEvidence(self.given)
+        print "evidence", self.evidence
         if details:
             print "evidence blocks: %d" % len(self.evidenceBlocks)
             print "block exclusions: %d" % len(self.blockExclusions)
@@ -3558,7 +3668,7 @@ class MCSAT(MCMCInference):
                     if referenceResults is not None:
                         ref = self._compareResults(referenceResults)
                         print "  REF me=%f, maxe=%f" % (ref["reference_me"], ref["reference_maxe"]),
-                    if len(self.mln.softEvidence) > 0:
+                    if len(self.softEvidence) > 0:
                         dev = self._getProbConstraintsDeviation()
                         print "  PC dev. mean=%f, max=%f (%s)" % (dev["pc_dev_mean"], dev["pc_dev_max"], dev["pc_dev_max_item"]),
                     print
@@ -3566,8 +3676,12 @@ class MCSAT(MCMCInference):
                         self.mln.printState(chain.state)
                         print
             # update soft evidence counts
-            for se in self.mln.softEvidence:
+            for se in self.softEvidence:
                 se["numTrue"] += self.chainGroup.currentlyTrue(se["gndAtom"])
+                
+            if sampleCallback is not None:
+                sampleCallback(chainGroup, self.step)
+                
             # intermediate results
             if (details or keepResultsHistory) and self.step % resultsInterval == 0 and self.step != maxSteps:
                 results = chainGroup.getResults()
@@ -3602,7 +3716,7 @@ class MCSAT(MCMCInference):
                         if self.debug and self.debugLevel >= 3:
                             print "  to satisfy:", strFormula(gf)
         # add soft evidence constraints
-        for se in self.mln.softEvidence:
+        for se in self.softEvidence:
             p = se["numTrue"] / self.step
             if se["gndAtom"].isTrue(chain.state):
                 #print "true case"
@@ -3628,16 +3742,16 @@ class MCSAT(MCMCInference):
         return len(M) + len(NLC)
     
     def _getProbConstraintsDeviation(self):
-        if len(self.mln.softEvidence) == 0:
+        if len(self.softEvidence) == 0:
             return {}
         se_mean, se_max, se_max_item = 0.0, -1, None
-        for se in self.mln.softEvidence:
+        for se in self.softEvidence:
             dev = abs((se["numTrue"] / self.step) - se["p"])
             se_mean += dev
             if dev > se_max:
                 se_max = max(se_max, dev)
                 se_max_item = se
-        se_mean /= len(self.mln.softEvidence)
+        se_mean /= len(self.softEvidence)
         return {"pc_dev_mean": se_mean, "pc_dev_max": se_max, "pc_dev_max_item": se_max_item["expr"]}
     
     def _extendResultsHistory(self, results):
