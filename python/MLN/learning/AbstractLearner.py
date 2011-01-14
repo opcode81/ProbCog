@@ -27,7 +27,7 @@ import sys
 
 try:
     import numpy
-    from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b, fsolve, fmin_slsqp
+    from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b, fsolve, fmin_slsqp, fmin, fmin_powell
 except:
     sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
 
@@ -87,13 +87,13 @@ class AbstractLearner(object):
             
     def __f(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
-        #print "wt = ", wt
+        print "_f: wt = ", wt
         return self._f(wt)
         
     def __grad(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         grad = self._grad(wt)
-        #print "grad = ", grad
+        print "_grad: wt = %s\ngrad = %s" % (wt, grad)
         return self._projectVectorToNonFixedWeightIndices(grad)
 
     # learn the weights of the mln given the training data previously loaded with combineDB
@@ -104,7 +104,8 @@ class AbstractLearner(object):
             raise Exception("Scipy was not imported! Install numpy and scipy if you want to use weight learning.")
         
         # initial parameter vector: all zeros or weights from formulas
-        wt = numpy.zeros(len(self.mln.formulas), numpy.float64)
+
+        wt = numpy.zeros(len(self.mln.formulas), numpy.float64)# + numpy.random.ranf(len(self.mln.formulas)) * 100
         if initialWts:
             for i in range(len(self.mln.formulas)):
                 wt[i] = self.mln.formulas[i].weight
@@ -122,15 +123,33 @@ class AbstractLearner(object):
     def _prepareOpt(self):
         pass
     
-    def _optimize(self, **params):
-        print "starting optimization..."
-        #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)
-        gtol = params.get("gtol", 1.0000000000000001e-005)
+    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = "bfgs", useGrad = True, **params):
+        print "starting optimization with %s, useGrad = %s" % (optimizer, useGrad)
+        #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
         neg_f = lambda wt: -self.__f(wt)
         neg_grad = lambda wt: -self.__grad(wt)
-        wt, ll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+        if not useGrad: neg_grad = None
+        if optimizer == "bfgs":
+            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+            print "optimization done with %s..." % optimizer
+            print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
+        elif optimizer == "cg":
+            wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+            print "optimization done with %s..." % optimizer
+            print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
+        elif optimizer == "ncg":
+            wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+            print "optimization done with %s..." % optimizer
+            print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
+        elif optimizer == "fmin":
+            wt = fmin(neg_f, self.wt, args=(), full_output=True)
+            print "optimization done with %s..." % optimizer
+        elif optimizer == "powell":
+            wt = fmin_powell(neg_f, self.wt,   args=(), full_output=True)
+            print "optimization done with %s..." % optimizer
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
-        print "log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
+        #print "allvecs", allvecs
+        
 
 
 from softeval import truthDegreeGivenSoftEvidence
