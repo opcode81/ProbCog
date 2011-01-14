@@ -196,7 +196,7 @@ class SLL_ISE(LL_ISE):
         idxTrainDB = self.idxTrainingDB
         self._calculateWorldValues(wtFull) #calculate sum for evidence world only
         
-        #sample worlds for Z, set self.partition_function:
+        #sample worlds for Z
         print "SLL_ISE: sample worlds:"
         self._sampleWorlds(wtFull)
         
@@ -225,10 +225,10 @@ class SLL_ISE(LL_ISE):
             if idxTrainDB == idxWorld:                
                 grad[idxFormula] += count        
 
-        grad = grad - self.weightedFormulaCount / self.partition_function
+        grad = grad - self.weightedFormulaCount / self.sampled_Z
 
         #TODO: figure out why the cache-reset is necessary to get non-0 weights
-        self.wtsLastSLLWorldSampling = []
+        #self.wtsLastSLLWorldSampling = []
         
         return grad
     
@@ -241,7 +241,7 @@ class SLL_ISE(LL_ISE):
             
             self.weightedFormulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
             self.currentWeights = wtFull
-            self.partition_function = 0
+            self.sampled_Z = 0
             what = [FOL.TrueFalse(True)]      
             self.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
@@ -265,7 +265,7 @@ class SLL_ISE(LL_ISE):
                 weights.append(self.currentWeights[gndFormula.idxFormula])
         exp_sum = exp(fsum(weights))
         
-        self.partition_function += exp_sum      
+        self.sampled_Z += exp_sum      
         self.weightedFormulaCount += sampleWorldFormulaCounts * exp_sum
         
         if step % 100 == 0:
