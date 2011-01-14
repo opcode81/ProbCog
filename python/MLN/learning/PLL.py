@@ -45,7 +45,7 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 class PLL(AbstractLearner):
     
     def __init__(self, mln):
-        self.mln = mln
+        AbstractLearner.__init__(self, mln)
     
     # determines the probability of the given ground atom (string) given its Markov blanket
     # (the MLN must have been provided with evidence using combineDB)
