@@ -163,6 +163,9 @@ class LL_ISE(SoftEvidenceLearner, LL):
                 if i == self.idxTrainingDB:
                     print "%f gf: %s" % (prod, str(gf))
             
+            
+            
+        print "worlds len: ", len(self.mln.worlds)    
         #    if i == self.idxTrainingDB:
         #        print "TrainingDB: softCounts, formula"
         #        for j, f in enumerate(self.mln.formulas):
@@ -197,7 +200,7 @@ class SLL_ISE(LL_ISE):
         
         wtFull = wt
 
-        idxTrainDB = 0
+        idxTrainDB = self.idxTrainingDB
         self._calculateWorldValues(wtFull) #calculate sum for evidence world only
         
         #sample worlds for Z, set self.partition_function:
@@ -215,7 +218,7 @@ class SLL_ISE(LL_ISE):
         return ll
     
     def _grad(self, wt):
-        idxTrainDB = 0
+        idxTrainDB = self.idxTrainingDB
         
         wtFull = wt
         
