@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import sys
+import math
 
 try:
     import numpy
@@ -34,7 +35,7 @@ except:
 
 from MLN.methods import *
 from MLN.util import *
-
+from AbstractLearner import *
 
 PMB_METHOD = 'old' # 'excl' or 'old'
 # concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
@@ -53,15 +54,176 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 # value of x and thus the truth of ground formulas within which x appears.
 
 
-# TODO: Should reorganize the class Learner by creating a suitable class hierarchy
+# TODO: This class will be moved entirely to other classes specific to a particular learning method
+# A few have already been moved (indicated by comments "moved to X")
 
-class Learner(object):
+class Learner(AbstractLearner):
     
     def __init__(self, mln):
         self.mln = mln
     
     def __getattr__(self, attr):
         return self.mln.__getattribute__(attr) # HACK
+
+    # determines the probability of the given ground atom (string) given its Markov blanket
+    # (the MLN must have been provided with evidence using combineDB)
+    def getAtomProbMB(self, atom):
+        idxGndAtom = self.gndAtoms[atom].idx
+        weights = self._weights()
+        return self._getAtomProbMB(idxGndAtom, weights)
+
+    # get the probability of the assignment for the block the given atom is in
+    def getBlockProbMB(self, atom):
+        idxGndAtom = self.gndAtoms[atom].idx       
+        self._getBlockProbMB(idxBlock, self._weights())
+
+    # gets the probability of the ground atom with index idxGndAtom when given its Markov blanket (evidence set)
+    # using the specified weight vector
+    def _getAtomProbMB(self, idxGndAtom, wt, relevantGroundFormulas=None):            
+        #old_tv = self._getEvidence(idxGndAtom)
+        # check if the ground atom is in a block
+        block = None
+        if idxGndAtom in self.gndBlockLookup and PMB_METHOD != 'old':
+            blockname = self.gndBlockLookup[idxGndAtom]
+            block = self.gndBlocks[blockname] # list of gnd atom indices that are in the block
+            sums = [0 for i in range(len(block))] # init sum of weights for each possible assignment of block
+                                                  # sums[i] = sum of weights for assignment where the block[i] is set to true
+            idxBlockMainGA = block.index(idxGndAtom)
+            # find out which one of the ground atoms in the block is true
+            idxGATrueone = -1
+            for i in block:
+                if self._getEvidence(i):
+                    if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
+                    idxGATrueone = i                    
+            if idxGATrueone == -1: raise Exception("No true gnd atom in block!" % blockname)
+            mainAtomIsTrueone = idxGATrueone == idxGndAtom
+        else: # not in block
+            wts_inverted = 0
+            wts_regular = 0
+            wr, wi = [], []
+        # determine the set of ground formulas to consider
+        checkRelevance = False
+        if relevantGroundFormulas == None:
+            try:
+                relevantGroundFormulas = self.atomRelevantGFs[idxGndAtom]
+            except:
+                relevantGroundFormulas = self.gndFormulas
+                checkRelevance = True
+        # check the ground formulas
+        #print self.gndAtomsByIdx[idxGndAtom]
+        if PMB_METHOD == 'old' or block == None: # old method (only consider formulas that contain the ground atom)
+            for gf in relevantGroundFormulas:
+                if checkRelevance:
+                    if not gf.containsGndAtom(idxGndAtom):
+                        continue
+                # gnd atom maintains regular truth value
+                prob1 = self._getTruthDegreeGivenEvidence(gf)
+                #print "gf: ", str(gf), " index: ", gf.idxFormula, ", wt size:", len(wt), " formula size:", len(self.formulas)
+                if prob1 > 0:
+                    wts_regular += wt[gf.idxFormula] * prob1
+                    wr.append(wt[gf.idxFormula] * prob1)
+                # flipped truth value
+                #self._setTemporaryEvidence(idxGndAtom, not old_tv)
+                self._setInvertedEvidence(idxGndAtom)
+                #if self._isTrueGndFormulaGivenEvidence(gf):
+                #    wts_inverted += wt[gf.idxFormula]
+                #    wi.append(wt[gf.idxFormula])
+                prob2 = self._getTruthDegreeGivenEvidence(gf)
+                if prob2 > 0:
+                    wts_inverted += wt[gf.idxFormula] * prob2
+                    wi.append(wt[gf.idxFormula] * prob2)
+                #self._removeTemporaryEvidence()
+                #print "  F%d %f %s %f -> %f" % (gf.idxFormula, wt[gf.idxFormula], str(gf), prob1, prob2)
+                self._setInvertedEvidence(idxGndAtom)
+            #print "  %s %s" % (wts_regular, wts_inverted)
+            return math.exp(wts_regular) / (math.exp(wts_regular) + math.exp(wts_inverted))
+        elif PMB_METHOD == 'excl' or PMB_METHOD == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
+            for gf in relevantGroundFormulas: # !!! here the relevant ground formulas may not be sufficient!!!! they are different than in the other case
+                # check if one of the ground atoms in the block appears in the ground formula
+                if checkRelevance:
+                    gfRelevant = False
+                    for i in block:
+                        if gf.containsGndAtom(i):
+                            gfRelevant = True
+                            break
+                    if not gfRelevant: continue
+                # make each one of the ground atoms in the block true once
+                idxSum = 0
+                for i in block:
+                    # set the i-th variable in the block to true
+                    if i != idxGATrueone:
+                        self._setTemporaryEvidence(i, True)
+                        self._setTemporaryEvidence(idxGATrueone, False)
+                    # is the formula true?
+                    if self._isTrueGndFormulaGivenEvidence(gf):
+                        sums[idxSum] += wt[gf.idxFormula]
+                    # restore truth values
+                    self._removeTemporaryEvidence()
+                    idxSum += 1
+            expsums = map(math.exp, sums)
+            if PMB_METHOD == 'excl':
+                if mainAtomIsTrueone:
+                    return expsums[idxBlockMainGA] / sum(expsums)
+                else:
+                    s = sum(expsums)
+                    return (s - expsums[idxBlockMainGA]) / s
+            elif PMB_METHOD == 'excl2':
+                if mainAtomIsTrueone:
+                    return expsums[idxBlockMainGA] / sum(expsums)
+                else:
+                    idxBlockTrueone = block.index(idxGATrueone)
+                    return expsums[idxBlockTrueone] / (expsums[idxBlockTrueone] + expsums[idxBlockMainGA])
+        else:
+            raise Exception("Unknown PMB_METHOD")
+    
+    def _setInvertedEvidence(self, idxGndAtom):
+        old_tv = self._getEvidence(idxGndAtom)
+        self._setEvidence(idxGndAtom, not old_tv)
+
+    def _setInvertedEvidenceSoft(self, idxGndAtom):
+        s = strFormula(self.gndAtomsByIdx[idxGndAtom])
+        isSoftEvidence = False
+        for se in self.softEvidence:
+            if se["expr"] == s:
+                isSoftEvidence = True
+                old_tv = se["p"]
+                break
+        if isSoftEvidence:
+            self._setSoftEvidence(self.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+        else:
+            old_tv = self._getEvidence(idxGndAtom)
+            self._setEvidence(idxGndAtom, not old_tv)
+
+    # prints the probability of each ground atom truth assignment given its Markov blanket
+    def printAtomProbsMB(self):
+        gndAtoms = self.gndAtoms.keys()
+        gndAtoms.sort()
+        values = []
+        for gndAtom in gndAtoms:
+            v = self.getAtomProbMB(gndAtom)
+            print "%s=%s  %f" % (gndAtom, str(self._getEvidence(self.gndAtoms[gndAtom].idx)), v)
+            values.append(v)
+        pll = sum(map(math.log, values))
+        print "PLL = %f" % pll
+
+    # prints the probability of each block assignment given the Markov blanket
+    def printBlockProbsMB(self):
+        self._getPllBlocks()
+        values = []
+        wt = self._weights()
+        for idxBlock, (idxGA, block) in enumerate(self.pllBlocks):
+            v = self._getBlockProbMB(idxBlock, wt)
+            if idxGA != None:
+                print "%s=%s  %f" % (str(self.gndAtomsByIdx[idxGA]), str(self._getEvidence(idxGA)), v)
+            else:
+                trueone = -1
+                for i in block:
+                    if self._getEvidence(i):
+                        trueone = i
+                        break
+                print "{%s}=%s  %f" % (self._strBlock(block), str(self.gndAtomsByIdx[trueone]), v)
+            values.append(v)
+        print "BPLL =", sum(map(math.log, values))
 
     def _calculateAtomProbsMB(self, wt):
         if ('wtsLastAtomProbMBComputation' not in dir(self)) or self.wtsLastAtomProbMBComputation != list(wt):
@@ -235,39 +397,6 @@ class Learner(object):
     def _negated_pl_with_fixation(self, wt, *args):
         return - self._pl(self._reconstructFullWeightVectorWithFixedWeights(wt), *args)
     
-    
-    def _reconstructFullWeightVectorWithFixedWeights(self, wt):
-        
-        if len(self._fixedWeightFormulas) == 0:
-            return wt
-        
-        wtD = numpy.zeros(len(self.formulas), numpy.float64)
-        wtIndex = 0
-        for i, formula in enumerate(self.formulas):
-            if (i in self._fixedWeightFormulas):
-                wtD[i] = self._fixedWeightFormulas[i]
-                #print "self._fixedWeightFormulas[i]", self._fixedWeightFormulas[i]
-            else:
-                wtD[i] = wt[wtIndex]
-                #print "wt[wtIndex]", wt[wtIndex]
-                wtIndex = wtIndex + 1
-        return wtD
-    
-    def _projectVectorToNonFixedWeightIndices(self, wt):
-
-        if len(self._fixedWeightFormulas) == 0:
-            return wt
-
-        wtD = numpy.zeros(len(self.formulas) - len(self._fixedWeightFormulas), numpy.float64)
-        #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas) - len(self._fixedWeightFormulas.items()))])
-        wtIndex = 0
-        for i, formula in enumerate(self.formulas):
-            if (i in self._fixedWeightFormulas):
-                continue
-            wtD[wtIndex] = wt[i] #mpmath.mpf(wt[i])
-            wtIndex = wtIndex + 1   
-        return wtD
-    
     def _negated_grad_pll_with_fixation(self, wt, *args):
         #wtD = numpy.zeros(len(self.formulas), numpy.float64)
         #wtIndex = 0
@@ -323,7 +452,7 @@ class Learner(object):
                     cnt[1] += 1
                 self.counts[key] = cnt
 
-    def _computeCountsSoft(self, allSoft):
+    def _computeCountsSoft(self, allSoft): # moved to LL_ISE
         ''' computes  '''
         print "number of worlds:", len(self.worlds)
         if not hasattr(self, "worldCode2Index"):
@@ -386,7 +515,7 @@ class Learner(object):
             print " %f %s" % (normalizationWorldsMeanCounts[j], strFormula(self.formulas[j]))
               
               
-    def _getTruthDegreeGivenEvidenceSoft(self, gf, worldValues=None):
+    def _getTruthDegreeGivenEvidenceSoft(self, gf, worldValues=None): # moved to softeval
         if worldValues is None: worldValues = self.evidence
         cnf = gf.toCNF()
         prod = 1.0
@@ -397,7 +526,7 @@ class Learner(object):
             prod *= self._noisyor(worldValues, cnf)  
         return prod  
 
-    def _noisyor(self, worldValues, disj):
+    def _noisyor(self, worldValues, disj): # moved to softeval
         if isinstance(disj, FOL.GroundLit):
             lits = [disj]
         elif isinstance(disj, FOL.TrueFalse):
@@ -412,7 +541,7 @@ class Learner(object):
         return 1.0 - prod                
 
     # computes the gradient of the log-likelihood given the weight vector wt
-    def _grad_ll(self, wt, *args):
+    def _grad_ll(self, wt, *args): # moved to LL
         idxTrainDB = args[0]
         self._calculateWorldValues(wt)        
         grad = numpy.zeros(len(self.formulas), numpy.float64)
@@ -433,7 +562,7 @@ class Learner(object):
         print
         return grad
 
-    def _ll(self, wt, *args):
+    def _ll(self, wt, *args): # moved to LL
         idxTrainDB = args[0]
         self._calculateWorldValues(wt)
         print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
@@ -442,7 +571,7 @@ class Learner(object):
         return ll
     
     
-    def _sll_ise(self, wt, *args):
+    def _sll_ise(self, wt, *args): # moved to SLL_ISE
         
         wtFull = self._reconstructFullWeightVectorWithFixedWeights(wt)
 
@@ -464,7 +593,7 @@ class Learner(object):
         return ll    
         
     
-    def _grad_sll_ise(self, wt, *args):
+    def _grad_sll_ise(self, wt, *args): # moved to SLL_ISE
         idxTrainDB = args[0]
         
         wtFull = self._reconstructFullWeightVectorWithFixedWeights(wt)
@@ -492,7 +621,7 @@ class Learner(object):
         return grad
     
     #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
-    def _sll_sampleWorlds(self, wtFull):
+    def _sll_sampleWorlds(self, wtFull): # moved to SLL_ISE
         
         #weights have changed => calculate new values
         if  ('wtsLastSLLWorldSampling' not in dir(self)) or self.wtsLastSLLWorldSampling != list(wtFull):
@@ -511,7 +640,7 @@ class Learner(object):
             
     #sampel is the chainGroup
     #step is step-number
-    def _sll_ise_sampleCallback(self, sample, step):
+    def _sll_ise_sampleCallback(self, sample, step): # moved to SLL_ISE
         #print "_sll_ise_sampleCallback:", sample, step
         
         sampleWorldFormulaCounts = numpy.zeros(len(self.formulas), numpy.float64)
@@ -585,14 +714,14 @@ class Learner(object):
         print 
         return ll
 
-    def _grad_ll_fixed(self, wt, *args):
+    def _grad_ll_fixed(self, wt, *args): # deprecated
         fixedWeights = args[1]
         grad = self._grad_ll(wt, *args)
         for idxFormula in fixedWeights:
             grad[idxFormula] = 0
         return grad
 
-    def _grad_ll_fac(self, fac, *args):
+    def _grad_ll_fac(self, fac, *args): 
         idxTrainDB = args[0]
         self._calculateWorldValues2(fac)        
         grad = numpy.zeros(len(self.formulas), numpy.float64)
@@ -654,15 +783,6 @@ class Learner(object):
         ll = math.log(self.worlds[idxTrainDB]["prod"] / self.partition_function)
         print "ll =", ll
         return ll
-
-    def _getEvidenceWorldIndex(self):
-        code = 0
-        bit = 1
-        for i in range(len(self.gndAtoms)):
-            if self._getEvidence(i):
-                code += bit
-            bit *= 2
-        return self.worldCode2Index[code]
 
     def _addToBlockDiff(self, idxFormula, idxBlock, diff):
         key = (idxFormula, idxBlock)
@@ -1010,6 +1130,15 @@ class Learner(object):
                         self._fixedWeightFormulas[formula.idxFormula] = -10
                 else:
                     self._fixedWeightFormulas[formula.idxFormula] = -10
+                    
+    def _getEvidenceWorldIndex(self): # moved to LL
+        code = 0
+        bit = 1
+        for i in range(len(self.mln.gndAtoms)):
+            if self.mln._getEvidence(i):
+                code += bit
+            bit *= 2
+        return self.mln.worldCode2Index[code]
         
     # learn the weights of the mln given the training data previously loaded with combineDB
     #   mode: the measure that is used
@@ -1114,7 +1243,7 @@ class Learner(object):
                 #wt, pll_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(pllfunc, wt, fprime=gradfunc, full_output=1)
                 #wt, pll_opt, func_calls, grad_calls, warn_flags  = fmin_cg(pllfunc, wt, fprime=gradfunc, full_output=1)
                 #self.learnwts_message = "pseudo-log-likelihood: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-pll_opt, str(-grad_opt), func_calls, warn_flags)
-        elif mode in ['LL', 'LL_neg', 'LL_fixed', 'LL_fixed_neg']:
+        elif mode in ['LL', 'LL_neg', 'LL_fixed', 'LL_fixed_neg']: # moved to LL
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
                 print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
@@ -1246,7 +1375,7 @@ class Learner(object):
             func_calls = d['funcalls']
             grad_opt = d['grad']
             self.learnwts_message = "log-likelihood: %f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-ll_opt, str(-grad_opt), func_calls, warn_flags)
-        elif mode == 'LL_ISE': # log-likelihood with independent soft evidence and weighting of formulas (soft counts)
+        elif mode == 'LL_ISE': # log-likelihood with independent soft evidence and weighting of formulas (soft counts) # moved to LL_ISE
             # create possible worlds if neccessary
             if not 'worlds' in dir(self):
                 print "creating possible worlds (%d ground atoms)..." % len(self.gndAtoms)
