@@ -114,9 +114,13 @@ class AbstractLearner(object):
         self.wt = self._projectVectorToNonFixedWeightIndices(wt)
         
         self.params = params
+        self._prepareOpt()
         self._optimize(**params)
             
         return self.wt
+    
+    def _prepareOpt(self):
+        pass
     
     def _optimize(self, **params):
         print "starting optimization..."

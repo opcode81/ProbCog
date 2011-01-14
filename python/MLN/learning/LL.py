@@ -96,7 +96,7 @@ class LL(AbstractLearner):
             bit *= 2
         return self.mln.worldCode2Index[code]
         
-    def _optimize(self, **params):
+    def _prepareOpt(self):
         # create possible worlds if neccessary
         if not 'worlds' in dir(self.mln):
             print "creating possible worlds (%d ground atoms)..." % len(self.mln.gndAtoms)
@@ -108,9 +108,6 @@ class LL(AbstractLearner):
         print "computing counts..."
         self._computeCounts()
         print "  %d counts recorded." % len(self.counts)
-        # optimize
-        AbstractLearner._optimize(self, **params)
-
 
 
 from softeval import truthDegreeGivenSoftEvidence
@@ -120,20 +117,16 @@ class LL_ISE(SoftEvidenceLearner, LL):
         LL.__init__(self, mln)
         SoftEvidenceLearner.__init__(self, mln)
 
-    def _optimize(self, **params):
+    def _prepareOpt(self):
         # HACK set soft evidence variables to true in evidence
         # TODO allsoft currently unsupported
         #for se in self.mln.softEvidence:
         #    self.mln._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
 
-        LL._optimize(self, **params)
+        LL._prepareOpt(self)
         
     def _computeCounts(self):
         ''' compute soft counts (assuming independence) '''
-        if not hasattr(self.mln, "worldCode2Index"):
-            self.idxTrainingDB = 0 # there is only the training world
-        else:
-            self.idxTrainingDB = self._getEvidenceWorldIndex()
         allSoft = self.params.get("allSoft", False)
         if allSoft == False:
             # compute regular counts for all "normal" possible worlds
@@ -278,11 +271,12 @@ class SLL_ISE(LL_ISE):
         if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
 
-    def _getEvidenceWorldIndex(self):
-        return 0
-    
-    def _optimize(self, **params):
+    def _prepareOpt(self):
+        # create just one possible worlds (for our training database)
         self.mln.worlds = []
         self.mln.worlds.append({"values": self.mln.evidence}) # HACK
-        
-        LL_ISE._optimize(self, **params)
+        self.idxTrainingDB = 0 
+        # compute counts
+        print "computing counts..."
+        self._computeCounts()
+        print "  %d counts recorded." % len(self.counts)
