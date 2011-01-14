@@ -195,7 +195,7 @@ class SLL_ISE(LL_ISE):
 
         idxTrainDB = self.idxTrainingDB
         self._calculateWorldValues(wtFull) #calculate sum for evidence world only
-        
+        print 
         #sample worlds for Z
         print "SLL_ISE: sample worlds:"
         self._sampleWorlds(wtFull)
@@ -214,7 +214,7 @@ class SLL_ISE(LL_ISE):
         idxTrainDB = self.idxTrainingDB
         
         wtFull = wt
-        
+        print 
         # sample other worlds:
         print "GRAD_SLL_ISE: sample worlds:"
         self._sampleWorlds(wtFull)
@@ -229,15 +229,18 @@ class SLL_ISE(LL_ISE):
 
         #TODO: figure out why the cache-reset is necessary to get non-0 weights
         #self.wtsLastSLLWorldSampling = []
-        
+
         return grad
     
     #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
     def _sampleWorlds(self, wtFull):
-        
+        if  ('wtsLastSLLWorldSampling' in dir(self)):
+            print self.wtsLastSLLWorldSampling, "self.wtsLastSLLWorldSampling"
+            print wtFull, "wtFull" 
+            print
         #weights have changed => calculate new values
-        if  ('wtsLastSLLWorldSampling' not in dir(self)) or self.wtsLastSLLWorldSampling != list(wtFull):
-            self.wtsLastSLLWorldSampling = list(wtFull)
+        if  ('wtsLastSLLWorldSampling' not in dir(self)) or numpy.any(self.wtsLastSLLWorldSampling != wtFull):
+            self.wtsLastSLLWorldSampling = wtFull.copy()
             
             self.weightedFormulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
             self.currentWeights = wtFull
