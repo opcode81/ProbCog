@@ -177,7 +177,7 @@ class TrajVis:
         if self.settings["test_label"] != "":
             params += ' -tl "%s"' % self.settings["test_label"]
         params += " %s" % self.params.get()
-        app = "TrajVis"
+        app = "TrajectoryVis"
         command = '%s %s' % (app, params)
         # write settings
         pickle.dump(self.settings, file(configname, "w+"))
