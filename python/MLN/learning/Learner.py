@@ -23,6 +23,14 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
+
+# !!!!!!!!!!! MOST OF THIS FILE IS OBSOLETE
+# For the most part, the code contained herein has been moved elsewhere (as indicated by comments "moved to X")
+# This file contains legacy learning methods only
+
+
+
 import sys
 import math
 
@@ -54,9 +62,6 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 # value of x and thus the truth of ground formulas within which x appears.
 
 
-# TODO: This class will be moved entirely to other classes specific to a particular learning method
-# A few have already been moved (indicated by comments "moved to X")
-
 class Learner(AbstractLearner):
     
     def __init__(self, mln):
@@ -73,7 +78,7 @@ class Learner(AbstractLearner):
         return self._getAtomProbMB(idxGndAtom, weights)
 
     # get the probability of the assignment for the block the given atom is in
-    def getBlockProbMB(self, atom): 
+    def getBlockProbMB(self, atom): # moved to BPLL
         idxGndAtom = self.gndAtoms[atom].idx       
         self._getBlockProbMB(idxBlock, self._weights())
 
@@ -695,12 +700,12 @@ class Learner(AbstractLearner):
         print "ll =", ll
         return ll
 
-    def _addToBlockDiff(self, idxFormula, idxBlock, diff):
+    def _addToBlockDiff(self, idxFormula, idxBlock, diff): # moved to BPLL
         key = (idxFormula, idxBlock)
         cur = self.blockdiffs.get(key, 0)
         self.blockdiffs[key] = cur + diff        
 
-    def _computeBlockDiffs(self):
+    def _computeBlockDiffs(self): # moved to BPLL
         self.blockdiffs = {}
         for idxPllBlock, (idxGA, block) in enumerate(self.pllBlocks):
             for gndFormula in self.blockRelevantGFs[idxPllBlock]:
@@ -750,7 +755,7 @@ class Learner(AbstractLearner):
                     if diff != 0:
                         self._addToBlockDiff(gndFormula.idxFormula, idxPllBlock, diff)
 
-    def _getBlockProbMB(self, idxPllBlock, wt, relevantGroundFormulas=None):
+    def _getBlockProbMB(self, idxPllBlock, wt, relevantGroundFormulas=None): # moved to BPLL
         idxGA, block = self.pllBlocks[idxPllBlock]
         if idxGA != None:
             return self._getAtomProbMB(idxGA, wt, relevantGroundFormulas)
@@ -775,7 +780,7 @@ class Learner(AbstractLearner):
             #expsums = map(math.exp, sums)
             return float(expsums[idxInBlockTrueone] / fsum(expsums))
 
-    def _getBlockTrueone(self, block):
+    def _getBlockTrueone(self, block): # moved to BPLL
         idxGATrueone = -1
         for i in block:
             if self._getEvidence(i):
@@ -785,7 +790,7 @@ class Learner(AbstractLearner):
         if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
         return idxGATrueone
 
-    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None):
+    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None): # moved to BPLL
         # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
         mustRestoreValues = False
         if idxGATrueone == None:
@@ -854,7 +859,7 @@ class Learner(AbstractLearner):
                 world_values[idxGndAtom] = old_tv
         return map(math.exp, sums)
 
-    def _grad_blockpll(self, wt):
+    def _grad_blockpll(self, wt): # moved to BPLL
         #grad = [mpmath.mpf(0) for i in xrange(len(self.formulas))]        
         grad = numpy.zeros(len(self.formulas), numpy.float64)
         self._calculateBlockProbsMB(wt)
@@ -868,19 +873,19 @@ class Learner(AbstractLearner):
         #print "norm = %f" % norm
         return numpy.array(grad)
 
-    def _calculateBlockProbsMB(self, wt):
+    def _calculateBlockProbsMB(self, wt): # moved to BPLL
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
             #print "recomputing block probabilities...",
             self.blockProbsMB = [self._getBlockProbMB(i, wt, self.blockRelevantGFs[i]) for i in range(len(self.pllBlocks))]
             self.wtsLastBlockProbMBComputation = list(wt)
             #print "done."
 
-    def _blockpll(self, wt):
+    def _blockpll(self, wt): # moved to BPLL
         self._calculateBlockProbsMB(wt)
         probs = map(lambda x: 1e-10 if x == 0 else x, self.blockProbsMB) # prevent 0 probs
         return sum(map(math.log, probs))
 
-    def getBPLL(self):
+    def getBPLL(self): # moved to BPLL
         return self._blockpll(self._weights())
         
     def _negated_blockpll_with_fixation(self, wt, *args):
@@ -921,7 +926,7 @@ class Learner(AbstractLearner):
         print "||grad(f)||", self.grad_opt_norm
         return grad_pll_fixed
 
-    def _getAtomRelevantGroundFormulas(self):
+    def _getAtomRelevantGroundFormulas(self): # moved to PLL
         if PMB_METHOD == 'old':
             self.atomRelevantGFs = self.gndAtomOccurrencesInGFs
         else:
