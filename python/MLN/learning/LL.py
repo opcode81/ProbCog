@@ -201,7 +201,7 @@ class SLL_ISE(LL_ISE):
         self._sampleWorlds(wtFull)
         
         #only here: add evidence world to partition function to guarantee that ll <= 0
-        partition_function = self.partition_function + self.expsums[idxTrainDB]
+        partition_function = self.sampled_Z + self.expsums[idxTrainDB]
         
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
