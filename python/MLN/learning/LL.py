@@ -83,7 +83,7 @@ class LL(AbstractLearner):
 
     def _f(self, wt):
         self._calculateWorldValues(wt)
-        ll = log(self.expsums[self.idxTrainingDB] / self.partition_function)
+        ll = log(self.expsums[self.idxTrainingDB] / (self.partition_function / (len(self.mln.worlds))))
         print "ll =", ll
         return ll
     
@@ -203,6 +203,8 @@ class SLL_ISE(LL_ISE):
         #only here: add evidence world to partition function to guarantee that ll <= 0
         partition_function = self.sampled_Z + self.expsums[idxTrainDB]
         
+        partition_function /= self.mcsatSteps + 1
+        
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
         ll = log(self.expsums[idxTrainDB] / partition_function)
@@ -225,7 +227,9 @@ class SLL_ISE(LL_ISE):
             if idxTrainDB == idxWorld:                
                 grad[idxFormula] += count        
 
-        grad = grad - self.weightedFormulaCount / self.sampled_Z
+        #print "before: ", grad
+        grad = grad - self.weightedFormulaCount / self.mcsatSteps #self.sampled_Z
+        #print "after: ", grad
 
         #TODO: figure out why the cache-reset is necessary to get non-0 weights
         #self.wtsLastSLLWorldSampling = []
@@ -248,7 +252,8 @@ class SLL_ISE(LL_ISE):
             what = [FOL.TrueFalse(True)]      
             self.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
-            self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=1000, verbose=False)
+            mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, verbose=False)
+            print mcsat
         else:
             print "use cached values, do not sample (weights did not change)"
             #use cached values for self.weightedFormulaCount and self.partition_function, do nothing here
@@ -268,13 +273,15 @@ class SLL_ISE(LL_ISE):
                 weights.append(self.currentWeights[gndFormula.idxFormula])
         exp_sum = exp(fsum(weights))
         
-        self.sampled_Z += exp_sum      
-        self.weightedFormulaCount += sampleWorldFormulaCounts * exp_sum
+        self.sampled_Z += 1# exp_sum      
+        self.weightedFormulaCount += sampleWorldFormulaCounts #* exp_sum
         
         if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
 
     def _prepareOpt(self):
+        self.mcsatSteps = self.params.get("mcsatSteps", 1000)
+        
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
         self.mln.worlds.append({"values": self.mln.evidence}) # HACK
