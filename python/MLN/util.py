@@ -23,10 +23,11 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import math
 import re
+import sys
 
 import FOL
+from util import *
 
 # math functions
 
@@ -35,14 +36,18 @@ try:
     mpmath.mp.dps = 80
     from mpmath import exp, fsum
 except:
-    from math import exp, fsum
+    from math import exp
+    try:
+        from math import fsum 
+    except: # not supported in Python 2.5
+        fsum = sum
     sys.stderr.write("Warning: Falling back to standard math module because mpmath is not installed. If overflow errors occur, consider installing mpmath.")
 from math import log, floor, ceil, e, sqrt
 
 def logx(x):
     if x == 0:
         return - 100
-    return math.log(x)
+    return log(x)
 
 
 def stripComments(text):
