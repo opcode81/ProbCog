@@ -89,11 +89,36 @@ class AbstractLearner(object):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         print "_f: wt = ", wt
         return self._f(wt)
+    
+    def __fDummy(self, wt):
+        if not hasattr(self, 'dummyFValue'):
+            self.dummyFValue = 0
+        if not hasattr(self, 'lastFullGradient'):
+            self.dummyFValue = 0
+        else:
+            self.dummyFValue += sum(abs(self.lastFullGradient))
+        print "_f: self.dummyFValue = ", self.dummyFValue
+#        if not hasattr(self, 'lastFullGradient'):
+#            return 0
+#        if not hasattr(self, 'dummyFValue'):
+#            self.dummyFValue = 1
+#        else:
+#            if numpy.any(self.secondlastFullGradient != self.lastFullGradient):
+#                self.dummyFValue += 1
+#            
+#        self.secondlastFullGradient = self.lastFullGradient     
+            
+        print "_f: self.dummyFValue = ", self.dummyFValue
+        
+        return self.dummyFValue
         
     def __grad(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         grad = self._grad(wt)
         print "_grad: wt = %s\ngrad = %s" % (wt, grad)
+        
+        self.lastFullGradient = grad
+        
         return self._projectVectorToNonFixedWeightIndices(grad)
 
     # learn the weights of the mln given the training data previously loaded with combineDB
@@ -123,12 +148,14 @@ class AbstractLearner(object):
     def _prepareOpt(self):
         pass
     
-    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = "bfgs", useGrad = True, **params):
-        print "starting optimization with %s, useGrad = %s" % (optimizer, useGrad)
+    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = "bfgs", useGrad = True, useF = True, **params):
+        print "starting optimization with %s, useGrad = %s, useF = %s" % (optimizer, useGrad, useF)
         #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
         neg_f = lambda wt: -self.__f(wt)
         neg_grad = lambda wt: -self.__grad(wt)
         if not useGrad: neg_grad = None
+        if not useF: neg_f = lambda wt: -self.__fDummy(wt)
+        
         if optimizer == "bfgs":
             wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
             print "optimization done with %s..." % optimizer
