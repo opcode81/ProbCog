@@ -459,7 +459,8 @@ class MLN(object):
         s = strFormula(gndAtom)
         for se in self.softEvidence: # TODO optimize
             if se["expr"] == s:
-                softEvidence = se["p"] # if worldValues[gndAtom.idx] else 1.0 - se["p"]       # TODO allSoft currently unsupported
+                #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
+                softEvidence = se["p"] if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se["p"]       # TODO allSoft currently unsupported
                 #print softEvidence , se["p"] , worldValues[gndAtom.idx]
                 return softEvidence
         return 1.0 if worldValues[gndAtom.idx] else 0.0
