@@ -5,7 +5,7 @@ class InferenceMethods:
     _byName = dict([(x, y) for (y, x) in _names.iteritems()])
     
 class ParameterLearningMeasures:
-    LL, PLL, BPLL, PLL_fixed, BPLL_fixed, NPL_fixed, LL_ISE, PLL_ISE, LL_ISEWW, SLL_ISE = range(10)
+    LL, PLL, BPLL, PLL_fixed, BPLL_fixed, NPL_fixed, LL_ISE, PLL_ISE, LL_ISEWW, SLL_ISE, DSLL_ISE = range(11)
     _names = {LL: "log-likelihood",
               PLL: "pseudo-log-likelihood",
               BPLL: "pseudo-log-likelihood with blocking",
@@ -15,7 +15,8 @@ class ParameterLearningMeasures:
               LL_ISE: "log-likelihood with independent soft evidence and weighting of formulas",
               PLL_ISE: "pseudo-log-likelihood with independent soft evidence",
               LL_ISEWW: "log-likelihood with independent soft evidence and weighting of worlds",
-              SLL_ISE: "sampled log-likelihood with independent soft evidence and weighting of formulas" # sampled worlds for Z and for gradient
+              SLL_ISE: "sampled log-likelihood with independent soft evidence and weighting of formulas", # sampled worlds for Z and for gradient
+              DSLL_ISE: "double sampled log-likelihood with independent soft evidence and weighting of formulas" # sampled worlds for evidence world in F and for Z
     }
-    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", PLL_fixed: "PLL_fixed", BPLL_fixed: "BPLL_fixed", NPL_fixed: "NPL_fixed", LL_ISE : "LL_ISE", PLL_ISE : "PLL_ISE", LL_ISEWW : "LL_ISEWW", SLL_ISE: "SLL_ISE"}
+    _shortnames = {LL: "LL", PLL: "PLL", BPLL: "BPLL", PLL_fixed: "PLL_fixed", BPLL_fixed: "BPLL_fixed", NPL_fixed: "NPL_fixed", LL_ISE : "LL_ISE", PLL_ISE : "PLL_ISE", LL_ISEWW : "LL_ISEWW", SLL_ISE: "SLL_ISE", DSLL_ISE: "DSLL_ISE"}
     _byName = dict([(x, y) for (y, x) in _names.iteritems()])
