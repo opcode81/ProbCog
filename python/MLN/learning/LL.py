@@ -200,10 +200,16 @@ class SLL_ISE(LL_ISE):
         print "SLL_ISE: sample worlds:"
         self._sampleWorlds(wtFull)
         
-        #only here: add evidence world to partition function to guarantee that ll <= 0
-        partition_function = self.sampled_Z + self.expsums[idxTrainDB]
-        
-        partition_function /= self.mcsatSteps + 1
+        #if evidence world does not occur in the samples, add it here:
+        # in the soft case, it is never included as all normalization worlds are hard
+        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
+            #only here: add evidence world to partition function to guarantee that ll <= 0
+            partition_function =  self.sampled_Z + self.expsums[idxTrainDB] #200000 + self.expsums[idxTrainDB]#
+            partition_function /= self.mcsatSteps + 1
+            print "_f: evidence world added to normalization"
+        else:
+            partition_function =  self.sampled_Z
+            partition_function /= self.mcsatSteps
         
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
@@ -228,7 +234,7 @@ class SLL_ISE(LL_ISE):
                 grad[idxFormula] += count        
 
         #print "before: ", grad
-        grad = grad - self.weightedFormulaCount / self.mcsatSteps #self.sampled_Z
+        grad = grad - self.formulaCount / self.mcsatSteps #self.sampled_Z
         #print "after: ", grad
 
         #TODO: figure out why the cache-reset is necessary to get non-0 weights
@@ -246,7 +252,9 @@ class SLL_ISE(LL_ISE):
         if  ('wtsLastSLLWorldSampling' not in dir(self)) or numpy.any(self.wtsLastSLLWorldSampling != wtFull):
             self.wtsLastSLLWorldSampling = wtFull.copy()
             
+            self.formulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
             self.weightedFormulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
+            self.worldsSampled = {} #hashmap with the worlds already sampled
             self.currentWeights = wtFull
             self.sampled_Z = 0
             what = [FOL.TrueFalse(True)]      
@@ -254,6 +262,7 @@ class SLL_ISE(LL_ISE):
             print "calling MCSAT with weights:", wtFull
             mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, verbose=False)
             print mcsat
+            print "number of disctinct samples:", len(self.worldsSampled)
         else:
             print "use cached values, do not sample (weights did not change)"
             #use cached values for self.weightedFormulaCount and self.partition_function, do nothing here
@@ -273,8 +282,17 @@ class SLL_ISE(LL_ISE):
                 weights.append(self.currentWeights[gndFormula.idxFormula])
         exp_sum = exp(fsum(weights))
         
-        self.sampled_Z += 1# exp_sum      
-        self.weightedFormulaCount += sampleWorldFormulaCounts #* exp_sum
+        #do not add duplicate worlds:
+        if tuple(sampleWorld) not in self.worldsSampled:
+            self.sampled_Z += exp_sum     
+            self.worldsSampled[tuple(sampleWorld)] = True #add entry in hashmap
+        #else:
+            #print "discarded duplicate world:", hash(tuple(sampleWorld))
+         
+        self.formulaCount += sampleWorldFormulaCounts
+        self.weightedFormulaCount += sampleWorldFormulaCounts * exp_sum #TODO: remove?!
+        
+        
         
         if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
