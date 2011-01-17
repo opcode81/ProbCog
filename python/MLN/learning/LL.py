@@ -50,6 +50,7 @@ class LL(AbstractLearner):
             return
 
         self.expsums = [0 for i in range(len(self.mln.worlds))]
+
         for ((idxWorld, idxFormula), count) in self.counts.iteritems():
             self.expsums[idxWorld] += wts[idxFormula] * count
         
@@ -120,8 +121,8 @@ class LL_ISE(SoftEvidenceLearner, LL):
     def _prepareOpt(self):
         # HACK set soft evidence variables to true in evidence
         # TODO allsoft currently unsupported
-        #for se in self.mln.softEvidence:
-        #    self.mln._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
+        for se in self.mln.softEvidence:
+            self.mln._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
 
         LL._prepareOpt(self)
         
@@ -183,6 +184,70 @@ class LL_ISE(SoftEvidenceLearner, LL):
         #normalizationWorldsMeanCounts /= normalizationWorldCounter
         #for j, f in enumerate(self.mln.formulas):
         #    print " %f %s" % (normalizationWorldsMeanCounts[j], strFormula(self.mln.formulas[j]))        
+    
+    
+class LL_ISEWW(SoftEvidenceLearner, LL):
+    def __init__(self, mln):
+        LL.__init__(self, mln)
+        SoftEvidenceLearner.__init__(self, mln)   
+
+    
+    def _f(self, wt):
+
+        self._calculateWorldValues(wt) #only to calculate partition function here:
+        #print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
+        #calculate only once as they do not change
+        if False == hasattr(self, 'worldProbabilities'):
+            self.worldProbabilities = {}
+            #TODO: or (opimized) generate only world by flipping the soft evidences
+            #discard all world where at least one non-soft evidence is different from the generated
+            for idxWorld, world in enumerate(self.mln.worlds):
+                worldProbability = 1
+                discardWorld = False
+                for gndAtom in self.mln.gndAtoms.values():
+                    if world["values"][gndAtom.idx] != self.mln.worlds[self.idxTrainingDB]["values"][gndAtom.idx]:
+                        
+                        #check if it is soft:
+                        isSoft = False
+                        s = strFormula(gndAtom)
+                        for se in self.mln.softEvidence:
+                            if se["expr"] == s:
+                                isSoft = True
+                                break
+                            
+                        if False == isSoft:
+                            discardWorld = True
+                            break
+                if discardWorld: 
+                    print "discarded world", s, idxWorld#, world["values"][gndAtom.idx] , self.worlds[self.idxTrainingDB]["values"][gndAtom.idx]
+                    continue
+                
+                for se in self.mln.softEvidence:
+                    evidenceValue = self.mln._getSoftEvidence(self.mln.gndAtoms[se["expr"]], world["values"]) 
+                    
+                    worldProbability *= evidenceValue    
+                    print "  ", "evidence, gndAtom", evidenceValue, se["expr"]#, self.evidence, world["values"]
+                    
+                if worldProbability > 0:
+                    self.worldProbabilities[idxWorld] = worldProbability
+        
+        evidenceWorldSum = 0
+        for idxWorld, world in enumerate(self.mln.worlds):
+                
+            if idxWorld in self.worldProbabilities:
+                print "world:", idxWorld, "exp(worldWeights)", self.expsums[idxWorld], "worldProbability", self.worldProbabilities[idxWorld]
+                evidenceWorldSum += self.expsums[idxWorld] * self.worldProbabilities[idxWorld]
+                  
+        print "wt =", wt
+        print "evidenceWorldSum, self.partition_function", evidenceWorldSum, self.partition_function
+        ll = log(evidenceWorldSum / self.partition_function)
+        
+        print "ll_iseww =", ll
+        print 
+        return ll
+    
+    def _grad(self, wt):
+        raise Exception("Mode LL_ISEWW needs useGrad=False as gradient function is not implemented")
     
 
 class SLL_ISE(LL_ISE):

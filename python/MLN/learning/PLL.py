@@ -264,9 +264,9 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
                         break
                     
                 if isSoftEvidence:
-                    self._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+                    self.mln._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
                     cnt2 = self._getTruthDegreeGivenEvidence(gndFormula)
-                    self._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], old_tv)
+                    self.mln._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], old_tv)
                 else:
                     old_tv = self.mln._getEvidence(idxGndAtom)
                     self.mln._setTemporaryEvidence(idxGndAtom, not old_tv)
