@@ -10,15 +10,24 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.streams.Exporter;
 import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 /**
  * Importer for the Ergo file format (http://graphmod.ics.uci.edu/group/Ergo_file_format)
  * @author jain
  */
-public class Converter_ergo implements edu.ksu.cis.bnj.ver3.streams.Importer {
+public class Converter_ergo implements edu.ksu.cis.bnj.ver3.streams.Importer, Exporter {
 
+	protected boolean isUAIstyle = false;
+	
 	public String getDesc() {		
 		return "Ergo";
 	}
@@ -75,7 +84,7 @@ public class Converter_ergo implements edu.ksu.cis.bnj.ver3.streams.Importer {
 			for(int i = 0; i < numVars; i++) {
 				outcomes[i] = readLineOfStrings(br);
 				if(outcomes[i].length != domSizes[i])
-					throw new IOException("Unexpected domain size");
+					throw new IOException(String.format("Unexpected domain size: Got %d labels but domain size is %d for variable %s", outcomes[i].length, domSizes[i], names[i]));
 			}
 			
 			// build the network
@@ -134,5 +143,70 @@ public class Converter_ergo implements edu.ksu.cis.bnj.ver3.streams.Importer {
 		for(int j = 0; j < elems.length; j++)
 			cpf[i++] = Double.parseDouble(elems[j]);
 		return elems.length;
+	}
+
+	@Override
+	public void save(BeliefNetwork bn, OutputStream os) {
+		BeliefNetworkEx bnex = new BeliefNetworkEx(bn);
+		PrintStream out = new PrintStream(os);
+		if(isUAIstyle) out.println("BAYES");
+		// number of nodes
+		BeliefNode[] nodes = bn.getNodes();
+		out.println(nodes.length);
+		// domain sizes
+		for(int i = 0; i < nodes.length; i++)
+			out.printf("%d ", nodes[i].getDomain().getOrder());
+		out.println();
+		// parents
+		for(BeliefNode n : nodes) {
+			BeliefNode[] domprod = n.getCPF().getDomainProduct();
+			out.printf("%d ", domprod.length-1);
+			for(int i = 1; i <  domprod.length; i++)
+				out.printf("%d ", bnex.getNodeIndex(domprod[i]));
+			out.println();
+		}
+		// CPTs
+		if(!isUAIstyle) 
+			out.println("\n/* Probabilities */");
+		else
+			out.println();
+		for(BeliefNode n : nodes) {
+			CPF cpf = n.getCPF();
+			out.println(n.getCPF().size());
+			writeTable(out, cpf, 1, new int[cpf.getDomainProduct().length]);
+			out.println();
+		}
+		if(!isUAIstyle) {
+			// variable names
+			if(!isUAIstyle) out.println("\n/* Names   */");
+			for(BeliefNode n : nodes)
+				out.println(n.getName());
+			// domain entry names
+			out.println("\n/* Labels  */");
+			for(BeliefNode n : nodes) {
+				int order = n.getDomain().getOrder();
+				for(int i = 0; i < order; i++) {
+					out.printf("%s ", n.getDomain().getName(i));
+				}	
+				out.println();
+			}
+		}
+	}
+	
+	public void writeTable(PrintStream out, CPF cpf, int i, int[] addr) {
+		BeliefNode[] domprod = cpf.getDomainProduct();
+		if(i == domprod.length) {
+			for(int d = 0; d < domprod[0].getDomain().getOrder(); d++) {
+				addr[0] = d;
+				out.printf(" %s", Double.toString(cpf.getDouble(addr)));
+			}
+			out.println();
+			return;
+		}
+		int order = domprod[i].getDomain().getOrder();
+		for(int d = 0; d < order; d++) {
+			addr[i] = d;
+			writeTable(out, cpf, i+1, addr);
+		}
 	}
 }
