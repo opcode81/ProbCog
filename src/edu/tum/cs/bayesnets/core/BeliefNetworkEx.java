@@ -40,6 +40,7 @@ import edu.ksu.cis.util.graph.core.Vertex;
 import edu.tum.cs.bayesnets.core.io.Converter_ergo;
 import edu.tum.cs.bayesnets.core.io.Converter_hugin;
 import edu.tum.cs.bayesnets.core.io.Converter_pmml;
+import edu.tum.cs.bayesnets.core.io.Converter_uai;
 import edu.tum.cs.bayesnets.core.io.Converter_xmlbif;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
 
@@ -661,7 +662,10 @@ public class BeliefNetworkEx {
 		iopl.addPlugin(null, hugin);
 		// Ergo
 		Converter_ergo ergo = new Converter_ergo();
-		iopl.addPlugin(ergo, null);
+		iopl.addPlugin(ergo, ergo);
+		// UAI
+		Converter_uai uai = new Converter_uai();
+		iopl.addPlugin(null, uai);
 	}
 	
 	/**

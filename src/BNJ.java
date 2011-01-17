@@ -24,12 +24,14 @@ public class BNJ {
 				else
 					files.add(args[i]);
 			}
-			
+
+			// load plugins if given directory
 			if(pluginDir != null)
 				IOPlugInLoader.getInstance().loadPlugins(pluginDir);
+			// NOTE: show() loads default plugins
 			
 			if(files.size() == 0) {
-				new BeliefNetworkEx().show();			
+				new BeliefNetworkEx().show(); 			
 			}
 			else {
 				for(String filename : files) {

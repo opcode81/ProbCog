@@ -642,7 +642,11 @@ public class Database implements IParameterHandler {
 
 		@Override
 		public String toString() {
-			return String.format("%s = %s", Signature.formatVarName(functionName, params), value);
+			return String.format("%s = %s", getName(), value);
+		}
+		
+		public String getName() {
+			return Signature.formatVarName(functionName, this.params); 
 		}
 	}
 
