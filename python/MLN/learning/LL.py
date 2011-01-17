@@ -253,7 +253,6 @@ class SLL_ISE(LL_ISE):
             self.wtsLastSLLWorldSampling = wtFull.copy()
             
             self.formulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
-            self.weightedFormulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
             self.worldsSampled = {} #hashmap with the worlds already sampled
             self.currentWeights = wtFull
             self.sampled_Z = 0
@@ -290,7 +289,6 @@ class SLL_ISE(LL_ISE):
             #print "discarded duplicate world:", hash(tuple(sampleWorld))
          
         self.formulaCount += sampleWorldFormulaCounts
-        self.weightedFormulaCount += sampleWorldFormulaCounts * exp_sum #TODO: remove?!
         
         
         
