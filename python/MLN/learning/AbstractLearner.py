@@ -153,11 +153,11 @@ class AbstractLearner(object):
         #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
         neg_f = lambda wt: -self.__f(wt)
         neg_grad = lambda wt: -self.__grad(wt)
-        if not useGrad: neg_grad = None
+        if not useGrad or not self.useGrad(): neg_grad = None
         if not useF: neg_f = lambda wt: -self.__fDummy(wt)
         
         if optimizer == "bfgs":
-            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt,epsilon=0.001, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
             print "optimization done with %s..." % optimizer
             print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
         elif optimizer == "cg":
@@ -177,6 +177,9 @@ class AbstractLearner(object):
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         #print "allvecs", allvecs
         
+        
+    def useGrad(self):
+        return True
 
 
 from softeval import truthDegreeGivenSoftEvidence
