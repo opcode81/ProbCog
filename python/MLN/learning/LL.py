@@ -247,8 +247,10 @@ class LL_ISEWW(SoftEvidenceLearner, LL):
         return ll
     
     def _grad(self, wt):
-        raise Exception("Mode LL_ISEWW needs useGrad=False as gradient function is not implemented")
+        raise Exception("Mode LL_ISEWW: gradient function is not implemented")
     
+    def useGrad(self):
+        return False    
 
 class SLL_ISE(LL_ISE):
     def __init__(self, mln):
@@ -361,7 +363,7 @@ class SLL_ISE(LL_ISE):
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
 
     def _prepareOpt(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 10000)
+        self.mcsatSteps = self.params.get("mcsatSteps", 1000)
         
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
@@ -373,9 +375,15 @@ class SLL_ISE(LL_ISE):
         print "  %d counts recorded." % len(self.counts)
         
         
-class DSLL_ISE(SLL_ISE):
+class DSLL_ISEWW(SLL_ISE):
     def __init__(self, mln):
         SLL_ISE.__init__(self, mln)
+        
+    def _prepareOpt(self):
+        LL._prepareOpt(self)
+    
+    def _computeCounts(self):
+        LL._computeCounts(self)
     
     def _f(self, wt):
         
@@ -437,10 +445,13 @@ class DSLL_ISE(SLL_ISE):
             print "sampling evidence worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
     
     def _grad(self, wt):
-        raise Exception("Mode LL_ISEWW needs useGrad=False as gradient function is not implemented")
+        raise Exception("Mode DSLL_ISEWW: gradient function is not implemented")
+    
+    def useGrad(self):
+        return False
     
     def _prepareOpt(self):
-        self.mcsatStepsEvidenceWorld = self.params.get("mcsatStepsEvidenceWorld", 100000)
+        self.mcsatStepsEvidenceWorld = self.params.get("mcsatStepsEvidenceWorld", 10000)
         SLL_ISE._prepareOpt(self)
         
         
