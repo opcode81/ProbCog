@@ -398,7 +398,12 @@ class DSLL_ISEWW(SLL_ISE):
         self.mln.setWeights(wtFull)
         print "calling MCSAT with weights:", wtFull
         evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-        mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, maxSteps=self.mcsatStepsEvidenceWorld, verbose=False)
+        #print "self.mln.getEvidenceDatabase()", self.mln.getEvidenceDatabase()
+        print evidenceString
+        print 
+        print self.mln.softEvidence
+        mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, 
+                                    maxSteps=self.mcsatStepsEvidenceWorld, verbose=True, details =True)
         print mcsat     
         #sample callback calculates self.sampledExpSum
         
