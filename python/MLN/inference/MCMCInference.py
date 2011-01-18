@@ -25,6 +25,8 @@
 
 import random
 
+import copy
+
 from Inference import *
 
 # abstract super class for Markov chain Monte Carlo-based inference
@@ -63,6 +65,9 @@ class MCMCInference(Inference):
                     state[idxGA] = bool(chosen)
 
     def _readEvidence(self, conjunction):
+        #save old evidence as evidence is changed in here #HACK
+        oldEvidence = copy.copy(self.mln.evidence)
+        
         # set evidence
         self._setEvidence(conjunction)
         # build up data structures
@@ -87,6 +92,8 @@ class MCMCInference(Inference):
             else:
                 if self.mln._getEvidence(idxGA, False) != None:
                     self.evidenceBlocks.append(idxBlock)
+
+        self.mln.evidence = oldEvidence #reset old evidence
 
     class Chain:
         def __init__(self, inferenceObject, queries):
