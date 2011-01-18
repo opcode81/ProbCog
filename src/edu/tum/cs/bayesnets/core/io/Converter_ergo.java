@@ -160,9 +160,9 @@ public class Converter_ergo implements edu.ksu.cis.bnj.ver3.streams.Importer, Ex
 		// parents
 		for(BeliefNode n : nodes) {
 			BeliefNode[] domprod = n.getCPF().getDomainProduct();
-			out.printf("%d ", domprod.length-1);
+			out.printf("%d", domprod.length-1);
 			for(int i = 1; i <  domprod.length; i++)
-				out.printf("%d ", bnex.getNodeIndex(domprod[i]));
+				out.printf("\t%d", bnex.getNodeIndex(domprod[i]));
 			out.println();
 		}
 		// CPTs

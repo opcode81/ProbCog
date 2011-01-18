@@ -219,8 +219,10 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	}
 	
 	protected abstract SampledDistribution _infer() throws Exception;
+	protected void initialize() throws Exception {}
 	
 	public SampledDistribution infer() throws Exception {
+		initialize();
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		SampledDistribution ret = _infer();		

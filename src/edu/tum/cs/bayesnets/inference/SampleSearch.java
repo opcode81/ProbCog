@@ -15,11 +15,43 @@ import edu.tum.cs.util.Stopwatch;
 public class SampleSearch extends Sampler {
 	protected int[] nodeOrder;
 	protected int currentStep;
+	protected ImportanceFunction importanceFunction = ImportanceFunction.Prior;
+	protected SampledDistribution importanceDist;
+	protected int importanceFunctionSteps = 2;
+	
+	enum ImportanceFunction {
+		Prior, BP, IJGP;
+	}
 	
 	public SampleSearch(BeliefNetworkEx bn) throws Exception {
 		super(bn);
+				
+		this.paramHandler.add("importanceFunction", "setImportanceFunction");
+		this.paramHandler.add("ifSteps", "setImportanceFunctionSteps");
+		this.paramHandler.add("bpSteps", "setImportanceFunctionSteps");
+		this.paramHandler.add("ijgpSteps", "setImportanceFunctionSteps");
+	}
+	
+	@Override
+	protected void initialize() throws Exception {
 		// TODO should guarantee for BLNs that formula nodes appear as early as possible
 		nodeOrder = computeNodeOrdering();
+		
+		if(importanceFunction != ImportanceFunction.Prior) {
+			if(verbose) System.out.println("computing importance function with " + importanceFunction + "...");
+			Sampler s = importanceFunction == ImportanceFunction.BP ? new BeliefPropagation(this.bn) : new IJGP(bn);
+			s.setNumSamples(importanceFunctionSteps);
+			s.setEvidence(this.evidenceDomainIndices);
+			importanceDist = s.infer();
+		}
+	}
+	
+	public void setImportanceFunction(String name) {
+		importanceFunction = ImportanceFunction.valueOf(name);
+	}
+	
+	public void setImportanceFunctionSteps(int steps) {
+		this.importanceFunctionSteps = steps;
 	}
 	
 	protected int[] computeNodeOrdering() throws Exception {
@@ -149,6 +181,8 @@ public class SampleSearch extends Sampler {
 		return s;
 	}
 	
+	
+	
 	protected class SampledAssignment {
 		public int domIdx;
 		public double probability;
@@ -163,9 +197,8 @@ public class SampleSearch extends Sampler {
 	 * @param node  the node for which to sample a value
 	 * @param nodeDomainIndices  array of domain indices for all nodes in the network; the values for the parents of 'node' must be set already
 	 * @return  the index of the domain element of 'node' that is sampled, or -1 if sampling is impossible because all entries in the relevant column are 0
-	 * TODO should use loopy bp/ijgp to initialize importance distributions rather than sampling from prior  
 	 */
-	protected SampledAssignment sampleForward(BeliefNode node, int[] nodeDomainIndices, boolean[] excluded) {
+	protected SampledAssignment sampleForwardPrior(BeliefNode node, int[] nodeDomainIndices, boolean[] excluded) {
 		CPF cpf = node.getCPF();
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		int[] addr = new int[domProd.length];
@@ -194,5 +227,41 @@ public class SampleSearch extends Sampler {
 			return null;
 		int domIdx = sample(cpt_entries, sum, generator);
 		return new SampledAssignment(domIdx, cpt_entries[domIdx]/sum);
+	}
+	
+	protected SampledAssignment sampleForward(BeliefNode node, int[] nodeDomainIndices, boolean[] excluded) {
+		if(this.importanceDist == null)
+			return sampleForwardPrior(node, nodeDomainIndices, excluded);
+		
+		CPF cpf = node.getCPF();
+		BeliefNode[] domProd = cpf.getDomainProduct();
+		int[] addr = new int[domProd.length];
+		// get the addresses of the first two relevant fields and the difference between them
+		for(int i = 1; i < addr.length; i++)
+			addr[i] = nodeDomainIndices[this.nodeIndices.get(domProd[i])];		
+		addr[0] = 0; // (the first element in the index into the domain of the node we are sampling)
+		int realAddr = cpf.addr2realaddr(addr);
+		addr[0] = 1;
+		int diff = cpf.addr2realaddr(addr) - realAddr; // diff is the address difference between two consecutive entries in the relevant column
+		// get probabilities for outcomes
+		double[] samplingDist = importanceDist.getDistribution(getNodeIndex(node));
+		double sum = 0;
+		for(int i = 0; i < samplingDist.length; i++) {
+			double cptValue = cpf.getDouble(realAddr);
+			if(excluded[i] || cptValue == 0.0)
+				samplingDist[i] = 0.0;
+			sum += samplingDist[i];
+			realAddr += diff;
+		}
+		// if the column contains only zeros, it is an impossible case -> cannot sample
+		if(sum == 0)
+			return null;
+		int domIdx = sample(samplingDist, sum, generator);
+		return new SampledAssignment(domIdx, samplingDist[domIdx]/sum);
+	}
+
+	@Override
+	public String getAlgorithmName() {
+		return super.getAlgorithmName() + "[" + importanceFunction + "]";
 	}
 }
