@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Vector;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,6 +11,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.bayesnets.core.BNDatabase;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.Algorithm;
 import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
@@ -148,32 +150,16 @@ public class BNinfer {
 			// read evidence database
 			int[] evidenceDomainIndices = new int[nodes.length];
 			Arrays.fill(evidenceDomainIndices, -1);
-			for(int i = 0; i < nodes.length; i++) {
-				// read file content
-				String dbContent = FileUtil.readTextFile(dbFile);				
-				// remove comments
-				Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
-				Matcher matcher = comments.matcher(dbContent);
-				dbContent = matcher.replaceAll("");
-				// read lines
-				BufferedReader br = new BufferedReader(new StringReader(dbContent));
-				String line;
-				while((line = br.readLine()) != null) {
-					line = line.trim();			
-					if(line.length() > 0) {
-						String[] entry = line.split("\\s*=\\s*");
-						if(entry.length != 2)
-							throw new Exception("Incorrectly formatted evidence entry: " + line);
-						BeliefNode node = bn.getNode(entry[0]);
-						if(node == null)
-							throw new Exception("Evidence node '" + entry[0] + "' not found in model.");
-						Discrete dom = (Discrete)node.getDomain();
-						int domidx = dom.findName(entry[1]);
-						if(domidx == -1)
-							throw new Exception("Value '" + entry[1] + "' not found in domain of node '" + entry[0] + "'");
-						evidenceDomainIndices[bn.getNodeIndex(node)] = domidx;
-					}
-				}
+			BNDatabase db = new BNDatabase(new File(dbFile));
+			for(Entry<String,String> entry : db.getEntries()) {
+				BeliefNode node = bn.getNode(entry.getKey());
+				if(node == null)
+					throw new Exception("Evidence node '" + entry.getKey() + "' not found in model.");
+				Discrete dom = (Discrete)node.getDomain();
+				int domidx = dom.findName(entry.getValue());
+				if(domidx == -1)
+					throw new Exception("Value '" + entry.getValue() + "' not found in domain of node '" + entry.getKey() + "'");
+				evidenceDomainIndices[bn.getNodeIndex(node)] = domidx;
 			}
 			
 			// read reference distribution if any
