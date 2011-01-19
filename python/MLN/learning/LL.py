@@ -187,16 +187,12 @@ class LL_ISE(SoftEvidenceLearner, LL):
         #    print " %f %s" % (normalizationWorldsMeanCounts[j], strFormula(self.mln.formulas[j]))        
     
     
-class LL_ISEWW(SoftEvidenceLearner, LL):
+class Abstract_ISEWW(SoftEvidenceLearner, LL):
     def __init__(self, mln):
         LL.__init__(self, mln)
-        SoftEvidenceLearner.__init__(self, mln)   
-
-    
-    def _f(self, wt):
-
-        self._calculateWorldValues(wt) #only to calculate partition function here:
-        #print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
+        SoftEvidenceLearner.__init__(self, mln)     
+        
+    def _calculateWorldProbabilities(self):  
         #calculate only once as they do not change
         if False == hasattr(self, 'worldProbabilities'):
             self.worldProbabilities = {}
@@ -231,7 +227,23 @@ class LL_ISEWW(SoftEvidenceLearner, LL):
                     
                 if worldProbability > 0:
                     self.worldProbabilities[idxWorld] = worldProbability
-        
+                    
+    def _grad(self, wt):
+        raise Exception("Mode LL_ISEWW: gradient function is not implemented")
+    
+    def useGrad(self):
+        return False   
+    
+class LL_ISEWW(Abstract_ISEWW):
+    def __init__(self, mln):
+        Abstract_ISEWW.__init__(self, mln)
+    
+    def _f(self, wt):
+        self._calculateWorldValues(wt) #only to calculate partition function here:
+        #print "worlds[idxTrainDB][\"sum\"] / Z", self.worlds[idxTrainDB]["sum"] , self.partition_function
+        self._calculateWorldProbabilities()
+
+        #old code, maximizes most probable world (see notes on paper)
         evidenceWorldSum = 0
         for idxWorld, world in enumerate(self.mln.worlds):
                 
@@ -241,17 +253,46 @@ class LL_ISEWW(SoftEvidenceLearner, LL):
                   
         print "wt =", wt
         print "evidenceWorldSum, self.partition_function", evidenceWorldSum, self.partition_function
-        ll = log(evidenceWorldSum / self.partition_function)
+        ll = log(evidenceWorldSum / self.partition_function)    
         
-        print "ll_iseww =", ll
+        print 
+        return ll
+
+    
+class SE_ISEWW(Abstract_ISEWW):    
+    def __init__(self, mln):
+        Abstract_ISEWW.__init__(self, mln)
+        
+    def _f(self, wt):
+        self._calculateWorldValues(wt) #only to calculate partition function here:
+
+        self._calculateWorldProbabilities()
+        
+        #new idea: minimize squared error of world prob. given by weights and world prob given by soft evidence
+        squareError = 0
+        for idxWorld, world in enumerate(self.mln.worlds):
+            
+            if idxWorld in self.worldProbabilities: #lambda_x
+                worldProbability = self.worldProbabilities[idxWorld]
+                
+            #just minimize the error of worlds with prob > 0:
+            #else: 
+            #    worldProbability = 0
+                
+            #sqr(world prob. given weights - world prob given soft evidence)
+                worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
+                squareError += (worldProbGivenWeights - worldProbability)**2
+                print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
+                  
+        print "wt =", wt
+        print "squareError:", squareError
+        ll = -squareError       
+        
         print 
         return ll
     
-    def _grad(self, wt):
-        raise Exception("Mode LL_ISEWW: gradient function is not implemented")
-    
-    def useGrad(self):
-        return False    
+
+
 
 class SLL_ISE(LL_ISE):
     def __init__(self, mln):
