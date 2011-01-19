@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets.inference;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.bayesnets.core.BNDatabase;
 import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.inference.BasicSampledDistribution;
@@ -20,6 +22,7 @@ import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
@@ -295,8 +298,14 @@ public class BLNinfer implements IParameterHandler {
 			gbln.getGroundNetwork().show();
 		}
 		if(saveInstance) {
+			// save Bayesian network
 			String baseName = networkFile.substring(0, networkFile.lastIndexOf('.'));
 			gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
+			// save evidence data
+			BNDatabase bndb = new BNDatabase();
+			for(Variable var : db.getEntries())
+				bndb.add(var.getName(), var.value);
+			bndb.write(new PrintStream(new File(baseName + ".instance.bndb")));
 		}
 		
 		// read reference distribution if any
