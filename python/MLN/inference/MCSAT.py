@@ -84,7 +84,7 @@ class MCSAT(MCMCInference):
             se["idxClauseNegative"] = idxClause
             idxClause += 1
     
-    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None):
+    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
@@ -100,6 +100,7 @@ class MCSAT(MCMCInference):
         sampleCallback: function that is called for every sample with the sample and step number as parameters
         softEvidence: if None, use soft evidence from MLN, otherwise use given dictionary of soft evidence
         '''
+        
 
         if softEvidence is None:
             self.softEvidence = self.mln.softEvidence
@@ -137,6 +138,8 @@ class MCSAT(MCMCInference):
             print "evidence blocks: %d" % len(self.evidenceBlocks)
             print "block exclusions: %d" % len(self.blockExclusions)
             print "initializing %d chain(s)..." % numChains
+            
+
         # create chains
         chainGroup = MCMCInference.ChainGroup(self)
         self.chainGroup = chainGroup
@@ -173,8 +176,16 @@ class MCSAT(MCMCInference):
         if debug: print
         if infoInterval is None: infoInterval = {True:1, False:10}[debug]
         if resultsInterval is None: resultsInterval = {True:1, False:50}[debug]
+        
+        
+        if len(self.softEvidence) == 0 and maxSoftEvidenceDeviation is not None:
+            maxSoftEvidenceDeviation = None
+            print "no soft evidence -> setting maxSoftEvidenceDeviation to None, terminate after maxSteps=", maxSteps
+        if maxSoftEvidenceDeviation is not None:
+            print "iterate until maxSoftEvidenceDeviation <", maxSoftEvidenceDeviation        
+        
         self.step = 1
-        while self.step <= maxSteps:
+        while maxSoftEvidenceDeviation is not None or self.step <= maxSteps:
             # take one step in each chain
             for chain in chainGroup.chains:
                 if debug: 
@@ -184,6 +195,7 @@ class MCSAT(MCMCInference):
                 # update chain counts
                 chain.update()
                 # print progress
+                
                 if details and self.step % infoInterval == 0:
                     print "step %d (%d constraints were to be satisfied), time elapsed: %s" % (self.step, numSatisfied, self._getElapsedTime()[1]),
                     if referenceResults is not None:
@@ -211,6 +223,14 @@ class MCSAT(MCMCInference):
                     if debug: print
                 if keepResultsHistory: self._extendResultsHistory(results)
             self.step += 1
+            
+            
+            #termination condition
+            if maxSoftEvidenceDeviation is not None:
+                dev = self._getProbConstraintsDeviation()
+                if dev["pc_dev_max"] < maxSoftEvidenceDeviation:
+                    break
+            
         # get results
         self.step -= 1
         results = chainGroup.getResults()

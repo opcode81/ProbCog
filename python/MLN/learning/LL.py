@@ -84,7 +84,8 @@ class LL(AbstractLearner):
 
     def _f(self, wt):
         self._calculateWorldValues(wt)
-        ll = log(self.expsums[self.idxTrainingDB] / (self.partition_function / (len(self.mln.worlds))))
+        #ll = log(self.expsums[self.idxTrainingDB] / (self.partition_function / (len(self.mln.worlds))))
+        ll = log(self.expsums[self.idxTrainingDB] / self.partition_function)
         print "ll =", ll
         return ll
     
@@ -326,7 +327,8 @@ class SLL_ISE(LL_ISE):
             what = [FOL.TrueFalse(True)]      
             self.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
-            mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, verbose=False)
+            mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
+                                        verbose=True, details =True, infoInterval=100, resultsInterval=100)
             print mcsat
             print "number of disctinct samples:", len(self.worldsSampled)
         else:
@@ -403,15 +405,18 @@ class DSLL_ISEWW(SLL_ISE):
         print 
         print self.mln.softEvidence
         mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, 
-                                    maxSteps=self.mcsatStepsEvidenceWorld, verbose=True, details =True)
-        print mcsat     
+                                    maxSteps=self.mcsatStepsEvidenceWorld, verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
+                                    maxSoftEvidenceDeviation=0.05)
+        print mcsat    
         #sample callback calculates self.sampledExpSum
-        
+        print "sampleEvidenceSteps:", self.sampleEvidenceSteps
         
         print 
         #sample worlds for Z
-        print "SLL_ISE: sample worlds:"
+        print "DSLL_ISEWW: sample worlds for Z:"
         self._sampleWorlds(wtFull)
+        
+        self.sampledExpSum /= self.sampleEvidenceSteps
         
         #if evidence world does not occur in the samples, add it here:
         # in the soft case, it is never included as all normalization worlds are hard
@@ -444,7 +449,9 @@ class DSLL_ISEWW(SLL_ISE):
                 weights.append(self.currentWeights[gndFormula.idxFormula])
         exp_sum = exp(fsum(weights))
 
-        self.sampledExpSum += exp_sum / self.mcsatStepsEvidenceWorld
+        self.sampledExpSum += exp_sum #/ self.mcsatStepsEvidenceWorld
+        
+        self.sampleEvidenceSteps = step
         
         if step % 1000 == 0:
             print "sampling evidence worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
