@@ -92,6 +92,13 @@ class AbstractLearner(object):
     
     def __fDummy(self, wt):
         if not hasattr(self, 'dummyFValue'):
+            self.dummyFCount = 0
+        self.dummyFCount += 1
+        if self.dummyFCount > 100:
+            return 0
+        print "self.dummyFCount", self.dummyFCount
+        
+        if not hasattr(self, 'dummyFValue'):
             self.dummyFValue = 0
         if not hasattr(self, 'lastFullGradient'):
             self.dummyFValue = 0
@@ -108,7 +115,6 @@ class AbstractLearner(object):
 #            
 #        self.secondlastFullGradient = self.lastFullGradient     
             
-        print "_f: self.dummyFValue = ", self.dummyFValue
         
         return self.dummyFValue
         
@@ -154,7 +160,7 @@ class AbstractLearner(object):
         neg_f = lambda wt: -self.__f(wt)
         neg_grad = lambda wt: -self.__grad(wt)
         if not useGrad or not self.useGrad(): neg_grad = None
-        if not useF: neg_f = lambda wt: -self.__fDummy(wt)
+        if not useF or not self.useF(): neg_f = lambda wt: -self.__fDummy(wt)
         
         if optimizer == "bfgs":
             #epsilon=0.05 seems to be a good value for simpleConditional example and DSLL_ISEWW with 1000, 10000 steps
@@ -181,6 +187,9 @@ class AbstractLearner(object):
         
     def useGrad(self):
         return True
+    
+    def useF(self):
+        return True    
 
 
 from softeval import truthDegreeGivenSoftEvidence
