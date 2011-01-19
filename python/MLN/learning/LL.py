@@ -259,7 +259,7 @@ class LL_ISEWW(Abstract_ISEWW):
         return ll
 
     
-class SE_ISEWW(Abstract_ISEWW):    
+class E_ISEWW(Abstract_ISEWW):    
     def __init__(self, mln):
         Abstract_ISEWW.__init__(self, mln)
         
@@ -269,24 +269,21 @@ class SE_ISEWW(Abstract_ISEWW):
         self._calculateWorldProbabilities()
         
         #new idea: minimize squared error of world prob. given by weights and world prob given by soft evidence
-        squareError = 0
+        error = 0
         for idxWorld, world in enumerate(self.mln.worlds):
-            
             if idxWorld in self.worldProbabilities: #lambda_x
                 worldProbability = self.worldProbabilities[idxWorld]
+            else: 
+                worldProbability = 0
                 
-            #just minimize the error of worlds with prob > 0:
-            #else: 
-            #    worldProbability = 0
-                
-            #sqr(world prob. given weights - world prob given soft evidence)
-                worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
-                squareError += (worldProbGivenWeights - worldProbability)**2
-                print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
-                  
+            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
+            error += abs(worldProbGivenWeights - worldProbability)
+            #print "(worldProbGivenWeights - worldProbability)**2",(worldProbGivenWeights - worldProbability)**2
+            print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
+
         print "wt =", wt
-        print "squareError:", squareError
-        ll = -squareError       
+        print "error:", error
+        ll = -error
         
         print 
         return ll
