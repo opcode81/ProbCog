@@ -74,15 +74,35 @@ class MCSAT(MCMCInference):
         # add clauses for soft evidence atoms
         for se in self.softEvidence:
             se["numTrue"] = 0.0
-            gndAtom = self.mln.gndAtoms.get(se["expr"])            
-            if gndAtom is None: raise Exception("Soft evidence atom '%s' corresponds to no ground atom" % se["expr"])
-            se["gndAtom"] = gndAtom
-            self.clauses.append([FOL.GroundLit(gndAtom, False)])
-            se["idxClausePositive"] = idxClause
-            idxClause += 1
-            self.clauses.append([FOL.GroundLit(gndAtom, True)])
-            se["idxClauseNegative"] = idxClause
-            idxClause += 1
+            formula = FOL.parseFormula(se["expr"])
+            se["formula"] = formula.ground(self.mln, {})
+            cnf = formula.toCNF().ground(self.mln, {}) 
+            idxFirst = idxClause
+            for clause in self._formulaClauses(cnf):                
+                self.clauses.append(clause)
+                #print clause
+                idxClause += 1
+            se["idxClausePositive"] = (idxFirst, idxClause)
+            cnf = FOL.Negation([formula]).toCNF().ground(self.mln, {})
+            idxFirst = idxClause
+            for clause in self._formulaClauses(cnf):                
+                self.clauses.append(clause)
+                #print clause
+                idxClause += 1
+            se["idxClauseNegative"] = (idxFirst, idxClause)
+            
+    def _formulaClauses(self, f):
+        # get the list of clauses
+        if type(f) == FOL.Conjunction:
+            lc = f.children
+        else:
+            lc = [f]
+        # process each clause
+        for c in lc:
+            if hasattr(c, "children"):
+                yield c.children
+            else: # unit clause
+                yield [c]
     
     def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None):
         '''
@@ -160,7 +180,7 @@ class MCSAT(MCMCInference):
                     if self.wt[gf.idxFormula] >= 20:
                         if gf.isLogical():
                             clauseRange = self.gndFormula2ClauseIdx[idxGF]
-                            M.extend(range(clauseRange[0], clauseRange[1]))
+                            M.extend(range(*clauseRange))
                         else:
                             NLC.append(gf)
                 ss = SampleSAT(mln, chain.state, M, NLC, self, p=0.8, debug=debug and debugLevel >= 2) # Note: can't use p=1.0 because there is a chance of getting into an oscillating state
@@ -210,7 +230,7 @@ class MCSAT(MCMCInference):
                         print
             # update soft evidence counts
             for se in self.softEvidence:
-                se["numTrue"] += self.chainGroup.currentlyTrue(se["gndAtom"])
+                se["numTrue"] += self.chainGroup.currentlyTrue(se["formula"])
                 
             if sampleCallback is not None:
                 sampleCallback(chainGroup, self.step)
@@ -251,7 +271,7 @@ class MCSAT(MCMCInference):
                     if u > 1:
                         if gf.isLogical():
                             clauseRange = self.gndFormula2ClauseIdx[idxGF]
-                            M.extend(range(clauseRange[0], clauseRange[1]))
+                            M.extend(range(*clauseRange))
                         else:
                             NLC.append(gf)
                         if self.debug and self.debugLevel >= 3:
@@ -259,20 +279,20 @@ class MCSAT(MCMCInference):
         # add soft evidence constraints
         for se in self.softEvidence:
             p = se["numTrue"] / self.step
-            if se["gndAtom"].isTrue(chain.state):
+            if se["formula"].isTrue(chain.state):
                 #print "true case"
                 add = False
                 if p < se["p"]:
                     add = True
                 if add:
-                    M.append(se["idxClausePositive"])
+                    M.extend(range(*se["idxClausePositive"]))
             else:
                 #print "false case"
                 add = False
                 if p > se["p"]:
                     add = True
                 if add:
-                    M.append(se["idxClauseNegative"])
+                    M.extend(range(*se["idxClauseNegative"]))
         # (uniformly) sample a state that satisfies them
         t1 = time.time()
         ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2, p=self.p)
