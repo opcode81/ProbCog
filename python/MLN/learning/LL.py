@@ -414,7 +414,7 @@ class SLL_ISE(LL_ISE):
         self._computeCounts()
         print "  %d counts recorded." % len(self.counts)
         
-class DSLL_ISEWW(SLL_ISE):
+class DSLL_WW(SLL_ISE):
     def __init__(self, mln):
         SLL_ISE.__init__(self, mln)
     
