@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
-import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Domain;
@@ -12,7 +11,6 @@ import edu.ksu.cis.util.graph.core.Graph;
 import edu.ksu.cis.util.graph.core.Vertex;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.learning.CPTLearner;
-import edu.tum.cs.bayesnets.learning.DomainLearner;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.Object;
 import edu.tum.cs.srldb.datadict.DDAttribute;
@@ -22,6 +20,10 @@ import edu.tum.cs.srldb.datadict.DataDictionary;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 
+/**
+ * creates an srldb.Database by sampling a Bayesian network
+ * @author jain
+ */
 public class BN2SRLDB {
 	protected BeliefNetworkEx bn;
 	protected Database db;
