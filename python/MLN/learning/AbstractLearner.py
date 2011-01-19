@@ -157,7 +157,8 @@ class AbstractLearner(object):
         if not useF: neg_f = lambda wt: -self.__fDummy(wt)
         
         if optimizer == "bfgs":
-            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
+            #epsilon=0.05 seems to be a good value for simpleConditional example and DSLL_ISEWW with 1000, 10000 steps
+            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt,epsilon=0.0005, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
             print "optimization done with %s..." % optimizer
             print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
         elif optimizer == "cg":

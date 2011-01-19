@@ -75,6 +75,7 @@ class Inference(object):
         return (elapsed, "%d:%02d:%02d.%03d" % (hours, minutes, secs, msecs))
 
     def infer(self, queries, given=None, verbose=True, details=False, shortOutput=False, outFile=None, **args):
+        print "infer: ARGS:",args
         '''
             queries: a list of queries - either strings (predicate names or partially/fully grounded atoms) or ground formulas
         '''
