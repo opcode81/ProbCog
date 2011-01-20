@@ -17,7 +17,7 @@ import edu.tum.cs.bayesnets.core.Discretized;
  * 
  * @see BeliefNetworkEx#getWeightedSample(String[][], Random)
  */
-public class WeightedSample {
+public class WeightedSample implements Cloneable{
 	BeliefNetworkEx bn;
 	/**
 	 * The mapping from intern numbering to value as index into the domain
@@ -178,6 +178,11 @@ public class WeightedSample {
 			}
 		}
 		return result;
+	}
+	public synchronized WeightedSample clone() throws CloneNotSupportedException {
+		WeightedSample clone = (WeightedSample)super.clone();
+		clone.nodeDomainIndices = this.nodeDomainIndices.clone();
+		return clone;
 	}
 
 	/*
