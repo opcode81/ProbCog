@@ -47,11 +47,11 @@ Prerequisites:
 
 <h2>The Graphical Tools</h2>
 
-<p>Two graphical tools, whose usage is hopefully self-explanatory, are part of the package: There's an inference tool (<span class="hl">queryTool.py</span>) and a parameter learning tool (<span class="hl">learningTool.py</span>). Simply invoke them using the Python interpreter. (On Windows, do not use pythonw.exe to run them because the console output is an integral part of these tools.)</p>
+<p>Two graphical tools, whose usage is hopefully self-explanatory, are part of the package: There's an inference tool (<span class="hl">mlnQueryTool.py</span>) and a parameter learning tool (<span class="hl">mlnLearningTool.py</span>). Simply invoke them using the Python interpreter. (On Windows, do not use pythonw.exe to run them because the console output is an integral part of these tools.)</p>
 
 <pre>
-python queryTool.py
-python learningTool.py
+python mlnQueryTool.py
+python mlnLearningTool.py
 </pre>
 
 <h3> General Usage </h3>
@@ -64,11 +64,11 @@ python learningTool.py
 
 <h3>Configuration</h3>
 
-<p>You may want to modify the <span class="hl">configuration settings in config.py</span>:
+<p>You may want to modify the <span class="hl">configuration settings in mlnConfig.py</span>:
 <ul>
 <li>If you want to use the tools to invoke the Alchemy system (more than one Alchemy installation is even supported), you will have to configure the paths where these installations can be found as well as the set of command line switches that applies to your version (they have changed over time).</li>
 <li> You can also configure the file masks for MLN and database files, as well as naming conventions for output files (based on input filenames and settings used), which comes in handy when you are dealing with more than just a handful of files. </li>
-<li>Further options concern the user interface, output variants and the workflow. These are documented in config.py itself.</li>
+<li>Further options concern the user interface, output variants and the workflow. These are documented in mlnConfig.py itself.</li>
 </ul>
 </p>
 
@@ -223,9 +223,7 @@ A database file may contain:
 
 <h2>Modules</h2>
 
-<p>The main functionality of PyMLNs is contained in MLN.py (everything directly related to Markov logic, including inference and parameter learning) and FOL.py (first-order logic). The graphical tools expose but a small fraction of the full functionality. Use Python's help method on the modules to find out more about what's there &ndash; or simply take a look at the source files; there is quite a bit of documentation available (though not quite enough). </p>
-
-<p>The MLN module also contains a main app &ndash; a little helper script &ndash; that offers some basic functions that may be useful.</p>
+<p>The core functionality of PyMLNs is contained in the MLN module (everything directly related to Markov logic, including inference and parameter learning) and FOL.py (first-order logic). The graphical tools expose but a small fraction of the full functionality. Use Python's help method on the modules to find out more about what's there &ndash; or simply take a look at the source files; there is quite a bit of documentation available (though not quite enough). </p>
 
 <h2>Contact</h2>
 

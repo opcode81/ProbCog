@@ -33,7 +33,7 @@ import pickle
 from fnmatch import fnmatch
 import traceback
 from widgets import *
-import config
+import mlnConfig as config
 import MLN
 
 def config_value(key, default):
