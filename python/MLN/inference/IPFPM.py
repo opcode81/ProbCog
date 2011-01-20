@@ -34,7 +34,7 @@ class IPFPM(Inference):
             raise Exception("Application of IPFP-M inappropriate! IPFP-M is a wrapper method for other inference algorithms that allows to fit probability constraints. An application is not sensical if the model contains no such constraints.")
         Inference.__init__(self, mln)
     
-    def _infer(self, verbose=True, details=False, inferenceMethod=InferenceMethods.exact, threshold=1e-3, maxSteps=100, inferenceParams=None, maxThreshold=None, greedy=False, **args):
+    def _infer(self, verbose=True, details=False, inferenceMethod=InferenceMethods.Exact, threshold=1e-3, maxSteps=100, inferenceParams=None, maxThreshold=None, greedy=False, **args):
         if inferenceParams is None: inferenceParams = {}
         inferenceParams.update(args)
         results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, inferenceMethod=inferenceMethod, threshold=threshold, maxSteps=maxSteps, given=self.given, queries=self.queries, verbose=details, inferenceParams=inferenceParams, maxThreshold=maxThreshold, greedy=greedy)

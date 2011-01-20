@@ -33,7 +33,7 @@ import pickle
 from fnmatch import fnmatch
 import traceback
 from widgets import *
-import mlnConfig as config
+import config
 import MLN
 
 def config_value(key, default):
@@ -227,7 +227,7 @@ class MLNQuery:
         engineName = self.selected_engine.get()
         if engineName == "internal":
             self.numEngine = 1
-            methods = MLN.InferenceMethods._names.values()
+            methods = MLN.InferenceMethods.getNames()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=DISABLED)
             self.cb_save_results.configure(state=NORMAL)
@@ -329,7 +329,7 @@ class MLNQuery:
                             query = ""
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
                     # create MLN and evidence conjunction
-                    mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods._byName.get(method))
+                    mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
                     mln.combineDB(db, verbose=True)
                     # set closed-world predicates
                     cwPreds = map(str.strip, self.settings["cwPreds"].split(","))

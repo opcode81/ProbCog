@@ -94,7 +94,7 @@ class AbstractLearner(object):
         if not hasattr(self, 'dummyFValue'):
             self.dummyFCount = 0
         self.dummyFCount += 1
-        if self.dummyFCount > 100:
+        if self.dummyFCount > 150:
             return 0
         print "self.dummyFCount", self.dummyFCount
         
