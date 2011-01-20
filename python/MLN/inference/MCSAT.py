@@ -246,7 +246,9 @@ class MCSAT(MCMCInference):
             
             
             #termination condition
-            if maxSoftEvidenceDeviation is not None:
+            #TODO:
+            minStep = 1000
+            if maxSoftEvidenceDeviation is not None and self.step > minStep:
                 dev = self._getProbConstraintsDeviation()
                 if dev["pc_dev_max"] < maxSoftEvidenceDeviation:
                     break

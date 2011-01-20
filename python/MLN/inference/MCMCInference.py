@@ -34,6 +34,9 @@ class MCMCInference(Inference):
     # set a random state, taking the evidence blocks and block exclusions into account
     # blockInfo [out]
     def setRandomState(self, state, blockInfo=None):
+        if state == []: #no evidence given -> initialize list, elements are overwritten below
+            for i in range(len(self.mln.gndAtoms)): state.append(None)        
+        
         mln = self.mln
         for idxBlock, (idxGA, block) in enumerate(mln.pllBlocks):
             if idxBlock not in self.evidenceBlocks:

@@ -31,7 +31,7 @@ import pickle
 import traceback
 import MLN
 from widgets import *
-import mlnConfig as config
+import config
 
 # --- gui class ---
 
@@ -134,7 +134,7 @@ class LearnWeights:
         if self.selected_engine.get() == "internal":
             state = DISABLED
             self.internalMode = True
-            methods = MLN.ParameterLearningMeasures._names.values()
+            methods = MLN.ParameterLearningMeasures.getNames()
         else:
             state = NORMAL
             self.internalMode = False
@@ -164,8 +164,8 @@ class LearnWeights:
         if "" in (mln, db): return
         if self.internalMode:
             engine = "py"
-            method = MLN.ParameterLearningMeasures._byName[self.selected_method.get()]
-            method = MLN.ParameterLearningMeasures._shortnames[method].lower()
+            method = MLN.ParameterLearningMeasures.byName(self.selected_method.get())
+            method = MLN.ParameterLearningMeasures.getShortName(method).lower()
         else:
             engine = "alch"
             method = self.selected_method.get()[:1]
@@ -213,7 +213,7 @@ class LearnWeights:
                 args = {"initialWts":False}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
                 # learn weights
-                mln.learnwts(MLN.ParameterLearningMeasures._byName[method], **args)
+                mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
                 # determine output filename
                 fname = self.settings["output_filename"]
                 mln.write(file(fname, "w"))
