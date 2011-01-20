@@ -1,10 +1,13 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.util.HashMap;
+import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.util.TopologicalOrdering;
+import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.util.Stopwatch;
 
 /**
@@ -15,9 +18,16 @@ import edu.tum.cs.util.Stopwatch;
 public class SampleSearch extends Sampler {
 	protected int[] nodeOrder;
 	protected int currentStep;
+
+	protected double[] samplingProb;
+	protected boolean useProperWeighting = false;
+
+	protected HashMap<Vector<Integer>,Double> maxQ = new HashMap<Vector<Integer>,Double>();
+
 	protected ImportanceFunction importanceFunction = ImportanceFunction.Prior;
 	protected SampledDistribution importanceDist;
 	protected int importanceFunctionSteps = 2;
+
 	
 	enum ImportanceFunction {
 		Prior, BP, IJGP;
@@ -58,6 +68,10 @@ public class SampleSearch extends Sampler {
 		return bn.getTopologicalOrder();
 	}
 	
+	public void setUseProperWeighting(boolean enabled){
+		useProperWeighting = enabled;
+	}
+	
 	protected void info(int step) {
 		out.println("  step " + step);
 	}
@@ -69,6 +83,8 @@ public class SampleSearch extends Sampler {
 		out.println("sampling...");
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
+		Vector<WeightedSample> samples = new Vector<WeightedSample>();
+		
 		for(int i = 1; i <= numSamples; i++) {
 			currentStep = i;
 			if(i % infoInterval == 0)
@@ -76,7 +92,7 @@ public class SampleSearch extends Sampler {
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			if(ret != null) {
 				if(false) { // debugging of weighting
-					out.print("w=" + ret.weight);
+					//out.print("w=" + ret.weight);
 					double prod = 1.0;
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
 						if(true || evidenceDomainIndices[j] == -1) {
@@ -92,11 +108,44 @@ public class SampleSearch extends Sampler {
 						}
 					out.println();
 				}
-				
-				addSample(ret);
+				//out.println("sample: "+ret.weight);
+				if(!useProperWeighting){
+					addSample(ret);
+				}
+				else {
+					samples.add(ret.clone());
+				}
 			}
 			if(converged())
 				break;
+		}
+		
+		if(useProperWeighting){
+			for (WeightedSample sample : samples){
+				//out.println("Sample: "+sample+"\n has weight:"+sample.weight);
+			}
+			
+			for (WeightedSample sample : samples){
+				Vector<Integer> partAssign = new Vector<Integer>();
+				if(debug) {out.println("Sample:"+sample+"\n maxQ:"+maxQ);}
+				//out.println("NEW SAMPLE ------------------------------------------------");
+				out.println("");
+				for (int i=0; i< this.nodes.length;i++){
+					int nodeIdx = nodeOrder[i];
+					partAssign.add(sample.nodeDomainIndices[nodeIdx]);
+					if (evidenceDomainIndices[nodeIdx]<0){
+						//if(debug) {out.println("PartAss:"+partAssign+"\n"+"max Q(x_i/Pa(xi))"+this.maxQ.get(partAssign));}
+						//out.println("Q:"+this.maxQ.get(partAssign)+"\n w:"+sample.weight);
+						sample.weight = sample.weight / this.maxQ.get(partAssign);
+						//out.println("w'="+sample.weight);
+
+					}		
+			}
+			//out.println("Adding s:"+sample+"\n weight:"+sample.weight);
+			//out.println("sample: weight"+sample.weight);
+			//out.println("sample:"+sample);
+			addSample(sample.clone());
+		}	
 		}
 		sw.stop();
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
@@ -108,7 +157,7 @@ public class SampleSearch extends Sampler {
 		s.operations = 0;
 		s.weight = 1.0;
 		s.trials++;
-		double[] samplingProb = new double[nodeOrder.length];
+		samplingProb = new double[nodeOrder.length];
 		// assign values to the nodes in order
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
@@ -175,14 +224,45 @@ public class SampleSearch extends Sampler {
 			} while(evidenceDomainIndices[nodeIdx] != -1);
 		}
 		// we found a sample, determine its weight
-		for(int i = 0; i < this.nodes.length; i++) {
-			s.weight *= getCPTProbability(nodes[i], s.nodeDomainIndices) / samplingProb[i];
-		}
+		setSampleWeight(s);
 		return s;
 	}
 	
+
+	protected void setSampleWeight(WeightedSample s) {
+		if(!useProperWeighting) {
+			//out.println("USING FAAALSE WEIGHTING SCHEME!!!");
+			for(int i = 0; i < this.nodes.length; i++) {
+				s.weight *= getCPTProbability(nodes[i], s.nodeDomainIndices) / samplingProb[i];
+			}
+
+		}
+		else {
+			//out.println("USING OH SO PROPPER WEIGHTING!!!");
+			Vector<Integer> partAssign = new Vector<Integer>();
+			//out.println("sample:"+s);
+
+			out.println(" ");
+			for (int i=0; i< this.nodes.length;i++){
+				int nodeIdx = nodeOrder[i];
+				s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
+				partAssign.add(s.nodeDomainIndices[nodeIdx]);
+				if (evidenceDomainIndices[nodeIdx]<0 && (!maxQ.containsKey(partAssign) || maxQ.get(partAssign)< samplingProb[nodeIdx] )) {
+					if(debug){out.println("putting "+partAssign+"\n value:"+samplingProb[nodeIdx]);}
+					if(maxQ.containsKey(partAssign)){
+					if(maxQ.get(partAssign)< samplingProb[nodeIdx]){
+						if(debug)out.println("Replacing"+maxQ.get(partAssign)+"with "+samplingProb[nodeIdx]);
+					}
+					}
+					this.maxQ.put((Vector<Integer>) partAssign.clone(), samplingProb[nodeIdx]);
+					if(debug){out.println("maxQ is now"+maxQ);}
+				}
+			}
+			if(debug){out.println("END: maxQ is now"+maxQ);}
+		}
+	}
 	
-	
+
 	protected class SampledAssignment {
 		public int domIdx;
 		public double probability;
