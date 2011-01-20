@@ -1,3 +1,4 @@
+package edu.tum.cs.bayesnets.conversion;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 

@@ -530,7 +530,7 @@ public class Converter_xmlbif
 
     public String getExt()
     {
-        return "*.xml";
+        return "*.xml;*.xbif";
     }
 
     public String getDesc()
