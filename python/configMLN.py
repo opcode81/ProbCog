@@ -9,13 +9,7 @@
 # 
 #   You can use os.getenv("VARIABLE") to retrieve the value of an environment variable
 
-import os
-
-# --- settings for both tools ---
-
-fixed_width_font = ("Lucida Console", -12) # name of font and size (if negative, in pixels)
-editor = os.getenv("EDITOR") # your favorite editor with which output files should be opened, e.g. "kate" or "vi"
-coloring = True # whether to use syntax highlighting in editors (slow when using large files)
+from configGUI import *
 
 # --- settings for the parameter learning tool ---
 

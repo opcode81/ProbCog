@@ -31,7 +31,7 @@ import pickle
 from fnmatch import fnmatch
 import traceback
 from widgets import *
-import config
+import configBLN as config
 
 CONFIG_FILENAME = "blnquery.config.dat"
 
@@ -92,7 +92,32 @@ class BLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling","Backward SampleSearch": "BackwardSampleSearch", "EPIS-BN": "EPIS", "Backward Sampling": "BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "Lifted Backward Sampling with Children": "LiftedBackwardSampling", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingChildren", "Experimental": "Experimental", "Experimental2": "Experimental2",  "Experimental3": "Experimental3", "SAT-IS": "SATIS", "SAT-IS Extended": "SATISEx", "SAT-IS Extended/Gibbs":"SATISExGibbs", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Belief Propagation": "BeliefPropagation", "Iterative Join-Graph Propagation": "IJGP", "SampleSearch": "SampleSearch"}
+        self.methods = {
+            "Likelihood Weighting":"LikelihoodWeighting",
+            "Gibbs Sampling":"GibbsSampling",
+            "Backward SampleSearch": "BackwardSampleSearch",
+            "EPIS-BN": "EPIS",
+            "Backward Sampling": "BackwardSampling",
+            "Enumeration-Ask (exact)": "EnumerationAsk",
+            "Lifted Backward Sampling with Children": "LiftedBackwardSampling",
+            "SMILE Backward Sampling": "SmileBackwardSampling",
+            "Backward Sampling with Priors": "BackwardSamplingPriors",
+            "Backward Sampling with Children":"BackwardSamplingChildren",
+            "Experimental": "Experimental",
+            "Experimental2": "Experimental2",
+            "Experimental3": "Experimental3",
+            "SAT-IS": "SATIS",
+            "SAT-IS Extended": "SATISEx",
+            "SAT-IS Extended/Gibbs":"SATISExGibbs",
+            "Likelihood Weighting with Uncertain Evidence": "LWU",
+            "MC-SAT": "MCSAT",
+            "Pearl's algorithm":"Pearl",
+            "Variable Elimination": "VarElim",
+            "Belief Propagation": "BeliefPropagation",
+            "Iterative Join-Graph Propagation": "IJGP",
+            "SampleSearch": "SampleSearch",
+            "ACE": "ACE"
+        }
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
@@ -344,6 +369,8 @@ class BLNQuery:
             params.append('-od "%s"' % outfile)
         if refdist != "":
             params.append('-cd "%s"' % refdist)
+        if method == "ACE":
+            params.append('"--acePath=%s"' % config.acePath)
         command = 'BLNinfer %s' % " ".join(params)
 
         # execute 
