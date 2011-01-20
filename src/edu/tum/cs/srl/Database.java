@@ -645,6 +645,9 @@ public class Database implements IParameterHandler {
 			return String.format("%s = %s", getName(), value);
 		}
 		
+		/**
+		 * @return the name of the variable
+		 */
 		public String getName() {
 			return Signature.formatVarName(functionName, this.params); 
 		}
