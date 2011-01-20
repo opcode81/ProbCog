@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.FileUtil;
 
 /**
@@ -34,12 +35,12 @@ public class BNDatabase {
 	protected HashMap<String, String> entries = new HashMap<String,String>();
 	
 	/**
-	 *  constructs an empty database
+	 * constructs an empty database
 	 */
 	public BNDatabase() { }
 	
 	/**
-	 * reads the data in the given file
+	 * constructs a database with the data from the given .bndb file
 	 * @param f
 	 * @throws Exception 
 	 */
@@ -48,6 +49,20 @@ public class BNDatabase {
 		read(f);
 	}
 	
+	public BNDatabase(BeliefNetworkEx bn, int[] evidenceDomainIndices) throws Exception {
+		BeliefNode[] nodes = bn.getNodes();
+		if(evidenceDomainIndices.length != nodes.length)
+			throw new Exception("evidence vector length does not match belief network");
+		for(int i = 0; i < evidenceDomainIndices.length; i++) {
+			if(evidenceDomainIndices[i] != -1) {
+				this.add(nodes[i].getName(), nodes[i].getDomain().getName(evidenceDomainIndices[i]));
+			}
+		}
+	}
+	
+	/**
+	 * reads a .bndb file
+	 */
 	public void read(File f) throws Exception {
 		// read file content
 		String dbContent = FileUtil.readTextFile(f);				
@@ -81,5 +96,9 @@ public class BNDatabase {
 		for(Entry<String,String> e : getEntries()) {
 			out.printf("%s = %s\n", e.getKey(), e.getValue());
 		}
+	}
+	
+	public int size() {
+		return entries.size();
 	}
 }

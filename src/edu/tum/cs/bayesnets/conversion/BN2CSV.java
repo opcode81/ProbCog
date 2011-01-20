@@ -1,3 +1,4 @@
+package edu.tum.cs.bayesnets.conversion;
 import java.io.File;
 import java.io.PrintStream;
 
