@@ -23,8 +23,9 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from MCMCInference import *
+from MCMCInference import * 
 from SAMaxWalkSAT import *
+import pickle
 
 class MCSAT(MCMCInference):
     ''' MC-SAT/MC-SAT-PC '''
@@ -104,7 +105,7 @@ class MCSAT(MCMCInference):
             else: # unit clause
                 yield [c]
     
-    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None):
+    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None, **args):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
@@ -145,7 +146,7 @@ class MCSAT(MCMCInference):
         if self.debug:
             print "\nCNF KB:"
             for gf in self.gndFormulas:
-                print "%7.3f  %s" % (weight_transform(self.formulas[gf.idxFormula].weight), strFormula(gf))
+                print "%7.3f  %s" % (self.formulas[gf.idxFormula].weight, strFormula(gf))
             print
         # set the random seed if it was given
         if randomSeed != None:
@@ -159,12 +160,17 @@ class MCSAT(MCMCInference):
             print "block exclusions: %d" % len(self.blockExclusions)
             print "initializing %d chain(s)..." % numChains
             
+            
+#        self.phistory = {} # HACK for debugging (see all references to self.phistory)
+#        maxSteps = 1000
+#        maxSoftEvidenceDeviation = None
 
         # create chains
         chainGroup = MCMCInference.ChainGroup(self)
         self.chainGroup = chainGroup
         mln = self.mln
         self.wt = [f.weight for f in self.formulas]
+        print "weights: ", self.wt
         for i in range(numChains):
             chain = MCMCInference.Chain(self, self.queries)
             chainGroup.addChain(chain)
@@ -204,7 +210,7 @@ class MCSAT(MCMCInference):
         if maxSoftEvidenceDeviation is not None:
             print "iterate until maxSoftEvidenceDeviation <", maxSoftEvidenceDeviation        
         
-        self.step = 1
+        self.step = 1        
         while maxSoftEvidenceDeviation is not None or self.step <= maxSteps:
             # take one step in each chain
             for chain in chainGroup.chains:
@@ -252,7 +258,11 @@ class MCSAT(MCMCInference):
                 dev = self._getProbConstraintsDeviation()
                 if dev["pc_dev_max"] < maxSoftEvidenceDeviation:
                     break
-            
+        
+#        if(len(self.softEvidence) != 0):
+#            pickle.dump(self.phistory, file("debug.txt", "w"))
+#            sys.exit(1)
+        
         # get results
         self.step -= 1
         results = chainGroup.getResults()
@@ -281,6 +291,11 @@ class MCSAT(MCMCInference):
         # add soft evidence constraints
         for se in self.softEvidence:
             p = se["numTrue"] / self.step
+            
+#            l = self.phistory.get(strFormula(se["formula"]), [])
+#            l.append(p)
+#            self.phistory[strFormula(se["formula"])] = l
+            
             if se["formula"].isTrue(chain.state):
                 #print "true case"
                 add = False
@@ -288,6 +303,7 @@ class MCSAT(MCMCInference):
                     add = True
                 if add:
                     M.extend(range(*se["idxClausePositive"]))
+                #print "positive case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClausePositive"])]), p, se["p"])
             else:
                 #print "false case"
                 add = False
@@ -295,6 +311,7 @@ class MCSAT(MCMCInference):
                     add = True
                 if add:
                     M.extend(range(*se["idxClauseNegative"]))
+                #print "negative case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClauseNegative"])]), p, se["p"])
         # (uniformly) sample a state that satisfies them
         t1 = time.time()
         ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2, p=self.p)

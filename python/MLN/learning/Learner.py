@@ -540,7 +540,7 @@ class Learner(AbstractLearner):
             lits = disj.children
         prod = 1.0
         for lit in lits:
-            p = self._getSoftEvidence(lit.gndAtom, worldValues)     
+            p = self._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
             factor = p if not lit.negated else 1.0 - p
             prod *= 1.0 - factor
         return 1.0 - prod                
@@ -609,7 +609,7 @@ class Learner(AbstractLearner):
                     continue
                 
                 for se in self.softEvidence:
-                    evidenceValue = self._getSoftEvidence(self.gndAtoms[se["expr"]], world["values"]) 
+                    evidenceValue = self._getEvidenceTruthDegreeCW(self.gndAtoms[se["expr"]], world["values"]) 
                     worldProbability *= evidenceValue    
                     print "  ", "evidence, gndAtom", evidenceValue, se["expr"]#, self.evidence, world["values"]
                     

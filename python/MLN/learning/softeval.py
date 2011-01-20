@@ -44,7 +44,7 @@ def noisyOr(worldValues, disj, mln):
         lits = disj.children
     prod = 1.0
     for lit in lits:
-        p = mln._getSoftEvidence(lit.gndAtom, worldValues)     
+        p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
         factor = p if not lit.negated else 1.0 - p
         prod *= 1.0 - factor
     return 1.0 - prod                
