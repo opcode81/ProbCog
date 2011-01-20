@@ -31,7 +31,7 @@ import pickle
 import traceback
 import MLN
 from widgets import *
-import config
+import configMLN as config
 
 # --- gui class ---
 
