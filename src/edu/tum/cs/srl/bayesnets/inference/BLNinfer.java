@@ -47,6 +47,7 @@ public class BLNinfer implements IParameterHandler {
 	boolean usePython = false;
 	boolean verbose = true;
 	boolean saveInstance = false;
+	boolean noInference = false;
 	boolean skipFailedSteps = false;
 	boolean removeDeterministicCPTEntries = false;
 	boolean resultsFilterEvidence = false;
@@ -166,6 +167,8 @@ public class BLNinfer implements IParameterHandler {
 				removeDeterministicCPTEntries = true;				
 			else if(args[i].equals("-si"))
 				saveInstance = true;				
+			else if(args[i].equals("-ni"))
+				noInference = true;				
 			else if(args[i].equals("-skipFailedSteps"))
 				skipFailedSteps = true;				
 			else if(args[i].equals("-py"))
@@ -308,6 +311,9 @@ public class BLNinfer implements IParameterHandler {
 			bndb.write(new PrintStream(new File(baseName + ".instance.bndb")));
 		}
 		
+		if(noInference)
+			return null;
+		
 		// read reference distribution if any
 		GeneralSampledDistribution referenceDist = null;
 		if(referenceDistFile != null) {
@@ -435,7 +441,8 @@ public class BLNinfer implements IParameterHandler {
 								 "     --<key>=<value>  set algorithm-specific parameter\n" +
 						         "     -debug           debug mode with additional outputs\n" + 
 						         "     -s               show ground network in editor\n" +
-						         "     -si              save ground network instance in BIF format (.instance.xml)\n" +
+						         "     -si              save ground network instance in BIF format (.instance.xml) and evidence (.instance.bndb)\n" +
+						         "     -ni              do not actually run the inference method (only instantiate ground network)" +
 						         "     -rfe             filter evidence in results\n" +
 						         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
 						         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
