@@ -39,7 +39,7 @@ public class SATISEx extends SATIS {
 	}
 	
 	@Override
-	protected ClausalKB getClausalKB() throws Exception {
+	public ClausalKB getClausalKB() throws Exception {
 		ClausalKB ckb = super.getClausalKB();
 		
 		// extend the KB with formulas based on a CPD analysis		
