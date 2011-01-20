@@ -451,15 +451,23 @@ class MLN(object):
         self._getWorlds()
         return self.worlds[worldNo - 1]
 
-    def _getSoftEvidence(self, gndAtom, worldValues): 
+    def _getEvidenceTruthDegreeCW(self, gndAtom, worldValues): 
+        ''' 
+            gets (soft or hard) evidence as a truth degree from 0 to 1, making the closed world assumption,
+            soft evidence has precedence over hard evidence 
+        '''
+        se = self._getSoftEvidence(gndAtom)
+        if se is not None:
+            return se if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se # TODO allSoft currently unsupported
+        return 1.0 if worldValues[gndAtom.idx] else 0.0
+
+    def _getSoftEvidence(self, gndAtom):
         s = strFormula(gndAtom)
         for se in self.softEvidence: # TODO optimize
             if se["expr"] == s:
                 #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
-                softEvidence = se["p"] if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se["p"]       # TODO allSoft currently unsupported
-                #print softEvidence , se["p"] , worldValues[gndAtom.idx]
-                return softEvidence
-        return 1.0 if worldValues[gndAtom.idx] else 0.0
+                return se["p"] 
+        return None        
     
     def _setSoftEvidence(self, gndAtom, value):
         s = strFormula(gndAtom)
@@ -973,8 +981,12 @@ class MLN(object):
             # soft evidence
             if l[0] in "0123456789":
                 s = l.find(" ")
-                gndAtom = l[s + 1:].replace(" ", "") 
-                self.softEvidence.append({"expr": gndAtom, "p": float(l[:s])})
+                gndAtom = l[s + 1:].replace(" ", "")
+                d = {"expr": gndAtom, "p": float(l[:s])}
+                if self._getSoftEvidence(gndAtom) == None:
+                    self.softEvidence.append(d)
+                else:
+                    raise Exception("Duplicate soft evidence for '%s'" % gndAtom)
                 predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
                 domNames = self.predicates[predName]
             # domain declaration
@@ -1262,7 +1274,7 @@ class MLN(object):
     #   initialWts: whether to use the MLN's current weights as the starting point for the optimization
     def learnwts(self, mode=ParameterLearningMeasures.BPLL, initialWts=False, **params):
         
-        modeName = ParameterLearningMeasures._shortnames[mode]
+        modeName = ParameterLearningMeasures.byShortName(mode)
         if modeName in dir(learning) and True: # disable this case to use the old code
             learner = eval("learning.%s(self)" % modeName)
             wt = learner.run(initialWts, **params)

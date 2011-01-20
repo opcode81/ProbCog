@@ -220,7 +220,7 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
                     continue
                 
                 for se in self.mln.softEvidence:
-                    evidenceValue = self.mln._getSoftEvidence(self.mln.gndAtoms[se["expr"]], world["values"]) 
+                    evidenceValue = self.mln._getEvidenceTruthDegreeCW(self.mln.gndAtoms[se["expr"]], world["values"]) 
                     
                     worldProbability *= evidenceValue    
                     print "  ", "evidence, gndAtom", evidenceValue, se["expr"]#, self.evidence, world["values"]
@@ -270,18 +270,18 @@ class E_ISEWW(Abstract_ISEWW):
         
         #new idea: minimize squared error of world prob. given by weights and world prob given by soft evidence
         error = 0
-#        for idxWorld, world in enumerate(self.mln.worlds):
-#            if idxWorld in self.worldProbabilities: #lambda_x
-#                worldProbability = self.worldProbabilities[idxWorld]
-#            else: 
-#                worldProbability = 0
-#                
-#            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
-#            error += abs(worldProbGivenWeights - worldProbability)
-
-        for idxWorld, worldProbability  in self.worldProbabilities.iteritems(): #lambda_x
+        for idxWorld, world in enumerate(self.mln.worlds):
+            if idxWorld in self.worldProbabilities: #lambda_x
+                worldProbability = self.worldProbabilities[idxWorld]
+            else: 
+                worldProbability = 0
+                
             worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
             error += abs(worldProbGivenWeights - worldProbability)
+
+#        for idxWorld, worldProbability  in self.worldProbabilities.iteritems(): #lambda_x
+#            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
+#            error += abs(worldProbGivenWeights - worldProbability)
 
             #print "(worldProbGivenWeights - worldProbability)**2",(worldProbGivenWeights - worldProbability)**2
             #print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
