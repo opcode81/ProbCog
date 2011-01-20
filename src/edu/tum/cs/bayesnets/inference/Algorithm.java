@@ -31,7 +31,8 @@ public enum Algorithm {
 	//VarElim("variable elimination (exact)", BNJVariableElimination.class),
 	VarElim("variable elimination (exact)", VariableElimination.class),
 	BackwardSampleSearch("Backward Sample Searching","dev.BackwardSampleSearch" ),
-	Experimental("an experimental algorithm (usually beta)", SampleSearch.class);
+	Experimental("an experimental algorithm (usually beta)", SampleSearch.class),
+	ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", ACE.class);
 	
 	String description;
 	Class<? extends Sampler> samplerClass; 

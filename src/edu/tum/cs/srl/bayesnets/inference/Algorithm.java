@@ -49,7 +49,8 @@ public enum Algorithm {
 		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearchIB"),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
 		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch" ),
-		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2");
+		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
+		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation", null, edu.tum.cs.bayesnets.inference.ACE.class);
 		
 		
 		protected String description;
