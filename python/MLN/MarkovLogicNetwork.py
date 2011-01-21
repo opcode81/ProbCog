@@ -690,7 +690,7 @@ class MLN(object):
         return self._infer(GibbsSampler(self), what, given, verbose=verbose, **args)
 
     def inferMCSAT(self, what, given=None, verbose=True, **args):
-        verbose=args.get("details", False)
+        verbose = args.get("details", False)
         return self._infer(MCSAT(self, verbose=verbose), what, given, verbose, **args)        
 
     def inferIPFPM(self, what, given=None, verbose=True, **args):
@@ -825,6 +825,8 @@ class MLN(object):
         inferenceMethod = fittingMethod
         threshold = fittingThreshold
         maxSteps = fittingSteps
+        if fittingParams is None:
+            fittingParams = {}
         inferenceParams = fittingParams
         inferenceParams["doProbabilityFitting"] = False
         if given == None:
@@ -1283,6 +1285,21 @@ class MLN(object):
             wt = learner.run(mode, initialWts, **params)
                 
         self.setWeights(wt)
+        
+        #delete worlds from learning
+        del self.worlds
+        
+        # fit prior prob. constraints if any available
+        if len(self.probreqs) > 0:
+            fittingParams = {
+                "fittingMethod": self.probabilityFittingInferenceMethod,
+                "fittingSteps": self.probabilityFittingMaxSteps,
+                "fittingThreshold": self.probabilityFittingThreshold
+            }
+            fittingParams.update(params)
+            print "fitting with params ", fittingParams 
+            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+        
             
         print "\n// formulas"
         for formula in self.formulas:

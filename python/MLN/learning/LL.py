@@ -413,6 +413,7 @@ class SLL_ISE(LL_ISE):
             self.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
             mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
+                                        doProbabilityFitting=False,
                                         verbose=True, details =True, infoInterval=1000, resultsInterval=1000)
             print mcsat
             print "number of disctinct samples:", len(self.worldsSampled)
@@ -516,6 +517,7 @@ class DSLL_WW(SLL_ISE):
             #print self.mln.softEvidence   
             
             mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, maxSteps=self.mcsatStepsEvidenceWorld, 
+                                        doProbabilityFitting=False,
                                         verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
                                         maxSoftEvidenceDeviation=0.05)
             print mcsat
