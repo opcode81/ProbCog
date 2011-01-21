@@ -262,33 +262,75 @@ class LL_ISEWW(Abstract_ISEWW):
 class E_ISEWW(Abstract_ISEWW):    
     def __init__(self, mln):
         Abstract_ISEWW.__init__(self, mln)
+        self.countsByWorld = {}
+        self.softCountsEvidenceWorld = {}
         
     def _f(self, wt):
         self._calculateWorldValues(wt) #only to calculate partition function here:
 
-        self._calculateWorldProbabilities()
+        #self._calculateWorldProbabilities()
         
         #new idea: minimize squared error of world prob. given by weights and world prob given by soft evidence
         error = 0
-        for idxWorld, world in enumerate(self.mln.worlds):
-            if idxWorld in self.worldProbabilities: #lambda_x
-                worldProbability = self.worldProbabilities[idxWorld]
-            else: 
-                worldProbability = 0
+
+        #old method (does not work with mixed hard and soft evidence)
+        if True:
+            for idxWorld, world in enumerate(self.mln.worlds):
+                if idxWorld in self.worldProbabilities: #lambda_x
+                    worldProbability = self.worldProbabilities[idxWorld]
+                else: 
+                    worldProbability = 0
+                    
+                worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
+                error += abs(worldProbGivenWeights - worldProbability)
+                #print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
+    
+    #        for idxWorld, worldProbability  in self.worldProbabilities.iteritems(): #lambda_x
+    #            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
+    #            error += abs(worldProbGivenWeights - worldProbability)
+    #            #print "world:", self.mln.worlds[idxWorld]
+    #            print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
+      
+        if False:#new try, doesn't work...
+            for idxWorld, world in enumerate(self.mln.worlds):
+                worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
                 
-            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
-            error += abs(worldProbGivenWeights - worldProbability)
-
-#        for idxWorld, worldProbability  in self.worldProbabilities.iteritems(): #lambda_x
-#            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
-#            error += abs(worldProbGivenWeights - worldProbability)
-
-            #print "(worldProbGivenWeights - worldProbability)**2",(worldProbGivenWeights - worldProbability)**2
-            #print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
-
+                #compute countDiffSum:
+                #for i, world in enumerate(self.mln.worlds):  
+                if idxWorld not in self.countsByWorld:
+                    print "computing counts for:", idxWorld
+                    counts = {} #n         
+                    for gf in self.mln.gndFormulas:                
+                        if self.mln._isTrue(gf, self.mln.worlds[idxWorld]["values"]):
+                            key = gf.idxFormula
+                            cnt = counts.get(key, 0)
+                            cnt += 1
+                            counts[key] = cnt
+                    self.countsByWorld[idxWorld] = counts
+                
+                #ñ (soft counts for evidence)
+                if len(self.softCountsEvidenceWorld) == 0:
+                    print "computing evidence soft counts"
+                    self.softCountsEvidenceWorld = {}
+                    for gf in self.mln.gndFormulas: 
+                        prod = truthDegreeGivenSoftEvidence(gf, self.mln.evidence, self.mln)
+                        key = gf.idxFormula
+                        cnt = self.softCountsEvidenceWorld.get(key, 0)
+                        cnt += prod
+                        self.softCountsEvidenceWorld[key] = cnt
+                            #if i == self.idxTrainingDB:
+                            #    print "%f gf: %s" % (prod, str(gf))
+                    
+                countDiffSum = 0
+                for idxFormula, count in self.countsByWorld[idxWorld].iteritems():
+                    countDiffSum += abs(count - self.softCountsEvidenceWorld[idxFormula])
+                
+                #print "countDiffSum", countDiffSum, "worldProbability", worldProbGivenWeights
+                error += worldProbGivenWeights * ((countDiffSum)**2)
+      
         print "wt =", wt
         print "error:", error
-        ll = -error
+        ll = -error 
         
         print 
         return ll

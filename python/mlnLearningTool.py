@@ -299,16 +299,41 @@ class LearnWeights:
 # -- main app --
 
 if __name__ == '__main__':
-    from sys import argv
+    from optparse import OptionParser
+    
+    parser = OptionParser()
+    parser.add_option("", "--mln_filename", dest="mln_filename",
+                      help="mln_filename", metavar="FILE")
+    parser.add_option("", "--db_filename", dest="db_filename",
+                      help="output filename", metavar="FILE")        
+    parser.add_option("", "--output_file", dest="output_filename",
+                      help="output filename", metavar="FILE")
+    parser.add_option("-r", "--run",
+                      action="store_true", dest="run", default=False,
+                      help="run without showing gui")
+    (options, args) = parser.parse_args()
+
+    
     settings = {}
     if os.path.exists("learnweights.config.dat"):
         try:
             settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file("learnweights.config.dat", "r").readlines())))            
         except:
             pass
+        
+    if options.mln_filename is not None:
+        settings["mln_filename"] = options.mln_filename    
+    if options.output_filename is not None:
+        settings["db_filename"] = options.db_filename    
+    if options.output_filename is not None:
+        settings["output_filename"] = options.output_filename    
+
     root = Tk()    
     app = LearnWeights(root, ".", settings)
-    if "-run" in argv or "--run" in argv:
+
+
+    
+    if options.run:
         app.learn(saveGeometry=False)
     else:
         root.mainloop()
