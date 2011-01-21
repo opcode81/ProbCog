@@ -7,6 +7,7 @@
 package edu.tum.cs.bayesnets.inference;
 
 import java.io.File;
+import java.text.NumberFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,7 +62,7 @@ public class ACE extends Sampler {
 		if(verbose) System.out.println("reading results...");
 		this.createDistribution();
 		String results = FileUtil.readTextFile(marginalsFile);
-		String patFloat = "(?:\\d+(\\.\\d+)?(?:E[-\\d]+)?)";
+		String patFloat = "(?:\\d+([\\.,]\\d+)?(?:E[-\\d]+)?)";
 		// * get probability of the evidence
 		Pattern probEvid = Pattern.compile(String.format("p \\(e\\) = (%s)", patFloat));
 		Matcher m = probEvid.matcher(results);
@@ -69,8 +70,12 @@ public class ACE extends Sampler {
 			throw new Exception("Could not find 'p (e)' in results");
 		if(m.group(1).equals("0E0"))
 			throw new Exception("The probability of the evidence is 0");
-		dist.Z = Double.parseDouble(m.group(1));
-		System.out.printf("probability of the evidence: %f\n", dist.Z);
+		NumberFormat format = NumberFormat.getInstance();
+		Number numPE = format.parse(m.group(1));
+		dist.Z = numPE.doubleValue();
+//		dist.Z = Double.parseDouble(m.group(1));
+//		System.out.printf("probability of the evidence: %f\n", dist.Z);
+		System.out.println("probability of the evidence: " + dist.Z);
 		// * get posteriors
 		Pattern patMarginal = Pattern.compile(String.format("p \\((.*?) \\| e\\) = \\[(%s(?:, %s)+)\\]", patFloat, patFloat)); 
 		m = patMarginal.matcher(results);
@@ -82,7 +87,8 @@ public class ACE extends Sampler {
 			if(v.length != dist.values[nodeIdx].length)
 				throw new Exception("Marginal vector length for '" + varName + "' incorrect");
 			for(int i = 0; i < v.length; i++)
-				dist.values[nodeIdx][i] = Double.parseDouble(v[i]);
+				dist.values[nodeIdx][i] = format.parse(v[i]).doubleValue();
+//				dist.values[nodeIdx][i] = Double.parseDouble(v[i]);
 			cnt++;
 		}		
 		System.out.println(cnt + " marginals read");
@@ -92,7 +98,7 @@ public class ACE extends Sampler {
 		new File(bnFile.getName() + ".lmap").delete();
 		bnFile.delete();
 		instFile.delete();
-		marginalsFile.delete();
+//		marginalsFile.delete();
 		
 		return dist;
 	}
