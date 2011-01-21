@@ -1039,7 +1039,7 @@ success:while (!successful) {
 	public abstract class CPTWalker {
 		public abstract void tellSize(int childConfigs, int parentConfigs);
 		public abstract void tellNodeOrder(BeliefNode n);		
-		public abstract void tellValue(double v);
+		public abstract void tellValue(int[] addr, double v);
 	}
 	
 	public void walkCPT(BeliefNode node, CPTWalker walker) {
@@ -1059,7 +1059,7 @@ success:while (!successful) {
 			// get the probability value
 			int realAddr = cpf.addr2realaddr(addr);
 			double value = ((ValueDouble)cpf.get(realAddr)).getValue();
-			walker.tellValue(value);
+			walker.tellValue(addr, value);
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
 			walker.tellNodeOrder(nodes[i]);
