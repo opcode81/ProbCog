@@ -1,7 +1,5 @@
 package edu.tum.cs.bayesnets.inference;
 
-import java.io.FileNotFoundException;
-
 import edu.ksu.cis.bnj.ver3.plugin.IOPlugInLoader;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 

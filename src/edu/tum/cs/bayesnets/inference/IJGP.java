@@ -36,7 +36,10 @@ public class IJGP extends Sampler {
 
 	public IJGP(BeliefNetworkEx bn) throws Exception {
 		super(bn);
-		this.nodes = bn.bn.getNodes();
+	}
+	
+	@Override
+	protected void initialize() {
 		// detect minimum bound
 		ibound = 1;
 		for (BeliefNode n : nodes) {
@@ -48,7 +51,7 @@ public class IJGP extends Sampler {
 		if(verbose)
 			out.printf("constructing join-graph with i-bound %d...\n", ibound);
 		jg = new JoinGraph(bn, ibound);
-		//jg.writeDOT(new File("jg.dot"));
+		//jg.writeDOT(new File("jg.dot"));		
 	}
 	
 	@Override

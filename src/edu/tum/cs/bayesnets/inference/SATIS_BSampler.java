@@ -71,31 +71,34 @@ public class SATIS_BSampler extends BackwardSampling {
 	 */
 	public SATIS_BSampler(BeliefNetworkEx bn) throws Exception {
 		super(bn);
-		// build the variable-logic coupling
-		coupling = new VariableLogicCoupling();
-		for(BeliefNode n : nodes) {
-			coupling.addBlockVariable(n, (Discrete)n.getDomain(), n.getName(), new String[0]);
-		}
-		// gather clausal KB based on deterministic constraints in CPTs
-		ckb = new ClausalKB();
-		extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb, null);
-		// get the set of variables that is determined by the sat sampler
-		determinedVars = new HashSet<BeliefNode>();
-		for(Clause c : ckb) {
-			for(GroundLiteral lit : c.lits) {
-				BeliefNode var = coupling.getVariable(lit.gndAtom);
-				if(var == null)
-					throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + coupling.getCoupledGroundAtoms());
-				determinedVars.add(var);
-			}
-		}
-		// construct the SAT sampler
-		sat = null; // SAT sampler is initialized based on evidence later (in setEvidence)
 	}
 	
 	@Override
-	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
-		super.setEvidence(evidenceDomainIndices);
+	protected void initialize() throws Exception {
+		// build the variable-logic coupling if we don't have it yet
+		if(coupling == null) {
+			coupling = new VariableLogicCoupling();
+			for(BeliefNode n : nodes) {
+				coupling.addBlockVariable(n, (Discrete)n.getDomain(), n.getName(), new String[0]);
+			}
+		}
+		// gather clausal KB based on deterministic constraints in CPTs
+		if(ckb == null) {
+			ckb = new ClausalKB();
+			extendKBWithDeterministicConstraintsInCPTs(bn, coupling, ckb, null);
+		}
+		// get the set of variables that is determined by the sat sampler
+		if(determinedVars == null) {
+			determinedVars = new HashSet<BeliefNode>();
+			for(Clause c : ckb) {
+				for(GroundLiteral lit : c.lits) {
+					BeliefNode var = coupling.getVariable(lit.gndAtom);
+					if(var == null)
+						throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + coupling.getCoupledGroundAtoms());
+					determinedVars.add(var);
+				}
+			}
+		}
 		// build SAT sampler if we don't have it yet
 		if(this.sat == null) {
 			// build evidence database
