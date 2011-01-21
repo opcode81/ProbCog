@@ -185,6 +185,7 @@ class AbstractLearner(object):
         #print "allvecs", allvecs
         
         
+        
     def useGrad(self):
         return True
     
