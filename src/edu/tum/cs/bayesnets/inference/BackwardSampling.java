@@ -196,8 +196,8 @@ public class BackwardSampling extends Sampler {
 		return d;
 	}
 	
-	protected void prepareInference(int[] evidenceDomainIndices) throws Exception {
-		this.evidenceDomainIndices = evidenceDomainIndices;
+	@Override
+	protected void initialize() throws Exception {
 		getOrdering(evidenceDomainIndices);
 		if(debug) {
 			out.println("sampling backward: " + this.backwardSampledNodes);
@@ -210,8 +210,6 @@ public class BackwardSampling extends Sampler {
 	public SampledDistribution _infer() throws Exception {		
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		
-		this.prepareInference(evidenceDomainIndices);
 		
 		this.createDistribution();
 		if(verbose) out.println("sampling...");

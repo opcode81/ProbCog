@@ -1,7 +1,5 @@
 package edu.tum.cs.bayesnets.inference;
 
-import java.io.FileNotFoundException;
-
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 public class SmileBackwardSampling extends SmileInference {

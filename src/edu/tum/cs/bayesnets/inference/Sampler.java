@@ -222,12 +222,28 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected void initialize() throws Exception {}
 	
 	public SampledDistribution infer() throws Exception {
-		initialize();
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		SampledDistribution ret = _infer();		
+		
+		// initialize	
+		Stopwatch sw2 = new Stopwatch();
+		sw2.start();
+		initialize();
+		sw2.stop();
+		double initTime = sw2.getElapsedTimeSecs();
+		
+		// run inference
+		sw2.start();
+		SampledDistribution ret = _infer();
+		sw2.stop();
+		double inferTime = sw2.getElapsedTimeSecs();
+		
+		sw.stop();
 		samplingTime = sw.getElapsedTimeSecs();
+		
+		report(String.format("total inference time: %fs (initialization: %fs; core %fs)\n", samplingTime, initTime, inferTime));
 		if(verbose) out.print(report.toString());
+		
 		return ret;
 	}
 	

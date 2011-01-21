@@ -8,7 +8,11 @@ public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
 	
 	public LikelihoodWeighting(BeliefNetworkEx bn) throws Exception {
-		super(bn);
+		super(bn);		
+	}
+	
+	@Override
+	protected void initialize() {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	

@@ -243,10 +243,10 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	}
 	
 	@Override
-	public void prepareInference(int[] evidenceDomainIndices) throws Exception {
+	public void initialize() throws Exception {
 		probCache = new Cache2D<CPF, Integer, Double>();
 		distCache = new Cache2D<BeliefNode, Long, BackSamplingDistribution>();
-		super.prepareInference(evidenceDomainIndices);
+		super.initialize();
 	}
 	
 	public SampledDistribution infer() throws Exception {

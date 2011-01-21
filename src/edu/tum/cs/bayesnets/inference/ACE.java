@@ -15,14 +15,15 @@ import edu.tum.cs.bayesnets.conversion.BNDB2Inst;
 import edu.tum.cs.bayesnets.core.BNDatabase;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.FileUtil;
-import edu.tum.cs.util.Stopwatch;
 
 /**
- * a simple wrapper for the ACE2.0 inference engine, which uses arithmetic circuits
+ * a simple wrapper for the ACE2.0 inference engine (arithmetic circuits evaluation)
  * @author jain
  */
 public class ACE extends Sampler {
 	protected File acePath = null;
+	protected File bnFile, instFile;	
+	
 	public ACE(BeliefNetworkEx bn) throws Exception {	
 		super(bn);
 		paramHandler.add("acePath", "setAcePath");
@@ -34,28 +35,36 @@ public class ACE extends Sampler {
 			throw new Exception("The given path " + path + " does not exist or is not a directory");
 	}
 	
-	@Override
-	protected SampledDistribution _infer() throws Exception {
+	protected void runAce(String command) throws Exception {
+		Process p = Runtime.getRuntime().exec(acePath + File.separator + command);	
+		p.waitFor();
+		String error = FileUtil.readInputStreamAsString(p.getErrorStream());
+		if(!error.isEmpty())
+			throw new Exception("Error running ACE: " + error);
+	}
+	
+	protected void initialize() throws Exception {
 		if(acePath == null) 
 			throw new Exception("No ACE 2.0 path was given. This inference method requires ACE2.0 and the location at which it is installed must be configured");
 		
 		// save belief network as .xbif
-		File bnFile = new File("ace.tmp.xbif");
+		bnFile = new File("ace.tmp.xbif");
 		this.bn.save(bnFile.getPath());
 		
 		// compile arithmetic circuit using ace compiler
 		if(verbose) System.out.println("compiling arithmetic circuit...");
-		Process p = Runtime.getRuntime().exec(acePath + File.separator + "compile " + bnFile.getName());
-		p.waitFor();
+		runAce("compile " + bnFile.getName());	
 		
 		// write evidence to .inst file
-		File instFile = new File("ace.tmp.inst");
+		instFile = new File("ace.tmp.inst");
 		BNDB2Inst.convert(new BNDatabase(this.bn, this.evidenceDomainIndices), instFile);
-		
-		// run ace inference
+	}
+	
+	@Override
+	protected SampledDistribution _infer() throws Exception {
+		// run Ace inference
 		if(verbose) System.out.println("evaluating...");
-		p = Runtime.getRuntime().exec(acePath + File.separator + "evaluate " + bnFile.getName() + " " + instFile.getName());
-		p.waitFor();
+		runAce("evaluate " + bnFile.getName() + " " + instFile.getName());
 		File marginalsFile = new File(bnFile.getName() + ".marginals");
 		
 		// create output distribution
@@ -73,8 +82,6 @@ public class ACE extends Sampler {
 		NumberFormat format = NumberFormat.getInstance();
 		Number numPE = format.parse(m.group(1));
 		dist.Z = numPE.doubleValue();
-//		dist.Z = Double.parseDouble(m.group(1));
-//		System.out.printf("probability of the evidence: %f\n", dist.Z);
 		System.out.println("probability of the evidence: " + dist.Z);
 		// * get posteriors
 		Pattern patMarginal = Pattern.compile(String.format("p \\((.*?) \\| e\\) = \\[(%s(?:, %s)+)\\]", patFloat, patFloat)); 
@@ -88,7 +95,6 @@ public class ACE extends Sampler {
 				throw new Exception("Marginal vector length for '" + varName + "' incorrect");
 			for(int i = 0; i < v.length; i++)
 				dist.values[nodeIdx][i] = format.parse(v[i]).doubleValue();
-//				dist.values[nodeIdx][i] = Double.parseDouble(v[i]);
 			cnt++;
 		}		
 		System.out.println(cnt + " marginals read");
@@ -98,7 +104,7 @@ public class ACE extends Sampler {
 		new File(bnFile.getName() + ".lmap").delete();
 		bnFile.delete();
 		instFile.delete();
-//		marginalsFile.delete();
+		marginalsFile.delete();
 		
 		return dist;
 	}
