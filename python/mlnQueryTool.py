@@ -177,8 +177,10 @@ class MLNQuery:
         self.save_results = IntVar()
         self.cb_save_results = Checkbutton(frame, text="save", variable=self.save_results)
         self.cb_save_results.grid(row=0, column=1, sticky=W)
-        self.save_results.set(self.settings.get("saveResults", 0))
 
+        if len(self.settings.get("output_filename", "")) > 0:
+            self.settings["saveResults"] = 1
+        self.save_results.set(self.settings.get("saveResults", 0))
         # start button
         row += 1
         start_button = Button(self.frame, text=">> Start Inference <<", command=self.start)
@@ -259,7 +261,7 @@ class MLNQuery:
         fn = config.query_output_filename(self.mln_filename, self.db_filename)
         self.output_filename.set(fn)
 
-    def start(self):
+    def start(self, saveGeometry = True):
         #try:
             # get mln, db, qf and output filename
             mln = self.selected_mln.get()
@@ -292,7 +294,8 @@ class MLNQuery:
             self.settings["useEMLN"] = self.use_emln.get()
             self.settings["maxSteps"] = self.maxSteps.get()
             self.settings["numChains"] = self.numChains.get()
-            self.settings["geometry"] = self.master.winfo_geometry()
+            if saveGeometry:
+                self.settings["geometry"] = self.master.winfo_geometry()
             self.settings["saveResults"] = self.save_results.get()
             # write query to file
             write_query_file = False
@@ -449,7 +452,7 @@ class MLNQuery:
                 f.write("\n\n/*\n\n--- command ---\n%s\n\n--- evidence ---\n%s\n\n--- mln ---\n%s\ntime taken: %fs\n\n*/" % (command, db_text.strip(), mln_text.strip(), t_taken))
                 f.close()
                 # delete written db
-                if not(keep_written_db) and wrote_db:
+                if not(keep_written_db):
                     os.unlink(db)
                 # delete temporary mln
                 if self.settings["convertAlchemy"] and not config_value("keep_alchemy_conversions", True):
@@ -491,7 +494,7 @@ if __name__ == '__main__':
     # process command line arguments
     argv = sys.argv
     i = 1
-    arg2setting = {"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None}
+    arg2setting = {"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None, "-o" : "output_filename"}
     while i < len(argv):
         if argv[i] in arg2setting and i+1 < len(argv):
             setting = arg2setting[argv[i]]
@@ -503,7 +506,22 @@ if __name__ == '__main__':
         i += 1
     if len(argv) > 1:
         settings["params"] = " ".join(argv[1:])
+        
+    #print "settings", settings
+    
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("--run",
+                      action="store_true", dest="run", default=False,
+                      help="run without showing gui")
+    (options, args) = parser.parse_args()    
+    
+    
     # create gui
     root = Tk()
     app = MLNQuery(root, ".", settings)
-    root.mainloop()
+    if options.run:
+        app.start(saveGeometry=False)
+    else:
+        root.mainloop()
+        
