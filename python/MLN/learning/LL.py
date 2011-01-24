@@ -366,7 +366,7 @@ class SLL_ISE(LL_ISE):
         
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
-        ll = log(self.expsums[idxTrainDB] / partition_function)
+        ll = log(self.expsums[idxTrainDB]) - log(partition_function)
         print "ll =", ll
         print 
         return ll
@@ -451,7 +451,7 @@ class SLL_ISE(LL_ISE):
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
 
     def _prepareOpt(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 1000)
+        self.mcsatSteps = self.params.get("mcsatSteps", 500)
         
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
@@ -576,7 +576,7 @@ class DSLL_WW(SLL_ISE):
         
         #print self.worlds
         print "sampledExpSum / Z", self.sampledExpSum, partition_function
-        ll = log(self.sampledExpSum / partition_function)
+        ll = log(self.sampledExpSum) - log(partition_function)
         print "ll =", ll
         print 
         return ll

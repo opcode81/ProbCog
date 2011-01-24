@@ -300,17 +300,17 @@ class LearnWeights:
 
 if __name__ == '__main__':
     from optparse import OptionParser
-    
     parser = OptionParser()
-    parser.add_option("", "--mln_filename", dest="mln_filename",
-                      help="mln_filename", metavar="FILE")
-    parser.add_option("", "--db_filename", dest="db_filename",
-                      help="output filename", metavar="FILE")        
-    parser.add_option("", "--output_file", dest="output_filename",
-                      help="output filename", metavar="FILE")
-    parser.add_option("-r", "--run",
+    parser.add_option("--run",
                       action="store_true", dest="run", default=False,
                       help="run without showing gui")
+    parser.add_option("-i", "--mln-filename", dest="mln_filename",
+                      help="mln-filename", metavar="FILE", type="string")
+    parser.add_option("-t", "--db-filename", dest="db_filename",
+                      help="output-filename", metavar="FILE", type="string")        
+    parser.add_option("-o", "--output-file", dest="output_filename",
+                      help="output-filename", metavar="FILE", type="string")
+
     (options, args) = parser.parse_args()
 
     
@@ -331,7 +331,7 @@ if __name__ == '__main__':
     root = Tk()    
     app = LearnWeights(root, ".", settings)
 
-
+    print "options:", options
     
     if options.run:
         app.learn(saveGeometry=False)
