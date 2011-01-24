@@ -185,13 +185,41 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		if(instantiatedVariables.contains(varName))
 			return groundBN.getNode(varName);
 		
-		BeliefNode ret = null;
-		
-		// consider all the relational nodes that could be used to instantiate the variable
+		// consider all the relational nodes that could be used to instantiate the variable		
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
-		if(templates == null) {
-			// TODO reuse data structures
+			
+		boolean combiningRuleNeeded = false;
+		
+		Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>>(); 
+		
+		// check potentially applicable templates
+		if(templates != null) {
+			for(RelationalNode relNode : templates) {
+				
+				Vector<Map<Integer, String[]>> groundings = relNode.checkTemplateApplicability(params, db);
+				if(groundings == null)
+					continue;
+	
+				// this template is applicable
+				
+				// if we have more than one grounding, we need a combining rule if no aggregator is given
+				if(groundings.size() > 1 && !relNode.hasAggregator())
+					combiningRuleNeeded = true;			
+				
+				// we also need a cominbing rule if we already have a suitable template
+				if(!suitableTemplates.isEmpty())
+					combiningRuleNeeded = true;
+	
+				suitableTemplates.add(new Pair<RelationalNode, Vector<Map<Integer, String[]>>>(relNode, groundings));
+			}
+		}
+
+		// if there are no suitable template, we may have an error case
+		if(suitableTemplates.isEmpty()) {			
+		
+			// if a uniform default distribution was defined, construct it
 			if(this.bln.rbn.usesUniformDefault(functionName)) {
+				// TODO reuse data structures			
 				Signature sig = this.bln.rbn.getSignature(functionName);
 				String[] aOutcomes;
 				ValueDouble[] dist;
@@ -223,36 +251,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				onAddGroundAtomNode(mainNode, params, sig);
 				return mainNode;
 			}	
-		
-			throw new Exception("There are no templates from which " + Signature.formatVarName(functionName, params) + " could be constructed.");
-		}
-			
-		boolean combiningRuleNeeded = false;
-		
-		Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>>(); 
-		
-		// check potentially applicable templates
-		for(RelationalNode relNode : templates) {
-			
-			Vector<Map<Integer, String[]>> groundings = relNode.checkTemplateApplicability(params, db);
-			if(groundings == null)
-				continue;
 
-			// this template is applicable
-			
-			// if we have more than one grounding, we need a combining rule if no aggregator is given
-			if(groundings.size() > 1 && !relNode.hasAggregator())
-				combiningRuleNeeded = true;			
-			
-			// we also need a cominbing rule if we already have a suitable template
-			if(!suitableTemplates.isEmpty())
-				combiningRuleNeeded = true;
-
-			suitableTemplates.add(new Pair<RelationalNode, Vector<Map<Integer, String[]>>>(relNode, groundings));
-		}
-
-		// if there are no suitable template, we may have an error case
-		if(suitableTemplates.isEmpty()) {
+			// otherwise, if it's not an evidence function, we have an error case
 			if(!this.bln.rbn.isEvidenceFunction(functionName))			
 				throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
 			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
@@ -269,6 +269,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				 */				
 				if(debug)
 					System.out.println("      " + varName + " (skipped, is evidence)");
+				return null;
 			}
 	    }
 		
