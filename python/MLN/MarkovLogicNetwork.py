@@ -700,6 +700,7 @@ class MLN(object):
         return self._infer(IPFPM(self), what, given, verbose, **args)
     
     def _infer(self, inferObj, what, given=None, verbose=True, doProbabilityFitting=True, **args):
+
         if len(self.probreqs) > 0 and doProbabilityFitting:
             fittingParams = {
                 "fittingMethod": self.probabilityFittingInferenceMethod,
