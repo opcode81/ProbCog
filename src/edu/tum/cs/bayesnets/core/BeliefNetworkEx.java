@@ -59,6 +59,7 @@ public class BeliefNetworkEx {
 	 * The logger for this class.
 	 */
 	static final Logger logger = Logger.getLogger(BeliefNetworkEx.class);
+	static boolean defaultPluginsRegistered = false;
 	static {
 		logger.setLevel(Level.WARN);
 	}
@@ -650,6 +651,8 @@ public class BeliefNetworkEx {
 	}
 	
 	public static void registerDefaultPlugins() {
+		if(defaultPluginsRegistered)
+			return;
 		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
 		// XML-BIF
 		Converter_xmlbif xmlbif = new Converter_xmlbif();
@@ -666,6 +669,7 @@ public class BeliefNetworkEx {
 		// UAI
 		Converter_uai uai = new Converter_uai();
 		iopl.addPlugin(null, uai);
+		defaultPluginsRegistered = true;
 	}
 	
 	/**
@@ -1036,13 +1040,18 @@ success:while (!successful) {
 		}
 	}
 
-	public abstract class CPTWalker {
+	public interface CPTWalker {
 		public abstract void tellSize(int childConfigs, int parentConfigs);
-		public abstract void tellNodeOrder(BeliefNode n);		
+		public abstract void tellNode(BeliefNode n);		
 		public abstract void tellValue(int[] addr, double v);
 	}
 	
-	public void walkCPT(BeliefNode node, CPTWalker walker) {
+	/**
+	 * @param node the node whose CPT to walk
+	 * @param walker the visitor
+	 * @param byColumn whether to walk the CPT by column rather than by row
+	 */
+	public void walkCPT(BeliefNode node, CPTWalker walker, boolean byColumn) {
 		CPF cpf = node.getCPF();
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int parentConfigs = 1;
@@ -1050,23 +1059,25 @@ success:while (!successful) {
 			parentConfigs *= nodes[i].getDomain().getOrder();
 		walker.tellSize(nodes[0].getDomain().getOrder(), parentConfigs);
 		int[] addr = new int[cpf.getDomainProduct().length];
-		walkCPT(walker, cpf, addr, 0);
+		walker.tellNode(node);
+		walkCPT(walker, cpf, addr, byColumn ? 1 : 0, byColumn);
 	}
 	
-	protected void walkCPT(CPTWalker walker, CPF cpf, int[] addr, int i) {
+	protected void walkCPT(CPTWalker walker, CPF cpf, int[] addr, int i, boolean byColumn) {
 		BeliefNode[] nodes = cpf.getDomainProduct();
-		if(i == addr.length) { // we have a complete address
+		boolean done = !byColumn ? i == addr.length : i == addr.length+1; 
+		if(done) { // we have a complete address of all parents
 			// get the probability value
 			int realAddr = cpf.addr2realaddr(addr);
 			double value = ((ValueDouble)cpf.get(realAddr)).getValue();
 			walker.tellValue(addr, value);
 		}
 		else { // the address is yet incomplete -> consider all ways of setting the next e
-			walker.tellNodeOrder(nodes[i]);
-			Discrete dom = (Discrete)nodes[i].getDomain();
+			int idx = i % addr.length;
+			Discrete dom = (Discrete)nodes[idx].getDomain();
 			for(int j = 0; j < dom.getOrder(); j++) {
-				addr[i] = j;
-				walkCPT(walker, cpf, addr, i+1);
+				addr[idx] = j;
+				walkCPT(walker, cpf, addr, i+1, byColumn);
 			}
 		}
 	}
