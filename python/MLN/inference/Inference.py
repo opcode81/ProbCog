@@ -74,8 +74,8 @@ class Inference(object):
         msecs = int((elapsed - secs) * 1000)
         return (elapsed, "%d:%02d:%02d.%03d" % (hours, minutes, secs, msecs))
 
-    def infer(self, queries, given=None, verbose=True, details=False, shortOutput=False, outFile=None, **args):
-        #print "infer: ARGS:",args
+    def infer(self, queries, given=None, verbose=True, details=False, shortOutput=False, outFile=None, saveResultsProlog=False, **args):
+        
         '''
             queries: a list of queries - either strings (predicate names or partially/fully grounded atoms) or ground formulas
         '''
@@ -92,7 +92,7 @@ class Inference(object):
             if details: print "\nresults:"
             self.writeResults(sys.stdout, shortOutput=shortOutput)
         if outFile != None:
-            self.writeResults(outFile, shortOutput=True)
+            self.writeResults(outFile, shortOutput=True, saveResultsProlog=saveResultsProlog)
         # return results
         if len(self.queries) > 1:
             return self.results
@@ -103,32 +103,50 @@ class Inference(object):
         ''' returns a pair (t,s) where t is the total inference time in seconds and s is a readable string representation thereof '''
         return self.totalInferenceTime
     
-    def writeResults(self, out, shortOutput=True):
-        self._writeResults(out, self.results, shortOutput)
+    def writeResults(self, out, shortOutput=True, saveResultsProlog=False):
+        self._writeResults(out, self.results, shortOutput, saveResultsProlog)
     
-    def _writeResults(self, out, results, shortOutput=True):
-        # determine maximum query length to beautify output
-        if shortOutput:
-            maxLen = 0
-            for q in self.queries:
-                maxLen = max(maxLen, len(strFormula(q)))
-        # if necessary, get string representation of evidence
-        if not shortOutput:
+    def _writeResults(self, out, results, shortOutput=True, saveResultsProlog=False):
+
+        if False == saveResultsProlog:
+            
+            # determine maximum query length to beautify output
+            if shortOutput:
+                maxLen = 0
+                for q in self.queries:
+                    maxLen = max(maxLen, len(strFormula(q)))
+            # if necessary, get string representation of evidence
+            if not shortOutput:
+                if self.given is not None:
+                    evidenceString = self.given
+                else:
+                    evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+            # print sorted results, one per line
+            strQueries = map(strFormula, self.queries)
+            query2Index = {}
+            for i, q in enumerate(strQueries): query2Index[q] = i
+            for q in sorted(strQueries):
+                i = query2Index[q]
+                addInfo = self.additionalQueryInfo[i]
+                if not shortOutput:
+                    out.write("P(%s | %s) = %f  %s\n" % (q, evidenceString, results[i], addInfo))
+                else:
+                    out.write("%f  %-*s  %s\n" % (results[i], maxLen, q, addInfo))
+        else:
+            #HACK, TODO
             if self.given is not None:
                 evidenceString = self.given
             else:
                 evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-        # print sorted results, one per line
-        strQueries = map(strFormula, self.queries)
-        query2Index = {}
-        for i, q in enumerate(strQueries): query2Index[q] = i
-        for q in sorted(strQueries):
-            i = query2Index[q]
-            addInfo = self.additionalQueryInfo[i]
-            if not shortOutput:
-                out.write("P(%s | %s) = %f  %s\n" % (q, evidenceString, results[i], addInfo))
-            else:
-                out.write("%f  %-*s  %s\n" % (results[i], maxLen, q, addInfo))
+            # print sorted results, one per line
+            strQueries = map(strFormula, self.queries)
+            query2Index = {}
+            for i, q in enumerate(strQueries): query2Index[q] = i
+            for q in sorted(strQueries):
+                i = query2Index[q]
+                addInfo = self.additionalQueryInfo[i]
+                out.write("queryResult('"+self.queries[0].getGroundAtoms()[0].params[0].lower()+"', Value) :- Value is "+str(results[i])+".")
+                #print "self.q",self.queries[0].getGroundAtoms()[0].params[0].lower()
     
     def _compareResults(self, results, referenceResults):
         if len(results) != len(referenceResults):

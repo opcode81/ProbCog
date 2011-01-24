@@ -354,6 +354,8 @@ class MLNQuery:
                         haveOutFile = True
                         outFile = file(output, "w")
                         args["outFile"] = outFile
+                        
+                    args["saveResultsProlog"] = self.settings["saveResultsProlog"] 
                     # check for print requests
                     if "printGroundAtoms" in args:
                         mln.printGroundAtoms()
@@ -514,9 +516,12 @@ if __name__ == '__main__':
     parser.add_option("--run",
                       action="store_true", dest="run", default=False,
                       help="run without showing gui")
+    parser.add_option("--save-results-prolog",
+                      action="store_true", dest="saveResultsProlog", default=False,
+                      help="save results as prolog file")
     (options, args) = parser.parse_args()    
     
-    
+    settings["saveResultsProlog"] = options.saveResultsProlog  
     # create gui
     root = Tk()
     app = MLNQuery(root, ".", settings)
