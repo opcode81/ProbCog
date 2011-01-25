@@ -324,7 +324,7 @@ if __name__ == '__main__':
     if options.mln_filename is not None:
         settings["mln_filename"] = options.mln_filename    
     if options.output_filename is not None:
-        settings["db_filename"] = options.db_filename    
+        settings["db"] = options.db_filename    
     if options.output_filename is not None:
         settings["output_filename"] = options.output_filename    
 
