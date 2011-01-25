@@ -116,7 +116,8 @@ class BLNQuery:
             "Belief Propagation": "BeliefPropagation",
             "Iterative Join-Graph Propagation": "IJGP",
             "SampleSearch": "SampleSearch",
-            "ACE": "ACE"
+            "ACE": "ACE",
+            "SampleSearch with Choco Solver" : "SampleSearchChoco"
         }
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
@@ -245,7 +246,7 @@ class BLNQuery:
         # start button
         row += 1
         start_button = Button(self.frame, text=">> Start Inference <<", command=self.start)
-        start_button.grid(row=row, column=1, sticky="NEW")
+        start_button.grid(row=row, column=1, sticky="NEW", pady=(0,10))
 
         self.initialized = True
         
@@ -292,13 +293,12 @@ class BLNQuery:
         
     def showBN(self):
         bif = self.selected_bif.get()
-        if "win" in sys.platform:
-            os.system("bnj %s" % bif)
-        else:
+        if "spawnvp" in dir(os):
             os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
-        
+        else:
+            os.system("bnj %s" % bif)
 
-    def start(self):
+    def start(self, saveGeometry=True):
         # get mln, db, qf and output filename
         bln = self.selected_bln.get()
         blog = self.selected_blog.get()
@@ -333,7 +333,8 @@ class BLNQuery:
         #self.settings["openWorld"] = self.open_world.get()
         self.settings["cwPreds"] = cwPreds
         #self.settings["numChains"] = self.numChains.get()
-        self.settings["geometry"] = self.master.winfo_geometry()
+        if saveGeometry:
+            self.settings["geometry"] = self.master.winfo_geometry()
         self.settings["output_filename"] = outfile
         self.settings["reference_distribution"] = refdist
         self.settings["saveResults"] = self.save_results.get()
@@ -416,9 +417,14 @@ if __name__ == '__main__':
             del argv[i]            
             continue
         i += 1
+    run = "--run" in argv
+    argv = filter(lambda x: x != "--run", argv)
     if len(argv) > 1:
         settings["params"] = " ".join(argv[1:])
     # create gui
-    root = Tk()
+    root = Tk()    
     app = BLNQuery(root, ".", settings)
-    root.mainloop()
+    if not run:        
+        root.mainloop()
+    else:
+        app.start(saveGeometry=False)
