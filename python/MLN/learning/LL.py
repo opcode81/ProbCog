@@ -390,9 +390,11 @@ class SLL_ISE(LL_ISE):
         grad = grad - self.formulaCount / self.mcsatSteps #self.sampled_Z
         #print "after: ", grad
 
-        #TODO: figure out why the cache-reset is necessary to get non-0 weights
-        #self.wtsLastSLLWorldSampling = []
+        #HACK: gradient gets too large, reduce it
+        if numpy.any(abs(grad) > 5):
+            grad = grad / 10
 
+        
         return grad
     
     #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
@@ -414,7 +416,7 @@ class SLL_ISE(LL_ISE):
             print "calling MCSAT with weights:", wtFull
             mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
                                         doProbabilityFitting=False,
-                                        verbose=True, details =True, infoInterval=1000, resultsInterval=1000)
+                                        verbose=True, details =True, infoInterval=100, resultsInterval=100)
             print mcsat
             print "number of disctinct samples:", len(self.worldsSampled)
         else:
@@ -447,11 +449,13 @@ class SLL_ISE(LL_ISE):
         
         
         
-        if step % 1000 == 0:
+        if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
+            sys.stdout.flush()
+
 
     def _prepareOpt(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 500)
+        self.mcsatSteps = self.params.get("mcsatSteps", 1000)
         
         # create just one possible worlds (for our training database)
         self.mln.worlds = []

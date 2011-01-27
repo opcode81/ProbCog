@@ -88,6 +88,8 @@ class AbstractLearner(object):
     def __f(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         print "_f: wt = ", wt
+        sys.stdout.flush()
+
         return self._f(wt)
     
     def __fDummy(self, wt):
@@ -122,7 +124,8 @@ class AbstractLearner(object):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         grad = self._grad(wt)
         print "_grad: wt = %s\ngrad = %s" % (wt, grad)
-        
+        sys.stdout.flush()
+
         self.lastFullGradient = grad
         
         return self._projectVectorToNonFixedWeightIndices(grad)
