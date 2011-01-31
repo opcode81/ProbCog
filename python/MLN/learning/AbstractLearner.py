@@ -87,6 +87,7 @@ class AbstractLearner(object):
             
     def __f(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
+        wt = self._convertToFloatVector(wt)
         print "_f: wt = ", wt
         sys.stdout.flush()
 
@@ -122,6 +123,9 @@ class AbstractLearner(object):
         
     def __grad(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
+        
+        wt = self._convertToFloatVector(wt)
+        
         grad = self._grad(wt)
         print "_grad: wt = %s\ngrad = %s" % (wt, grad)
         sys.stdout.flush()
@@ -129,6 +133,12 @@ class AbstractLearner(object):
         self.lastFullGradient = grad
         
         return self._projectVectorToNonFixedWeightIndices(grad)
+    
+    #make sure mpmath datatypes aren't propagated in here as they can be very slow compared to native floats
+    def _convertToFloatVector(self, wts):
+        for wt in wts:
+            wt = float(wt)
+        return wts
 
     # learn the weights of the mln given the training data previously loaded with combineDB
     #   initialWts: whether to use the MLN's current weights as the starting point for the optimization

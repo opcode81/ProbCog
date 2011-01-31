@@ -915,7 +915,7 @@ class MLN(object):
             if p == 1.0: p = 1 - precision
             f = pnew * (1 - p) / p / (1 - pnew)
             old_weight = formula.weight
-            formula.weight += logx(f)
+            formula.weight += float(logx(f)) #make sure to set the weight to a native float and not an mpmath value
             diff = diffs[idxConstraint]
             # print status
             if verbose: print "  [%s] p=%f vs. %f (diff = %f), weight %s: %f -> %f, dev max %f mean %f, elapsed: %.3fs" % (strStep, p, pnew, diff, strFormula(formula), old_weight, formula.weight, maxdiff, meandiff, time.time() - t_start)
