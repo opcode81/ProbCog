@@ -279,7 +279,7 @@ class MCSAT(MCMCInference):
         NLC = []
         for idxGF, gf in enumerate(self.gndFormulas):
             if gf.isTrue(chain.state):                
-                    u = random.uniform(0, exp(self.wt[gf.idxFormula]))
+                    u = random.uniform(0, math.exp(self.wt[gf.idxFormula]))
                     if u > 1:
                         if gf.isLogical():
                             clauseRange = self.gndFormula2ClauseIdx[idxGF]

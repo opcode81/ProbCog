@@ -44,10 +44,12 @@ except:
 #sys.stderr.write("Warning: Falling back to standard math module because mpmath is not installed. If overflow errors occur, consider installing mpmath.")
 from math import floor, ceil, e, sqrt
 
+import math
+
 def logx(x):
     if x == 0:
         return - 100
-    return log(x)
+    return math.log(x) #used for weights -> no high precision (mpmath) necessary
 
 
 def stripComments(text):
