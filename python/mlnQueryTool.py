@@ -356,6 +356,9 @@ class MLNQuery:
                         args["outFile"] = outFile
                         
                     args["saveResultsProlog"] = self.settings["saveResultsProlog"] 
+                    
+                    args["probabilityFittingResultFileName"] = self.settings["output_filename"] + "_fitted.mln"
+                    
                     # check for print requests
                     if "printGroundAtoms" in args:
                         mln.printGroundAtoms()
