@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.Variable;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
@@ -101,7 +102,7 @@ public class BLNModel extends Model {
 					params[i] = tuple[i+1];
 				value = tuple[params.length+1];
 			}
-			db.addVariable(new Database.Variable(functionName, params, value, this.bln.rbn));
+			db.addVariable(new Variable(functionName, params, value, this.bln.rbn));
 		}
 	}
 

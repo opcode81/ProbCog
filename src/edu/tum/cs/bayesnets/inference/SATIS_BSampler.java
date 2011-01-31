@@ -29,6 +29,7 @@ import edu.tum.cs.logic.sat.Clause;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.StringVariable;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 
 public class SATIS_BSampler extends BackwardSampling {
@@ -163,7 +164,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		}
 	}
 	
-	protected static class PropositionalVariable extends AbstractVariable {
+	protected static class PropositionalVariable extends StringVariable {
 
 		public PropositionalVariable(String varName, String value) {
 			super(varName, new String[0], value);			
@@ -177,7 +178,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		@Override
 		public boolean isBoolean() {			
 			return false;
-		}				
+		}
 	}
 	
 	@Override

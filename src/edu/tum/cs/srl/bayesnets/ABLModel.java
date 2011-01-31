@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -87,7 +86,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
 				Signature sig = new Signature(matcher.group(3), retType,
 						argTypes, isLogical);
-				addSignature(matcher.group(3), sig);
+				addSignature(sig);
 				return true;
 			}
 			return false;

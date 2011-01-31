@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -22,9 +21,7 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.CombiningRule;
-import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
-import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
@@ -247,7 +244,6 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				CPF cpf = new CPF();
 				cpf.build(new BeliefNode[]{mainNode}, dist);
 				mainNode.setCPF(cpf);
-				groundNode2TemplateNode.put(mainNode, null); // TODO fix null
 				onAddGroundAtomNode(mainNode, params, sig);
 				return mainNode;
 			}	
@@ -284,8 +280,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			System.out.println("      " + mainNodeName);
 
 		// add the node itself to the network				
-		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());
-		groundNode2TemplateNode.put(mainNode, relNode);
+		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());		
 		onAddGroundAtomNode(mainNode, params, relNode.getSignature());
 		
 		// we can now instantiate the variable based on the suitable templates
@@ -293,6 +288,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			instantiateVariableFromSingleTemplate(mainNode, template.first, template.second);			
 		}
 		else { // need to use combining rule
+			// TODO ground nodes instantiated from combining rules do not have a template assigned to them via the mapping
 			CombiningRule r = bln.rbn.getCombiningRule(functionName);
 			if(r == null)
 				throw new Exception("More than one group of parents for variable " + varName + " but no combining rule was specified");
@@ -310,6 +306,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @throws Exception
 	 */
 	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<Map<Integer, String[]>> groundings) throws Exception {
+		groundNode2TemplateNode.put(mainNode, relNode);
 		// add edges from the parents
 		// - normal case: just CPF application for one set of parents
 		if(!relNode.hasAggregator()) {
