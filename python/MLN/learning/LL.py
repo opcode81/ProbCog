@@ -308,7 +308,7 @@ class E_ISEWW(Abstract_ISEWW):
                             counts[key] = cnt
                     self.countsByWorld[idxWorld] = counts
                 
-                #ñ (soft counts for evidence)
+                #ï¿½ (soft counts for evidence)
                 if len(self.softCountsEvidenceWorld) == 0:
                     print "computing evidence soft counts"
                     self.softCountsEvidenceWorld = {}
@@ -355,15 +355,15 @@ class SLL_ISE(LL_ISE):
         
         #if evidence world does not occur in the samples, add it here:
         # in the soft case, it is never included as all normalization worlds are hard
-        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
-            #only here: add evidence world to partition function to guarantee that ll <= 0
-            partition_function =  self.sampled_Z + self.expsums[idxTrainDB] #200000 + self.expsums[idxTrainDB]#
-            partition_function /= self.mcsatSteps + 1
-            print "_f: evidence world added to normalization"
-        else:
-            partition_function =  self.sampled_Z
-            partition_function /= self.mcsatSteps
-        
+#        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
+#            #only here: add evidence world to partition function to guarantee that ll <= 0
+#            partition_function =  self.sampled_Z + self.expsums[idxTrainDB] #200000 + self.expsums[idxTrainDB]#
+#            partition_function /= self.mcsatSteps + 1
+#            print "_f: evidence world added to normalization"
+#        else:
+        partition_function =  self.sampled_Z
+        #partition_function /= self.mcsatSteps
+            
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
         ll = log(self.expsums[idxTrainDB]) - log(partition_function)
@@ -391,7 +391,7 @@ class SLL_ISE(LL_ISE):
         #print "after: ", grad
 
         #HACK: gradient gets too large, reduce it
-        if numpy.any(abs(grad) > 5):
+        if numpy.any(abs(grad) > 2.5):
             grad = grad / 10
 
         
@@ -411,12 +411,13 @@ class SLL_ISE(LL_ISE):
             self.worldsSampled = {} #hashmap with the worlds already sampled
             self.currentWeights = wtFull
             self.sampled_Z = 0
+            self.debug_number_of_new_worlds_in_Z = 0
             what = [FOL.TrueFalse(True)]      
             self.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
             mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
                                         doProbabilityFitting=False,
-                                        verbose=True, details =True, infoInterval=100, resultsInterval=100)
+                                        verbose=True, details =True, infoInterval=20, resultsInterval=20)
             print mcsat
             print "number of disctinct samples:", len(self.worldsSampled)
         else:
@@ -442,6 +443,7 @@ class SLL_ISE(LL_ISE):
         if tuple(sampleWorld) not in self.worldsSampled:
             self.sampled_Z += exp_sum     
             self.worldsSampled[tuple(sampleWorld)] = True #add entry in hashmap
+            self.debug_number_of_new_worlds_in_Z += 1
         #else:
             #print "discarded duplicate world:", hash(tuple(sampleWorld))
          
@@ -449,9 +451,10 @@ class SLL_ISE(LL_ISE):
         
         
         
-        if step % 100 == 0:
-            print "sampling worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
+        if step % 20 == 0:
+            print "sampling worlds (MCSAT), step: ", step, " self.sampled_Z", self.sampled_Z, "new worlds in Z:", self.debug_number_of_new_worlds_in_Z
             sys.stdout.flush()
+            self.debug_number_of_new_worlds_in_Z = 0
 
 
     def _prepareOpt(self):
