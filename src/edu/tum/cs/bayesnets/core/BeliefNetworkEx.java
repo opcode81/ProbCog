@@ -18,9 +18,6 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
@@ -55,14 +52,12 @@ import edu.tum.cs.bayesnets.inference.WeightedSample;
  *
  */
 public class BeliefNetworkEx {
-	/**
-	 * The logger for this class.
-	 */
-	static final Logger logger = Logger.getLogger(BeliefNetworkEx.class);
-	static boolean defaultPluginsRegistered = false;
+	/*static final Logger logger = Logger.getLogger(BeliefNetworkEx.class);	
 	static {
 		logger.setLevel(Level.WARN);
-	}
+	}*/
+	
+	static boolean defaultPluginsRegistered = false;
 
 	/**
 	 * The maximum number of unsuccessful trials for sampling. 
@@ -214,7 +209,7 @@ public class BeliefNetworkEx {
 		BeliefNode node = new BeliefNode(name, domain);
 		bn.addBeliefNode(node);
 		addAttributeMapping(name, attributeName);
-		logger.debug("Added node "+name+" with attributeName "+attributeName);
+		//logger.debug("Added node "+name+" with attributeName "+attributeName);
 		return node;
 	}
 	
@@ -226,17 +221,17 @@ public class BeliefNetworkEx {
 	 */
 	public void connect(String node1, String node2) throws Exception {
 		try {
-			logger.debug("connecting "+node1+" and "+node2);
-			logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+			//logger.debug("connecting "+node1+" and "+node2);
+			//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
 			BeliefNode n1 = getNode(node1);
 			BeliefNode n2 = getNode(node2);
 			if(n1 == null || n2 == null)
 				throw new Exception("One of the node names "+node1+" or "+node2+" is invalid!");
-			logger.debug("Domainsize: "+n1.getDomain().getOrder()+"x"+n2.getDomain().getOrder());
-			logger.debug("Doing the connect...");
+			//logger.debug("Domainsize: "+n1.getDomain().getOrder()+"x"+n2.getDomain().getOrder());
+			//logger.debug("Doing the connect...");
 			bn.connect(n1, n2);
-			logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
-			logger.debug("Connection done.");
+			//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+			//logger.debug("Connection done.");
 		} catch(Exception e) {
 			System.out.println("Exception occurred in connect!");
 			e.printStackTrace(System.out);
@@ -330,8 +325,8 @@ public class BeliefNetworkEx {
 			int nodeIdx = getNodeIndex(nodeAndDomain[0]);
 			if (nodeIdx < 0)
 				throw new IllegalArgumentException("Variable with the name "+nodeAndDomain[0]+" not found!");
-			if (nodeDomainIndices[nodeIdx] > 0)
-				logger.warn("Evidence "+nodeAndDomain[0]+" set twice!");
+			/*if (nodeDomainIndices[nodeIdx] > 0)
+				logger.warn("Evidence "+nodeAndDomain[0]+" set twice!");*/
 			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
 			int domainIdx = domain.findName(nodeAndDomain[1]);
 			if (domainIdx < 0) {
@@ -788,7 +783,7 @@ public class BeliefNetworkEx {
 		}
 		double sum = 0;
 		for (WeightedSample sample: sampleSums.keySet()) {
-			logger.debug(sample);
+			//logger.debug(sample);
 			double value = sampleSums.get(sample);
 			sum += value;
 		}
@@ -945,8 +940,8 @@ success:while (!successful) {
 				continue;
 				//throw new IllegalArgumentException(error);
 			}
-			if (evidenceDomainIndices[nodeIdx] > 0)
-				logger.warn("Evidence "+evidence[0]+" set twice!");
+			/*if (evidenceDomainIndices[nodeIdx] > 0)
+				logger.warn("Evidence "+evidence[0]+" set twice!");*/
 			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
 			int domainIdx = domain.findName(evidence[1]);
 			if (domainIdx < 0) {
@@ -1025,10 +1020,8 @@ success:while (!successful) {
 	public String[] getDiscreteDomainAsArray(String nodeName) {
 		return getDiscreteDomainAsArray(getNode(nodeName));
 	}
-	
-	/**
-	 * Dump the context of the net to the logger.
-	 */
+
+	/*
 	public void dump() {
 		BeliefNode[] nodes = bn.getNodes();
 		for (int i=0; i<nodes.length; i++) {
@@ -1039,6 +1032,7 @@ success:while (!successful) {
 			logger.debug("Attribute "+attributeName+": "+attributeToNodeNameMapping.get(attributeName));
 		}
 	}
+	*/
 
 	public interface CPTWalker {
 		public abstract void tellSize(int childConfigs, int parentConfigs);
