@@ -341,6 +341,7 @@ class E_ISEWW(Abstract_ISEWW):
 class SLL_ISE(LL_ISE):
     def __init__(self, mln):
         LL_ISE.__init__(self, mln)
+        
     
     def _f(self, wt):
         
@@ -391,8 +392,11 @@ class SLL_ISE(LL_ISE):
         #print "after: ", grad
 
         #HACK: gradient gets too large, reduce it
-        if numpy.any(abs(grad) > 2.5):
-            grad = grad / 10
+        if numpy.any(numpy.abs(grad) > 1):
+            print "gradient values too large:", numpy.max(numpy.abs(grad))
+            grad = grad / numpy.max(numpy.abs(grad)) / 5
+            print "scaling down to:", numpy.max(numpy.abs(grad))
+            
 
         
         return grad

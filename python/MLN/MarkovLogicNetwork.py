@@ -564,7 +564,7 @@ class MLN(object):
             for gndFormula in self.gndFormulas:
                 if self._isTrue(gndFormula, world["values"]):
                     weights.append(wts[gndFormula.idxFormula])
-            exp_sum = math.exp(sum(weights))
+            exp_sum = exp(sum(weights))
             if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or worldIndex != self.idxTrainingDB:
                 total += exp_sum
             world["sum"] = exp_sum
@@ -705,7 +705,8 @@ class MLN(object):
             fittingParams = {
                 "fittingMethod": self.probabilityFittingInferenceMethod,
                 "fittingSteps": self.probabilityFittingMaxSteps,
-                "fittingThreshold": self.probabilityFittingThreshold
+                "fittingThreshold": self.probabilityFittingThreshold,
+                "probabilityFittingResultFileName": None
                 #fittingMCSATSteps
             }
             fittingParams.update(args)
@@ -810,7 +811,7 @@ class MLN(object):
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, **args):
+    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
         '''
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
@@ -841,7 +842,8 @@ class MLN(object):
             if len(queries) > 0:
                 pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
             return 
-        if verbose: print "applying probability fitting... "
+        if verbose: 
+            print "applying probability fitting...(max. deviation threshold:", fittingThreshold, ")"
         t_start = time.time()
         # determine relevant formulas
         for req in probConstraints:
@@ -865,6 +867,7 @@ class MLN(object):
         # iterative fitting algorithm        
         step = 1 # fitting round
         fittingStep = 1 # actual IPFP iteration
+        #print "probConstraints", probConstraints, "queries", queries
         what = [r["gndFormula"] for r in probConstraints] + queries
         done = False
         while step <= maxSteps and not done:          
@@ -905,6 +908,7 @@ class MLN(object):
             # get the scaling factor and apply it
             formula = self.formulas[req["idxFormula"]]
             p = results[idxConstraint]
+            #print "p", p, "results", results, "idxConstraint", idxConstraint
             pnew = req["p"]
             precision = 1e-3
             if p == 0.0: p = precision
@@ -918,6 +922,16 @@ class MLN(object):
             if fittingStep % len(probConstraints) == 0:
                 step += 1
             fittingStep += 1
+            
+            
+        #write resulting mln:
+        if probabilityFittingResultFileName != None:
+            mlnFile = file(probabilityFittingResultFileName, "w")
+            self.write(mlnFile)
+            mlnFile.close()
+            print "written MLN with probability constraints to:", probabilityFittingResultFileName
+        
+            
         return (results[len(probConstraints):], {"steps": min(step, maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "meandiff": meandiff, "time": time.time() - t_start})
 
     def combineOverwrite(self, domain, verbose=False, groundFormulas=True):
@@ -940,6 +954,8 @@ class MLN(object):
             print "ground formulas: %d" % len(self.gndFormulas)
         
         self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, verbose=True)
+
+        
 
     # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
     # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
