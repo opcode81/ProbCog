@@ -706,6 +706,7 @@ class MLN(object):
                 "fittingMethod": self.probabilityFittingInferenceMethod,
                 "fittingSteps": self.probabilityFittingMaxSteps,
                 "fittingThreshold": self.probabilityFittingThreshold
+                #fittingMCSATSteps
             }
             fittingParams.update(args)
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
@@ -809,7 +810,7 @@ class MLN(object):
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
         
-    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, **args):
+    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, **args):
         '''
             applies the given probability constraints (if any), dynamically modifying weights
             probConstraints: list of constraints
@@ -877,7 +878,7 @@ class MLN(object):
             elif inferenceMethod == InferenceMethods.ExactLazy:
                 results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
             elif inferenceMethod == InferenceMethods.MCSAT:
-                results = self.inferMCSAT(what, given=given, verbose=False, **inferenceParams)
+                results = self.inferMCSAT(what, given=given, verbose=False, maxSteps = fittingMCSATSteps, **inferenceParams)
             else:
                 raise Exception("Requested inference method (%s) not supported by probability constraint fitting" % InferenceMethods.getName(inferenceMethod))
             if type(results) != list:
