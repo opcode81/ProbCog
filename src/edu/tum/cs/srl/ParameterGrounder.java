@@ -32,7 +32,7 @@ public class ParameterGrounder {
 	 * @return a collection of possible parameter bindings
 	 * @throws Exception 
 	 */
-	public static Collection<String[]> generateGroundings(Signature sig, Database db) throws Exception {
+	public static Collection<String[]> generateGroundings(Signature sig, GenericDatabase<?,?> db) throws Exception {
 		return generateGroundings(db, sig.argTypes);	
 	}
 	
@@ -54,14 +54,14 @@ public class ParameterGrounder {
 		}
 	}
 	
-	public static Collection<String[]> generateGroundings(Database db, String[] domainNames) throws Exception {
+	public static Collection<String[]> generateGroundings(GenericDatabase<?,?> db, String[] domainNames) throws Exception {
 		Vector<String[]> ret = new Vector<String[]>();
 		generateGroundings(ret, db, new String[domainNames.length], domainNames, 0);
 		return ret;
 	}
 	
 	// TODO it would be better to use an iterator that generates groundings as we go along rather than putting them all into one big collection
-	private static void generateGroundings(Collection<String[]> ret, Database db, String[] params, String[] domainNames, int i) throws Exception {
+	private static void generateGroundings(Collection<String[]> ret, GenericDatabase<?,?> db, String[] params, String[] domainNames, int i) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == domainNames.length) {
 			ret.add(params.clone());

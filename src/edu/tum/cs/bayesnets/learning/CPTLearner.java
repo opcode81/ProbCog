@@ -239,7 +239,7 @@ public class CPTLearner extends Learner {
 					if (domain instanceof Discretized) {	// If we have a discretized domain we discretize first...
 						int colIdx = nodeIdx2colIdx[node_idx];
 						if (colIdx < 0) {
-							bn.dump();
+							//bn.dump();
 							for (int i = 0; i < numAttributes; i++) {
 								logger.debug("Attribute "+i+": "+instances.attribute(i).name());
 							}

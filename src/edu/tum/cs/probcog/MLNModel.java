@@ -11,6 +11,7 @@ import java.util.Vector;
 
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.Variable;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.srl.mln.inference.InferenceAlgorithm;
@@ -72,7 +73,7 @@ public class MLNModel extends Model {
 					params[i] = tuple[i+1];
 				value = tuple[tuple.length-1];
 			}
-			db.addVariable(new Database.Variable(functionName, params, value, mln));
+			db.addVariable(new Variable(functionName, params, value, mln));
 		}
 	}
 

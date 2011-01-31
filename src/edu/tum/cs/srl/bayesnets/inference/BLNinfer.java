@@ -22,7 +22,6 @@ import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.Database.Variable;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
@@ -306,7 +305,7 @@ public class BLNinfer implements IParameterHandler {
 			gbln.getGroundNetwork().saveXMLBIF(baseName + ".instance.xml");
 			// save evidence data
 			BNDatabase bndb = new BNDatabase();
-			for(Variable var : db.getEntries())
+			for(edu.tum.cs.srl.Variable var : db.getEntries())
 				bndb.add(var.getName(), var.value);
 			bndb.write(new PrintStream(new File(baseName + ".instance.bndb")));
 		}

@@ -65,6 +65,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return relationKeys.get(relation.toLowerCase());
 	}
 
+	/**
+	 * constructs an empty relational belief network
+	 * @throws Exception
+	 */
 	public RelationalBeliefNetwork() throws Exception {
 		super();
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
@@ -73,6 +77,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		guaranteedDomElements = new HashMap<String, String[]>();
 	}
 	
+	/**
+	 * instantiates a relational belief network from a fragment network
+	 * @param networkFile
+	 * @throws Exception
+	 */
 	public RelationalBeliefNetwork(String networkFile) throws Exception {
 		super(networkFile);
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
@@ -195,14 +204,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return ret;
 	}
 	
-	public void addSignature(String predicateName, Signature sig) {
-		//relNodesByIdx.get(nodeIndex).sig = sig;
-		String key = predicateName; //.toLowerCase()
-		signatures.put(predicateName, sig);
-	}
-	
-	public void addSignature(RelationalNode node, Signature sig) {
-		addSignature(node.getFunctionName(), sig);
+	public void addSignature(Signature sig) {
+		String key = sig.functionName; //.toLowerCase()
+		signatures.put(key, sig);
 	}
 	
 	/**
@@ -253,7 +257,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			}
 			String retType = isBooleanDomain(((Discrete)node.node.getDomain())) ? "Boolean" : "dom" + node.getFunctionName();
 			Signature sig = new Signature(node.getFunctionName(), retType, argTypes);
-			addSignature(node.getFunctionName(), sig);		
+			addSignature(sig);		
 		}
 		checkSignatures(); // to fill constants
 	}
@@ -289,6 +293,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				String type = types.get(node.getFunctionName());
 				if(type == null) // constants that were referenced by any of their parents must now have a type assigned
 					throw new Exception("Constant " + node + " not referenced and therefore not typed.");
+				// TODO removed adding of signature because of new instantiation scheme
+				// Currently don't know why this was ever added in the first place.
 				//Signature sig = new Signature(node.getFunctionName(), type, new String[0]);
 				//addSignature(node, sig);
 			}
@@ -784,7 +790,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					}
 				}
 				// - add signature
-				addSignature(fullyGroundedRelNode, new Signature(fullyGroundedRelNode.getFunctionName(), origSig.returnType, argTypes));
+				addSignature(new Signature(fullyGroundedRelNode.getFunctionName(), origSig.returnType, argTypes));
 				// connect all parents of this node to the fully grounded version
 				BeliefNode[] parents = this.bn.getParents(node.node);
 				for(BeliefNode parent : parents) {

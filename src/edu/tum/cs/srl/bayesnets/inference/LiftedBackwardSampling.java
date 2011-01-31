@@ -320,10 +320,10 @@ public class LiftedBackwardSampling extends Sampler {
 		}
 		
 		@Override
-		public void prepareInference(int[] evidenceDomainIndices) throws Exception {
+		public void initialize() throws Exception {
 			probCache = new Cache2D<String, Integer, Double>();
 			distCache = new Cache2D<Integer, Long, BackSamplingDistribution>();
-			super.prepareInference(evidenceDomainIndices);
+			super.initialize();
 		}
 		
 		@Override
