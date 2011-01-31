@@ -34,15 +34,15 @@ from util import *
 try:
     import mpmath
     mpmath.mp.dps = 80
-    from mpmath import exp, fsum
+    from mpmath import exp, fsum, log
 except:
-    from math import exp
+    from math import exp, log
     try:
         from math import fsum 
     except: # not supported in Python 2.5
         fsum = sum
 #sys.stderr.write("Warning: Falling back to standard math module because mpmath is not installed. If overflow errors occur, consider installing mpmath.")
-from math import log, floor, ceil, e, sqrt
+from math import floor, ceil, e, sqrt
 
 def logx(x):
     if x == 0:
