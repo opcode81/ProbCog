@@ -122,7 +122,7 @@ class MCSAT(MCMCInference):
         softEvidence: if None, use soft evidence from MLN, otherwise use given dictionary of soft evidence
         '''
         
-
+        print "starting MCSAT with maxSteps=", maxSteps
         if softEvidence is None:
             self.softEvidence = self.mln.softEvidence
         else:
