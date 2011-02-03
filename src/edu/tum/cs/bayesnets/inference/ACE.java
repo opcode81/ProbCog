@@ -22,11 +22,17 @@ import edu.tum.cs.util.FileUtil;
  */
 public class ACE extends Sampler {
 	protected File acePath = null;
-	protected File bnFile, instFile;	
+	protected File bnFile, instFile;
+	private String aceParams = "";
 	
 	public ACE(BeliefNetworkEx bn) throws Exception {	
 		super(bn);
 		paramHandler.add("acePath", "setAcePath");
+		paramHandler.add("aceParams", "setACEparams");
+	}
+	
+	public void setACEparams(String aceParams) {
+		this.aceParams = aceParams;
 	}
 	
 	public void setAcePath(String path) throws Exception {
@@ -53,7 +59,9 @@ public class ACE extends Sampler {
 		
 		// compile arithmetic circuit using ace compiler
 		if(verbose) System.out.println("compiling arithmetic circuit...");
-		runAce("compile " + bnFile.getName());	
+		if(verbose) System.out.println("ACE params: " + this.aceParams);
+		
+		runAce("compile " + this.aceParams + bnFile.getName());	
 		
 		// write evidence to .inst file
 		instFile = new File("ace.tmp.inst");
