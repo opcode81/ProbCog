@@ -87,7 +87,7 @@ public class BLNinfer implements IParameterHandler {
 	
 	// computed stuff
 	Collection<InferenceResult> results;
-	double samplingTime;
+	double groundingTime, inferenceInitTime, inferenceTime;
 	int stepsTaken;
 	
 	public BLNinfer() throws Exception {
@@ -292,9 +292,12 @@ public class BLNinfer implements IParameterHandler {
 				else
 					bln = new BayesianLogicNetworkPy(blog, logicFile);
 			}
+			Stopwatch sw = new Stopwatch();
+			sw.start();
 			gbln = bln.ground(db);
 			paramHandler.addSubhandler(gbln);
-			gbln.instantiateGroundNetwork();		
+			gbln.instantiateGroundNetwork();
+			this.groundingTime = sw.getElapsedTimeSecs();
 		}
 		if(showBN) {
 			gbln.getGroundNetwork().show();
@@ -348,7 +351,8 @@ public class BLNinfer implements IParameterHandler {
 			dist = sampler.infer();
 			results = sampler.getResults(dist);
 		}
-		this.samplingTime = sampler.getSamplingTime();
+		this.inferenceTime = sampler.getInferenceTime();
+		this.inferenceInitTime = sampler.getInitTime();
 		this.stepsTaken = dist.steps;
 		sw.stop();
 		
@@ -391,10 +395,28 @@ public class BLNinfer implements IParameterHandler {
 	}
 	
 	/**
-	 * @return the number of seconds that the inference algorithm ran for
+	 * @return the total number of seconds that the inference algorithm ran for (init + computation)
 	 */
-	public double getSamplingTime() {
-		return samplingTime;
+	public double getTotalInferenceTime() {
+		return getInferenceTime() + getInferenceInitTime();
+	}
+	
+	/**
+	 * @return the number of seconds the actual inference method ran (without initialization)
+	 */
+	public double getInferenceTime() {
+		return inferenceTime;
+	}
+	
+	/**
+	 * @return number of seconds taken to instantiate the ground model
+	 */
+	public double getGroundingTime() {
+		return groundingTime;
+	}
+	
+	public double getInferenceInitTime() {
+		return inferenceInitTime;
 	}
 	
 	/**

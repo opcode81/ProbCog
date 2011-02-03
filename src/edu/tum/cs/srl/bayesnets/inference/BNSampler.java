@@ -55,6 +55,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		sampler.setInfoInterval(infoInterval);
 		sampler.setMaxTrials(maxTrials);
 		sampler.setSkipFailedSteps(skipFailedSteps);
+		sampler.initialize();
 	}
 	
 	@Override

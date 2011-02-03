@@ -39,7 +39,7 @@ public class IJGP extends Sampler {
 	}
 	
 	@Override
-	protected void initialize() {
+	protected void _initialize() {
 		// detect minimum bound
 		ibound = 1;
 		for (BeliefNode n : nodes) {
