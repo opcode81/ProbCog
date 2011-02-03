@@ -25,7 +25,7 @@ import edu.tum.cs.util.datastruct.MultiIterator;
  * 
  * @author jain
  */
-public abstract class GenericDatabase<VariableType extends AbstractVariable, VarValueType> implements IParameterHandler {
+public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, VarValueType> implements IParameterHandler {
 
 	/**
 	 * maps variable names to Variable objects containing values
