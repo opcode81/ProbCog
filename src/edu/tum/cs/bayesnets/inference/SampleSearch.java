@@ -50,8 +50,8 @@ public class SampleSearch extends Sampler {
 		this.paramHandler.add("unbiased", "setUseProperWeighting");
 	}
 	
-//	@Override
-	protected void initialize() throws Exception {
+	@Override
+	protected void _initialize() throws Exception {
 		// TODO should guarantee for BLNs that formula nodes appear as early as possible
 		nodeOrder = computeNodeOrdering();
 		
@@ -95,6 +95,7 @@ public class SampleSearch extends Sampler {
 		out.println("  step " + step);
 	}
 	
+	@Override
 	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();

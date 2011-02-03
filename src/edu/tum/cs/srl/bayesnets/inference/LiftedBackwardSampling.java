@@ -320,10 +320,10 @@ public class LiftedBackwardSampling extends Sampler {
 		}
 		
 		@Override
-		public void initialize() throws Exception {
+		public void _initialize() throws Exception {
 			probCache = new Cache2D<String, Integer, Double>();
 			distCache = new Cache2D<Integer, Long, BackSamplingDistribution>();
-			super.initialize();
+			super._initialize();
 		}
 		
 		@Override

@@ -75,7 +75,7 @@ public class SATIS_BSampler extends BackwardSampling {
 	}
 	
 	@Override
-	protected void initialize() throws Exception {
+	protected void _initialize() throws Exception {
 		// build the variable-logic coupling if we don't have it yet
 		if(coupling == null) {
 			coupling = new VariableLogicCoupling();

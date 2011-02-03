@@ -25,6 +25,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected StringBuffer report = new StringBuffer();
 	protected boolean verbose;
 	protected PrintStream out;
+	protected boolean initialized = false;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -35,7 +36,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected boolean skipFailedSteps = false;
 	protected Double confidenceIntervalSizeThreshold = null; 
 	public double convergenceCheckInterval = 100;
-	public double samplingTime;
+	protected double totalInferenceTime, initTime, inferenceTime;
 	
 	/**
 	 * general sampler setting: after how many samples to display a message that reports the current status 
@@ -78,6 +79,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public void setQueryVars(Collection<Integer> queryVars) {
 		this.queryVars = queryVars;
+		initialized = false;
 	}
 	
 	protected boolean converged() throws Exception {
@@ -212,6 +214,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
 		this.evidenceDomainIndices = evidenceDomainIndices;
+		initialized = false;
 	}
 	
 	public void setRandomSeed(int seed) {
@@ -219,39 +222,53 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	}
 	
 	protected abstract SampledDistribution _infer() throws Exception;
-	protected void initialize() throws Exception {}
+	protected void _initialize() throws Exception {}
 	
-	public SampledDistribution infer() throws Exception {
+	/**
+	 * initializes the inference method such that inference can be run
+	 */
+	public final void initialize() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		
-		// initialize	
-		Stopwatch sw2 = new Stopwatch();
-		sw2.start();
-		initialize();
-		sw2.stop();
-		double initTime = sw2.getElapsedTimeSecs();
+		_initialize();
+		sw.stop();
+		initTime = sw.getElapsedTimeSecs();
+		initialized = true;
+	}
+
+	/**
+	 * runs the actual inference method (initializing first if necessary)
+	 */
+	public final SampledDistribution infer() throws Exception {
+		// initialize
+		if(!initialized)
+			initialize();
 		
 		// run inference
-		sw2.start();
+		Stopwatch sw = new Stopwatch();
+		sw.start();
 		SampledDistribution ret = _infer();
-		sw2.stop();
-		double inferTime = sw2.getElapsedTimeSecs();
+		inferenceTime = sw.getElapsedTimeSecs();
 		
-		sw.stop();
-		samplingTime = sw.getElapsedTimeSecs();
-		
-		report(String.format("total inference time: %fs (initialization: %fs; core %fs)\n", samplingTime, initTime, inferTime));
+		report(String.format("total inference time: %fs (initialization: %fs; core %fs)\n", getTotalInferenceTime(), getInitTime(), getInferenceTime()));
 		if(verbose) out.print(report.toString());
 		
 		return ret;
 	}
 	
 	/**
-     * @return the time taken for the sampling process in seconds
+     * @return the time taken for the inference process in seconds
 	 */
-	public double getSamplingTime() {
-		return samplingTime;
+	public double getTotalInferenceTime() {
+		return getInferenceTime() + getInitTime();
+	}
+	
+	public double getInferenceTime() {
+		return inferenceTime;		
+	}
+	
+	public double getInitTime() {
+		return initTime;
 	}
 	
 	/**

@@ -197,7 +197,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	protected void initialize() throws Exception {
+	protected void _initialize() throws Exception {
 		getOrdering(evidenceDomainIndices);
 		if(debug) {
 			out.println("sampling backward: " + this.backwardSampledNodes);

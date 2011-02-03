@@ -49,7 +49,7 @@ public class ACE extends Sampler {
 			throw new Exception("Error running ACE: " + error);
 	}
 	
-	protected void initialize() throws Exception {
+	protected void _initialize() throws Exception {
 		if(acePath == null) 
 			throw new Exception("No ACE 2.0 path was given. This inference method requires ACE2.0 and the location at which it is installed must be configured");
 		

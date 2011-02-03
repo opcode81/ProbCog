@@ -12,7 +12,7 @@ public class LikelihoodWeighting extends Sampler {
 	}
 	
 	@Override
-	protected void initialize() {
+	protected void _initialize() {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	

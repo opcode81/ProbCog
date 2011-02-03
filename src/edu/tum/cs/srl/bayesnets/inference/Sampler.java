@@ -24,7 +24,7 @@ public abstract class Sampler implements IParameterHandler {
 	protected ParameterHandler paramHandler;
 	protected Vector<Integer> queryVars;
 	protected AbstractGroundBLN gbln;
-	double samplingTime, initTime;
+	double inferenceTime, initTime;
 	
 	public Sampler(AbstractGroundBLN gbln) throws Exception {
 		this.gbln = gbln;
@@ -55,8 +55,16 @@ public abstract class Sampler implements IParameterHandler {
 			res.print();
 	}
 	
-	public double getSamplingTime() {
-		return samplingTime;
+	public double getTotalInferenceTime() {
+		return getInitTime() + getInferenceTime();
+	}
+	
+	public double getInferenceTime() {
+		return inferenceTime;
+	}
+	
+	public double getInitTime() {
+		return initTime;
 	}
 	
 	public void setNumSamples(int n) {
@@ -80,7 +88,7 @@ public abstract class Sampler implements IParameterHandler {
 		// actual inference
 		sw.start();
 		SampledDistribution ret = _infer();
-		samplingTime = sw.getElapsedTimeSecs();
+		inferenceTime = sw.getElapsedTimeSecs();
 		return ret;
 	}
 	
