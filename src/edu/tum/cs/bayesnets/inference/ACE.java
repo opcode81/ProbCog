@@ -60,10 +60,10 @@ public class ACE extends Sampler {
 		
 		// compile arithmetic circuit using ace compiler
 		if(verbose) System.out.println("compiling arithmetic circuit...");
-		if(verbose) System.out.println("ACE params: " + this.aceParams);
+		if(verbose && !aceParams.isEmpty()) System.out.println("  ACE params: " + this.aceParams);
 		
 		BufferedInputStream is = runAce("compile " + this.aceParams + " " + bnFile.getName());
-		Pattern p = Pattern.compile("Compile Time \\(s\\) : (.*?)$", Pattern.MULTILINE);
+		Pattern p = Pattern.compile("(?:Compile|Complie) Time \\(s\\) : (.*?)$", Pattern.MULTILINE);
 		Matcher m = p.matcher(FileUtil.readInputStreamAsString(is));
 		if(m.find()) {
 			compileTime = NumberFormat.getInstance().parse(m.group(1)).doubleValue();
