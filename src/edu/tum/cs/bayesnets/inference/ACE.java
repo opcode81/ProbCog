@@ -1,11 +1,9 @@
 /*
  * Created on Jan 20, 2011
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.bayesnets.inference;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.regex.Matcher;
@@ -24,14 +22,15 @@ public class ACE extends Sampler {
 	protected File acePath = null;
 	protected File bnFile, instFile;
 	private String aceParams = "";
+	protected double compileTime, evalTime;
 	
 	public ACE(BeliefNetworkEx bn) throws Exception {	
 		super(bn);
 		paramHandler.add("acePath", "setAcePath");
-		paramHandler.add("aceParams", "setACEparams");
+		paramHandler.add("aceParams", "setAceParams");
 	}
 	
-	public void setACEparams(String aceParams) {
+	public void setAceParams(String aceParams) {
 		this.aceParams = aceParams;
 	}
 	
@@ -41,12 +40,14 @@ public class ACE extends Sampler {
 			throw new Exception("The given path " + path + " does not exist or is not a directory");
 	}
 	
-	protected void runAce(String command) throws Exception {
-		Process p = Runtime.getRuntime().exec(acePath + File.separator + command);	
+	protected BufferedInputStream runAce(String command) throws Exception {
+		Process p = Runtime.getRuntime().exec(acePath + File.separator + command);
+		BufferedInputStream is = new BufferedInputStream(p.getInputStream());
 		p.waitFor();
 		String error = FileUtil.readInputStreamAsString(p.getErrorStream());
 		if(!error.isEmpty())
 			throw new Exception("Error running ACE: " + error);
+		return is;
 	}
 	
 	protected void _initialize() throws Exception {
@@ -61,7 +62,13 @@ public class ACE extends Sampler {
 		if(verbose) System.out.println("compiling arithmetic circuit...");
 		if(verbose) System.out.println("ACE params: " + this.aceParams);
 		
-		runAce("compile " + this.aceParams + bnFile.getName());	
+		BufferedInputStream is = runAce("compile " + this.aceParams + bnFile.getName());
+		Pattern p = Pattern.compile("Compile Time \\(s\\) : (.*?)$", Pattern.MULTILINE);
+		Matcher m = p.matcher(FileUtil.readInputStreamAsString(is));
+		if(m.find()) {
+			compileTime = NumberFormat.getInstance().parse(m.group(1)).doubleValue();
+			report(String.format("ACE compile time: %ss", compileTime));
+		}
 		
 		// write evidence to .inst file
 		instFile = new File("ace.tmp.inst");
@@ -72,22 +79,32 @@ public class ACE extends Sampler {
 	protected SampledDistribution _infer() throws Exception {
 		// run Ace inference
 		if(verbose) System.out.println("evaluating...");
-		runAce("evaluate " + bnFile.getName() + " " + instFile.getName());
-		File marginalsFile = new File(bnFile.getName() + ".marginals");
+		BufferedInputStream is = runAce("evaluate " + bnFile.getName() + " " + instFile.getName());		
+		
+		NumberFormat format = NumberFormat.getInstance();
+		
+		// read running time
+		String output = FileUtil.readInputStreamAsString(is);
+		Pattern p = Pattern.compile("Total Inference Time \\(ms\\) : (\\d+)", Pattern.MULTILINE);
+		Matcher m = p.matcher(output);
+		if(m.find()) {
+			evalTime = format.parse(m.group(1)).doubleValue() / 1000.0;
+			report(String.format("ACE evaluation time: %ss", evalTime));
+		}
 		
 		// create output distribution
+		File marginalsFile = new File(bnFile.getName() + ".marginals");
 		if(verbose) System.out.println("reading results...");
 		this.createDistribution();
 		String results = FileUtil.readTextFile(marginalsFile);
 		String patFloat = "(?:\\d+([\\.,]\\d+)?(?:E[-\\d]+)?)";
 		// * get probability of the evidence
 		Pattern probEvid = Pattern.compile(String.format("p \\(e\\) = (%s)", patFloat));
-		Matcher m = probEvid.matcher(results);
+		m = probEvid.matcher(results);
 		if(!m.find())
 			throw new Exception("Could not find 'p (e)' in results");
 		if(m.group(1).equals("0E0"))
-			throw new Exception("The probability of the evidence is 0");
-		NumberFormat format = NumberFormat.getInstance();
+			throw new Exception("The probability of the evidence is 0");		
 		Number numPE = format.parse(m.group(1));
 		dist.Z = numPE.doubleValue();
 		System.out.println("probability of the evidence: " + dist.Z);
@@ -116,5 +133,12 @@ public class ACE extends Sampler {
 		
 		return dist;
 	}
-
+	
+	public double getAceCompileTime() {
+		return compileTime;
+	}
+	
+	public double getAceEvalTime() {
+		return evalTime;
+	}
 }
