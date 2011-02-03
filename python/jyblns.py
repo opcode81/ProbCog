@@ -9,6 +9,7 @@ importjar("bnj_res.jar")
 importjar("log4j-1.2.9.jar")
 importjar("ssj.jar")
 importjar("optimization.jar")
+importjar("yprolog.jar")
 
 from edu.tum.cs.srl.bayesnets.inference import BLNinfer
 
