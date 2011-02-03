@@ -59,6 +59,7 @@ public class BLNinfer implements IParameterHandler {
 	Database db = null;
 	Iterable<String> queries = null;
 	ParameterHandler paramHandler;	
+	Sampler sampler;
 	
 	enum SortOrder implements Comparator<InferenceResult> { 
 		Atom {
@@ -326,7 +327,7 @@ public class BLNinfer implements IParameterHandler {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		// - create sampler and pass on parameters
-		Sampler sampler = algo.createSampler(gbln);
+		sampler = algo.createSampler(gbln);
 		sampler.setQueries(queries);
 		// - set options
 		paramHandler.addSubhandler(sampler);
@@ -424,6 +425,10 @@ public class BLNinfer implements IParameterHandler {
 	 */
 	public int getNumSteps() {
 		return stepsTaken;
+	}
+	
+	public Sampler getInferenceObject() {
+		return sampler;
 	}
 	
 	/**
