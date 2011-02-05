@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
@@ -106,7 +107,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			Set<GroundAtom> gas = new OrderedSet<GroundAtom>();  
 			gf.getGroundAtoms(gas);
 			//System.out.printf("      referenced ground atoms in GF%d: %s\n", i, StringTool.join(", ", gas));
-			Vector<String> parentGAs = new Vector<String>();
+			OrderedSet<String> parentGAs = new OrderedSet<String>(); // use ordered set here, too, because several ground atoms may map to the same variable (e.g. foo(a,b), foo(a,c) -> foo(a))
 			for(GroundAtom ga : gas) {
 				if(ga == null)
 					throw new Exception("null ground atom encountered");
@@ -151,14 +152,14 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
 	 * @throws Exception
 	 */
-	protected void fillFormulaCPF(Formula gf, CPF cpf, Vector<String> parentGAs) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf, OrderedSet<String> parentGAs) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
 		assert parentGAs.size() == addr.length-1 : "Address length: " + addr.length + " but number of parents is " + parentGAs.size();
 		fillFormulaCPF(gf, cpf, parentGAs, 1, addr);
 	}
 	
-	protected void fillFormulaCPF(Formula gf, CPF cpf, Vector<String> parentGAs, int iDomProd, int[] addr) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf, OrderedSet<String> parentGAs, int iDomProd, int[] addr) throws Exception {
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		// if all parents have been set, determine the truth value of the formula and 
 		// fill the corresponding column of the CPT 
