@@ -66,7 +66,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		return dist;
 	}
 	
-	public edu.tum.cs.bayesnets.inference.Sampler getSampler() throws Exception {
+	protected edu.tum.cs.bayesnets.inference.Sampler getSampler() throws Exception {
 		return samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());	
 	}
 
