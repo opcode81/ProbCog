@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
@@ -435,6 +436,7 @@ public class BLNinfer implements IParameterHandler {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		Locale.setDefault(new Locale("en"));
 		try {
 			BLNinfer infer = new BLNinfer();
 			infer.readArgs(args);
