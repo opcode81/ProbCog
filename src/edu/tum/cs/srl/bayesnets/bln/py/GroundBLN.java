@@ -1,6 +1,6 @@
 package edu.tum.cs.srl.bayesnets.bln.py;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -13,9 +13,7 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
-import edu.tum.cs.srl.bayesnets.inference.Algorithm;
 import edu.tum.cs.util.Stopwatch;
-import edu.tum.cs.util.datastruct.Pair;
 
 public class GroundBLN extends AbstractGroundBLN {
 	protected BeliefNetworkEx groundBN;
@@ -58,6 +56,34 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 		System.out.println("    structure time: " + sw_structure.getElapsedTimeSecs() + "s");
 		System.out.println("    cpf time: " + sw_cpt.getElapsedTimeSecs() + "s");		
+	}
+	
+	/**
+	 * adds a node corresponding to a hard constraint to the network - along with the necessary edges
+	 * @param nodeName  	name of the node to add for the constraint
+	 * @param parentGAs		collection of names of parent nodes/ground atoms 
+	 * @return the node that was added
+	 * @throws Exception
+	 */
+	public BeliefNode addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws Exception {
+		BeliefNode[] domprod = new BeliefNode[1+parentGAs.size()];
+		BeliefNode node = groundBN.addNode(nodeName);
+		domprod[0] = node;
+		hardFormulaNodes.add(node.getName());
+		int i = 1;
+		for(String strGA : parentGAs) {
+			BeliefNode parent = groundBN.getNode(strGA);
+			if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
+				String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
+				parent = groundBN.getNode(parentName);
+				if(parent == null)
+					throw new Exception("Could not find node for ground atom " + strGA);
+			}
+			domprod[i++] = parent;
+			groundBN.connect(parent, node, false);
+		}
+		node.getCPF().buildZero(domprod, false); // ensure correct ordering in CPF
+		return node;
 	}
 	
 	/**
