@@ -3,7 +3,6 @@ package edu.tum.cs.srl.bayesnets.bln;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
@@ -18,7 +17,6 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.OrderedSet;
@@ -107,13 +105,21 @@ public class GroundBLN extends AbstractGroundBLN {
 			Set<GroundAtom> gas = new OrderedSet<GroundAtom>();  
 			gf.getGroundAtoms(gas);
 			//System.out.printf("      referenced ground atoms in GF%d: %s\n", i, StringTool.join(", ", gas));
-			OrderedSet<String> parentGAs = new OrderedSet<String>(); // use ordered set here, too, because several ground atoms may map to the same variable (e.g. foo(a,b), foo(a,c) -> foo(a))
+			OrderedSet<BeliefNode> parents = new OrderedSet<BeliefNode>(); // use ordered set here, too, because several ground atoms may map to the same variable (e.g. foo(a,b), foo(a,c) -> foo(a))
 			for(GroundAtom ga : gas) {
 				if(ga == null)
 					throw new Exception("null ground atom encountered");
-				parentGAs.add(ga.toString());
+				String strGA = ga.toString();
+				BeliefNode parent = groundBN.getNode(strGA);
+				if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
+					String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
+					parent = groundBN.getNode(parentName);
+					if(parent == null)
+						throw new Exception("Could not find node for ground atom " + strGA);
+				}				
+				parents.add(parent);
 			}
-			BeliefNode node = addHardFormulaNode(nodeName, parentGAs); // this establishes connections and initialises the CPF
+			BeliefNode node = addHardFormulaNode(nodeName, parents); // this establishes connections and initialises the CPF
 			
 			// set CPF id (i.e. equivalence class id)
 			// TODO try string transform: Two formulas are equivalent if they are the same except for the universally quantified variables
@@ -135,13 +141,34 @@ public class GroundBLN extends AbstractGroundBLN {
 				node.getCPF().setValues(values);
 			}
 			else {
-				fillFormulaCPF(gf, node.getCPF(), parentGAs);
+				fillFormulaCPF(gf, node.getCPF());
 			}
 			
 			++i;
 		}
 		// clean up
 		state = null;
+	}
+	
+	/**
+	 * adds a node corresponding to a hard constraint to the network - along with the necessary edges
+	 * @param nodeName  	name of the node to add for the constraint
+	 * @param parentGAs		collection of names of parent nodes/ground atoms 
+	 * @return the node that was added
+	 * @throws Exception
+	 */
+	public BeliefNode addHardFormulaNode(String nodeName, Collection<BeliefNode> parents) throws Exception {
+		BeliefNode[] domprod = new BeliefNode[1+parents.size()];
+		BeliefNode node = groundBN.addNode(nodeName);
+		domprod[0] = node;
+		hardFormulaNodes.add(node);
+		int i = 1;
+		for(BeliefNode parent : parents) {
+			domprod[i++] = parent;
+			groundBN.connect(parent, node, false);
+		}
+		node.getCPF().buildZero(domprod, false); // ensure correct ordering in CPF
+		return node;
 	}
 	
 	/**
@@ -152,14 +179,13 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
 	 * @throws Exception
 	 */
-	protected void fillFormulaCPF(Formula gf, CPF cpf, OrderedSet<String> parentGAs) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf) throws Exception {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
-		assert parentGAs.size() == addr.length-1 : "Address length: " + addr.length + " but number of parents is " + parentGAs.size();
-		fillFormulaCPF(gf, cpf, parentGAs, 1, addr);
+		fillFormulaCPF(gf, cpf, 1, addr);
 	}
 	
-	protected void fillFormulaCPF(Formula gf, CPF cpf, OrderedSet<String> parentGAs, int iDomProd, int[] addr) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf, int iDomProd, int[] addr) throws Exception {
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		// if all parents have been set, determine the truth value of the formula and 
 		// fill the corresponding column of the CPT 
@@ -180,32 +206,17 @@ public class GroundBLN extends AbstractGroundBLN {
 			cpf.put(addr, new ValueDouble(1.0-value));
 			return;
 		}
-		// otherwise get the next ground atom and consider all of its groundings
-		BeliefNode parent = domprod[iDomProd];
-		String parentGA = parentGAs.get(iDomProd-1);
-		Discrete domain = (Discrete)parent.getDomain();
-		boolean isBoolean = RelationalBeliefNetwork.isBooleanDomain(domain);		
-		// - get the domain index that corresponds to setting the atom to true
-		int trueIndex = 0;
-		if(!isBoolean) {
-			int iStart = parentGA.lastIndexOf(',')+1;
-			int iEnd = parentGA.lastIndexOf(')');
-			String outcome = parentGA.substring(iStart, iEnd);
-			trueIndex = domain.findName(outcome);
-			if(trueIndex == -1) 
-				throw new Exception("'" + outcome + "' not found in domain of " + parentGA);			
-		}
+		// otherwise get the next parent and consider all of its settings
+		BeliefNode parent = domprod[iDomProd];		
+		int domOrder = parent.getDomain().getOrder();
 		// - recursively consider all settings
-		for(int i = 0; i < domain.getOrder(); i++) {
+		for(int i = 0; i < domOrder; i++) {			
 			// set address 
 			addr[iDomProd] = i;
 			// set state for logical reasoner
-			if(i == trueIndex)
-				state.set(parentGA, true);
-			else
-				state.set(parentGA, false);
+			coupling.setVariableValue(parent, i, state);
 			// recurse
-			fillFormulaCPF(gf, cpf, parentGAs, iDomProd+1, addr);
+			fillFormulaCPF(gf, cpf, iDomProd+1, addr);
 		}
 	}
 	
