@@ -169,7 +169,9 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	 * @return the index of the value in the collection that was sampled (or -1 if the distribution is not well-defined)
 	 */
 	public static int sample(Collection<Double> distribution, double sum, Random generator) {
-		double random = generator.nextDouble() * sum;		
+		double random = generator.nextDouble() * sum;
+		if(sum == 0)
+			throw new RuntimeException("Sampled from distribution with Z = 0");
 		sum = 0;
 		int i = 0;
 		for(Double d : distribution) {
