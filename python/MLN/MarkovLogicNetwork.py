@@ -1305,7 +1305,8 @@ class MLN(object):
         self.setWeights(wt)
         
         #delete worlds from learning
-        del self.worlds
+        if  hasattr(self, "worlds"):
+            del self.worlds
         
         # fit prior prob. constraints if any available
         if len(self.probreqs) > 0:

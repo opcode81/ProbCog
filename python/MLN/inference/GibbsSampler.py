@@ -23,7 +23,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from MCMCInference import MCMCInference
+from MCMCInference import *
+
 
 class GibbsSampler(MCMCInference):
     class Chain(MCMCInference.Chain):
@@ -71,7 +72,7 @@ class GibbsSampler(MCMCInference):
     
     def __init__(self, mln):
         print "initializing Gibbs sampler...",
-        Inference.__init__(self, mln)
+        MCMCInference.__init__(self, mln)
         # check compatibility with MLN
         for f in mln.formulas:
             if not f.isLogical():
@@ -85,7 +86,7 @@ class GibbsSampler(MCMCInference):
     # infer one or more probabilities P(F1 | F2)
     #   what: a ground formula (string) or a list of ground formulas (list of strings) (F1)
     #   given: a formula as a string (F2)
-    def _infer(self, verbose=True, numChains=3, maxSteps=5000, shortOutput=False, details=False, debug=False, debugLevel=1, infoInterval=10, resultsInterval=100):
+    def _infer(self, verbose=True, numChains=3, maxSteps=5000, shortOutput=False, details=False, debug=False, debugLevel=1, infoInterval=10, resultsInterval=100, **args):
         random.seed(time.time())
         # set evidence according to given conjunction (if any)
         self._readEvidence(self.given)

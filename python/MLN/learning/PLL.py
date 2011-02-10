@@ -26,6 +26,9 @@
 from MLN.util import *
 from AbstractLearner import *
 
+import re
+from MLN.learning.AbstractLearner import SoftEvidenceLearner
+
 PMB_METHOD = 'old' # 'excl' or 'old'
 # concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
 # If set to 'old', consider only the two assignments of the ground atom x (i.e. add the weights of any ground
@@ -172,7 +175,7 @@ class PLL(AbstractLearner):
     def _calculateAtomProbsMB(self, wt):
         if ('wtsLastAtomProbMBComputation' not in dir(self)) or self.wtsLastAtomProbMBComputation != list(wt):
             print "recomputing atom probabilities...",
-            self.atomProbsMB = [self._getAtomProbMB(i, wt) for i in range(len(self.mln.gndAtoms))]
+            self.atomProbsMB = [self._getAtomProbMB(i, wt) for i in range(len(self.mln.gndAtomsByIdx))]
             self.wtsLastAtomProbMBComputation = list(wt)
             print "done."
 
@@ -247,6 +250,11 @@ class PLL(AbstractLearner):
 
 class PLL_ISE(SoftEvidenceLearner, PLL):
     
+    def __init__(self, mln):
+        SoftEvidenceLearner.__init__(self, mln)
+        PLL.__init__(self, mln)
+        self.gaussianPriorSigma = 1#1.155 #TODO
+    
     def _computeDiffs(self):
         self.diffs = {}
         for gndFormula in self.mln.gndFormulas:
@@ -301,3 +309,53 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
         
         PLL._prepareOpt(self)
 
+
+#discriminative PLL_ISE for atLocation
+class DPLL_ISE(PLL_ISE):
+    
+    def isQueryFormula(self, predName):
+        if predName == "atLocation":
+            return True
+        else:
+            return False
+        
+#        if re.match("^atLocation\(.*\)$", str(self.mln.formulas[idxFormula])):
+#            print "isQuery", str(self.mln.formulas[idxFormula])
+#            return True
+#        else:
+#            return False
+        
+    def _f(self, wt):
+        self._calculateAtomProbsMB(self._reconstructFullWeightVectorWithFixedWeights(wt))
+        #print self.atomProbsMB
+        probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
+        #pll = fsum(map(log, probs))
+        pll = 0
+        for i, prob in enumerate(probs):
+            if False == self.isQueryFormula(self.mln.gndAtomsByIdx[i].predName):
+                continue
+            
+            pll += log(prob)
+            
+            
+        #add gaussian means:
+        for weight in wt:
+            pll += gaussianZeroMean(weight, self.gaussianPriorSigma)
+        
+        print "discriminative pseudo-log-likelihood:", pll
+        return pll
+    
+    def _grad(self, wt):        
+        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        fullWt = wt
+        self._calculateAtomProbsMB(fullWt)
+        for (idxFormula, idxGndAtom), diff in self.diffs.iteritems():
+            if self.isQueryFormula(self.mln.gndAtomsByIdx[idxGndAtom].predName):
+                v = diff * (self.atomProbsMB[idxGndAtom] - 1)
+                grad[idxFormula] += v 
+                
+        #add gaussian means:
+        for i, weight in enumerate(wt):
+            grad[i] += gradGaussianZeroMean(weight, self.gaussianPriorSigma)
+                
+        return grad
