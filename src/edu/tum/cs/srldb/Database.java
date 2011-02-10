@@ -347,11 +347,14 @@ public class Database implements Cloneable, Serializable {
 				else if(domain instanceof AutomaticDomain) {
 					BasicClusterer<?> c;
 					Integer numClusters = attrib.getNumClusters();
-					if(numClusters == null)
+					if(numClusters == null) {
 						c = new EMClusterer();
+						System.out.println("  applying EM clustering to " + attrib);
+					}
 					else {
 						c = new SimpleClusterer();
 						((SimpleClusterer)c).setNumClusters(numClusters);
+						System.out.printf("  applying %d-means clustering to " + attrib, numClusters);
 					}
 					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));					
 				}

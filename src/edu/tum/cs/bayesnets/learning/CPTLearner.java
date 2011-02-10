@@ -7,9 +7,6 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import java.sql.*; 
 import java.util.*;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.Discretized;
 
@@ -27,10 +24,11 @@ public class CPTLearner extends Learner {
 	/**
 	 * The logger for this class.
 	 */
+	/*
 	static final Logger logger = Logger.getLogger(CPTLearner.class);
 	static {
 		logger.setLevel(Level.WARN);
-	}
+	}*/
 	
 	/**
 	 * an array of example counter objects - one for each node in the network 
@@ -210,7 +208,7 @@ public class CPTLearner extends Learner {
 		Arrays.fill(nodeIdx2colIdx, -1);
 		for(int i = 0; i < numAttributes; i++) {
 			Set<String> nodeNames = bn.getNodeNamesForAttribute(instances.attribute(i).name());
-			logger.debug("Nodes for attribute "+instances.attribute(i).name()+": "+nodeNames);
+			//logger.debug("Nodes for attribute "+instances.attribute(i).name()+": "+nodeNames);
 			if (nodeNames==null)
 				continue;
 			for (String nodeName: nodeNames) {
@@ -240,6 +238,7 @@ public class CPTLearner extends Learner {
 						int colIdx = nodeIdx2colIdx[node_idx];
 						if (colIdx < 0) {
 							//bn.dump();
+							/*
 							for (int i = 0; i < numAttributes; i++) {
 								logger.debug("Attribute "+i+": "+instances.attribute(i).name());
 							}
@@ -252,14 +251,15 @@ public class CPTLearner extends Learner {
 								sb.append(nodeIdx2colIdx[i]+"\t");
 							}
 							logger.debug(sb);
+							*/
 							throw new Exception("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
 						}
 						double value = instance.value(colIdx);
 						strValue = (((Discretized)domain).getNameFromContinuous(value));
-						if (domain.findName(strValue) == -1) {
+						/*if (domain.findName(strValue) == -1) {
 							logger.debug(domain);
 							logger.debug(strValue);
-						}
+						}*/
 					} else {
 						int colIdx = nodeIdx2colIdx[node_idx];
 						if (colIdx < 0) {
@@ -270,9 +270,9 @@ public class CPTLearner extends Learner {
 					domain_idx = domain.findName(strValue);
 					if(domain_idx == -1) {
 						String[] myDomain = bn.getDiscreteDomainAsArray(bn.bn.getNodes()[node_idx].getName());
-						for (int i=0; i<myDomain.length; i++) {
+						/*for (int i=0; i<myDomain.length; i++) {
 							logger.debug(myDomain[i]);
-						}
+						}*/
 						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());
 					}
 				}
