@@ -43,6 +43,7 @@ ParameterLearningMeasures = Enum(
       "NPL_fixed": "negative pseudo-likelihood with fixed unitary clauses",
       "LL_ISE": "log-likelihood with independent soft evidence and weighting of formulas",
       "PLL_ISE": "pseudo-log-likelihood with independent soft evidence",
+      "DPLL_ISE": "discriminative pseudo-log-likelihood with independent soft evidence for query atLocation",
       "LL_ISEWW": "log-likelihood with independent soft evidence and weighting of worlds",
       "E_ISEWW": "error with independent soft evidence and weighting of worlds",
       "SLL_ISE": "sampled log-likelihood with independent soft evidence and weighting of formulas", # sampled worlds for Z and for gradient
