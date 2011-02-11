@@ -6,6 +6,7 @@ package edu.tum.cs.bayesnets.inference;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.text.NumberFormat;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,7 +42,7 @@ public class ACE extends Sampler {
 	}
 	
 	protected BufferedInputStream runAce(String command, String params) throws Exception {
-		String[] aParams = params.split(" ");
+		String[] aParams = params.trim().split("\\s+");
 		String[] cmd = new String[aParams.length+1];
 		for(int i = 0; i < aParams.length; i++)
 			cmd[i+1] = aParams[i];
@@ -52,6 +53,7 @@ public class ACE extends Sampler {
 				throw new Exception("Could not find " + command + " (or .bat) in " + acePath);
 		}
 		cmd[0] = cmdFile.toString();
+		System.out.println("  " + Arrays.toString(cmd));
 		Process p = Runtime.getRuntime().exec(cmd);
 		BufferedInputStream is = new BufferedInputStream(p.getInputStream());
 		p.waitFor();
@@ -144,9 +146,9 @@ public class ACE extends Sampler {
 		// clean up
 		new File(bnFile.getName() + ".ac").delete();
 		new File(bnFile.getName() + ".lmap").delete();
-		bnFile.delete();
-		instFile.delete();
-		marginalsFile.delete();
+//		bnFile.delete();
+//		instFile.delete();
+//		marginalsFile.delete();
 		
 		return dist;
 	}
