@@ -299,40 +299,29 @@ class LearnWeights:
 # -- main app --
 
 if __name__ == '__main__':
+    # read command-line options
     from optparse import OptionParser
     parser = OptionParser()
-    parser.add_option("--run",
-                      action="store_true", dest="run", default=False,
-                      help="run without showing gui")
-    parser.add_option("-i", "--mln-filename", dest="mln_filename",
-                      help="mln-filename", metavar="FILE", type="string")
-    parser.add_option("-t", "--db-filename", dest="db_filename",
-                      help="output-filename", metavar="FILE", type="string")        
-    parser.add_option("-o", "--output-file", dest="output_filename",
-                      help="output-filename", metavar="FILE", type="string")
-
+    parser.add_option("--run", action="store_true", dest="run", default=False, help="run without showing gui")
+    parser.add_option("-i", "--mln-filename", dest="mln_filename", help="input MLN filename", metavar="FILE", type="string")
+    parser.add_option("-t", "--db-filename", dest="db", help="training database filename", metavar="FILE", type="string")        
+    parser.add_option("-o", "--output-file", dest="output_filename", help="output MLN filename", metavar="FILE", type="string")
     (options, args) = parser.parse_args()
 
-    
+    # read previously saved settings
     settings = {}
     if os.path.exists("learnweights.config.dat"):
         try:
             settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file("learnweights.config.dat", "r").readlines())))            
         except:
             pass
-        
-    if options.mln_filename is not None:
-        settings["mln_filename"] = options.mln_filename    
-    if options.output_filename is not None:
-        settings["db"] = options.db_filename    
-    if options.output_filename is not None:
-        settings["output_filename"] = options.output_filename    
+    # update settings with command-line options
+    settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
 
+    # run learning task/GUI
     root = Tk()    
     app = LearnWeights(root, ".", settings)
-
-    print "options:", options
-    
+    print "options:", options    
     if options.run:
         app.learn(saveGeometry=False)
     else:
