@@ -62,6 +62,32 @@ class Inference(object):
                     gndAtom = gndAtom[1:]
                 evidence[gndAtom] = tv
             self.mln.setEvidence(evidence)
+            
+    def _getEvidenceBlockData(self, conjunction):
+        # set evidence
+        self._setEvidence(conjunction)
+        # build up data structures
+        self.evidence = conjunction
+        self.evidenceBlocks = [] # list of pll block indices where we know the true one (and thus the setting for all of the block's atoms)
+        self.blockExclusions = {} # dict: pll block index -> list (of indices into the block) of atoms that mustn't be set to true
+        for idxBlock, (idxGA, block) in enumerate(self.mln.pllBlocks): # fill the list of blocks that we have evidence for
+            if block != None:
+                haveTrueone = False
+                falseones = []
+                for i, idxGA in enumerate(block):
+                    ev = self.mln._getEvidence(idxGA, False)
+                    if ev == True:
+                        haveTrueone = True
+                        break
+                    elif ev == False:
+                        falseones.append(i)
+                if haveTrueone:
+                    self.evidenceBlocks.append(idxBlock)
+                elif len(falseones) > 0:
+                    self.blockExclusions[idxBlock] = falseones
+            else:
+                if self.mln._getEvidence(idxGA, False) != None:
+                    self.evidenceBlocks.append(idxBlock)
 
     def _getElapsedTime(self):
         ''' returns a pair (t,s) where t is the time in seconds elapsed thus far (since construction) and s is a readable string representation thereof '''
@@ -162,4 +188,5 @@ class Inference(object):
         me /= len(results)
         mse /= len(results)
         return {"reference_me": me, "reference_mse": mse, "reference_maxe": maxdiff}
+
 

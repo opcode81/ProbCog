@@ -168,7 +168,7 @@ class ExactInferenceLinear(Inference):
 
 class EnumerationAsk(Inference):
     '''
-        inference based on enumeration of (only) the worlds compatible with the evidence
+        inference based on enumeration of (only) the worlds compatible with the evidence;
         supports soft evidence (assuming independence)
     '''
     
@@ -180,6 +180,9 @@ class EnumerationAsk(Inference):
     # debug: (given that verbose is true) if true, outputs debug information, in particular the distribution over possible worlds
     # debugLevel: level of detail for debug mode
     def _infer(self, verbose=True, details=False, shortOutput=False, debug=False, debugLevel=1, **args):
+        # get blocks
+        self.mln._getPllBlocks()
+        self._getEvidenceBlockData(self.given)
         # start summing
         if verbose and details: print "summing..."
         numerators = [0.0 for i in range(len(self.queries))]
@@ -197,27 +200,54 @@ class EnumerationAsk(Inference):
                     numerators[i] += expsum
             denominator += expsum
             k += 1
+            print "%d %s\r" % (k, map(str, self.summedGndAtoms)),
         print "%d worlds enumerated" % k
         # normalize answers
         return map(lambda x: x / denominator, numerators)
     
     def _enumerateWorlds(self):
-        for w in self.__enumerateWorlds(0, [False for i in xrange(len(self.mln.gndAtoms))]):
+        self.summedGndAtoms = set()
+        for w in self.__enumerateWorlds(0, list(self.mln.evidence)):
             yield w
         
     def __enumerateWorlds(self, i, worldValues):
-        numAtoms = len(self.mln.gndAtoms)
-        if i == numAtoms:
+        numBlocks = len(self.mln.pllBlocks)
+        if i == numBlocks:
             yield worldValues
             return
-        gndAtom = self.mln.gndAtomsByIdx[i]
-        e = self.mln._getEvidenceDegree(gndAtom)        
-        if e is not None:
-            worldValues[gndAtom.idx] = True if e > 0 else False
-            for w in self.__enumerateWorlds(i+1, worldValues):
-                yield w
-        else:
-            for v in (True, False):
-                worldValues[gndAtom.idx] = v                
+        idxGA, block = self.mln.pllBlocks[i]
+        if block is not None: # block of mutex ground atoms
+            haveEvidence = i in self.evidenceBlocks
+            if not haveEvidence:
+                # check for soft evidence
+                numSoft = 0
+                for idxGA in block:
+                    se = self.mln._getSoftEvidence(self.mln.gndAtomsByIdx[idxGA])
+                    if se is not None:
+                        numSoft += 1
+                        worldValues[idxGA] = True
+                if numSoft != len(block) and numSoft != 0:
+                    raise Exception("Partial soft evidence for mutex block not allowed")
+                haveEvidence = numSoft == len(block)
+            if haveEvidence:
                 for w in self.__enumerateWorlds(i+1, worldValues):
                     yield w
+            else:
+                for idxGA in block:
+                    for idxGA2 in block:
+                        worldValues[idxGA2] = idxGA == idxGA2
+                    for w in self.__enumerateWorlds(i+1, worldValues):
+                        yield w
+        else: # it's a regular ground atom
+            gndAtom = self.mln.gndAtomsByIdx[idxGA]            
+            e = self.mln._getEvidenceDegree(gndAtom)        
+            if e is not None:
+                worldValues[idxGA] = True if e > 0 else False
+                for w in self.__enumerateWorlds(i+1, worldValues):
+                    yield w
+            else:
+                self.summedGndAtoms.add(gndAtom)
+                for v in (True, False):
+                    worldValues[gndAtom.idx] = v                
+                    for w in self.__enumerateWorlds(i+1, worldValues):
+                        yield w
