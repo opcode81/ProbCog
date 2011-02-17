@@ -1,6 +1,6 @@
 # BLN Query Tool
 #
-# (C) 2008-2010 by Dominik Jain
+# (C) 2008-2011 by Dominik Jain
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -33,7 +33,7 @@ import traceback
 from widgets import *
 import configBLN as config
 
-CONFIG_FILENAME = "blnquery.config.dat"
+CONFIG_FILENAME = config.queryToolSettingsFilename
 
 # --- main gui class ---
 
@@ -202,23 +202,6 @@ class BLNQuery:
         self.entry_params = Entry(self.frame, textvariable = self.params)
         self.entry_params.grid(row=row, column=1, sticky="NEW")
         self.setAddParams()
-
-        '''
-        # number of chains
-        row += 1
-        Label(self.frame, text="Num. chains: ").grid(row=row, column=0, sticky="NE")
-        self.numChains = StringVar(master)
-        self.numChains.set(self.settings.get("numChains", ""))
-        self.entry_chains = Entry(self.frame, textvariable = self.numChains)
-        self.entry_chains.grid(row=row, column=1, sticky="NEW")
-
-        # all preds open-world
-        row += 1
-        self.open_world = IntVar()
-        self.cb_open_world = Checkbutton(self.frame, text="Apply open-world assumption to all predicates", variable=self.open_world)
-        self.cb_open_world.grid(row=row, column=1, sticky=W)
-        self.open_world.set(self.settings.get("openWorld", 1))
-        '''
 
         # output distribution filename
         row += 1
@@ -404,27 +387,22 @@ if __name__ == '__main__':
             settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file(CONFIG_FILENAME, "r").readlines())))
         except:
             pass
+        
     # process command line arguments
-    argv = sys.argv
-    i = 1
-    arg2setting = {} #{"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None}
-    while i < len(argv):
-        if argv[i] in arg2setting and i+1 < len(argv):
-            setting = arg2setting[argv[i]]
-            if setting != None:
-                settings[setting] = argv[i+1]
-            del argv[i+1]
-            del argv[i]            
-            continue
-        i += 1
-    run = "--run" in argv
-    argv = filter(lambda x: x != "--run", argv)
-    if len(argv) > 1:
-        settings["params"] = " ".join(argv[1:])
-    # create gui
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
+    (options, args) = parser.parse_args()
+    
+    settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
+    if len(args) > 0:
+        add_params = settings.get("params", "")
+        settings["params"] = (add_params + " ".join(args)).strip()
+        
+    # create gui/run
     root = Tk()    
     app = BLNQuery(root, ".", settings)
-    if not run:        
+    if not options.run:
         root.mainloop()
     else:
         app.start(saveGeometry=False)
