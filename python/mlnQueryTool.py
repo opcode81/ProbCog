@@ -485,7 +485,18 @@ class MLNQuery:
 # -- main app --
 
 if __name__ == '__main__':
-    # read settings
+    # read command-line options
+    from optparse import OptionParser
+    parser = OptionParser()    
+    parser.add_option("-i", "--mln", dest="mln", help="the MLN model file to use")
+    parser.add_option("-q", "--queries", dest="query", help="queries (comma-separated)")
+    parser.add_option("-e", "--evidence", dest="db", help="the evidence database file")
+    parser.add_option("-r", "--results-file", dest="output_filename", help="the results file to save")
+    parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
+    parser.add_option("--save-results-prolog", action="store_true", dest="saveResultsProlog", default=False, help="save results as prolog file")
+    (options, args) = parser.parse_args()    
+    
+    # read previously saved settings
     settings = {}
     confignames = ["mlnquery.config.dat", "query.config.dat"]
     for filename in confignames:
@@ -496,36 +507,14 @@ if __name__ == '__main__':
             except:
                 pass
             break
-    # process command line arguments
-    argv = sys.argv
-    i = 1
-    arg2setting = {"-q" : "query", "-i" : "mln", "-e" : "db", "-r" : None, "-o" : "output_filename"}
-    while i < len(argv):
-        if argv[i] in arg2setting and i+1 < len(argv):
-            setting = arg2setting[argv[i]]
-            if setting != None:
-                settings[setting] = argv[i+1]
-            del argv[i+1]
-            del argv[i]            
-            continue
-        i += 1
-    if len(argv) > 1:
-        settings["params"] = " ".join(argv[1:])
         
-    #print "settings", settings
+    # update settings with command-line information
+    settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
+    print options
+    if len(args) > 1:
+        settings["params"] = (settings.get("params", "") + " ".join(args)).strip()
     
-    from optparse import OptionParser
-    parser = OptionParser()
-    parser.add_option("--run",
-                      action="store_true", dest="run", default=False,
-                      help="run without showing gui")
-    parser.add_option("--save-results-prolog",
-                      action="store_true", dest="saveResultsProlog", default=False,
-                      help="save results as prolog file")
-    (options, args) = parser.parse_args()    
-    
-    settings["saveResultsProlog"] = options.saveResultsProlog  
-    # create gui
+    # create gui    
     root = Tk()
     app = MLNQuery(root, ".", settings)
     if options.run:
