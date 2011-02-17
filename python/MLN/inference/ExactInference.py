@@ -83,9 +83,9 @@ class ExactInference(Inference):
         # return results
         return answers
 
-class ExactInferenceLazy(Inference):
+class ExactInferenceLinear(Inference):
     '''
-    variant of exact inference, where the possible worlds and associated values are generated dynamically (on demand);
+    variant of exact inference, where the possible worlds and associated values are generated dynamically (on demand) - linear space requirements;
     In particular, possible worlds are not kept in memory, such that memory consumption remains linear in the number of variables.    
     '''
     
@@ -165,3 +165,59 @@ class ExactInferenceLazy(Inference):
                 for w in self._iterWorlds(values, idx + 1):
                     yield w
                 values.pop()
+
+class EnumerationAsk(Inference):
+    '''
+        inference based on enumeration of (only) the worlds compatible with the evidence
+        supports soft evidence (assuming independence)
+    '''
+    
+    def __init__(self, mln):
+        Inference.__init__(self, mln)
+    
+    # verbose: whether to print results (or anything at all, in fact)
+    # details: (given that verbose is true) whether to output additional status information
+    # debug: (given that verbose is true) if true, outputs debug information, in particular the distribution over possible worlds
+    # debugLevel: level of detail for debug mode
+    def _infer(self, verbose=True, details=False, shortOutput=False, debug=False, debugLevel=1, **args):
+        # start summing
+        if verbose and details: print "summing..."
+        numerators = [0.0 for i in range(len(self.queries))]
+        denominator = 0
+        k = 0
+        for worldValues in self._enumerateWorlds():
+            # compute exp. sum of weights for this world
+            expsum = 0
+            for gf in self.mln.gndFormulas:
+                expsum += self.mln.getTruthDegreeGivenSoftEvidence(gf, worldValues) * self.mln.formulas[gf.idxFormula].weight
+            expsum = exp(expsum)
+            # update numerators
+            for i, query in enumerate(self.queries):
+                if query.isTrue(worldValues):
+                    numerators[i] += expsum
+            denominator += expsum
+            k += 1
+        print "%d worlds enumerated" % k
+        # normalize answers
+        return map(lambda x: x / denominator, numerators)
+    
+    def _enumerateWorlds(self):
+        for w in self.__enumerateWorlds(0, [False for i in xrange(len(self.mln.gndAtoms))]):
+            yield w
+        
+    def __enumerateWorlds(self, i, worldValues):
+        numAtoms = len(self.mln.gndAtoms)
+        if i == numAtoms:
+            yield worldValues
+            return
+        gndAtom = self.mln.gndAtomsByIdx[i]
+        e = self.mln._getEvidenceDegree(gndAtom)        
+        if e is not None:
+            worldValues[gndAtom.idx] = True if e > 0 else False
+            for w in self.__enumerateWorlds(i+1, worldValues):
+                yield w
+        else:
+            for v in (True, False):
+                worldValues[gndAtom.idx] = v                
+                for w in self.__enumerateWorlds(i+1, worldValues):
+                    yield w

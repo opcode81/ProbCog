@@ -220,7 +220,7 @@ class MLN(object):
                 elif line.startswith("#fixWeightFreq"):
                     fixWeightOfNextFormula = True
                     continue
-                elif line.startswith("#fixUnitary:"):
+                elif line.startswith("#fixUnitary:"): # deprecated (use instead #fixedWeightFreq)
                     predName = line[12:len(line)]
                     if hasattr(self, 'fixationSet'):
                         self.fixationSet.add(predName)
@@ -453,13 +453,27 @@ class MLN(object):
 
     def _getEvidenceTruthDegreeCW(self, gndAtom, worldValues): 
         ''' 
-            gets (soft or hard) evidence as a truth degree from 0 to 1, making the closed world assumption,
+            gets (soft or hard) evidence as a degree of belief from 0 to 1, making the closed world assumption,
             soft evidence has precedence over hard evidence 
         '''
         se = self._getSoftEvidence(gndAtom)
         if se is not None:
             return se if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se # TODO allSoft currently unsupported
         return 1.0 if worldValues[gndAtom.idx] else 0.0
+    
+    def _getEvidenceDegree(self, gndAtom):
+        ''' 
+            gets (soft or hard) evidence as a degree of belief from 0 to 1 or None if no evidence is given,
+            soft evidence takes precedence over hard evidence 
+        '''
+        se = self._getSoftEvidence(gndAtom)
+        if se is not None:
+            return se
+        he = self._getEvidence(gndAtom.idx, False)
+        if he is None:
+            return None
+        return 1.0 if he == True else 0.0
+        
 
     def _getSoftEvidence(self, gndAtom):
         s = strFormula(gndAtom)
@@ -475,6 +489,30 @@ class MLN(object):
             if se["expr"] == s:
                 se["p"] = value
                 return
+            
+    def getTruthDegreeGivenSoftEvidence(self, gf, worldValues):
+        cnf = gf.toCNF()
+        prod = 1.0
+        if isinstance(cnf, FOL.Conjunction):
+            for disj in cnf.children:
+                prod *= self._noisyOr(worldValues, disj) 
+        else:
+            prod *= self._noisyOr(worldValues, cnf)  
+        return prod
+    
+    def _noisyOr(mln, worldValues, disj):
+        if isinstance(disj, FOL.GroundLit):
+            lits = [disj]
+        elif isinstance(disj, FOL.TrueFalse):
+            return 1.0 if disj.isTrue(worldValues) else 0.0
+        else:
+            lits = disj.children
+        prod = 1.0
+        for lit in lits:
+            p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
+            factor = p if not lit.negated else 1.0 - p
+            prod *= 1.0 - factor
+        return 1.0 - prod 
 
     def _groundFormula(self, formula, variables, assignment, idxFormula):
         # if all variables have been grounded...
@@ -671,19 +709,21 @@ class MLN(object):
             return self.inferGibbs(what, given, verbose, **args)
         elif self.defaultInferenceMethod == InferenceMethods.MCSAT:
             return self.inferMCSAT(what, given, verbose, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.ExactLazy:
-            return self.inferExactLazy(what, given, **args)
+        elif self.defaultInferenceMethod == InferenceMethods.ExactLinear:
+            return self.inferExactLinear(what, given, **args)
         elif self.defaultInferenceMethod == InferenceMethods.IPFPM_exact:
             return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.Exact, **args)
         elif self.defaultInferenceMethod == InferenceMethods.IPFPM_MCSAT:
             return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.MCSAT, **args)
+        elif self.defaultInferenceMethod == InferenceMethods.EnumerationAsk:
+            return self._infer(EnumerationAsk(self), what, given, verbose=verbose, **args)
         else:
             raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
 
     def inferExact(self, what, given=None, verbose=True, **args):
         return self._infer(ExactInference(self), what, given, verbose, **args)
 
-    def inferExactLazy(self, what, given=None, verbose=True, **args):
+    def inferExactLinear(self, what, given=None, verbose=True, **args):
         return self._infer(ExactInferenceLazy(self), what, given, verbose, **args)
 
     def inferGibbs(self, what, given=None, verbose=True, **args):
@@ -700,7 +740,7 @@ class MLN(object):
         return self._infer(IPFPM(self), what, given, verbose, **args)
     
     def _infer(self, inferObj, what, given=None, verbose=True, doProbabilityFitting=True, **args):
-
+        # if there are prior probability constraints, apply them first
         if len(self.probreqs) > 0 and doProbabilityFitting:
             fittingParams = {
                 "fittingMethod": self.probabilityFittingInferenceMethod,
@@ -711,6 +751,7 @@ class MLN(object):
             }
             fittingParams.update(args)
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+        # run actual inference method
         return inferObj.infer(what, given, verbose=verbose, **args)
 
     # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
@@ -1142,6 +1183,10 @@ class MLN(object):
         self._setEvidence(idxGndAtom, value)        
 
     def _getEvidence(self, idxGndAtom, closedWorld=True):
+        '''
+            gets the evidence truth value for the given ground atom or None if no evidence was given
+            if closedWorld is True, False instead of None is returned
+        '''
         v = self.evidence[idxGndAtom]
         if closedWorld and v == None:
             return False
@@ -1263,6 +1308,66 @@ class MLN(object):
                 handledBlockNames.append(blockName)
             else:
                 self.pllBlocks.append((idxGA, None))
+                
+    def _getBlockTrueone(self, block):
+        idxGATrueone = -1
+        for i in block:
+            if self.mln._getEvidence(i):
+                if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
+                idxGATrueone = i
+                break
+        if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
+        return idxGATrueone
+
+    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None):
+        # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
+        mustRestoreValues = False
+        if idxGATrueone == None:
+            mustRestoreValues = True
+            backupValues = [world_values[block[0]]]
+            world_values[block[0]] = True
+            for idxGA in block[1:]:
+                backupValues.append(world_values[idxGA])
+                world_values[idxGA] = False
+            idxGATrueone = block[0]
+        # init the sums
+        sums = [0 for i in range(len(block))] # init sum of weights for each possible assignment of block
+                                              # sums[i] = sum of weights for assignment where the block[i] is set to true
+        # process all (relevant) ground formulas
+        checkRelevance = False
+        if relevantGroundFormulas == None:
+            relevantGroundFormulas = self.gndFormulas
+            checkRelevance = True
+        for gf in relevantGroundFormulas:
+            # check if one of the ground atoms in the block appears in the ground formula
+            if checkRelevance:
+                isRelevant = False
+                for i in block:
+                    if i in gf.idxGroundAtoms():
+                        isRelevant = True
+                        break
+                if not isRelevant: continue
+            # make each one of the ground atoms in the block true once
+            idxSum = 0
+            for i in block:
+                # set the current variable in the block to true
+                world_values[idxGATrueone] = False
+                world_values[i] = True
+                # is the formula true?
+                if gf.isTrue(world_values):
+                    sums[idxSum] += wt[gf.idxFormula]
+                # restore truth values
+                world_values[i] = False
+                world_values[idxGATrueone] = True
+                idxSum += 1
+                
+        # if initialization values were used, reset them
+        if mustRestoreValues:
+            for i, value in enumerate(backupValues):
+                world_values[block[i]] = value
+                
+        # return the list of exponentiated sums
+        return map(exp, sums)
                 
     # computes the set of relevant ground formulas for each block
     def _getBlockRelevantGroundFormulas(self):

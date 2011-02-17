@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from MCMCInference import *
+from SAMaxWalkSAT import * 
 
 
 class GibbsSampler(MCMCInference):
@@ -34,6 +35,25 @@ class GibbsSampler(MCMCInference):
             # run walksat
             mws = SAMaxWalkSAT(self.state, self.gs.mln, self.gs.evidenceBlocks)
             mws.run()
+            
+        def _getAtomExpsums(self, idxGndAtom, wt, world_values, relevantGroundFormulas=None):
+            sums = [0, 0]
+            # process all (relevant) ground formulas
+            checkRelevance = False
+            if relevantGroundFormulas == None:
+                relevantGroundFormulas = self.gndFormulas
+                checkRelevance = True
+            old_tv = world_values[idxGndAtom]
+            for gf in relevantGroundFormulas:
+                if checkRelevance: 
+                    if not gf.containsGndAtom(idxGndAtom):
+                        continue
+                for i, tv in enumerate([False, True]):
+                    world_values[idxGndAtom] = tv
+                    if gf.isTrue(world_values):
+                        sums[i] += wt[gf.idxFormula]
+                    world_values[idxGndAtom] = old_tv
+            return map(math.exp, sums)
         
         def step(self, debug=False):
             mln = self.gs.mln
@@ -47,7 +67,7 @@ class GibbsSampler(MCMCInference):
                 if idxBlock in self.gs.evidenceBlocks: # do not sample if we have evidence 
                     continue
                 if block != None:
-                    expsums = mln._getBlockExpsums(block, wt, self.state, None, mln.blockRelevantGFs[idxBlock])
+                    expsums = self._getBlockExpsums(block, wt, self.state, None, mln.blockRelevantGFs[idxBlock])
                     if idxBlock in self.gs.blockExclusions:
                         for i in self.gs.blockExclusions[idxBlock]:
                             expsums[i] = 0
@@ -96,7 +116,7 @@ class GibbsSampler(MCMCInference):
         chainGroup = MCMCInference.ChainGroup(self)
         for i in range(numChains):
             chainGroup.addChain(GibbsSampler.Chain(self))
-        # do gibbs sampling
+        # do Gibbs sampling
         if verbose and details: print "sampling..."
         converged = 0
         numSteps = 0
