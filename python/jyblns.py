@@ -31,7 +31,8 @@ def infer(network, decls, logic, algorithm, evidence, queries, cwPreds = None, m
 		a.extend(["-cw", cwPreds])
 	if maxSteps is not None:
 		a.extend(["-maxSteps", str(maxSteps)])
-	a.extend(args)
+	if args is not None:
+		a.extend(args)
 	i = BLNinfer()
 	i.readArgs(a)
 	i.run()
@@ -49,5 +50,5 @@ if __name__=='__main__':
 				interval = r.additionalInfo[i]
 				print " [%f;%f]" % (interval.lowerEnd, interval.upperEnd),
 			print
-	print "time taken: %fs" % inf.getSamplingTime()
+	print "time taken: %fs" % inf.getTotalInferenceTime()
 	print "steps taken: %d" % inf.getNumSteps()
