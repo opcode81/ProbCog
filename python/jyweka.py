@@ -20,6 +20,11 @@ class WekaClassifier(object):
 		if numericAttributes is not None:
 			self.numericAttributes = list(numericAttributes)
 		self.instances = []
+		
+	
+	def setDomain(self, attName, domain):
+		domain = set(domain) #remove duplicates, make sure it is set if things are added later on
+		self.attName2Domain[attName] = domain
 	
 	def setNumericAttribute(self, attName):
 		self.numericAttributes.append(attName)
@@ -41,6 +46,8 @@ class WekaClassifier(object):
 			if attName in self.numericAttributes: value = Double(value)
 			else: value = String(value)
 			attr = self.attName2Obj[attName]
+			print self.attName2Domain
+			print "attName, value", attName, value
 			inst.setValue(attr, value)
 		return inst
 
