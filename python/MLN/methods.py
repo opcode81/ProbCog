@@ -7,7 +7,7 @@ class Enum(object):
     def __getattr__(self, attr):
         if attr in self.value2name:
             return attr
-        raise Exception("Enum does not define %s" % attr)
+        raise Exception("Enum does not define %s, only %s" % (attr, self.value2name.keys()))
     
     def byShortName(self, shortName):
         return shortName
@@ -28,10 +28,10 @@ InferenceMethods = Enum(
     {"Exact": "exact inference", 
      "GibbsSampling": "Gibbs sampling", 
      "MCSAT": "MC-SAT", 
-     "ExactLazy": 
-     "lazy exact inference", 
+     "ExactLinear": "exact inference (linear space)", 
      "IPFPM_exact": "IPFP-M[exact]", 
-     "IPFPM_MCSAT": "IPFP-M[MC-SAT]"
+     "IPFPM_MCSAT": "IPFP-M[MC-SAT]",
+     "EnumerationAsk": "Enumeration-Ask (exact)"
     })
 
 ParameterLearningMeasures = Enum(

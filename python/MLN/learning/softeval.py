@@ -25,27 +25,12 @@
 
 import FOL
 
-def truthDegreeGivenSoftEvidence(gf, worldValues, mln):
-    cnf = gf.toCNF()
-    prod = 1.0
-    if isinstance(cnf, FOL.Conjunction):
-        for disj in cnf.children:
-            prod *= noisyOr(worldValues, disj, mln) 
-    else:
-        prod *= noisyOr(worldValues, cnf, mln)  
-    return prod  
+# this is deprecated
 
+def truthDegreeGivenSoftEvidence(gf, worldValues, mln):
+    return mln.getTruthDegreeGivenSoftEvidence(gf, worldValues)
+    
 def noisyOr(worldValues, disj, mln):
-    if isinstance(disj, FOL.GroundLit):
-        lits = [disj]
-    elif isinstance(disj, FOL.TrueFalse):
-        return 1.0 if disj.isTrue(worldValues) else 0.0
-    else:
-        lits = disj.children
-    prod = 1.0
-    for lit in lits:
-        p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
-        factor = p if not lit.negated else 1.0 - p
-        prod *= 1.0 - factor
-    return 1.0 - prod                
+    return mln._noisyOr(worldValues, disj)
+
 

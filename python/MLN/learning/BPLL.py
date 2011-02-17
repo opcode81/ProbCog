@@ -115,66 +115,6 @@ class BPLL(PLL):
             #expsums = map(math.exp, sums)
             return float(expsums[idxInBlockTrueone] / fsum(expsums))
 
-    def _getBlockTrueone(self, block):
-        idxGATrueone = -1
-        for i in block:
-            if self.mln._getEvidence(i):
-                if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
-                idxGATrueone = i
-                break
-        if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
-        return idxGATrueone
-
-    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None):
-        # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
-        mustRestoreValues = False
-        if idxGATrueone == None:
-            mustRestoreValues = True
-            backupValues = [world_values[block[0]]]
-            world_values[block[0]] = True
-            for idxGA in block[1:]:
-                backupValues.append(world_values[idxGA])
-                world_values[idxGA] = False
-            idxGATrueone = block[0]
-        # init the sums
-        sums = [0 for i in range(len(block))] # init sum of weights for each possible assignment of block
-                                              # sums[i] = sum of weights for assignment where the block[i] is set to true
-        # process all (relevant) ground formulas
-        checkRelevance = False
-        if relevantGroundFormulas == None:
-            relevantGroundFormulas = self.gndFormulas
-            checkRelevance = True
-        for gf in relevantGroundFormulas:
-            # check if one of the ground atoms in the block appears in the ground formula
-            if checkRelevance:
-                isRelevant = False
-                for i in block:
-                    if i in gf.idxGroundAtoms():
-                        isRelevant = True
-                        break
-                if not isRelevant: continue
-            # make each one of the ground atoms in the block true once
-            idxSum = 0
-            for i in block:
-                # set the current variable in the block to true
-                world_values[idxGATrueone] = False
-                world_values[i] = True
-                # is the formula true?
-                if gf.isTrue(world_values):
-                    sums[idxSum] += wt[gf.idxFormula]
-                # restore truth values
-                world_values[i] = False
-                world_values[idxGATrueone] = True
-                idxSum += 1
-                
-        # if initialization values were used, reset them
-        if mustRestoreValues:
-            for i, value in enumerate(backupValues):
-                world_values[block[i]] = value
-                
-        # return the list of exponentiated sums
-        return map(exp, sums)
-
     def _grad(self, wt):
         #grad = [mpmath.mpf(0) for i in xrange(len(self.formulas))]        
         grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
