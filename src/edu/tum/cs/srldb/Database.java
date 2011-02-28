@@ -20,28 +20,27 @@ import edu.tum.cs.clustering.SimpleClusterer;
 import edu.tum.cs.srldb.datadict.AutomaticDataDictionary;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
+import edu.tum.cs.srldb.datadict.DDItem;
 import edu.tum.cs.srldb.datadict.DataDictionary;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
 
 public class Database implements Cloneable, Serializable {
-	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	protected HashSet<Link> links;
-	protected HashSet<Object> objects;	
+	protected HashSet<Object> objects;
+	protected HashMap<String, HashMap<String, Object>> constantObjectsByType;
 	protected DataDictionary datadict;
 	
 	/**
 	 * creates a relational database
-	 * @param dd the datadictionary that this database must conform to
+	 * @param dd the data dictionary that this database must conform to
 	 */
 	public Database(DataDictionary dd) {
 		links = new HashSet<Link>();
 		objects = new HashSet<Object>();
+		constantObjectsByType = new HashMap<String, HashMap<String,Object>>();
 		datadict = dd;
 	}
 	
@@ -182,35 +181,48 @@ public class Database implements Cloneable, Serializable {
 	 * @throws Exception
 	 */
 	public void writeProximityDatabase(java.io.PrintStream out) throws Exception {
+		System.out.println("\n" + getDataDictionary());
 		out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 		out.println("<!DOCTYPE PROX3DB SYSTEM \"prox3db.dtd\">");
 		out.println("<PROX3DB>");
 		// objects
+		System.out.println("writing objects...");
 		out.println("  <OBJECTS>");
 		for(Object obj : objects) {
 			out.println("    <OBJECT ID=\"" + obj.id + "\"/>");			
 		}
 		out.println("  </OBJECTS>");
 		// links
+		System.out.println("writing links...");
 		out.println("  <LINKS>");
+		HashSet<String> warnedLinks = new HashSet<String>();
 		for(Link link : links) {
-			if(link.getArguments().length != 2)
-				System.err.println("Warning: non-binary link/relation found - using first two objects only");
-			Object o1 = ((Object)link.getArguments()[0]);
-			Object o2 = ((Object)link.getArguments()[1]);
+			if(link.getArguments().length != 2) {
+				if(!warnedLinks.contains(link.getName())) {
+					System.err.println("Warning: non-binary link/relation found: " + link.getName() + " - using first two objects only");
+					warnedLinks.add(link.getName());
+				}								
+			}
+			Object[] args = link.getArgumentObjects();
+			Object o1 = args[0];
+			Object o2 = args[1];
 			out.println("    <LINK ID=\"" + link.id + "\" O1-ID=\"" + o1.id + "\" O2-ID=\"" + o2.id + "\"/>");			
 		}
 		out.println("  </LINKS>");
-		// attributes		
+		// attributes
+		System.out.println("writing attributes...");
 		out.println("  <ATTRIBUTES>");
 		// - regular attributes
 		for(DDAttribute attrib : datadict.getAttributes()) {
 			if(attrib.isDiscarded())
 				continue;
+			DDItem owner = attrib.getOwner();
+			if(owner == null) // skip attributes without owner (i.e. dummy attributes that are created for constant relation arguments)
+				continue;
 			String attribName = attrib.getName();
 			System.out.println("  attribute " + attribName);
-			out.println("    <ATTRIBUTE NAME=\"" + Database.stdAttribName(attribName) + "\" ITEM-TYPE=\"" + (attrib.getOwner().isObject() ? "O" : "L") + "\" DATA-TYPE=\"" + attrib.getType() + "\">");
-			Iterator iItem = attrib.getOwner().isObject() ? objects.iterator() : links.iterator();
+			out.println("    <ATTRIBUTE NAME=\"" + Database.stdAttribName(attribName) + "\" ITEM-TYPE=\"" + (attrib.getOwner().isObject() ? "O" : "L") + "\" DATA-TYPE=\"" + attrib.getType() + "\">");			
+			Iterator iItem = owner.isObject() ? objects.iterator() : links.iterator();
 			while(iItem.hasNext()) {
 				Item item = (Item) iItem.next();
 				if(item.hasAttribute(attribName)) {
@@ -292,7 +304,7 @@ public class Database implements Cloneable, Serializable {
 	
 	/**
 	 * verifies compatibility of the data with the data dictionary
-	 *
+	 * and merges domains with overlapping value sets in the data dictionary
 	 */
 	public void check() throws DDException, Exception {
 		// check objects
@@ -444,5 +456,20 @@ public class Database implements Cloneable, Serializable {
 	public void clear() {
 		this.objects.clear();
 		this.links.clear();
+	}
+	
+	public Object getConstantAsObject(String objType, String constantName) throws DDException {
+		HashMap<String, Object> name2obj = constantObjectsByType.get(objType);
+		if(name2obj == null) {
+			name2obj = new HashMap<String, Object>();
+			constantObjectsByType.put(objType, name2obj);
+		}
+		Object o = name2obj.get(constantName);
+		if(o == null) {
+			o = new Object(this, objType, constantName);
+			o.commit();
+			name2obj.put(constantName, o);
+		}
+		return o;
 	}
 }

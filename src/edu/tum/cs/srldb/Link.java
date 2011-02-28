@@ -5,6 +5,7 @@ import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
+import edu.tum.cs.srldb.datadict.IDDRelationArgument;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 
 public class Link extends Item implements Serializable {
@@ -99,15 +100,45 @@ public class Link extends Item implements Serializable {
 	public void addTo(Database db) throws DDException {
 		if(db == this.database) // this is a commit
 			immutable = true;
+		// add the link to the database
 		db.addLink(this);
+		// get the objects that are linked here (this creates objects for constant arguments);
+		// creating objects may be required depending on how the database is read (it is e.g. necessary for Proximity databases)
+		for(int i = 0; i < this.arguments.length; i++)
+			getArgumentObject(db, i);
+	}
+	
+	public Object getArgumentObject(Database db, int i) throws DDException {
+		if(arguments[i] instanceof ConstantArgument) {
+			IDDRelationArgument argType = database.getDataDictionary().getRelation(this.linkName).getArguments()[i];				
+			return db.getConstantAsObject(argType.getDomainName(), arguments[i].getConstantName());
+		}
+		else
+			return (Object)arguments[i];
 	}
 	
 	public String getName() {
 		return this.linkName;
 	}
 	
+	/**
+	 * @return the relation arguments
+	 */
 	public IRelationArgument[] getArguments() {
 		return this.arguments;
+	}
+	
+	/**
+	 * gets the relation arguments as objects, converting constant arguments
+	 * to objects beforehand
+	 * @return an array of objects
+	 * @throws DDException 
+	 */
+	public Object[] getArgumentObjects() throws DDException {
+		Object[] ret = new Object[arguments.length];
+		for(int i = 0; i < arguments.length; i++) 
+			ret[i] = getArgumentObject(this.database, i);		
+		return ret;
 	}
 	
 	public void setSecondArgument(IRelationArgument arg) {
