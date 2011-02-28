@@ -1,13 +1,11 @@
 package edu.tum.cs.srldb;
 import java.io.PrintStream;
-import java.sql.*;
-import java.util.*;
+import java.util.HashMap;
 import java.util.Map.Entry;
 
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
-import kdl.prox3.dbmgr.DataTypeEnum;
 
 public class Object extends Item implements IRelationArgument, java.io.Serializable {
 	
@@ -19,7 +17,8 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 	/**
 	 * creates an object for the given database; 
 	 * Since a type name is not provided but is determined from the actual class name, 
-	 * this constructor cannot be used directly  
+	 * this constructor cannot be used directly - it can only be used in derived classes
+	 * that actually have a meaningful name.
 	 * @param database  the database the object is to be part of (upon commit)
 	 */
 	protected Object(Database database) {
@@ -78,7 +77,7 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 	}
 	
 	/**
-	 * @return a string, i.e. a constant name, that (uniquely) identifies this object in an MLN database
+	 * @return a string, i.e. a constant name, that (uniquely) identifies this object in a database
 	 */
 	public String getConstantName() {
 		if(constantName == null)

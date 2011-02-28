@@ -62,7 +62,7 @@ public class AutomaticDataDictionary extends DataDictionary {
 					Object obj = (Object) arg;
 					ddArgs[i] = getObject(obj.objType());
 				}
-				// it's a constant (which is treated as an attribute value)
+				// it's a constant (which is treated as an attribute value such that its domain can be collected and written appropriately)
 				else {
 					// add an attribute with an AutomaticDomain if necessary
 					String domName = "dom" + Database.upperCaseString(link.getName()) + i;
