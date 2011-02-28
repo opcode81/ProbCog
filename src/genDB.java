@@ -6,7 +6,6 @@ import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 import edu.tum.cs.srldb.Database;
 
-
 public class genDB {
 
 	/**
@@ -19,6 +18,7 @@ public class genDB {
 				System.out.println("\n  usage: genDB [options] <Jython generator script> <output base filename> [parameters to pass on to generator]\n" +
 						             "           -m   output MLN database (.db)\n" +
 						             "           -b   output BLOG database (.blogdb)\n" +
+						             "           -p   output Proximity database (.proxdb.xml)\n" +
 						             "           -bm  output basic MLN model (.basic.mln)\n" +
 						             "           -bb  output basic BLN model declarations (.basic.blnd)\n\n" +
 						             "         The Jython script must create a Database object named 'db' in the global scope.\n");
@@ -42,13 +42,15 @@ public class genDB {
 			PythonInterpreter jython = new PythonInterpreter();
 
 			// read args
-			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false;
+			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false, writeProxDB = false;
 			int i = 0; 
 			for(; i < args.length; i++) {
 				if(args[i].equals("-m"))
 					writeMLNDB = true;
 				else if(args[i].equals("-b"))
 					writeBLOGDB = true;
+				else if(args[i].equals("-p"))
+					writeProxDB = true;
 				else if(args[i].equals("-bm"))
 					writeBasicMLN = true;
 				else if(args[i].equals("-bb"))
@@ -77,6 +79,8 @@ public class genDB {
 				db.writeMLNDatabase(new PrintStream(new java.io.File(outfilename + ".db")));
 			if(writeBLOGDB)
 				db.writeBLOGDatabase(new PrintStream(new java.io.File(outfilename + ".blogdb")));
+			if(writeProxDB)
+				db.writeProximityDatabase(new PrintStream(new java.io.File(outfilename + ".proxdb.xml")));
 			if(writeBasicMLN)
 				db.writeBasicMLN(new PrintStream(new File(outfilename + ".basic.mln")));
 			if(writeBasicBLND)
@@ -87,5 +91,4 @@ public class genDB {
 			e.printStackTrace();
 		}
 	}
-
 }
