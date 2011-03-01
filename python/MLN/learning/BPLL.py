@@ -105,7 +105,7 @@ class BPLL(PLL):
                 except:
                     relevantGroundFormulas = None
             # TODO: (potentially) numerically instable, therefore using mpmath
-            expsums = self._getBlockExpsums(block, wt, self.evidence, idxGATrueone, relevantGroundFormulas)
+            expsums = self.mln._getBlockExpsums(block, wt, self.evidence, idxGATrueone, relevantGroundFormulas)
             #mpexpsums = map(lambda x: mpmath.mpf(x), expsums)
             #sums = self._getBlockSums(block, wt, self.evidence, idxGATrueone, relevantGroundFormulas)
             #print sums
