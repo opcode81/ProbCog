@@ -117,7 +117,8 @@ class BLNQuery:
             "Iterative Join-Graph Propagation": "IJGP",
             "SampleSearch": "SampleSearch",
             "ACE": "ACE",
-            "SampleSearch with Choco Solver" : "SampleSearchChoco"
+            "SampleSearch with Choco Solver" : "SampleSearchChoco",
+            "QGraph inference via database counts": "QGraphInference"
         }
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
