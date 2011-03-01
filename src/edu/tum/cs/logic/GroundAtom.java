@@ -78,7 +78,7 @@ public class GroundAtom extends Formula {
 	@Override
 	public int hashCode() {
 		if(this.index == -1)
-			throw new RuntimeException("Tried to compute hash code of GroundAtom that was not yet added to a collection of world variables.");
+			throw new RuntimeException("Tried to compute hash code of GroundAtom '" + this.toString() + "' that was not yet added to a collection of world variables.");
 		return this.index;
 	}
 
