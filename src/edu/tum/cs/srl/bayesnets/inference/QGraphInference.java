@@ -15,14 +15,14 @@ import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.Variable;
-import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
+import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.util.datastruct.Pair;
 
 public class QGraphInference extends Sampler {
 
 	protected int port;
 	
-	public QGraphInference(AbstractGroundBLN gbln) throws Exception {
+	public QGraphInference(GroundBLN gbln) throws Exception {
 		super(gbln);
 		this.paramHandler.add("port", "setPort");
 	}
