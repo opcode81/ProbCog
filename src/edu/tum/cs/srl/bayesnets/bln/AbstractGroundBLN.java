@@ -245,6 +245,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				cpf.build(new BeliefNode[]{mainNode}, dist);
 				mainNode.setCPF(cpf);
 				onAddGroundAtomNode(mainNode, params, sig);
+				instantiatedVariables.add(mainNode.getName());
 				return mainNode;
 			}	
 
