@@ -51,8 +51,8 @@ public enum Algorithm {
 		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch" ),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
 		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation", null, edu.tum.cs.bayesnets.inference.ACE.class),
-		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search.", null, dev.SampleSearchChoco.class);
-		
+		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search.", null, dev.SampleSearchChoco.class),
+		QGraphInference("Inference based on counting in the training database", QGraphInference.class, null);
 		
 		protected String description;
 		protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> bnClass;
