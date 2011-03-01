@@ -3,7 +3,9 @@
  */
 package edu.tum.cs.srl;
 
+import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 public class Signature {
 	public String returnType;
@@ -45,5 +47,9 @@ public class Signature {
 
 	public static String formatVarName(String functionName, String[] args) {
 		return String.format("%s(%s)", functionName, StringTool.join(",", args));
+	}
+	
+	public static Pair<String, String[]> parseVarName(String varName) {
+		return RelationalNode.parse(varName);
 	}
 }
