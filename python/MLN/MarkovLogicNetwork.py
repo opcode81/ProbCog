@@ -1308,6 +1308,18 @@ class MLN(object):
                 handledBlockNames.append(blockName)
             else:
                 self.pllBlocks.append((idxGA, None))
+
+    # computes the set of relevant ground formulas for each block
+    def _getBlockRelevantGroundFormulas(self):
+        mln = self
+        self.blockRelevantGFs = [set() for i in range(len(mln.pllBlocks))]
+        for idxBlock, (idxGA, block) in enumerate(mln.pllBlocks):
+            if block != None:
+                for idxGA in block:
+                    for gf in self.gndAtomOccurrencesInGFs[idxGA]:
+                        self.blockRelevantGFs[idxBlock].add(gf)
+            else:
+                self.blockRelevantGFs[idxBlock] = self.gndAtomOccurrencesInGFs[idxGA]
                 
     def _getBlockTrueone(self, block):
         idxGATrueone = -1
@@ -1368,19 +1380,26 @@ class MLN(object):
                 
         # return the list of exponentiated sums
         return map(exp, sums)
-                
-    # computes the set of relevant ground formulas for each block
-    def _getBlockRelevantGroundFormulas(self):
-        mln = self
-        self.blockRelevantGFs = [set() for i in range(len(mln.pllBlocks))]
-        for idxBlock, (idxGA, block) in enumerate(mln.pllBlocks):
-            if block != None:
-                for idxGA in block:
-                    for gf in self.gndAtomOccurrencesInGFs[idxGA]:
-                        self.blockRelevantGFs[idxBlock].add(gf)
-            else:
-                self.blockRelevantGFs[idxBlock] = self.gndAtomOccurrencesInGFs[idxGA]
-                
+    
+    def _getAtomExpsums(self, idxGndAtom, wt, world_values, relevantGroundFormulas=None):
+        sums = [0, 0]
+        # process all (relevant) ground formulas
+        checkRelevance = False
+        if relevantGroundFormulas == None:
+            relevantGroundFormulas = self.gndFormulas
+            checkRelevance = True
+        old_tv = world_values[idxGndAtom]
+        for gf in relevantGroundFormulas:
+            if checkRelevance: 
+                if not gf.containsGndAtom(idxGndAtom):
+                    continue
+            for i, tv in enumerate([False, True]):
+                world_values[idxGndAtom] = tv
+                if gf.isTrue(world_values):
+                    sums[i] += wt[gf.idxFormula]
+                world_values[idxGndAtom] = old_tv
+        return map(math.exp, sums)
+           
     def _getAtom2BlockIdx(self):
         self.atom2BlockIdx = {}
         for idxBlock, (idxGA, block) in enumerate(self.pllBlocks):

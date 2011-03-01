@@ -780,7 +780,7 @@ class Learner(AbstractLearner):
             #expsums = map(math.exp, sums)
             return float(expsums[idxInBlockTrueone] / fsum(expsums))
 
-    def _getBlockTrueone(self, block): # moved to BPLL
+    def _getBlockTrueone(self, block): # moved to MLN
         idxGATrueone = -1
         for i in block:
             if self._getEvidence(i):
@@ -790,7 +790,7 @@ class Learner(AbstractLearner):
         if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
         return idxGATrueone
 
-    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None): # moved to BPLL
+    def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None): # moved to MLN
         # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
         mustRestoreValues = False
         if idxGATrueone == None:
@@ -840,7 +840,7 @@ class Learner(AbstractLearner):
         # return the list of exponentiated sums
         return map(exp, sums)
 
-    def _getAtomExpsums(self, idxGndAtom, wt, world_values, relevantGroundFormulas=None):
+    def _getAtomExpsums(self, idxGndAtom, wt, world_values, relevantGroundFormulas=None): # moved to MarkovLogicNetwork
         sums = [0, 0]
         # process all (relevant) ground formulas
         checkRelevance = False
