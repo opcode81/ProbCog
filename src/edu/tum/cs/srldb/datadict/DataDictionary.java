@@ -9,6 +9,7 @@ import org.xml.sax.Attributes;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
+import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.ConstantArgument;
 import edu.tum.cs.srldb.Database;
@@ -134,13 +135,23 @@ public class DataDictionary implements java.io.Serializable {
 				dd = domains.get(domName);
 			dd.occurrences.add(attrib);
 		}
-		// check each attribute domain against all the other ones (for collisions of values)
+		
+		// check attribute domain 
 		DomainData[] dd = new DomainData[domains.size()];
 		domains.values().toArray(dd);
 		domains = null;
 		for(int i = 0; i < dd.length; i++) {			
 			if(dd[i].wasReplaced) continue;
-			// check all of the following domains 
+			
+			// check whether the domain is actually boolean
+			if(dd[i].domain.isBoolean()) {
+				for(DDAttribute attrib : dd[i].occurrences)
+					attrib.setDomain(BooleanDomain.getInstance());
+				dd[i].wasReplaced = true;
+				continue;
+			}
+			
+			// check all of the following domains for overlaps 
 			for(int j = i+1; j < dd.length; j++) {
 				if(dd[j].wasReplaced) continue;
 				// check whether any of the values in the first domain is in the other domain...
@@ -162,6 +173,7 @@ public class DataDictionary implements java.io.Serializable {
 				}
 			}
 		}
+		
 		// ensure that attribute names do not coincide with link names
 		Set<String> attrNames = this.attributes.keySet();
 		Set<String> linkNames = new HashSet<String>(this.relations.keySet());

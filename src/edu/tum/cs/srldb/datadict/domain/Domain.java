@@ -31,4 +31,18 @@ public abstract class Domain<T> implements Serializable {
 		buf.append("}");
 		return buf.toString();
 	}
+	
+	public boolean isBoolean() {
+		if(!isFinite())
+			return false;
+		String[] values = getValues();
+		BooleanDomain bd = BooleanDomain.getInstance();
+		if(values.length >= 1 && values.length <= 2) {
+			for(String v : values)
+				if(!bd.containsString(v))
+					return false;					
+			return true;
+		}
+		return false;
+	}
 }
