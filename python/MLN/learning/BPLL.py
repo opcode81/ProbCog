@@ -27,8 +27,8 @@ from PLL import *
 
 class BPLL(PLL):
     
-    def __init__(self, mln):
-        PLL.__init__(self, mln)
+    def __init__(self, mln, **params):
+        PLL.__init__(self, mln, **params)
 
     # get the probability of the assignment for the block the given atom is in
     def getBlockProbMB(self, atom): 

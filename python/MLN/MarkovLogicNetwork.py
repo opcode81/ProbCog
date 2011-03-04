@@ -2,7 +2,7 @@
 #
 # Markov Logic Networks
 #
-# (C) 2006-2010 by Dominik Jain (jain@cs.tum.edu)
+# (C) 2006-2011 by Dominik Jain (jain@cs.tum.edu)
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -1420,7 +1420,7 @@ class MLN(object):
         
         modeName = ParameterLearningMeasures.byShortName(mode)
         if modeName in dir(learning) and True: # disable this case to use the old code
-            learner = eval("learning.%s(self)" % modeName)
+            learner = eval("learning.%s(self, **params)" % modeName)
             wt = learner.run(initialWts, **params)
         else: 
             learner = learning.Learner(self) # the Learner class contains the old code and the functions marked with "moved to <somewhere>" are subject to removal
