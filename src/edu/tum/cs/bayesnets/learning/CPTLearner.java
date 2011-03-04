@@ -9,6 +9,8 @@ import java.util.*;
 
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.core.Discretized;
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 
 import weka.clusterers.*;
 import weka.core.*;
@@ -20,7 +22,7 @@ import weka.core.*;
  * In the end, probablities are obtained by means of normalization.  
  * @author Dominik Jain
  */
-public class CPTLearner extends Learner {
+public class CPTLearner extends Learner implements IParameterHandler {
 	/**
 	 * The logger for this class.
 	 */
@@ -44,14 +46,19 @@ public class CPTLearner extends Learner {
 	 * column entries are 0); If true, assume a uniform distribution, otherwise keep the zeros. 
 	 */
 	protected boolean uniformDefault;
+	protected boolean initialized = false;
+	protected double pseudoCount = 0.0; 
+	protected ParameterHandler paramHandler;
 	
 	/**
 	 * constructs a CPTLearner object from a BeliefNetworkEx object
 	 * @param bn
+	 * @throws Exception 
 	 */
-	public CPTLearner(BeliefNetworkEx bn) {
-		super(bn);
-		init();
+	public CPTLearner(BeliefNetworkEx bn) throws Exception {
+		super(bn);	
+		paramHandler = new ParameterHandler(this);
+		paramHandler.add("pseudoCount", "setPseudoCount");
 	}
 	
 	/**
@@ -60,6 +67,10 @@ public class CPTLearner extends Learner {
 	 */
 	public void setUniformDefault(boolean value) {
 		uniformDefault = value;
+	}
+		
+	public void setPseudoCount(double pseudoCount) {
+		this.pseudoCount = pseudoCount;
 	}
 	
 	/**
@@ -100,7 +111,7 @@ public class CPTLearner extends Learner {
         // create example counters for each node
         counters = new ExampleCounter[nodes.length];		
         for(int i = 0; i < nodes.length; i++)
-        	counters[i] = new ExampleCounter(nodes[i], bn);
+        	counters[i] = new ExampleCounter(nodes[i], bn, this.pseudoCount);
 	}
 	
 	/**
@@ -113,6 +124,7 @@ public class CPTLearner extends Learner {
 	 * @throws SQLException particularly if there is no matching column for one of the node names  
 	 */
 	public void learn(ResultSet rs) throws Exception {
+		if(!initialized) init();
         try {
 			// if it's an empty result set, throw exception
 			if(!rs.next())
@@ -193,6 +205,8 @@ public class CPTLearner extends Learner {
 	 * @throws SQLException particularly if there is no matching column for one of the node names  
 	 */
 	public void learn(Instances instances) throws Exception {
+		if(!initialized) init();
+		
 		// if it's an empty result set, throw exception
 		if(instances.numInstances() == 0)
 			throw new Exception("empty result set!");
@@ -298,7 +312,8 @@ public class CPTLearner extends Learner {
 	 * 						hash map. 
 	 * @throws Exception	if required keys are missing from the HashMap
 	 */
-	public void learn(Map<String,String> data) throws Exception {					
+	public void learn(Map<String,String> data) throws Exception {
+		if(!initialized) init();
 		// - get the indices into the domains of each node
 		//   that correspond to the current row of data
 		//   (sorted in the same order as the nodes are ordered
@@ -428,17 +443,21 @@ public class CPTLearner extends Learner {
 		 * @param n		the node
 		 * @param bn	the Bayesian Network the node is part of
 		 */
-		public ExampleCounter(BeliefNode n, BeliefNetworkEx bn) {
+		public ExampleCounter(BeliefNode n, BeliefNetworkEx bn, double pseudoCount) {
 			// empty the cpf (initialize values to 0)
 			cpf = n.getCPF();			
 			for(int i = 0; i < cpf.size(); i++)
-				cpf.put(i, new ValueDouble(0));
+				cpf.put(i, new ValueDouble(pseudoCount));
 			
 			// get the indices of the nodes that the CPT depends on
 			BeliefNode[] nodes = cpf.getDomainProduct();
 			nodeIndices = new int[nodes.length];
 			for(int i = 0; i < nodes.length; i++)
 				nodeIndices[i] = bn.getNodeIndex(nodes[i]);	
+		}
+		
+		public ExampleCounter(BeliefNode n, BeliefNetworkEx bn) {
+			this(n, bn, 0);
 		}
 		
 		public ExampleCounter(CPF cpf, int[] nodeIndices) {
@@ -480,5 +499,11 @@ public class CPTLearner extends Learner {
 			// add one to the entry
 			cpf.put(realAddr, Field.add(cpf.get(realAddr), new ValueDouble(weight)) );
 		}
+	}
+
+
+	@Override
+	public ParameterHandler getParameterHandler() {
+		return this.paramHandler;
 	}
 }
