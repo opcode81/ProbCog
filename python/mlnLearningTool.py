@@ -134,7 +134,7 @@ class LearnWeights:
         if self.selected_engine.get() == "internal":
             state = DISABLED
             self.internalMode = True
-            methods = MLN.ParameterLearningMeasures.getNames()
+            methods = sorted(MLN.ParameterLearningMeasures.getNames())
         else:
             state = NORMAL
             self.internalMode = False
