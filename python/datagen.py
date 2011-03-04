@@ -313,11 +313,20 @@ class World:
         self.containers[className] = container
         return container
     
-    def addObject(self, className, object):
-        ''' adds an object to the container for the given class name, creating the container if it does not yet exist '''
+    def addObject(self, arg1, arg2 = None):        
+        ''' If only one arg1 is given, then arg1 is the object to add (and it is added to the container that is named after the object's type);
+            If both args are given, then the first is the name of the container and the second is the object;
+            The container is added if it does not already exist '''
+        if arg2 is None:
+            obj = arg1
+            className =  obj.objtype
+        else:
+            className = arg1
+            obj = arg2
+            if type(className) != str: raise Exception("First argument (arg1) must be a string")
         if not className in self.containers:
             self.containers[className] = ObjectContainer()
-        self.containers[className].add(object)
+        self.containers[className].add(obj)
     
     def getContainer(self, className):
         return self.containers.get(className)
