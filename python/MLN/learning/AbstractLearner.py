@@ -36,8 +36,10 @@ from MLN.util import *
 
 class AbstractLearner(object):
     
-    def __init__(self, mln):
+    def __init__(self, mln, **params):
         self.mln = mln
+        self.params = params
+        self.gaussianPriorSigma = None # 1  # TODO
     
     def _reconstructFullWeightVectorWithFixedWeights(self, wt):        
         if len(self._fixedWeightFormulas) == 0:
@@ -86,12 +88,23 @@ class AbstractLearner(object):
             print "fixed weight: %f=log(%f) F#%d %s" % (w, (c / Z), formula.idxFormula, str(formula))
             
     def __f(self, wt):
+        # compute prior
+        prior = 0
+        if self.gaussianPriorSigma is not None:
+            for weight in wt:
+                prior += gaussianZeroMean(weight, self.gaussianPriorSigma)
+        
+        # reconstruct full weight vector
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         wt = self._convertToFloatVector(wt)
         print "_f: wt = ", wt
         sys.stdout.flush()
-
-        return self._f(wt)
+        
+        # compute likelihood
+        likelihood = self._f(wt)
+        
+        return likelihood + prior
+        
     
     def __fDummy(self, wt):
         if not hasattr(self, 'dummyFValue'):
@@ -123,7 +136,6 @@ class AbstractLearner(object):
         
     def __grad(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
-        
         wt = self._convertToFloatVector(wt)
         
         grad = self._grad(wt)
@@ -131,6 +143,11 @@ class AbstractLearner(object):
         sys.stdout.flush()
 
         self.lastFullGradient = grad
+        
+        # add gaussian prior
+        if self.gaussianPriorSigma is not None:
+            for i, weight in enumerate(wt):
+                grad[i] += gradGaussianZeroMean(weight, self.gaussianPriorSigma)
         
         return self._projectVectorToNonFixedWeightIndices(grad)
     
@@ -158,7 +175,7 @@ class AbstractLearner(object):
         self._fixFormulaWeights()
         self.wt = self._projectVectorToNonFixedWeightIndices(wt)
         
-        self.params = params
+        self.params.update(params)
         self._prepareOpt()
         self._optimize(**params)
             
@@ -210,8 +227,8 @@ from softeval import truthDegreeGivenSoftEvidence
 
 class SoftEvidenceLearner(AbstractLearner):
 
-    def __init__(self, mln):
-        AbstractLearner.__init__(self, mln)
+    def __init__(self, mln, **params):
+        super(SoftEvidenceLearner, self).__init__(self, mln, **params)
 
     def _getTruthDegreeGivenEvidence(self, gf, worldValues=None):
         if worldValues is None: worldValues = self.mln.evidence

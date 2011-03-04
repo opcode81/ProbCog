@@ -30,8 +30,8 @@ from AbstractLearner import *
 
 class LL(AbstractLearner):
     
-    def __init__(self, mln):
-        AbstractLearner.__init__(self, mln)
+    def __init__(self, mln, **params):
+        super(LL, self).__init__(self, mln, **params)
     
     def _computeCounts(self):
         ''' computes the number of true groundings of each formula in each possible world (sufficient statistics) '''
@@ -115,9 +115,9 @@ class LL(AbstractLearner):
 from softeval import truthDegreeGivenSoftEvidence
 
 class LL_ISE(SoftEvidenceLearner, LL):
-    def __init__(self, mln):
-        LL.__init__(self, mln)
-        SoftEvidenceLearner.__init__(self, mln)
+    def __init__(self, mln, **params):
+        LL.__init__(self, mln, **params)
+        SoftEvidenceLearner.__init__(self, mln, **params)
 
     def _prepareOpt(self):
         # HACK set soft evidence variables to true in evidence
@@ -188,9 +188,9 @@ class LL_ISE(SoftEvidenceLearner, LL):
     
     
 class Abstract_ISEWW(SoftEvidenceLearner, LL):
-    def __init__(self, mln):
-        LL.__init__(self, mln)
-        SoftEvidenceLearner.__init__(self, mln)     
+    def __init__(self, mln, **params):
+        LL.__init__(self, mln, **params)
+        SoftEvidenceLearner.__init__(self, mln, **params)     
         
     def _calculateWorldProbabilities(self):  
         #calculate only once as they do not change
@@ -235,8 +235,8 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
         return False   
     
 class LL_ISEWW(Abstract_ISEWW):
-    def __init__(self, mln):
-        Abstract_ISEWW.__init__(self, mln)
+    def __init__(self, mln, **params):
+        Abstract_ISEWW.__init__(self, mln, **params)
     
     def _f(self, wt):
         self._calculateWorldValues(wt) #only to calculate partition function here:
@@ -260,8 +260,8 @@ class LL_ISEWW(Abstract_ISEWW):
 
     
 class E_ISEWW(Abstract_ISEWW):    
-    def __init__(self, mln):
-        Abstract_ISEWW.__init__(self, mln)
+    def __init__(self, mln, **params):
+        Abstract_ISEWW.__init__(self, mln, **params)
         self.countsByWorld = {}
         self.softCountsEvidenceWorld = {}
         
@@ -339,8 +339,8 @@ class E_ISEWW(Abstract_ISEWW):
 
 
 class SLL_ISE(LL_ISE):
-    def __init__(self, mln):
-        LL_ISE.__init__(self, mln)
+    def __init__(self, mln, **params):
+        LL_ISE.__init__(self, mln, **params)
         
     
     def _f(self, wt):
@@ -474,8 +474,8 @@ class SLL_ISE(LL_ISE):
         print "  %d counts recorded." % len(self.counts)
         
 class DSLL_WW(SLL_ISE):
-    def __init__(self, mln):
-        SLL_ISE.__init__(self, mln)
+    def __init__(self, mln, **params):
+        SLL_ISE.__init__(self, mln, **params)
     
     def _computeCounts(self):
         LL._computeCounts(self)

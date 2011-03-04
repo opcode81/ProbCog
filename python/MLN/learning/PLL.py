@@ -2,7 +2,7 @@
 #
 # Markov Logic Networks
 #
-# (C) 2006-2010 by Dominik Jain (jain@cs.tum.edu)
+# (C) 2006-2011 by Dominik Jain (jain@cs.tum.edu)
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -47,8 +47,8 @@ DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
 
 class PLL(AbstractLearner):
     
-    def __init__(self, mln):
-        AbstractLearner.__init__(self, mln)
+    def __init__(self, mln, **params):
+        AbstractLearner.__init__(self, mln, **params)        
     
     # determines the probability of the given ground atom (string) given its Markov blanket
     # (the MLN must have been provided with evidence using combineDB)
@@ -250,10 +250,9 @@ class PLL(AbstractLearner):
 
 class PLL_ISE(SoftEvidenceLearner, PLL):
     
-    def __init__(self, mln):
-        SoftEvidenceLearner.__init__(self, mln)
-        PLL.__init__(self, mln)
-        self.gaussianPriorSigma = 1#1.155 #TODO
+    def __init__(self, mln, **params):
+        SoftEvidenceLearner.__init__(self, mln, **params)
+        PLL.__init__(self, mln, **params)        
     
     def _computeDiffs(self):
         self.diffs = {}
@@ -310,38 +309,24 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
         PLL._prepareOpt(self)
 
 
-#discriminative PLL_ISE for atLocation
-class DPLL_ISE(PLL_ISE):
-    
-    def isQueryFormula(self, predName):
-        if predName == "atLocation":
-            return True
-        else:
-            return False
+class DPLL(PLL):
+    ''' discriminative pseudo-log-likelihood '''    
+
+    def __init__(self, mln, **params):
+        super(DPLL, self).__init__(mln, **params)
+        if "queryPreds" not in self.params or type(self.params["queryPreds"]) != list:
+            raise Exception("For discriminative Learning, must provide query predicates by setting keyword argument queryPreds to a list of query predicate names, e.g. queryPreds=[\"classLabel\", \"propertyLabel\"].")        
         
-#        if re.match("^atLocation\(.*\)$", str(self.mln.formulas[idxFormula])):
-#            print "isQuery", str(self.mln.formulas[idxFormula])
-#            return True
-#        else:
-#            return False
-        
+    def _isQueryPredicate(self, predName):
+        return predName in self.params["queryPreds"]
+
     def _f(self, wt):
         self._calculateAtomProbsMB(self._reconstructFullWeightVectorWithFixedWeights(wt))
-        #print self.atomProbsMB
         probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
-        #pll = fsum(map(log, probs))
         pll = 0
         for i, prob in enumerate(probs):
-            if False == self.isQueryFormula(self.mln.gndAtomsByIdx[i].predName):
-                continue
-            
-            pll += log(prob)
-            
-            
-        #add gaussian means:
-        for weight in wt:
-            pll += gaussianZeroMean(weight, self.gaussianPriorSigma)
-        
+            if self._isQueryPredicate(self.mln.gndAtomsByIdx[i].predName):
+                pll += log(prob)            
         print "discriminative pseudo-log-likelihood:", pll
         return pll
     
@@ -350,12 +335,20 @@ class DPLL_ISE(PLL_ISE):
         fullWt = wt
         self._calculateAtomProbsMB(fullWt)
         for (idxFormula, idxGndAtom), diff in self.diffs.iteritems():
-            if self.isQueryFormula(self.mln.gndAtomsByIdx[idxGndAtom].predName):
+            if self._isQueryPredicate(self.mln.gndAtomsByIdx[idxGndAtom].predName):
                 v = diff * (self.atomProbsMB[idxGndAtom] - 1)
                 grad[idxFormula] += v 
-                
-        #add gaussian means:
-        for i, weight in enumerate(wt):
-            grad[i] += gradGaussianZeroMean(weight, self.gaussianPriorSigma)
-                
         return grad
+
+
+class DPLL_ISE(PLL_ISE):
+    ''' discriminative PLL_ISE with independent soft evidence for atLocation '''
+    
+    def __init__(self, mln, **params):
+        DPLL.__init__(mln, **params)
+        PLL_ISE.__init__(mln, **params)        
+        # manually inherit methods from DPLL
+        self._f = DPLL._f
+        self._grad = DPLL._grad
+        self._isQueryPredicate = DPLL._isQueryPredicate
+        
