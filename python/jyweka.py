@@ -11,6 +11,7 @@ import jarray
 from weka.classifiers.trees import J48;
 from weka.classifiers.functions import SMO;
 from weka.classifiers.trees.j48 import Rule;
+from weka.classifiers.meta import MultiBoostAB;
 from weka.core import Attribute, FastVector, Instance, Instances
 
 class WekaClassifier(object):
@@ -46,8 +47,8 @@ class WekaClassifier(object):
 			if attName in self.numericAttributes: value = Double(value)
 			else: value = String(value)
 			attr = self.attName2Obj[attName]
-			print self.attName2Domain
-			print "attName, value", attName, value
+			#print self.attName2Domain
+			#print "attName, value", attName, value
 			inst.setValue(attr, value)
 		return inst
 
@@ -63,7 +64,8 @@ class WekaClassifier(object):
 		for (attName, domain) in self.attName2Domain.iteritems():
 			vDomain = FastVector(len(domain))
 			for v in domain:
-				vDomain.addElement(String(v))
+				#print v
+				vDomain.addElement(String(str(v)))
 			attr = Attribute(attName, vDomain)
 			attVector.addElement(attr)
 			attName2Obj[attName] = attr
@@ -95,14 +97,34 @@ class DecisionTree(WekaClassifier):
 		j48.buildClassifier(self.instances)
 		self.classifier = j48	
 		print j48
+        
+class MultiBoost(WekaClassifier):
+    def __init__(self, numericAttributes=None):
+        WekaClassifier.__init__(self, numericAttributes)
+        
+    def learn(self, classAttr, unpruned=False, minNumObj=2):
+        self.instances = self._getInstances(classAttr)        
+        #j48 = J48()
+        #j48.setUnpruned(unpruned)
+        #j48.setMinNumObj(minNumObj);
+        
+        classifier =  MultiBoostAB()
+        #classifier.setDebug(true);
+        #classifier.setClassifier(j48)
+        
+        #self.j48.setConfidenceFactor(1.0)
+        classifier.buildClassifier(self.instances)
+        self.classifier = classifier    
+        print classifier        
 		
 class SVM(WekaClassifier):
 	def __init__(self, numericAttributes=None):
 		WekaClassifier.__init__(self, numericAttributes)
-
+	
 	def learn(self, classAttr):
 		self.instances = self._getInstances(classAttr)		
 		svm = SMO()
+		svm.setUseRBF(True)
 		svm.buildClassifier(self.instances)
 		self.classifier = svm		
 		
