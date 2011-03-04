@@ -4,17 +4,24 @@ import java.io.PrintStream;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 
-public class BLNLearner {	
+public class BLNLearner implements IParameterHandler {	
 	
 	protected boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, toMLN = false, debug = false, uniformDefault = false;
 	protected String declsFile = null, bifFile = null, dbFile = null, outFileDecls = null, outFileNetwork = null;
 	protected boolean noNormalization = false;
 	protected ABLModel bn;
 	protected Vector<Database> dbs = new Vector<Database>();
+	protected ParameterHandler paramHandler;
+	
+	public BLNLearner() {
+		paramHandler = new ParameterHandler(this);
+	}
 	
 	public void readArgs(String[] args) throws IllegalArgumentException {
 		for(int i = 0; i < args.length; i++) {
@@ -134,6 +141,7 @@ public class BLNLearner {
 			if(learnParams) {
 				System.out.println("Learning parameters...");
 				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
+				paramHandler.addSubhandler(cptLearner);
 				//cptLearner.setUniformDefault(true);
 				for(Database db : dbs)
 					cptLearner.learnTyped(db, true, true);
@@ -191,5 +199,10 @@ public class BLNLearner {
 		             "    -debug  output debug information\n");			
 			return;
 		}
+	}
+
+	@Override
+	public ParameterHandler getParameterHandler() {
+		return paramHandler;
 	}
 }
