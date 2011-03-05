@@ -175,13 +175,56 @@ public class Database implements Cloneable, Serializable {
 	    return (Database)object;
 	}
 	
+	
+	protected String printParams(IRelationArgument[] arguments) {
+		StringBuffer linkParams = new StringBuffer();
+		for(int i = 0; i < arguments.length; i++) {
+			if(i > 0)
+				linkParams.append(",");
+			linkParams.append(Database.upperCaseString(arguments[i].getConstantName()));
+		}	
+		return linkParams.toString();
+	}
+	
+	
+	/**
+	 * Turns all Links with more than 2 arguments into 2 argument links by introducing a dummy object and linking all the
+	 * arguments to it.
+	 * @throws DDException 
+	 */
+	public void flattenLinks() throws DDException {
+		Integer n = 0;
+		HashSet<Link> newLinks= new HashSet<Link>();
+		for(Iterator<Link> it = links.iterator(); it.hasNext();) {
+			Link l = it.next();
+			if(l.getArguments().length > 2) {
+				//Object obj = new Object(this,l.getName()+printParams(l.getArguments())+"_obj");
+				Object obj = new Object(this,l.toString()+"_obj");
+				addObject(obj);
+				Object[] args = l.getArgumentObjects();
+				for(Integer i =0;i<args.length;i++){
+					Link newLink = new Link(this,l.getName()+"_"+i.toString(),args[i],obj); 
+					//addLink(newLink);
+					newLinks.add(newLink);
+				}
+				it.remove();
+				n++;
+			}
+		}
+		links.addAll(newLinks);
+	}
+	
 	/**
 	 * outputs the data contained in this database to an XML database file for use with Proximity
 	 * @param out the stream to write to
 	 * @throws Exception
 	 */
 	public void writeProximityDatabase(java.io.PrintStream out) throws Exception {
+
+		flattenLinks();
+
 		System.out.println("\n" + getDataDictionary());
+
 		out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 		out.println("<!DOCTYPE PROX3DB SYSTEM \"prox3db.dtd\">");
 		out.println("<PROX3DB>");
