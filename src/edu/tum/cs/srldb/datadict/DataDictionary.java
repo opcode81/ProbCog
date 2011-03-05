@@ -116,7 +116,6 @@ public class DataDictionary implements java.io.Serializable {
 	
 	/**
 	 * Checks the data dictionary for overlapping domains. Each value must be unique (i.e.
-	 * it can only be contained in a single domain). Should a value be contained
 	 * in two (or more) domains, all references to the second domain are replaced by the first.
 	 * It is assumed that the first domain can be substituted - no merging takes place.
 	 * Moreover, it is ensured that attribute names do not coincide with link names - 
