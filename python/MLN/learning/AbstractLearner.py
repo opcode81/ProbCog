@@ -31,15 +31,14 @@ try:
 except:
     sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
 
-#from MLN.methods import *
 from MLN.util import *
 
 class AbstractLearner(object):
     
-    def __init__(self, mln, **params):
+    def __init__(self, mln, gaussianPriorSigma=None, **params):
         self.mln = mln
         self.params = params
-        self.gaussianPriorSigma = None # 1  # TODO
+        self.gaussianPriorSigma = gaussianPriorSigma
     
     def _reconstructFullWeightVectorWithFixedWeights(self, wt):        
         if len(self._fixedWeightFormulas) == 0:
