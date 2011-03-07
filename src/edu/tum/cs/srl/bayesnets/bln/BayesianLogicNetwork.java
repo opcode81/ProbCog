@@ -19,6 +19,15 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		kb = new KnowledgeBase(logicFile);
 	}
 	
+	/**
+	 * constructs a BLN without (explicitly represented) hard logical constraints  
+	 * @param rbn
+	 */
+	public BayesianLogicNetwork(RelationalBeliefNetwork rbn) {
+		super(rbn, null);
+		kb = new KnowledgeBase();
+	}
+	
 	public MarkovLogicNetwork toMLN() throws Exception {
 		MLNConverter.MLNObjectWriter converter = new MLNConverter.MLNObjectWriter();
 		this.rbn.toMLN(converter, false, false);

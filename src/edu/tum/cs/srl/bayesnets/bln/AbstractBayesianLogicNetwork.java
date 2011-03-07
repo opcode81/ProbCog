@@ -16,6 +16,10 @@ public abstract class AbstractBayesianLogicNetwork implements IParameterHandler 
 		this.paramHandler = new ParameterHandler(this);
 	}
 	
+	public AbstractBayesianLogicNetwork(RelationalBeliefNetwork rbn) {
+		this(rbn, null);
+	}
+	
 	public abstract AbstractGroundBLN ground(Database db) throws Exception;
 	
 	public ParameterHandler getParameterHandler() {
