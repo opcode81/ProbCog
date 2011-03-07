@@ -14,7 +14,7 @@ public class genDB {
 	public static void main(String[] args) {
 		try {			
 			if(args.length < 3) {
-				System.out.println("\ngenDB: A database generator for MLNs and BLOG models.");
+				System.out.println("\ngenDB - a database generator");
 				System.out.println("\n  usage: genDB [options] <Jython generator script> <output base filename> [parameters to pass on to generator]\n" +
 						             "           -m   output MLN database (.db)\n" +
 						             "           -b   output BLOG database (.blogdb)\n" +

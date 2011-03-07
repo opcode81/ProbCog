@@ -8,7 +8,6 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import dev.ValueDistribution;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -23,6 +22,7 @@ import edu.tum.cs.logic.Negation;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.ValueDistribution;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;

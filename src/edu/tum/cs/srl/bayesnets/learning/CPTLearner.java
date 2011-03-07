@@ -6,11 +6,11 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
-import dev.ValueDistribution;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.ValueDistribution;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
