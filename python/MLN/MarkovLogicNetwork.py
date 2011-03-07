@@ -854,7 +854,7 @@ class MLN(object):
         
     def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
         '''
-            applies the given probability constraints (if any), dynamically modifying weights
+            applies the given probability constraints (if any), dynamically modifying weights, i.e. applies iterative proportional fitting
             probConstraints: list of constraints
             inferenceMethod: one of the inference methods defined in InferenceMethods
             inferenceParams: parameters to pass on to the inference method
@@ -1229,13 +1229,11 @@ class MLN(object):
     def _weights(self):
         return [f.weight for f in self.formulas]
 
-    # gets the PLL of the database that is given by the current evidence data
-    def getPLL(self):
-        return self._pll(self._weights())
-
     # evaluate this mln with regard to the given DB
     # useful to determine how good the weights of this mln are, assuming that they were learned with the given db
     def evaluate(self, db_filename):
+        raise Exception("This method is currently unsupported")
+        '''
         global PMB_METHOD
         self.combineDB(db_filename)        
         old_pmb_method = PMB_METHOD
@@ -1263,36 +1261,7 @@ class MLN(object):
         top_prob = worlds[0]["sum"] / self.partition_function
         print "Top observed probability of a possible world:", top_prob
         print "Number of worlds:", len(self.worlds)
-
-    def evaluateOverwriteDomains(self, db_filename):
-        global PMB_METHOD
-        self.combineDBOverwriteDomains(db_filename)        
-        old_pmb_method = PMB_METHOD
-        PMB_METHOD = 'excl'
-        pll = self.getPLL()
-        print "PLL: %f (PL: %f)" % (pll, math.exp(pll))
-        PMB_METHOD = 'old'
-        pll = self.getPLL()
-        print "PLL (old): %f (PL: %f)" % (pll, math.exp(pll))                
-        PMB_METHOD = old_pmb_method
-        if False:
-            self._getPllBlocks()
-            self._getBlockRelevantGroundFormulas()
-            bpll = self.getBPLL()
-            print "BPLL: %f (BPL: %f)" % (bpll, math.exp(bpll))
-        print "Building worlds..."
-        self._getWorlds()
-        idxWorld = self._getEvidenceWorldIndex()
-        #self.printWorld(self.worlds[idxWorld])
-        got_prob = self.worlds[idxWorld]["sum"] / self.partition_function
-        print "LL: %.16f" % math.log(got_prob)
-        print "Probability of database (idx=%d): %f" % (idxWorld, got_prob)
-        worlds = list(self.worlds)
-        worlds.sort(key=lambda w:-w["sum"])
-        top_prob = worlds[0]["sum"] / self.partition_function
-        print "Top observed probability of a possible world:", top_prob
-        print "Number of worlds:", len(self.worlds)
-
+        '''
     
     # creates an array self.pllBlocks that contains tuples (idxGA, block);
     # one of the two tuple items is always None depending on whether the ground atom is in a block or not;

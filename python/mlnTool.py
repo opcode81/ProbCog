@@ -149,7 +149,7 @@ if __name__ == '__main__':
                 mln.learnwts(mode, initialWts=startpt)
                 prefix = 'wts'
                 if mode == 'PLL':
-                    tag = "pll-%s-%s" % (PMB_METHOD, DIFF_METHOD[:2])
+                    tag = "pll"
                 else:
                     tag = mode.lower()
                     if mode == 'LL' and not POSSWORLDS_BLOCKING:
@@ -159,9 +159,7 @@ if __name__ == '__main__':
                 fname = ("%s.py%s.%s" % (prefix, tag, infile[3:]))
                 mln.write(file(fname, "w"))
                 print "WROTE %s\n\n" % fname
-            #PMB_METHOD='excl'
             #POSSWORLDS_BLOCKING=True
-            #DIFF_METHOD='blocking' #'simple'
             learn("in.tiny-paper.mln", "LL", "tinyk1b.db")
         elif test == 'pll':
             mln = MLN('wts.actsit-unaryallmink1-perfectwts.mln')

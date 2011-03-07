@@ -29,26 +29,29 @@ from AbstractLearner import *
 import re
 from MLN.learning.AbstractLearner import SoftEvidenceLearner
 
-PMB_METHOD = 'old' # 'excl' or 'old'
-# concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
-# If set to 'old', consider only the two assignments of the ground atom x (i.e. add the weights of any ground
-# formulas within which x appears for both cases and then use the appriopriate fraction).
-# If set to 'excl', consider mutual exclusiveness and exhaustiveness by looking at all the assignments of the
-# block that x is in (and all the formulas that are affected by any of the atoms in the block). We obtain an exp. sum of
-# weights for each block assignment and consider the fraction of those block assignments where x has a given value.
-
-DIFF_METHOD = 'blocking' # 'blocking' or 'simple'
-# This applies to parameter learning with pseudo-likelihood, where, for each ground atom x, the difference in the number
-# of true groundings of a formula is computed for the case where x's truth value is flipped and where x's truth value
-# remains the same (as indicated by the training db).
-# If set to 'blocking', then we not only consider the effects of flipping x itself but also flips of any
-# ground atoms with which x appears together in a block, because flipping them may (or may not) affect the truth
-# value of x and thus the truth of ground formulas within which x appears.
-
 class PLL(AbstractLearner):
     
-    def __init__(self, mln, **params):
-        AbstractLearner.__init__(self, mln, **params)        
+    def __init__(self, mln, pmbMethod="old", diffMethod="blocking", **params):
+        '''
+            pmbMethod: 'excl' or 'old'
+                concerns the calculation of the probability of a ground atom assignment given the ground atom's Markov blanket
+                If set to 'old', consider only the two assignments of the ground atom x (i.e. add the weights of any ground
+                formulas within which x appears for both cases and then use the appriopriate fraction).
+                If set to 'excl', consider mutual exclusiveness and exhaustiveness by looking at all the assignments of the
+                block that x is in (and all the formulas that are affected by any of the atoms in the block). We obtain an exp. sum of
+                weights for each block assignment and consider the fraction of those block assignments where x has a given value.
+            
+            diffMethod: "blocking" or "simple"
+                This applies to parameter learning with pseudo-likelihood, where, for each ground atom x, the difference in the number
+                of true groundings of a formula is computed for the case where x's truth value is flipped and where x's truth value
+                remains the same (as indicated by the training db).
+                If set to 'blocking', then we not only consider the effects of flipping x itself but also flips of any
+                ground atoms with which x appears together in a block, because flipping them may (or may not) affect the truth
+                value of x and thus the truth of ground formulas within which x appears.        
+        '''
+        AbstractLearner.__init__(self, mln, **params)
+        self.pmbMethod = pmbMethod
+        self.diffMethod = diffMethod
     
     # determines the probability of the given ground atom (string) given its Markov blanket
     # (the MLN must have been provided with evidence using combineDB)
@@ -63,7 +66,7 @@ class PLL(AbstractLearner):
         #old_tv = self._getEvidence(idxGndAtom)
         # check if the ground atom is in a block
         block = None
-        if idxGndAtom in self.mln.gndBlockLookup and PMB_METHOD != 'old':
+        if idxGndAtom in self.mln.gndBlockLookup and self.pmbMethod != 'old':
             blockname = self.mln.gndBlockLookup[idxGndAtom]
             block = self.mln.gndBlocks[blockname] # list of gnd atom indices that are in the block
             sums = [0 for i in range(len(block))] # init sum of weights for each possible assignment of block
@@ -91,7 +94,7 @@ class PLL(AbstractLearner):
                 checkRelevance = True
         # check the ground formulas
         #print self.gndAtomsByIdx[idxGndAtom]
-        if PMB_METHOD == 'old' or block == None: # old method (only consider formulas that contain the ground atom)
+        if self.pmbMethod == 'old' or block == None: # old method (only consider formulas that contain the ground atom)
             for gf in relevantGroundFormulas:
                 if checkRelevance:
                     if not gf.containsGndAtom(idxGndAtom):
@@ -117,7 +120,7 @@ class PLL(AbstractLearner):
                 self._setInvertedEvidence(idxGndAtom)
             #print "  %s %s" % (wts_regular, wts_inverted)
             return exp(wts_regular) / (exp(wts_regular) + exp(wts_inverted))
-        elif PMB_METHOD == 'excl' or PMB_METHOD == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
+        elif self.pmbMethod == 'excl' or self.pmbMethod == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
             for gf in relevantGroundFormulas: # !!! here the relevant ground formulas may not be sufficient!!!! they are different than in the other case
                 # check if one of the ground atoms in the block appears in the ground formula
                 if checkRelevance:
@@ -141,20 +144,20 @@ class PLL(AbstractLearner):
                     self.mln._removeTemporaryEvidence()
                     idxSum += 1
             expsums = map(exp, sums)
-            if PMB_METHOD == 'excl':
+            if self.pmbMethod == 'excl':
                 if mainAtomIsTrueone:
                     return expsums[idxBlockMainGA] / sum(expsums)
                 else:
                     s = sum(expsums)
                     return (s - expsums[idxBlockMainGA]) / s
-            elif PMB_METHOD == 'excl2':
+            elif self.pmbMethod == 'excl2':
                 if mainAtomIsTrueone:
                     return expsums[idxBlockMainGA] / sum(expsums)
                 else:
                     idxBlockTrueone = block.index(idxGATrueone)
                     return expsums[idxBlockTrueone] / (expsums[idxBlockTrueone] + expsums[idxBlockMainGA])
         else:
-            raise Exception("Unknown PMB_METHOD")
+            raise Exception("Unknown pmbMethod '%s'" % self.pmbMethod)
     
     def _setInvertedEvidence(self, idxGndAtom):
         old_tv = self.mln._getEvidence(idxGndAtom)
@@ -214,7 +217,7 @@ class PLL(AbstractLearner):
                     # let's say there are k gnd atoms in the block and one of the k items appears in gndFormula, say item x.
                     # if gnd atom x is true, then a change to any of the other k-1 items will flip x.
                     # if gnd atom x is false, then there is a chance of 1/(k-1) that x is flipped
-                    if DIFF_METHOD == 'blocking':
+                    if self.diffMethod == 'blocking':
                         if idxGndAtom in self.mln.gndBlockLookup:
                             blockname = self.mln.gndBlockLookup[idxGndAtom]
                             block = self.mln.gndBlocks[blockname] # list of gnd atom indices that are in the block
@@ -235,7 +238,7 @@ class PLL(AbstractLearner):
         return grad
 
     def _getAtomRelevantGroundFormulas(self):
-        if PMB_METHOD == 'old':
+        if self.pmbMethod == 'old':
             self.atomRelevantGFs = self.mln.gndAtomOccurrencesInGFs
         else:
             raise Exception("Not implemented")
@@ -300,7 +303,7 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
             self.mln._setEvidence(idxGndAtom, not old_tv)
             
     def _prepareOpt(self):
-        if PMB_METHOD != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
+        if self.pmbMethod != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
         
         # set all soft evidence values to true
         #for se in self.softEvidence:
