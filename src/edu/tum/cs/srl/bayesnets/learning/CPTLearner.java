@@ -6,16 +6,16 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import dev.ValueDistribution;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
-import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.StringTool;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
@@ -44,7 +44,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param closedWorld	whether the closed-world assumption is to be made
 	 * @throws Exception
 	 */
-	protected void countVariable(Database db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
+	protected void countVariable(GenericDatabase<?,?> db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
 		// if the node is not CPT-based, skip it
 		if(!node.hasCPT())
 			return;
@@ -74,6 +74,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		double exampleWeight = 1.0;
 
 		// do some precomputations to determine example weight
+		/*
 		if(false) {
 			// TODO the code in this block does not yet consider the possibility of decision nodes as parents
 			// - for average of conditional probabilities compute the homogeneity of the relational parents to obtain suitable example weights		
@@ -138,6 +139,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				//System.out.println("weight: " + exampleWeight);
 			}
 		}
+		*/
 		// precomputations done... now the actual counting starts
 			
 		// set the domain indices of all relevant nodes (node itself and parents)
@@ -165,57 +167,10 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			if(!countExample)
 				continue;
 
-			// if preconditions were met, handle set domain indices of all parents		
+			// if preconditions were met, handle domain indices of all parents		
 			int domainIndices[] = new int[this.nodes.length];
-			for(int i = 0; i < counter.nodeIndices.length; i++) {
-				int domain_idx = -1;
-				ExtendedNode extCurrent = bn.getExtendedNode(counter.nodeIndices[i]);
-				// decision node parents are always true, because we use them to define hard constraints on the use of the CPT we are learning;
-				// whether the constraint that they represent is actually satisfied was checked beforehand
-				if(extCurrent instanceof DecisionNode) {
-					domain_idx = 0; // 0 = True 
-				}
-				// it's a regular parent
-				else {
-					// get the corresponding RelationalNode object
-					RelationalNode ndCurrent = (RelationalNode)extCurrent;
-					// preconditions were handled above/in ParentGrounder
-					if(ndCurrent.isPrecondition) {
-						domainIndices[extCurrent.index] = 0; // 0 is true
-						continue;
-					}
-					// determine the value of the node given the parameter settings implied by the main node
-					String[] actualParams = paramSets.get(ndCurrent.index);
-					if(actualParams == null) {
-						Vector<String> availableNodes = new Vector<String>();
-						for(Integer idx : paramSets.keySet())
-							availableNodes.add(idx.toString() + "/" + ndCurrent.getNetwork().getRelationalNode(idx).toString());
-						throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
-					}
-					String value = ndCurrent.getValueInDB(actualParams, db, closedWorld);
-					if(value == null)
-						throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
-					// get the current node's domain and the index of its setting
-					Discrete dom = (Discrete)(ndCurrent.node.getDomain());
-					domain_idx = dom.findName(value);
-					if(domain_idx == -1) {	
-						String[] domElems = new String[dom.getOrder()];
-						for(int j = 0; j < domElems.length; j++)
-							domElems[j] = dom.getName(j);
-						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
-					}					
-					// side affair: learn the CPT of constant nodes here by incrementing the counter
-					if(ndCurrent.isConstant) {
-						int[] constantDomainIndices = new int[this.nodes.length];
-						constantDomainIndices[ndCurrent.index] = domain_idx;
-						this.counters[ndCurrent.index].count(constantDomainIndices);
-					}
-				}
-				domainIndices[extCurrent.index] = domain_idx;
-			}		
-		
-			// count this example			
-			counter.count(domainIndices, exampleWeight);
+			countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, 0);
+
 			numExamples++;
 			if(debug && verbose) { // just debug output
 				StringBuffer condition = new StringBuffer();
@@ -240,6 +195,81 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		}
 	}
 	
+	protected void countVariableR(String varName, GenericDatabase<?,?> db, boolean closedWorld, RelationalBeliefNetwork bn, Map<Integer, String[]> paramSets, ExampleCounter counter, int[] domainIndices, double exampleWeight, int i) throws Exception {
+		// count the example
+		if(i == counter.nodeIndices.length) {
+			counter.count(domainIndices, exampleWeight);
+			return;
+		}
+		
+		int domain_idx = -1;
+		ExtendedNode extCurrent = bn.getExtendedNode(counter.nodeIndices[i]);
+		// decision node parents are always true, because we use them to define hard constraints on the use of the CPT we are learning;
+		// whether the constraint that they represent is actually satisfied was checked beforehand
+		if(extCurrent instanceof DecisionNode) {
+			domainIndices[extCurrent.index] = 0; // 0 is true
+			countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
+		}
+		// it's a regular parent
+		else {
+			// get the corresponding RelationalNode object
+			RelationalNode ndCurrent = (RelationalNode)extCurrent;
+			// side affair: learn the CPT of constant nodes here by incrementing the counter
+			if(ndCurrent.isConstant) {
+				int[] constantDomainIndices = new int[this.nodes.length];
+				constantDomainIndices[ndCurrent.index] = domain_idx;
+				this.counters[ndCurrent.index].count(constantDomainIndices);
+				countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
+			}
+			// preconditions were handled above/in ParentGrounder
+			else if(ndCurrent.isPrecondition) {
+				domainIndices[extCurrent.index] = 0; // 0 is true
+				countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
+			}
+			else {
+				// determine the value of the node given the parameter settings implied by the main node
+				String[] actualParams = paramSets.get(ndCurrent.index);
+				if(actualParams == null) {
+					Vector<String> availableNodes = new Vector<String>();
+					for(Integer idx : paramSets.keySet())
+						availableNodes.add(idx.toString() + "/" + ndCurrent.getNetwork().getRelationalNode(idx).toString());
+					throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
+				}
+				Object value = db.getVariableValue(varName, closedWorld); //ndCurrent.getValueInDB(actualParams, db, closedWorld);
+				if(value == null)
+					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
+				// get the current node's domain and the index of its setting
+				Discrete dom = (Discrete)(ndCurrent.node.getDomain());
+				if(value instanceof String) {					
+					domain_idx = dom.findName((String)value);
+					if(domain_idx == -1) {	
+						String[] domElems = new String[dom.getOrder()];
+						for(int j = 0; j < domElems.length; j++)
+							domElems[j] = dom.getName(j);
+						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
+					}
+					domainIndices[extCurrent.index] = domain_idx;
+					countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
+				}
+				else if(value instanceof ValueDistribution) {
+					ValueDistribution vd = (ValueDistribution)value;
+					for(Entry<String,Double> e : vd.entrySet()) {
+						domain_idx = dom.findName((String)value);
+						if(domain_idx == -1) {
+							String[] domElems = new String[dom.getOrder()];
+							for(int j = 0; j < domElems.length; j++)
+								domElems[j] = dom.getName(j);
+							throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
+						}					
+						domainIndices[extCurrent.index] = domain_idx;
+						countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight * e.getValue(), i+1);
+					}
+				}				
+			}
+		}	
+		
+	}
+	
 	/**
 	 * learn the CPTs from only the data that is given in the database (relations not in the database are not considered because the closed-world assumption is not being made)
 	 * @param db
@@ -260,7 +290,9 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param verbose
 	 * @throws Exception
 	 */
-	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {		
+	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {
+		if(!initialized) init();
+		
 		this.verbose = verbose;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		

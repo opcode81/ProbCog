@@ -8,6 +8,8 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import dev.ValueDistribution;
+
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.logic.Atom;
@@ -19,6 +21,7 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.Literal;
 import edu.tum.cs.logic.Negation;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.util.StringTool;
@@ -466,7 +469,7 @@ public class RelationalNode extends ExtendedNode {
 	 * @return
 	 * @throws Exception 
 	 */
-	public String getValueInDB(String[] actualParams, Database db, boolean closedWorld) throws Exception {
+	public String getValueInDB(String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
 		// ** special built-in predicate
 		if(functionName.equals(BUILTINPRED_NEQUALS))
 			return actualParams[0].equals(actualParams[1]) ? "False" : "True";
@@ -476,11 +479,21 @@ public class RelationalNode extends ExtendedNode {
 		if(!isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
 			String curVarName = getVariableName(actualParams);
 			// set value
-			String value = db.getVariableValue(curVarName, closedWorld);
+			Object value = db.getVariableValue(curVarName, closedWorld);						
 			if(value == null) {
 				throw new Exception("Could not find value of " + curVarName + " in database. closedWorld = " + closedWorld);
 			}
-			return value;
+			if(value instanceof String)
+				return (String)value;
+			if(value instanceof ValueDistribution) {
+				ValueDistribution vd = (ValueDistribution)value;
+				String v = vd.getSingleValue();
+				if(v == null)
+					throw new Exception("Variable does not have a single value that could be retrieved");
+				return v;
+			}
+			else
+				throw new Exception("Value of unhandled type encountered");
 			//System.out.println("For " + varName + ": " + curVarName + " = " + value);
 		}
 		else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node
