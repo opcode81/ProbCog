@@ -64,6 +64,7 @@ class NaiveBayesCont(object):
 				pdfs[idx].addExample(d)
 		for pdfs in self.pdfs.values():
 			for pdf in pdfs: pdf.finish()
+		self.classPrior.finish()
 	
 	def classify(self, d):
 		results = []
