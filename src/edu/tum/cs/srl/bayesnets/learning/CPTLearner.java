@@ -254,7 +254,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				else if(value instanceof ValueDistribution) {
 					ValueDistribution vd = (ValueDistribution)value;
 					for(Entry<String,Double> e : vd.entrySet()) {
-						domain_idx = dom.findName((String)value);
+						domain_idx = dom.findName((String)e.getKey());
 						if(domain_idx == -1) {
 							String[] domElems = new String[dom.getOrder()];
 							for(int j = 0; j < domElems.length; j++)
@@ -262,7 +262,9 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 							throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
 						}					
 						domainIndices[extCurrent.index] = domain_idx;
-						countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight * e.getValue(), i+1);
+						double p = e.getValue();
+						if(p > 0)
+							countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight * p, i+1);
 					}
 				}				
 			}
