@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -410,25 +411,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 		out.println();
 
 		// write domains
-		Set<String> handledDomains = new HashSet<String>();
-		for (RelationalNode node : this.getRelationalNodes()) {
-			if (node.isBuiltInPred())
-				continue;
-			Discrete domain = (Discrete) node.node.getDomain();
-			Signature sig = getSignature(node.functionName);
-			if (!sig.returnType.equals("Boolean")) {
-				String t = sig.returnType;
-				if (!handledDomains.contains(t)) {
-					handledDomains.add(t);
-					out.print("guaranteed " + t + " ");
-					for (int j = 0; j < domain.getOrder(); j++) {
-						if (j > 0)
-							out.print(", ");
-						out.print(domain.getName(j));
-					}
-					out.println(";");
-				}
-			}
+		for(Entry<String, String[]> e : guaranteedDomElements.entrySet()) {
+			out.println("guaranteed " + e.getKey() + " "  + StringTool.join(", ", e.getValue()) + ";");
 		}
 		out.println();
 
