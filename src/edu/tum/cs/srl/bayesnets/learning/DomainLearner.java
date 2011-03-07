@@ -65,20 +65,30 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 	protected void end_learning() throws Exception {
 		super.end_learning();
 		
-		// standardize boolean domains
+		// standardize boolean domains and write learnt domains to model
 		Discrete booleanDomain = new Discrete(new String[]{"True", "False"});
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			System.out.println(nodes[i].getName());
-			if(RelationalBeliefNetwork.isBooleanDomain((Discrete)nodes[i].getDomain())) {
-				ExtendedNode extNode = bn.getExtendedNode(i);
+			ExtendedNode extNode = bn.getExtendedNode(i);
+			Discrete dom = (Discrete)nodes[i].getDomain();
+			if(RelationalBeliefNetwork.isBooleanDomain(dom)) {				
 				if(extNode instanceof RelationalNode) {
 					Signature sig = bn.getSignature((RelationalNode)extNode);
 					if(sig != null)
 						sig.returnType = "Boolean";
 				}
 				bn.bn.changeBeliefNodeDomain(nodes[i], booleanDomain);
+			}
+			else { // set domain in relational belief network
+				if(extNode instanceof RelationalNode) {
+					Signature sig = bn.getSignature((RelationalNode)extNode);
+					String[] values = new String[dom.getOrder()];
+					for(int j = 0; j < values.length; j++)
+						values[j] = dom.getName(j);
+					bn.setGuaranteedDomainElements(sig.returnType, values);
+				}
 			}
 		}
 	}

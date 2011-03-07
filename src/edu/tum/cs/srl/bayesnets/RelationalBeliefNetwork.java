@@ -815,6 +815,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return guaranteedDomElements;
 	}
 	
+	public void setGuaranteedDomainElements(String domName, String[] elements) {
+		this.guaranteedDomElements.put(domName, elements);
+	}
+	
 	/**
 	 * retrieves the name of the random variable that corresponds to a logical ground atom
 	 * @return
