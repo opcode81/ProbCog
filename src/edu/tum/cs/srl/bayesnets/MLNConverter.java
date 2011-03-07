@@ -9,6 +9,7 @@ package edu.tum.cs.srl.bayesnets;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
+import edu.tum.cs.srldb.Database;
 
 /**
  * abstract base class for conversions of relational models to MLNs
@@ -59,13 +60,24 @@ public abstract class MLNConverter {
 
 		@Override
 		public void addGuaranteedDomainElements(String domain, String[] elements) {
-			mln.addGuaranteedDomainElements(domain, elements);	
+			String[] mlnConstants = new String[elements.length];
+			for(int i = 0; i < elements.length; i++)
+				mlnConstants[i] = constantString(elements[i]);
+			mln.addGuaranteedDomainElements(domain, mlnConstants);	
 		}
 
 		@Override
 		public void addHardFormula(Formula f) {
 			mln.addHardFormula(f);			
-		}
+		}	
+	}
+	
+	public static String constantString(String s) {
+		return Database.upperCaseString(s);
+	}
+	
+	public static String variableString(String s) {
+		return Database.lowerCaseString(s);
 	}
 }
  
