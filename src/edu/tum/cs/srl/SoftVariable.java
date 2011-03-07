@@ -31,4 +31,12 @@ public class SoftVariable extends AbstractVariable<ValueDistribution> {
 	public double getValue(String domElement) {
 		return value.getValue(domElement);
 	}
+
+	@Override
+	public boolean hasValue(String value) {
+		String singleVal = this.value.getSingleValue();
+		if(singleVal == null)
+			return false;
+		return value.equalsIgnoreCase(singleVal);
+	}
 }

@@ -9,6 +9,7 @@ import java.util.Vector;
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public abstract class Formula {	
 	/**
@@ -17,7 +18,7 @@ public abstract class Formula {
 	 * @param ret mapping in which to store the result
 	 * @throws Exception
 	 */
-	public abstract void getVariables(Database db, Map<String,String> ret) throws Exception;
+	public abstract void getVariables(GenericDatabase<?, ?> db, Map<String,String> ret) throws Exception;
 	/**
 	 * grounds this formula for a particular binding of its variables
 	 * @param binding		the variable binding
@@ -26,7 +27,7 @@ public abstract class Formula {
 	 * @return
 	 * @throws Exception
 	 */
-	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception;
+	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, GenericDatabase<?, ?> db) throws Exception;
 	/**
 	 * gets the set of ground atoms appearing in this (grounded) formula
 	 * @param ret the set to write to
@@ -75,7 +76,7 @@ public abstract class Formula {
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
 	 * @throws Exception
 	 */
-	protected void generateGroundings(Collection<Formula> ret, Database db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, boolean simplify) throws Exception {
+	protected void generateGroundings(Collection<Formula> ret, GenericDatabase<?,?> db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, boolean simplify) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == varNames.length) {
             Formula f = (this.ground(binding, worldVars, db));
@@ -110,7 +111,7 @@ public abstract class Formula {
 	 * @param evidence an evidence database with which to evaluate ground atoms (may be null; if null, will only simplify based on TrueFalse instances appearing within the formula)
 	 * @return a simplified version of the formula that incorporates the evidence 
 	 */
-    public abstract Formula simplify(Database evidence);
+    public abstract Formula simplify(GenericDatabase<?, ?> evidence);
 
 	public static Formula fromString(String f) throws ParseException {
 		return FormulaParser.parse(f);

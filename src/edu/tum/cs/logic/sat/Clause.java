@@ -6,7 +6,7 @@ import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.IPossibleWorld;
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
 public class Clause extends ComplexFormula {
@@ -72,7 +72,7 @@ public class Clause extends ComplexFormula {
 	}
 
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
     	throw new UnsupportedOperationException("Not supported yet.");
     }
 

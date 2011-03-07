@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 
@@ -16,7 +17,7 @@ public class BLNLearner implements IParameterHandler {
 	protected String declsFile = null, bifFile = null, dbFile = null, outFileDecls = null, outFileNetwork = null;
 	protected boolean noNormalization = false;
 	protected ABLModel bn;
-	protected Vector<Database> dbs = new Vector<Database>();
+	protected Vector<GenericDatabase<?,?>> dbs = new Vector<GenericDatabase<?,?>>();
 	protected ParameterHandler paramHandler;
 	
 	public BLNLearner() {
@@ -58,7 +59,7 @@ public class BLNLearner implements IParameterHandler {
 		bn = abl;
 	}
 	
-	public void addTrainingDatabase(Database db) {
+	public void addTrainingDatabase(GenericDatabase<?,?> db) {
 		dbs.add(db);
 	}
 	
@@ -120,14 +121,14 @@ public class BLNLearner implements IParameterHandler {
 			
 			// check domains for overlaps and merge if necessary
 			System.out.println("Checking domains...");
-			for(Database db : dbs)
+			for(GenericDatabase<?,?> db : dbs)
 				db.checkDomains(true);
 			
 			// learn domains
 			if(learnDomains) {
 				System.out.println("Learning domains...");
 				DomainLearner domLearner = new DomainLearner(bn);
-				for(Database db : dbs) {					
+				for(GenericDatabase<?,?> db : dbs) {					
 					domLearner.learn(db);					
 				}
 				domLearner.finish();
@@ -143,7 +144,7 @@ public class BLNLearner implements IParameterHandler {
 				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
 				paramHandler.addSubhandler(cptLearner);
 				//cptLearner.setUniformDefault(true);
-				for(Database db : dbs)
+				for(GenericDatabase<?,?> db : dbs)
 					cptLearner.learnTyped(db, true, true);
 				if(!noNormalization)
 					cptLearner.finish();

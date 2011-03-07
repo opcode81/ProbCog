@@ -2,7 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Map;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public class Literal extends UngroundedFormula {
 	public boolean isPositive;
@@ -18,12 +18,12 @@ public class Literal extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
 		atom.getVariables(db, ret);	
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
 		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
 	}
 

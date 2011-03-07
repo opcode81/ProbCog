@@ -292,7 +292,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param verbose
 	 * @throws Exception
 	 */
-	public void learnTyped(Database db, boolean closedWorld, boolean verbose) throws Exception {
+	public void learnTyped(GenericDatabase<?,?> db, boolean closedWorld, boolean verbose) throws Exception {
 		if(!initialized) init();
 		
 		this.verbose = verbose;
@@ -332,7 +332,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param closedWorld	whether to make the closed-world assumption
 	 * @throws Exception
 	 */
-	protected void countVariable(Database db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
+	protected void countVariable(GenericDatabase<?,?> db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
 		// if we have the full set of parameters, count the example
 		if(i == params.length) {
 			

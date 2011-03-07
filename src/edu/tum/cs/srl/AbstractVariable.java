@@ -44,4 +44,6 @@ public abstract class AbstractVariable<ValueType> {
 	public abstract boolean isBoolean();
 	
 	public abstract ValueType getValue();
+	
+	public abstract boolean hasValue(String value);
 }

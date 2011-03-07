@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public abstract class ComplexFormula extends Formula {
 	public Formula[] children;
@@ -24,13 +24,13 @@ public abstract class ComplexFormula extends Formula {
 	}*/
 	
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
 		for(Formula f : children)
 			f.getVariables(db, ret);
 	}
 	
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
 		Vector<Formula> groundChildren = new Vector<Formula>();
 		for(Formula child : children) {
 			groundChildren.add(child.ground(binding, vars, db));
