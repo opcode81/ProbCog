@@ -515,11 +515,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	public void toMLN(MLNConverter converter, boolean declarationsOnly, boolean compactFormulas) throws Exception {
 		
 		// domain declarations
+		System.out.printf("Converting %d domains...\n", this.getGuaranteedDomainElements().size());
 		for(java.util.Map.Entry<String, String[]> e : this.getGuaranteedDomainElements().entrySet()) {
 			converter.addGuaranteedDomainElements(e.getKey(), e.getValue());
 		}
 		
 		// predicate declarations
+		System.out.printf("Converting %d function declarations...\n", this.getSignatures().size());
 		for(Signature sig : this.getSignatures()) {
 			Signature mlnSig = sig;
 			if(!mlnSig.isBoolean()) {
@@ -538,6 +540,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		
 		// write formulas (and auxiliary predicate definitions for special nodes) 
 		int[] order = getTopologicalOrder();
+		System.out.printf("Converting %d nodes...\n", order.length);
 		for(int i = 0; i < order.length; i++) {
 			ExtendedNode extNode = getExtendedNode(order[i]);
 			if(!(extNode instanceof RelationalNode))
