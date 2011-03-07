@@ -8,6 +8,7 @@ package edu.tum.cs.srl.bayesnets;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srldb.Database;
 
@@ -62,7 +63,7 @@ public abstract class MLNConverter {
 		public void addGuaranteedDomainElements(String domain, String[] elements) {
 			String[] mlnConstants = new String[elements.length];
 			for(int i = 0; i < elements.length; i++)
-				mlnConstants[i] = constantString(elements[i]);
+				mlnConstants[i] = MLNWriter.upperCaseString(elements[i]);
 			mln.addGuaranteedDomainElements(domain, mlnConstants);	
 		}
 
@@ -70,14 +71,6 @@ public abstract class MLNConverter {
 		public void addHardFormula(Formula f) {
 			mln.addHardFormula(f);			
 		}	
-	}
-	
-	public static String constantString(String s) {
-		return Database.upperCaseString(s);
-	}
-	
-	public static String variableString(String s) {
-		return Database.lowerCaseString(s);
 	}
 }
  
