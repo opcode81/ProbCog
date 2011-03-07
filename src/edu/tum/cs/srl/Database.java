@@ -161,4 +161,9 @@ public class Database extends GenericDatabase<Variable, String> {
 	protected void fillDomain(String domName, Variable var) throws Exception {
 		fillDomain(domName, var.value);		
 	}
+
+	@Override
+	public String getSingleVariableValue(String varName, boolean closedWorld) throws Exception {
+		return getVariableValue(varName, closedWorld);
+	}
 }

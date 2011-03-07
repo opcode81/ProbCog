@@ -2,7 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Map;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public class Equality extends UngroundedFormula {
 	public String left, right;
@@ -17,11 +17,11 @@ public class Equality extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?,?> db) throws Exception {
 		String a = binding.get(left);
 		if(a == null) a = left;
 		String b = binding.get(right);

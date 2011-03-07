@@ -3,7 +3,7 @@ package edu.tum.cs.logic;
 import java.util.Collection;
 import java.util.Map;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.util.StringTool;
 
@@ -23,7 +23,7 @@ public class Atom extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
         Signature sig = db.getSignature(predName);
         if(sig == null)
         	throw new Exception("Unknown predicate '" + predName + "'");
@@ -54,7 +54,7 @@ public class Atom extends UngroundedFormula {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
 		StringBuffer sb = new StringBuffer(predName + "(");
 		int i = 0;
 		for(String param : params) {

@@ -479,21 +479,11 @@ public class RelationalNode extends ExtendedNode {
 		if(!isConstant) { // if the node is not a constant node, we can obtain its value by performing a database lookup
 			String curVarName = getVariableName(actualParams);
 			// set value
-			Object value = db.getVariableValue(curVarName, closedWorld);						
+			String value = db.getSingleVariableValue(curVarName, closedWorld);						
 			if(value == null) {
-				throw new Exception("Could not find value of " + curVarName + " in database. closedWorld = " + closedWorld);
+				throw new Exception("Could not find the unique value of " + curVarName + " in database. closedWorld = " + closedWorld);
 			}
-			if(value instanceof String)
-				return (String)value;
-			if(value instanceof ValueDistribution) {
-				ValueDistribution vd = (ValueDistribution)value;
-				String v = vd.getSingleValue();
-				if(v == null)
-					throw new Exception("Variable does not have a single value that could be retrieved");
-				return v;
-			}
-			else
-				throw new Exception("Value of unhandled type encountered");
+			return value;
 			//System.out.println("For " + varName + ": " + curVarName + " = " + value);
 		}
 		else { // the current node is does not correspond to an atom/predicate but is a constant that appears in the argument list of the main node

@@ -4,7 +4,7 @@ import java.util.HashSet;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
@@ -16,7 +16,7 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 		super(bn);		
 	}
 	
-	public void learn(Database db) throws Exception {
+	public void learn(GenericDatabase<?,?> db) throws Exception {
 		// all domains are directly learned
 		boolean debug = false;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;

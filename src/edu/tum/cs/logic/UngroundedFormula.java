@@ -2,7 +2,7 @@ package edu.tum.cs.logic;
 
 import java.util.Set;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public abstract class UngroundedFormula extends Formula {
 
@@ -17,7 +17,7 @@ public abstract class UngroundedFormula extends Formula {
 	}
 	
 	@Override
-	public Formula simplify(Database db) {
+	public Formula simplify(GenericDatabase<?, ?> db) {
 		throw new RuntimeException("Cannot simplify ungrounded formula: " + this.toString());
 	}
 }

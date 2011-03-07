@@ -1,6 +1,6 @@
 package edu.tum.cs.srl;
 
-
+// TODO doesn't consider prolog
 public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistribution> {
 
 	public SoftDatabase(RelationalModel model) throws Exception {
@@ -8,9 +8,8 @@ public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistributio
 	}
 
 	@Override
-	public ValueDistribution getVariableValue(String varName, boolean closedWorld)
-			throws Exception {
-		return this.entries.get(varName).value;
+	public ValueDistribution getVariableValue(String varName, boolean closedWorld) throws Exception {
+		return this.getVariable(varName).value;
 	}
 
 	@Override
@@ -30,5 +29,11 @@ public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistributio
 	@Override
 	protected SoftVariable readEntry(String line) throws Exception {
 		throw new RuntimeException("not implemented");
+	}
+
+	@Override
+	public String getSingleVariableValue(String varName, boolean closedWorld) throws Exception {
+		ValueDistribution vd = getVariableValue(varName, false);
+		return vd.getSingleValue();
 	}
 }

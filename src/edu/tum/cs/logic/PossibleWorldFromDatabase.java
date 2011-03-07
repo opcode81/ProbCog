@@ -1,16 +1,16 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 
 public class PossibleWorldFromDatabase implements IPossibleWorld {
 
-	Database db;
+	GenericDatabase<?,?> db;
 	RelationalBeliefNetwork rbn;
 	boolean closedWorld;
 	
-	public PossibleWorldFromDatabase(RelationalBeliefNetwork rbn, Database db, boolean closedWorld) {
+	public PossibleWorldFromDatabase(RelationalBeliefNetwork rbn, GenericDatabase<?,?> db, boolean closedWorld) {
 		this.db = db;
 		this.rbn = rbn;
 		this.closedWorld = closedWorld;
@@ -20,7 +20,7 @@ public class PossibleWorldFromDatabase implements IPossibleWorld {
 		try {
 			Signature sig = rbn.getSignature(ga.predicate);			
 			if(sig.isBoolean()) {
-				String value = db.getVariableValue(ga.toString(), closedWorld);
+				String value = db.getSingleVariableValue(ga.toString(), closedWorld);
 				if(value == null)
 					throw new RuntimeException("Value of " + ga + " not in the database that is used as a possible world; perhaps it must always be given because it is used in a precondition/decision node.");
 				boolean tv = value.equalsIgnoreCase("True");
@@ -29,7 +29,7 @@ public class PossibleWorldFromDatabase implements IPossibleWorld {
 			}
 			else {
 				String varName = rbn.gndAtom2VarName(ga);
-				String value = db.getVariableValue(varName, closedWorld);
+				String value = db.getSingleVariableValue(varName, closedWorld);
 				if(value == null)
 					throw new RuntimeException("Value of " + varName + " not in the database that is used as a possible world; perhaps it must always be given because it is used in a precondition/decision node.");
 				boolean tv = value.equals(ga.args[ga.args.length-1]);

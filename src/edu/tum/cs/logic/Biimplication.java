@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 import java.util.Collection;
 
@@ -40,7 +40,7 @@ public class Biimplication extends ComplexFormula {
 	}
 
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
         Formula c1 = new Disjunction(new Negation(children[0]), children[1]);
         Formula c2 = new Disjunction(children[0], new Negation(children[1]));
         return (new Conjunction(c1, c2)).simplify(evidence);

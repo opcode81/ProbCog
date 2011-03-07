@@ -105,7 +105,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 *         case the default value of "False" is returned.
 	 * @throws Exception
 	 */
-	public abstract VarValueType getVariableValue(String varName, boolean closedWorld) throws Exception;		
+	public abstract VarValueType getVariableValue(String varName, boolean closedWorld) throws Exception;
+	
+	public abstract String getSingleVariableValue(String varName, boolean closedWorld) throws Exception;
 
 	/**
 	 * retrieves a variable setting

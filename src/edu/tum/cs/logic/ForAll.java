@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
 public class ForAll extends UngroundedFormula {
@@ -27,7 +27,7 @@ public class ForAll extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
 		f.getVariables(db, ret);
 		for(String var : vars) {
 			var2domName.put(var, ret.remove(var));
@@ -35,7 +35,7 @@ public class ForAll extends UngroundedFormula {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables worldVars, Database db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables worldVars, GenericDatabase<?, ?> db) throws Exception {
 		// check if the domains of the quantified variables have been determined, and obtain them if necessary
 		if(var2domName.size() < vars.size()) {			
 			this.getVariables(db, new HashMap<String, String>());

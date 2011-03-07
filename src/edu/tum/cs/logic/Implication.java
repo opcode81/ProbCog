@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 import java.util.Collection;
 
@@ -35,7 +35,7 @@ public class Implication extends ComplexFormula {
 	}
 
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
         return (new Disjunction(new Negation(children[0]), children[1])).simplify(evidence);
     }
 }

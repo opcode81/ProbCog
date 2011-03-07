@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
 public class Disjunction extends ComplexFormula {
@@ -100,7 +100,7 @@ public class Disjunction extends ComplexFormula {
      * @return returns a formula simplified by the evidence or an instance of TrueFalse
      */
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
         Vector<Formula> simplifiedChildren = new Vector<Formula>();
         // check for each child, whether an entry in evidenceDB exists
         for (Formula child : this.children) {

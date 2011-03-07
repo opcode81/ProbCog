@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
 public class GroundAtom extends Formula {
@@ -39,11 +39,11 @@ public class GroundAtom extends Formula {
 	}
 
 	@Override
-	public void getVariables(Database db, Map<String, String> ret) {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, Database db) {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) {
 		return this;
 	}
 
@@ -88,11 +88,11 @@ public class GroundAtom extends Formula {
      * @return returns an instance of TrueFalse if the value of the ground atom is contained in the evidence (or evidence is null); otherwise returns this very ground atom 
      */
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
         try {
             // check whether evidence contains this ground atom and return instance of TrueFalse
         	if(evidence != null) {
-	        	String value = evidence.getVariableValue(this.toString(), false);
+	        	String value = evidence.getSingleVariableValue(this.toString(), false);
 	            if(value != null) {            	 
 	                if(value.equals("True"))
 	                    return TrueFalse.TRUE;

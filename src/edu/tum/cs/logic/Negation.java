@@ -1,6 +1,6 @@
 package edu.tum.cs.logic;
 
-import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 import java.util.Collection;
 import java.util.Vector;
@@ -83,7 +83,7 @@ public class Negation extends ComplexFormula {
      * @return  
      */
     @Override
-    public Formula simplify(Database evidence) {
+    public Formula simplify(GenericDatabase<?, ?> evidence) {
     	// simplify the formula that is negated
         Formula f = this.children[0].simplify(evidence);
         // if it's now an instance of TrueFalse, return its opposite

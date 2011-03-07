@@ -12,6 +12,7 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 
 public class DecisionNode extends ExtendedNode {
 	protected boolean isOperator;
@@ -43,7 +44,7 @@ public class DecisionNode extends ExtendedNode {
 	 * @return	true if the formula is satisfied
 	 * @throws Exception
 	 */
-	public boolean isTrue(Map<String, String> varBinding, IPossibleWorld w, WorldVariables worldVars, Database db) throws Exception {
+	public boolean isTrue(Map<String, String> varBinding, IPossibleWorld w, WorldVariables worldVars, GenericDatabase<?,?> db) throws Exception {
 		if(operator != null) {
 			Collection<DecisionNode> parents = this.getDecisionParents();
 			switch(operator) {
@@ -75,7 +76,7 @@ public class DecisionNode extends ExtendedNode {
 	 * @return
 	 * @throws Exception 
 	 */
-	public boolean isTrue(String[] paramNames, String[] actualParams, Database db, boolean closedWorld) throws Exception {
+	public boolean isTrue(String[] paramNames, String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
 		// generate variable bindings
 		HashMap<String, String> varBinding = new HashMap<String, String>();
 		for(int i = 0; i < paramNames.length; i++)
