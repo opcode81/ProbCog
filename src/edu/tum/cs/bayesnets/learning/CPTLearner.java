@@ -105,7 +105,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * initializes the array of clusterers (initially an array of null references)
 	 * and the array of example counters (one for each node) 
 	 */
-	private void init() {
+	protected void init() {
 		uniformDefault = false;
 		clusterers = new Clusterer[nodes.length];
         // create example counters for each node

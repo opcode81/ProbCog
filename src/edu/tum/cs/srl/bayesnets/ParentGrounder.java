@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
@@ -36,7 +37,7 @@ public class ParentGrounder {
 		 * @return true if the lookup could be performed to extend the variable binding,
 		 * false if the lookup is not applicable because the precondition is not met
 		 */
-		public boolean doLookup(Database db, HashMap<String,String> varBindings) throws Exception {
+		public boolean doLookup(GenericDatabase<?,?> db, HashMap<String,String> varBindings) throws Exception {
 			// build the key values
 			String[] keyValues = new String[key.keyIndices.size()];
 			int i = 0;
@@ -230,7 +231,7 @@ public class ParentGrounder {
 	 * @return vector of mappings of node indices to lists of corresponding actual parameters or null if there is no valid binding for the given actual parameters of the main node
 	 * @throws Exception 
 	 */
-	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, Database db) throws Exception {
+	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
 		// generate all the parameter bindings we can
 		HashMap<String, String> paramBindings = generateParameterBindings(actualParameters, db);
 		if(paramBindings == null)
@@ -250,7 +251,7 @@ public class ParentGrounder {
 	 * @param ret
 	 * @throws Exception 
 	 */
-	protected void getCompleteGroundings(String[] mainNodeParams, Database db, HashMap<String, String> paramBindings, int idx, Vector<Map<Integer, String[]>> ret) throws Exception {
+	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<Map<Integer, String[]>> ret) throws Exception {
 		if(ungroundedParams == null || idx == ungroundedParams.length) {
 			// all variables have been grounded, so now generate a mapping: node index -> list of actual parameters
 			HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();
@@ -286,7 +287,7 @@ public class ParentGrounder {
 	 * @return
 	 * @throws Exception 
 	 */
-	public HashMap<String, String> generateParameterBindings(String[] actualParameters, Database db) throws Exception {
+	public HashMap<String, String> generateParameterBindings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
 		HashMap<String, String> bindings = new HashMap<String, String>();
 		// add known bindings from main node 
 		for(int i = 0; i < mainNode.params.length; i++)
