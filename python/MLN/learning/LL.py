@@ -341,7 +341,6 @@ class E_ISEWW(Abstract_ISEWW):
 class SLL_ISE(LL_ISE):
     def __init__(self, mln, **params):
         LL_ISE.__init__(self, mln, **params)
-        
     
     def _f(self, wt):
         
@@ -404,8 +403,8 @@ class SLL_ISE(LL_ISE):
     #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
     def _sampleWorlds(self, wtFull):
         if  ('wtsLastSLLWorldSampling' in dir(self)):
-            print self.wtsLastSLLWorldSampling, "self.wtsLastSLLWorldSampling"
-            print wtFull, "wtFull" 
+            #print self.wtsLastSLLWorldSampling, "self.wtsLastSLLWorldSampling"
+            #print wtFull, "wtFull" 
             print
         #weights have changed => calculate new values
         if  ('wtsLastSLLWorldSampling' not in dir(self)) or numpy.any(self.wtsLastSLLWorldSampling != wtFull):
@@ -421,7 +420,7 @@ class SLL_ISE(LL_ISE):
             print "calling MCSAT with weights:", wtFull
             mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
                                         doProbabilityFitting=False,
-                                        verbose=True, details =True, infoInterval=20, resultsInterval=20)
+                                        verbose=True, details =True, infoInterval=100, resultsInterval=100)
             print mcsat
             print "number of disctinct samples:", len(self.worldsSampled)
         else:
@@ -455,14 +454,14 @@ class SLL_ISE(LL_ISE):
         
         
         
-        if step % 20 == 0:
+        if step % 100 == 0:
             print "sampling worlds (MCSAT), step: ", step, " self.sampled_Z", self.sampled_Z, "new worlds in Z:", self.debug_number_of_new_worlds_in_Z
             sys.stdout.flush()
             self.debug_number_of_new_worlds_in_Z = 0
 
 
     def _prepareOpt(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 1000)
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
         
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
@@ -498,6 +497,13 @@ class DSLL_WW(SLL_ISE):
 
         #TODO: figure out why the cache-reset is necessary to get non-0 weights
         #self.wtsLastSLLWorldSampling = []
+        
+        #HACK: gradient gets too large, reduce it
+        if numpy.any(numpy.abs(grad) > 1):
+            print "gradient values too large:", numpy.max(numpy.abs(grad))
+            grad = grad / (numpy.max(numpy.abs(grad)) / 1)
+            print "scaling down to:", numpy.max(numpy.abs(grad))        
+        
         print "DSLL_ISEWW: _grad:", grad
         return grad        
 
