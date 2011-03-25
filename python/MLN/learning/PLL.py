@@ -310,6 +310,28 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
         #    self._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
         
         PLL._prepareOpt(self)
+        
+    def _f(self, wt):
+        
+        pll = PLL._f(self, wt)
+            
+        if self.gaussianPriorSigma != None:
+            #add gaussian means:
+            for weight in wt:
+                pll += gaussianZeroMean(weight, self.gaussianPriorSigma)
+        
+        print "pseudo-log-likelihood:", pll
+        return pll
+        
+    def _grad(self, wt):        
+        grad = PLL._grad(self, wt)
+                
+        if self.gaussianPriorSigma != None:
+            #add gaussian means:
+            for i, weight in enumerate(wt):
+                grad[i] += gradGaussianZeroMean(weight, self.gaussianPriorSigma)
+                
+        return grad
 
 
 class DPLL(PLL):
