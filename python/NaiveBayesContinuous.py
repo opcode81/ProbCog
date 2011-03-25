@@ -10,13 +10,14 @@ class DiscreteDist(object):
 	def __init__(self, varName, values):
 		self.values = values
 		self.varName = varName
-		self.dist = [0.0 for i in xrange(len(values))]
+		self.dist = [1.0 for i in xrange(len(values))]
 	
 	def normalize(self):
 		Z = sum(self.dist)
 		self.dist = map(lambda x: x / Z, self.dist)
 		
 	def addExample(self, d):
+		
 		idx = self.values.index(d[self.varName])
 		self.dist[idx] += 1.0
 		
@@ -37,7 +38,16 @@ class ContDist(object):
 		self.v.add(ObservationReal(value))
 		
 	def finish(self):
-		self.pdf.fit(self.v)
+		
+		if self.v.size() == 0:
+			self.pdf = OpdfGaussian(0.5, 0.05)
+			return 
+		try:
+			self.pdf.fit(self.v)
+			self.pdf.distribution.variance += 0.05
+		except:
+			self.pdf = OpdfGaussian(self.v.get(0).value, 0.05)
+			
 	
 	def density(self, v):
 		return self.pdf.probability(ObservationReal(v))
