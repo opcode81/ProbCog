@@ -8,10 +8,11 @@ importjar("weka_fipm.jar")
 from java.util import Vector, HashMap
 from java.lang import String, Double
 import jarray
-from weka.classifiers.trees import J48;
+from weka.classifiers.trees import J48, DecisionStump, RandomForest
+from weka.classifiers.rules import OneR
 from weka.classifiers.functions import SMO;
 from weka.classifiers.trees.j48 import Rule;
-from weka.classifiers.meta import MultiBoostAB;
+from weka.classifiers.meta import MultiBoostAB, AdaBoostM1, RandomCommittee, Bagging
 from weka.core import Attribute, FastVector, Instance, Instances
 
 class WekaClassifier(object):
@@ -115,7 +116,45 @@ class MultiBoost(WekaClassifier):
         #self.j48.setConfidenceFactor(1.0)
         classifier.buildClassifier(self.instances)
         self.classifier = classifier    
-        print classifier        
+        print classifier     
+        
+class AdaBoost(WekaClassifier):
+	def __init__(self, numericAttributes=None):
+	    WekaClassifier.__init__(self, numericAttributes)
+	    
+	def learn(self, classAttr, unpruned=False, minNumObj=2):
+	    self.instances = self._getInstances(classAttr)        
+	    tree = J48() # DecisionStump() #J48
+	    
+	    classifier =  AdaBoostM1()
+	    #classifier.setDebug(true);
+	    classifier.setClassifier(tree)
+	    #classifier.setNumIterations(50) 
+	    
+	    
+	    #self.j48.setConfidenceFactor(1.0)
+	    classifier.buildClassifier(self.instances)
+	    self.classifier = classifier   
+	    
+	    print "numIterations", classifier.getNumIterations() 
+	    print classifier     
+	    
+class RandomForest(WekaClassifier):
+	def __init__(self, numericAttributes=None):
+	    WekaClassifier.__init__(self, numericAttributes)
+	    
+	def learn(self, classAttr, unpruned=False, minNumObj=2):
+		self.instances = self._getInstances(classAttr)  
+		j48 = J48()
+		j48.setUnpruned(unpruned)
+		j48.setMinNumObj(minNumObj);
+		classifier = Bagging() #RandomForest()
+		classifier.setClassifier(j48)
+		classifier.buildClassifier(self.instances)
+		self.classifier = classifier   
+	    
+	    
+		print classifier 
 		
 class SVM(WekaClassifier):
 	def __init__(self, numericAttributes=None):
@@ -124,7 +163,7 @@ class SVM(WekaClassifier):
 	def learn(self, classAttr):
 		self.instances = self._getInstances(classAttr)		
 		svm = SMO()
-		svm.setUseRBF(True)
+		#svm.setUseRBF(True)
 		svm.buildClassifier(self.instances)
 		self.classifier = svm		
 		
@@ -150,7 +189,15 @@ if __name__=='__main__':
 	for i in inst: svm.addInstance(i)
 	svm.learn(classAttr)
 	
-	for j,model in enumerate((tree, svm)):
+	ada = AdaBoost(numericAttributes)
+	for i in inst: ada.addInstance(i)
+	ada.learn(classAttr)
+	
+	forest = RandomForest(numericAttributes)
+	for i in inst: forest.addInstance(i)
+	forest.learn(classAttr)
+	
+	for j,model in enumerate((tree, svm, ada, forest)):
 		print "\nmodel", j
 		for i in test:
 			#del i[classAttr]
