@@ -227,7 +227,8 @@ from softeval import truthDegreeGivenSoftEvidence
 class SoftEvidenceLearner(AbstractLearner):
 
     def __init__(self, mln, **params):
-        super(SoftEvidenceLearner, self).__init__(self, mln, **params)
+        AbstractLearner.__init__(self,mln, **params)
+        
 
     def _getTruthDegreeGivenEvidence(self, gf, worldValues=None):
         if worldValues is None: worldValues = self.mln.evidence
