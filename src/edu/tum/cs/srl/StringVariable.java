@@ -20,5 +20,10 @@ public abstract class StringVariable extends AbstractVariable<String> {
 	@Override
 	public boolean isTrue() {
 		return value.equalsIgnoreCase("True");
+	}	
+
+	@Override
+	public boolean hasValue(String value) {
+		return value.equalsIgnoreCase(this.value);
 	}
 }
