@@ -8,8 +8,6 @@ package edu.tum.cs.srl.bayesnets.inference;
 
 import java.lang.reflect.Constructor;
 
-import dev.BackwardSampleSearch;
-
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.BNJPearl;
 import edu.tum.cs.bayesnets.inference.BackwardSampling;
@@ -46,13 +44,13 @@ public enum Algorithm {
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
-		Experimental("an experimental algorithm (usually beta)", "dev.SampleSearchIB"),
+		SampleSearchIB("SampleSearch with intelligent backtracking", "dev.SampleSearchIB"),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
-		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch" ),
+		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch"),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
-		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation", null, edu.tum.cs.bayesnets.inference.ACE.class),
-		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search.", null, dev.SampleSearchChoco.class),
-		QGraphInference("Inference based on counting in the training database", QGraphInference.class, null);
+		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", null, edu.tum.cs.bayesnets.inference.ACE.class),
+		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search.", "dev.SampleSearchChoco"),
+		QGraphInference("Inference based on counting in the training database", "dev.QGraphInference");
 		
 		protected String description;
 		protected Class<? extends edu.tum.cs.bayesnets.inference.Sampler> bnClass;
@@ -106,7 +104,7 @@ public enum Algorithm {
 				sampler = constructor.newInstance(gbln);
 			}
 			else
-				throw new Exception("Cannot instantiate a sampler for the algorithm '" + toString() + "' - sampler class not given");
+				throw new Exception("Cannot instantiate a sampler for the algorithm '" + toString() + "' - sampler class not found. The algorithm may not be available in your distribution.");
 			return sampler;
 		}
 		

@@ -23,7 +23,6 @@ import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
@@ -256,12 +255,14 @@ public class BLNinfer implements IParameterHandler {
 		// handle parameters
 		paramHandler.handle(params, false);		
 		
-		// load relational model
-		RelationalBeliefNetwork blog;
-		if(bln == null)
-			blog = new ABLModel(declsFile, networkFile);
-		else
-			blog = bln.rbn;
+		// load relational model		
+		if(bln == null) {
+			if(!usePython) 
+				bln = new BayesianLogicNetwork(declsFile, networkFile, logicFile);
+			else
+				bln = new BayesianLogicNetworkPy(declsFile, networkFile, logicFile);
+		}
+		RelationalBeliefNetwork blog = bln;
 		
 		// (on request) remove deterministic dependencies in CPTs
 		if(removeDeterministicCPTEntries) {
@@ -288,12 +289,6 @@ public class BLNinfer implements IParameterHandler {
 		
 		// instantiate ground model
 		if(gbln == null) {
-			if(bln == null) {
-				if(!usePython) 
-					bln = new BayesianLogicNetwork(blog, logicFile);
-				else
-					bln = new BayesianLogicNetworkPy(blog, logicFile);
-			}
 			Stopwatch sw = new Stopwatch();
 			sw.start();
 			gbln = bln.ground(db);

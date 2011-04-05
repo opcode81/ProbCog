@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -35,7 +36,9 @@ import edu.tum.cs.util.StringTool;
  * @author jain
  */
 public class ABLModel extends RelationalBeliefNetwork {
-
+	
+	protected File networkFile = null;
+	
 	/**
 	 * constructs a model by obtaining the node data from a fragment
 	 * network and declarations from one or more files.
@@ -46,40 +49,77 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * @throws Exception
 	 */
 	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {
-		super(networkFile);
+		String decls = readBlogContent(declarationsFiles);
+		init(decls, networkFile);
+	}
+	
+	/**
+	 * constructs a BLOG model by obtaining the node data from a Bayesian
+	 * network template and function signatures from a BLOG file.
+	 * 
+	 * @param declarationsFile
+	 * @param xmlbifFile
+	 * @throws Exception
+	 */
+	public ABLModel(String declarationsFile, String networkFile) throws Exception {
+		this(new String[] { declarationsFile }, networkFile);
+	}
 
-		// read the blog files
-		String blog = readBlogContent(declarationsFiles);
-
+	/**
+	 * constructs a BLOG model from a Bayesian network template. The function
+	 * signatures are derived from node/parameter names.
+	 * 
+	 * @param networkFile
+	 * @throws Exception
+	 */
+	public ABLModel(File networkFile) throws Exception {
+		init(null, networkFile.toString());
+	}
+	
+	public ABLModel(String decls) throws Exception {
+		init(decls, null);
+	}
+	
+	protected void init(String decls, String networkFile) throws Exception {
+		this.networkFile = new File(networkFile);
+		boolean guessedSignatures = true;
+		if(decls != null) {
+			readDeclarations(decls);
+			guessedSignatures = false;
+		}
+		if(this.networkFile == null)
+			throw new Exception("No fragment network was given");
+		initNetwork(this.networkFile);
+		if(guessedSignatures)
+			guessSignatures();
+		else
+			checkSignatures();
+	}
+		
+	protected void readDeclarations(String decls) throws Exception {
 		// remove comments
 		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/",
 				Pattern.MULTILINE | Pattern.DOTALL);
-		Matcher matcher = comments.matcher(blog);
-		blog = matcher.replaceAll("");
+		Matcher matcher = comments.matcher(decls);
+		decls = matcher.replaceAll("");
 
 		// read line by line
-		String[] lines = blog.split("\n");
+		String[] lines = decls.split("\n");
 		for (String line : lines) {
 			line = line.trim();
 			if (line.length() == 0)
 				continue;
 			if (!readDeclaration(line))
 				if (!line.contains("~"))
-					throw new Exception("Could not interpret the line '" + line
-							+ "'");
+					throw new Exception("Could not interpret the line '" + line	+ "'");
 		}
-
-		checkSignatures();
 	}
 
 	protected boolean readDeclaration(String line) throws Exception {
 		// function signature
-		// TODO: logical Boolean required - split this into random / logical w/o
-		// Boolean
-		if (line.startsWith("random") || line.startsWith("logical")) {
-			Pattern pat = Pattern.compile(
-					"(random|logical)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?",
-					Pattern.CASE_INSENSITIVE);
+		// TODO: logical Boolean required - split this into random / logical w/o Boolean
+		if(line.startsWith("random") || line.startsWith("logical")) {
+			Pattern pat = Pattern.compile("(random|logical)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
 			Matcher matcher = pat.matcher(line);
 			if (matcher.matches()) {
 				boolean isLogical = matcher.group(1).equals("logical");
@@ -94,8 +134,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 		// obtain guaranteed domain elements
 		if (line.startsWith("guaranteed")) {
-			Pattern pat = Pattern
-					.compile("guaranteed\\s+(\\w+)\\s+(.*?)\\s*;?");
+			Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*?)\\s*;?");
 			Matcher matcher = pat.matcher(line);
 			if (matcher.matches()) {
 				String domName = matcher.group(1);
@@ -107,8 +146,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 		// read functional dependencies among relation arguments
 		if (line.startsWith("relationKey") || line.startsWith("RelationKey")) {
-			Pattern pat = Pattern
-					.compile("[Rr]elationKey\\s+(\\w+)\\s*\\((.*)\\)\\s*;?");
+			Pattern pat = Pattern.compile("[Rr]elationKey\\s+(\\w+)\\s*\\((.*)\\)\\s*;?");
 			Matcher matcher = pat.matcher(line);
 			if (matcher.matches()) {
 				String relation = matcher.group(1);
@@ -135,18 +173,13 @@ public class ABLModel extends RelationalBeliefNetwork {
 						if (m.group(2) != null) {
 							Concept parent = taxonomy.getConcept(m.group(2));
 							if (parent == null)
-								throw new Exception(
-										"Error in declaration of type '"
-												+ m.group(1)
-												+ "': The parent type '"
-												+ m.group(2)
-												+ "' is undeclared.");
+								throw new Exception("Error in declaration of type '" + m.group(1) + "': The parent type '" + m.group(2)	+ "' is undeclared.");
 							c.setParent(parent);
 						}
 						return true;
-					} else
-						throw new Exception("The type declaration '" + d
-								+ "' is invalid");
+					} 
+					else
+						throw new Exception("The type declaration '" + d + "' is invalid");
 				}
 			}
 			return false;
@@ -193,6 +226,22 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			return true;
 		}
+		if(line.startsWith("fragments")) {
+			Pattern pat = Pattern.compile("fragments\\s+([^\\s]+)\\s*;?");
+			Matcher matcher = pat.matcher(line);			
+			if(matcher.matches()) {
+				File f = new File(matcher.group(1));
+				if(networkFile != null) {
+					System.err.println("Declared network file " + f + " is overridden by " + networkFile);
+					return true;			
+				}				
+				if(!f.exists()) {
+					throw new Exception("Fragments file " + f + " does not exist");					
+				}
+				networkFile = f;
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -213,30 +262,6 @@ public class ABLModel extends RelationalBeliefNetwork {
 			buf.append('\n');
 		}
 		return buf.toString();
-	}
-
-	/**
-	 * constructs a BLOG model by obtaining the node data from a Bayesian
-	 * network template and function signatures from a BLOG file.
-	 * 
-	 * @param blogFile
-	 * @param xmlbifFile
-	 * @throws Exception
-	 */
-	public ABLModel(String blogFile, String networkFile) throws Exception {
-		this(new String[] { blogFile }, networkFile);
-	}
-
-	/**
-	 * constructs a BLOG model from a Bayesian network template. The function
-	 * signatures are derived from node/parameter names.
-	 * 
-	 * @param xmlbifFile
-	 * @throws Exception
-	 */
-	public ABLModel(String xmlbifFile) throws Exception {
-		super(xmlbifFile);
-		this.guessSignatures();
 	}
 
 	/**
@@ -470,8 +495,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	public static void main(String[] args) {
 		try {
 			String bifFile = "abl/kitchen-places/actseq.xml";
-			ABLModel bn = new ABLModel(new String[] { "abl/kitchen-places/actseq.abl" },
-					bifFile);
+			ABLModel bn = new ABLModel(new String[] { "abl/kitchen-places/actseq.abl" }, bifFile);
 			String dbFile = "abl/kitchen-places/train.blogdb";
 			// read the training database
 			System.out.println("Reading data...");

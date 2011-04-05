@@ -28,8 +28,7 @@ public class BLN2MLN {
 					return;
 				}
 			}
-			RelationalBeliefNetwork rbn = new ABLModel(args[0], args[1]);
-			BayesianLogicNetwork bln = new BayesianLogicNetwork(rbn, args[2]);
+			BayesianLogicNetwork bln = new BayesianLogicNetwork(args[0], args[1], args[2]);
 			String outfile = args[3];
 			System.out.println("converting...");
 			MarkovLogicNetwork mln = bln.toMLN();

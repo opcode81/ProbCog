@@ -102,9 +102,7 @@ public class BeliefNetworkEx {
 	 * @throws Exception 
 	 */
 	public BeliefNetworkEx(String filename) throws Exception {
-		this.bn = load(filename);
-		initAttributeMapping();
-		this.filename = filename;
+		initNetwork(filename);
 	}
 	
 	/**
@@ -112,6 +110,12 @@ public class BeliefNetworkEx {
 	 */ 
 	public BeliefNetworkEx() {
 		this.bn = new BeliefNetwork();
+	}
+	
+	protected void initNetwork(String filename) throws Exception {
+		this.filename = filename;
+		this.bn = load(filename);
+		initAttributeMapping();
 	}
 	
 	/**
