@@ -1,5 +1,6 @@
 package edu.tum.cs.logic.sat;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -604,7 +605,7 @@ public class SampleSAT implements IParameterHandler {
 		String net = "meals_any_for_functional.xml";
 		String blnfile = "meals_any_for_functional.bln";
 		String dbfile = "lorenzExample.blogdb";
-		BayesianLogicNetwork bln = new BayesianLogicNetwork(new ABLModel(blog, net), blnfile);
+		BayesianLogicNetwork bln = new BayesianLogicNetwork(blog, net, blnfile);
 		// read evidence
 		Database db = new Database(bln.rbn);
 		db.readBLOGDB(dbfile);

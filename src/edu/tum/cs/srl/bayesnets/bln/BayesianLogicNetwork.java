@@ -1,31 +1,37 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
-import java.io.IOException;
+import java.io.File;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.KnowledgeBase;
-import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.MLNConverter;
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
+import edu.tum.cs.util.FileUtil;
 
 public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 
 	public KnowledgeBase kb;
 	
-	public BayesianLogicNetwork(RelationalBeliefNetwork rbn, String logicFile) throws IOException, ParseException {
-		super(rbn, logicFile);
+	public BayesianLogicNetwork(String declsFile, String fragmentsFile, String logicFile) throws Exception {
+		super(declsFile, fragmentsFile, logicFile);
 		kb = new KnowledgeBase(logicFile);
 	}
+
+	public BayesianLogicNetwork(File declsFile) throws Exception {
+		this(FileUtil.readTextFile(declsFile));				
+	}
 	
-	/**
-	 * constructs a BLN without (explicitly represented) hard logical constraints  
-	 * @param rbn
-	 */
-	public BayesianLogicNetwork(RelationalBeliefNetwork rbn) {
-		super(rbn, null);
-		kb = new KnowledgeBase();
+	public BayesianLogicNetwork(String decls) throws Exception {
+		super(decls);
+	}
+	
+	@Override
+	protected boolean readDeclaration(String line) throws Exception {
+		if(super.readDeclaration(line))
+			return true;
+		
+		return false;
 	}
 	
 	public MarkovLogicNetwork toMLN() throws Exception {

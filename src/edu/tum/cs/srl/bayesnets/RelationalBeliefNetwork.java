@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
@@ -82,20 +83,20 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * @param networkFile
 	 * @throws Exception
 	 */
-	public RelationalBeliefNetwork(String networkFile) throws Exception {
-		super(networkFile);
-		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
-		signatures = new HashMap<String, Signature>();
-		relationKeys = new HashMap<String, Collection<RelationKey>>();
-		guaranteedDomElements = new HashMap<String, String[]>();
-		// store node data		
+	public RelationalBeliefNetwork(File networkFile) throws Exception {
+		this();
+		initNetwork(networkFile);
+	}
+	
+	protected void initNetwork(File networkFile) throws Exception {
+		super.initNetwork(networkFile.toString());
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
 			ExtendedNode n = createNode(nodes[i]);			
 			addExtendedNode(n);
-		}
+		}		
 	}
-
+	
 	/**
 	 * creates a relational node from the given belief node
 	 * @param node

@@ -11,7 +11,6 @@ import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.Variable;
-import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
@@ -29,7 +28,7 @@ public class BLNModel extends Model {
 	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
 		super(modelName);
 		this.filenames = String.format("%s;%s;%s", blogFile, networkFile, logicFile);
-		this.bln = new BayesianLogicNetwork(new ABLModel(blogFile, networkFile), logicFile);		
+		this.bln = new BayesianLogicNetwork(blogFile, networkFile, logicFile);		
 	}
 	
 	@Override

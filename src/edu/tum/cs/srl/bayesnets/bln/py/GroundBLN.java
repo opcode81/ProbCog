@@ -159,35 +159,6 @@ public class GroundBLN extends AbstractGroundBLN {
 		return this.groundBN;
 	}
 	
-	public static void main(String[] args) {
-		try { 
-			int test = 1;
-			
-			if(test == 0) {
-				String dir = "/usr/wiss/jain/work/code/SRLDB/bln/test/";
-				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new ABLModel(dir + "relxy.blog", dir + "relxy.xml"), dir + "relxy.bln");
-				GroundBLN gbln = new GroundBLN(bln, dir + "relxy.blogdb");
-				Stopwatch sw = new Stopwatch();
-				sw.start();		
-				//queries = Arrays.asList("rel(X,Y)")
-				//Algorithm.LikelihoodWeighting.createSampler(gbln).inferQueries();
-				//gbln.inferAIS(new String[][]{{"prop1(X)", "A1"},{"prop2(Y)", "A1"}}, 1000);
-				sw.stop();
-				System.out.println("Inference time: " + sw.getElapsedTimeSecs() + " seconds");
-			}
-			if(test == 1) {
-				String dir = "/usr/wiss/jain/work/code/SRLDB/blog/kitchen/meal_goods2/";
-				BayesianLogicNetworkPy bln = new BayesianLogicNetworkPy(new ABLModel(dir + "meals_any_names.blog", dir + "meals_any.learnt.xml"), dir + "meals_any.bln");
-				GroundBLN gbln = new GroundBLN(bln, dir + "query2.blogdb");
-				gbln.show();
-				//Algorithm.LikelihoodWeighting.createSampler(gbln).infer(Arrays.asList("prop1(X)","prop2(Y)"));
-			}
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-	}
-
 	@Override
 	protected void onAddGroundAtomNode(BeliefNode instance, String[] params,
 			Signature sig) {

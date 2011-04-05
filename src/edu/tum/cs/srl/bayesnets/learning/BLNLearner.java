@@ -87,7 +87,7 @@ public class BLNLearner implements IParameterHandler {
 				if(declsFile != null)
 					bn = new ABLModel(declsFile, bifFile);
 				else
-					bn = new ABLModel(bifFile);
+					bn = new ABLModel(new File(bifFile));
 			}
 			
 			// prepare it for learning

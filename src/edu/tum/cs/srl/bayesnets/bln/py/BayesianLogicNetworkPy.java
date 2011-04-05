@@ -22,8 +22,8 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	public JythonInterpreter jython;
 	protected State state;
 	
-	public BayesianLogicNetworkPy(RelationalBeliefNetwork rbn, String logicFile) {
-		super(rbn, logicFile);
+	public BayesianLogicNetworkPy(String declsFile, String networkFile, String logicFile) throws Exception {
+		super(declsFile, networkFile, logicFile);
 		state = null;
 		
 		// initialize jython interpreter
