@@ -82,6 +82,8 @@ public enum Algorithm {
 			} 
 			catch(ClassNotFoundException e) {	
 			} 
+			catch(NoClassDefFoundError e) {				
+			}
 		}
 		
 		public String getDescription() {

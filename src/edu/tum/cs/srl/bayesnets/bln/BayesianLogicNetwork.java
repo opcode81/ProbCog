@@ -24,6 +24,8 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	
 	public BayesianLogicNetwork(String decls) throws Exception {
 		super(decls);
+		if(kb == null)
+			kb = new KnowledgeBase();
 	}
 	
 	@Override
