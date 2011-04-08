@@ -81,7 +81,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 	}
 	
 	protected void init(String decls, String networkFile) throws Exception {
-		this.networkFile = new File(networkFile);
+		if(networkFile != null)
+			this.networkFile = new File(networkFile);
 		boolean guessedSignatures = true;
 		if(decls != null) {
 			readDeclarations(decls);
@@ -98,8 +99,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		
 	protected void readDeclarations(String decls) throws Exception {
 		// remove comments
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/",
-				Pattern.MULTILINE | Pattern.DOTALL);
+		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(decls);
 		decls = matcher.replaceAll("");
 
@@ -230,14 +230,13 @@ public class ABLModel extends RelationalBeliefNetwork {
 			Pattern pat = Pattern.compile("fragments\\s+([^\\s]+)\\s*;?");
 			Matcher matcher = pat.matcher(line);			
 			if(matcher.matches()) {
-				File f = new File(matcher.group(1));
-				if(networkFile != null) {
+				File f = new File(matcher.group(1)).getAbsoluteFile();
+				if(networkFile != null) { // if we already have another network file, then the one that is declared here is not used
 					System.err.println("Declared network file " + f + " is overridden by " + networkFile);
 					return true;			
 				}				
-				if(!f.exists()) {
+				if(!f.exists())
 					throw new Exception("Fragments file " + f + " does not exist");					
-				}
 				networkFile = f;
 				return true;
 			}
@@ -383,17 +382,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 			StringBuffer args = new StringBuffer();
 			int[] addr = new int[deps.length];
 			for (int j = 0; j < deps.length; j++) {
-				if (deps[j].getType() == BeliefNode.NODE_DECISION) // ignore
-					// decision
-					// nodes
-					// (they are
-					// not
-					// dependencies
-					// because
-					// they are
-					// assumed
-					// to be
-					// true)
+				if (deps[j].getType() == BeliefNode.NODE_DECISION) 
+					// ignore decision nodes (they are not dependencies because
+					// they are assumed to be true)
 					continue;
 				if (j > 0) {
 					if (j > 1)
@@ -458,8 +449,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		out.println();
 	}
 
-	protected void getCPD(Vector<String> lists, CPF cpf, Discrete[] domains,
-			int[] addr, int i) {
+	protected void getCPD(Vector<String> lists, CPF cpf, Discrete[] domains, int[] addr, int i) {
 		if (i == addr.length) {
 			StringBuffer sb = new StringBuffer();
 			sb.append('[');
@@ -473,15 +463,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			sb.append(']');
 			lists.add(sb.toString());
-		} else {
+		} 
+		else {
 			// go through all possible parent-child configurations
 			BeliefNode[] domProd = cpf.getDomainProduct();
-			if (domProd[i].getType() == BeliefNode.NODE_DECISION) // for
-				// decision
-				// nodes,
-				// always
-				// assume
-				// true
+			if (domProd[i].getType() == BeliefNode.NODE_DECISION) // for decision nodes, always assume true
 				addr[i] = 0;
 			else {
 				for (int j = 0; j < domains[i].getOrder(); j++) {
