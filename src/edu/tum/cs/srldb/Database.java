@@ -279,7 +279,14 @@ public class Database implements Cloneable, Serializable {
 		out.println("    <ATTRIBUTE NAME=\"objtype\" ITEM-TYPE=\"O\" DATA-TYPE=\"str\">");
 		for(Object obj : objects) {
 			out.println("      <ATTR-VALUE ITEM-ID=\"" + obj.id + "\">");
-			out.println("        <COL-VALUE>" + Database.stdAttribStringValue(obj.objType()) + "</COL-VALUE></ATTR-VALUE>");
+			out.println("        <COL-VALUE>" + obj.objType() + "</COL-VALUE></ATTR-VALUE>");
+		}
+		out.println("    </ATTRIBUTE>");
+		// - special attribute constantName for objects
+		out.println("    <ATTRIBUTE NAME=\"constName\" ITEM-TYPE=\"O\" DATA-TYPE=\"str\">");
+		for(Object obj : objects) {
+			out.println("      <ATTR-VALUE ITEM-ID=\"" + obj.id + "\">");
+			out.println("        <COL-VALUE>" + upperCaseString(obj.getConstantName()) + "</COL-VALUE></ATTR-VALUE>");
 		}
 		out.println("    </ATTRIBUTE>");
 		// - special attribute link_tag for links
@@ -514,5 +521,12 @@ public class Database implements Cloneable, Serializable {
 			name2obj.put(constantName, o);
 		}
 		return o;
+	}
+	
+	public void printData() {
+		for(Object o : objects)
+			o.printData();
+		for(Link l : links)
+			l.printData();
 	}
 }

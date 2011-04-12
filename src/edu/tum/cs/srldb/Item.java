@@ -137,4 +137,13 @@ public abstract class Item implements Serializable {
 	public int getGUID() {
 		return this.id;
 	}
+	
+	public void printData() {
+		System.out.println("Item " + id);
+		if(attribs.size() > 0) {
+			System.out.println("  attributes:");
+			for(Entry<String,String> e : this.attribs.entrySet())
+				System.out.printf("    %s = %s\n", e.getKey(), e.getValue());
+		}
+	}
 }

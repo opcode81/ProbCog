@@ -167,4 +167,10 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 			return null;
 		return links.get(linkName);
 	}
+	
+	public void printData() {
+		super.printData();
+		System.out.println("  object type: " + this.objTypeName);
+		System.out.println("  constant: " + this.constantName);
+	}
 }
