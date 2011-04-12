@@ -14,5 +14,9 @@ public class ConstantArgument implements IRelationArgument, Serializable {
 	public String getConstantName() {
 		return constantName;
 	}
+	
+	public String toString() {
+		return "CONST:" + constantName;
+	}
 
 }

@@ -152,4 +152,17 @@ public class Link extends Item implements Serializable {
 	public void setArguments(IRelationArgument[] arguments) {
 		this.arguments = arguments;
 	}
+	
+	public void printData() {
+		super.printData();
+		System.out.printf("  link: %s(", linkName);
+		for(int i = 0; i < arguments.length; i++) {
+			if(i > 0)
+				System.out.print(", ");
+			if(arguments[i] instanceof Item)
+				System.out.printf("Item%d:", ((Item)arguments[i]).id);
+			System.out.print(arguments[i]);
+		}
+		System.out.println(")");
+	}
 }
