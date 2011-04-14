@@ -216,9 +216,9 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			RelationalNode ndCurrent = (RelationalNode)extCurrent;
 			// side affair: learn the CPT of constant nodes here by incrementing the counter
 			if(ndCurrent.isConstant) {
-				int[] constantDomainIndices = new int[this.nodes.length];
-				constantDomainIndices[ndCurrent.index] = domain_idx;
-				this.counters[ndCurrent.index].count(constantDomainIndices);
+				String[] actualParams = paramSets.get(ndCurrent.index);
+				domainIndices[ndCurrent.index] = ndCurrent.getDomain().findName(actualParams[0]);
+				this.counters[ndCurrent.index].count(domainIndices);
 				countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
 			}
 			// preconditions were handled above/in ParentGrounder
