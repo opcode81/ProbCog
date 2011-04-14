@@ -195,6 +195,9 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		}
 	}
 	
+	/**
+	 * helper function that recursively sets the domain indices of parents to learn an entry 
+	 */
 	protected void countVariableR(String varName, GenericDatabase<?,?> db, boolean closedWorld, RelationalBeliefNetwork bn, Map<Integer, String[]> paramSets, ExampleCounter counter, int[] domainIndices, double exampleWeight, int i) throws Exception {
 		// count the example
 		if(i == counter.nodeIndices.length) {
@@ -235,7 +238,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 						availableNodes.add(idx.toString() + "/" + ndCurrent.getNetwork().getRelationalNode(idx).toString());
 					throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
 				}
-				Object value = db.getVariableValue(varName, closedWorld); //ndCurrent.getValueInDB(actualParams, db, closedWorld);
+				Object value = db.getVariableValue(ndCurrent.getVariableName(actualParams), closedWorld); //ndCurrent.getValueInDB(actualParams, db, closedWorld);
 				if(value == null)
 					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
 				// get the current node's domain and the index of its setting
@@ -246,7 +249,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 						String[] domElems = new String[dom.getOrder()];
 						for(int j = 0; j < domElems.length; j++)
 							domElems[j] = dom.getName(j);
-						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
+						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getVariableName(actualParams), StringTool.join(",", domElems), varName));
 					}
 					domainIndices[extCurrent.index] = domain_idx;
 					countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);

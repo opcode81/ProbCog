@@ -29,13 +29,13 @@ public class Database extends GenericDatabase<Variable, String> {
 		
 		// otherwise, get the signature
 		int braceIndex = varName.indexOf('(');
-		String nodeName = varName.substring(0, braceIndex);
-		Signature sig = model.getSignature(nodeName);		
+		String functionName = varName.substring(0, braceIndex);
+		Signature sig = model.getSignature(functionName);		
 
 		// if it's a logically determined predicate, use prolog to retrieve a value
 		if(sig.isLogical) {
 			String[] args = varName.substring(braceIndex+1, varName.length()-1).split("\\s*,\\s*");
-			return getPrologValue(sig, args) ? "True" : "False"; 
+			return getPrologValue(sig, args) ? BooleanDomain.True : BooleanDomain.False; 
 		}
 		
 		// if we are making the closed assumption return the default value of
@@ -43,7 +43,7 @@ public class Database extends GenericDatabase<Variable, String> {
 		// functions
 		if(closedWorld) {
 			if(sig.isBoolean())
-				return "False";
+				return BooleanDomain.False;
 			else {
 				throw new Exception("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);
 			}
