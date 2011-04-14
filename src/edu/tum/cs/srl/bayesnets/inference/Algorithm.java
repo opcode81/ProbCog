@@ -44,7 +44,7 @@ public enum Algorithm {
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
-		SampleSearchIB("SampleSearch with intelligent backtracking", "dev.SampleSearchIB"),
+		SampleSearchIB("SampleSearch with intelligent backtracking", null, edu.tum.cs.bayesnets.inference.SampleSearchIB.class),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
 		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch"),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
