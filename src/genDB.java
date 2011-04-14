@@ -19,6 +19,7 @@ public class genDB {
 						             "           -m   output MLN database (.db)\n" +
 						             "           -b   output BLOG database (.blogdb)\n" +
 						             "           -p   output Proximity database (.proxdb.xml)\n" +
+						             "           -s   print read database structure to stdout\n" + 
 						             "           -bm  output basic MLN model (.basic.mln)\n" +
 						             "           -bb  output basic BLN model declarations (.basic.blnd)\n\n" +
 						             "         The Jython script must create a Database object named 'db' in the global scope.\n");
@@ -43,6 +44,7 @@ public class genDB {
 
 			// read args
 			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false, writeProxDB = false;
+			boolean printDB = false;
 			int i = 0; 
 			for(; i < args.length; i++) {
 				if(args[i].equals("-m"))
@@ -51,6 +53,8 @@ public class genDB {
 					writeBLOGDB = true;
 				else if(args[i].equals("-p"))
 					writeProxDB = true;
+				else if(args[i].equals("-s"))
+					printDB = true;
 				else if(args[i].equals("-bm"))
 					writeBasicMLN = true;
 				else if(args[i].equals("-bb"))
@@ -75,6 +79,10 @@ public class genDB {
 			}
 			Database db = (Database) dbObj.__tojava__(Database.class);
 			db.check();
+			
+			if(printDB)
+				db.printData();
+			
 			if(writeMLNDB)
 				db.writeMLNDatabase(new PrintStream(new java.io.File(outfilename + ".db")));
 			if(writeBLOGDB)
@@ -85,6 +93,7 @@ public class genDB {
 				db.writeBasicMLN(new PrintStream(new File(outfilename + ".basic.mln")));
 			if(writeBasicBLND)
 				db.getDataDictionary().writeBasicBLOGModel(new PrintStream(new File(outfilename + ".basic.blnd")));
+			
 			System.out.println("done!");
 		}
 		catch(Exception e) {
