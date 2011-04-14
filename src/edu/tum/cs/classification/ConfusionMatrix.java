@@ -26,11 +26,11 @@ public class ConfusionMatrix<TClass> {
 			cnt++;
 		list.put(groundTruth, cnt);
 		instances++;
-		if(classification == groundTruth)
+		if(classification.equals(groundTruth))
 			correct++;
 	}
 	
-	public void print() {
+	public void printMatrix() {
 		PrintStream out = System.out;
 		for(Entry<TClass, HashMap<TClass,Integer>> e : matrix.entrySet()) {
 			out.printf("%s: %s\n", e.getKey().toString(), e.getValue().toString());
