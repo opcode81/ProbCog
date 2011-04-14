@@ -294,10 +294,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				String type = types.get(node.getFunctionName());
 				if(type == null) // constants that were referenced by any of their parents must now have a type assigned
 					throw new Exception("Constant " + node + " not referenced and therefore not typed.");
-				// TODO removed adding of signature because of new instantiation scheme
-				// Currently don't know why this was ever added in the first place.
-				//Signature sig = new Signature(node.getFunctionName(), type, new String[0]);
-				//addSignature(node, sig);
+				node.constantType = type;
 			}
 			else {
 				Signature sig = getSignature(node);

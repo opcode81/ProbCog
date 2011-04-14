@@ -17,6 +17,7 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
@@ -405,17 +406,19 @@ public class ABLModel extends RelationalBeliefNetwork {
 		// write type decls
 		Set<String> types = new HashSet<String>();
 		for (RelationalNode node : this.getRelationalNodes()) {
-			if (node.isBuiltInPred())
+			if(node.isBuiltInPred())
+				continue;
+			if(node.isConstant)
 				continue;
 			Signature sig = this.getSignature(node.functionName);
 			Discrete domain = (Discrete) node.node.getDomain();
-			if (!types.contains(sig.returnType)
-					&& !sig.returnType.equals("Boolean")) {
-				if (!isBooleanDomain(domain)) {
+			if(!types.contains(sig.returnType) && !sig.returnType.equals(BooleanDomain.typeName)) {
+				if(!isBooleanDomain(domain)) {
 					types.add(sig.returnType);
 					out.printf("Type %s;\n", sig.returnType);
-				} else
-					sig.returnType = "Boolean";
+				}
+				else
+					sig.returnType = BooleanDomain.typeName;
 			}
 			for (String t : sig.argTypes) {
 				if (!types.contains(t)) {
@@ -432,13 +435,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 		out.println();
 
-		// functions
-		for (RelationalNode node : this.getRelationalNodes()) {
-			if (node.isBuiltInPred())
-				continue;
-			Signature sig = getSignature(node.functionName);
-			out.printf("random %s %s(%s);\n", sig.returnType,
-					node.functionName, StringTool.join(", ", sig.argTypes));
+		// signatures
+		for(Signature sig : getSignatures()) {
+			out.printf("%s %s %s(%s);\n", sig.isLogical ? "logical" : "random", sig.returnType, sig.functionName, StringTool.join(", ", sig.argTypes));
 		}
 		out.println();
 		

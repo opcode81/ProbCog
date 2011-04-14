@@ -8,7 +8,6 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.logic.Atom;
@@ -22,7 +21,6 @@ import edu.tum.cs.logic.Negation;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.ValueDistribution;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
@@ -54,6 +52,10 @@ public class RelationalNode extends ExtendedNode {
 	 */
 	public String parentMode;
 	protected Vector<Integer> indicesOfConstantArgs = null;
+	/**
+	 * (for constant nodes only, i.e. if isConstant is true) the return type of the variable
+	 */
+	String constantType;
 	
 	/**
 	 * a parent grounder used to instantiate variables (which is created on demand)
@@ -231,7 +233,18 @@ public class RelationalNode extends ExtendedNode {
 		if(sig != null)
 			return sig.isBoolean();
 		else
-			return bn.isBooleanDomain(node.getDomain());
+			return RelationalBeliefNetwork.isBooleanDomain(node.getDomain());
+	}
+	
+	public String getReturnType() {
+		if(isConstant)
+			return constantType;
+		else {
+			Signature sig = getSignature();
+			if(sig == null) 
+				return null;
+			return sig.returnType;
+		}
 	}
 	
 	/**

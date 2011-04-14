@@ -37,7 +37,7 @@ public class Signature {
 	}
 	
 	public boolean isBoolean() {
-		return returnType.equalsIgnoreCase("boolean");
+		return BooleanDomain.isBooleanType(returnType);
 	}
 	
 	@Override
