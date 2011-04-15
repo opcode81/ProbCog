@@ -373,7 +373,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		writeDeclarations(out);
 
 		// CPTs
-		// TODO handle decision parents properly by using if-then-else
+		// TODO handle decision parents properly by using if-then-else?
 		for (RelationalNode relNode : getRelationalNodes()) {
 			if (relNode.isAuxiliary)
 				continue;
@@ -404,28 +404,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 
 	protected void writeDeclarations(PrintStream out) {
 		// write type decls
-		Set<String> types = new HashSet<String>();
-		for (RelationalNode node : this.getRelationalNodes()) {
-			if(node.isBuiltInPred())
-				continue;
-			if(node.isConstant)
-				continue;
-			Signature sig = this.getSignature(node.functionName);
-			Discrete domain = (Discrete) node.node.getDomain();
-			if(!types.contains(sig.returnType) && !sig.returnType.equals(BooleanDomain.typeName)) {
-				if(!isBooleanDomain(domain)) {
-					types.add(sig.returnType);
-					out.printf("Type %s;\n", sig.returnType);
-				}
-				else
-					sig.returnType = BooleanDomain.typeName;
-			}
-			for (String t : sig.argTypes) {
-				if (!types.contains(t)) {
-					types.add(t);
-					out.printf("Type %s;\n", t);
-				}
-			}
+		for(Concept c : this.taxonomy.getConcepts()) {
+			if(c.parent == null)
+				out.printf("type %s;\n", c.name);
+			else
+				out.printf("type %s isa %s;\n", c.name, c.parent.name);
 		}
 		out.println();
 
