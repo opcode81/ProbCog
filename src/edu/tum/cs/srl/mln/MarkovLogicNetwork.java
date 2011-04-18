@@ -198,16 +198,7 @@ public class MarkovLogicNetwork implements RelationalModel {
             // domain declaration
             m = domDecl.matcher(line);
             if(m.matches()) { 
-                Pattern domName = Pattern.compile("[a-z]+\\w+");
-                Pattern domCont = Pattern.compile("\\{(\\s*[A-Z]+\\w*\\s*,?)+\\}");
-                Matcher mat = domName.matcher(line);
-                Matcher mat2 = domCont.matcher(line);
-                // parse entries of domain
-                if (mat.find() && mat2.find()) {
-                    String domarg = mat2.group(0).substring(1, mat2.group(0).length() - 1);
-                    String[] cont = domarg.trim().split("\\s*,\\s*");
-                    addGuaranteedDomainElements(mat.group(0), cont);
-                }
+                addGuaranteedDomainElements(m.group(1), m.group(2).trim().split("\\s*,\\s*"));
                 continue;
             }
             
