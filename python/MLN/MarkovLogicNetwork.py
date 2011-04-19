@@ -476,12 +476,16 @@ class MLN(object):
         
 
     def _getSoftEvidence(self, gndAtom):
+        '''
+            gets the soft evidence value (probability) for a given ground atom (or complex formula)
+            returns None if there is no such value
+        '''
         s = strFormula(gndAtom)
         for se in self.softEvidence: # TODO optimize
             if se["expr"] == s:
                 #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
                 return se["p"] 
-        return None        
+        return None
     
     def _setSoftEvidence(self, gndAtom, value):
         s = strFormula(gndAtom)
