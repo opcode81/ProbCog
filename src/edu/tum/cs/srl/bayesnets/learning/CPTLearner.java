@@ -262,7 +262,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 							String[] domElems = new String[dom.getOrder()];
 							for(int j = 0; j < domElems.length; j++)
 								domElems[j] = dom.getName(j);
-							throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
+							throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", e.getKey(), ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
 						}					
 						domainIndices[extCurrent.index] = domain_idx;
 						double p = e.getValue();
