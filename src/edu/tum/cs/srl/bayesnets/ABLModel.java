@@ -5,8 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -129,16 +127,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical);				
 				addSignature(sig);
 				// ensure types used in signature exist, adding them if necessary
-				if(taxonomy == null) 
-					taxonomy = new Taxonomy();
-				Concept c = taxonomy.getConcept(sig.returnType);
-				if(c == null)
-					taxonomy.addConcept(new Concept(sig.returnType));
-				for(String t : sig.argTypes) {
-					c = taxonomy.getConcept(t);
-					if(c == null)
-						taxonomy.addConcept(new Concept(t));
-				}					
+				addType(sig.returnType, false);
+				for(String t : sig.argTypes)
+					addType(t, false);				
 				return true;
 			}
 			return false;
@@ -169,8 +160,6 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 		// read type information
 		if (line.startsWith("type") || line.startsWith("Type")) {
-			if (taxonomy == null) 
-				taxonomy = new Taxonomy();
 			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?);?");
 			Matcher matcher = pat.matcher(line);
 			Pattern typeDecl = Pattern.compile("(\\w+)(?:\\s+isa\\s+(\\w+))?");
@@ -178,13 +167,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String[] decls = matcher.group(1).split("\\s*,\\s*");
 				for (String d : decls) {
 					Matcher m = typeDecl.matcher(d);
-					if (m.matches()) {
-						Concept c = new Concept(m.group(1));
-						taxonomy.addConcept(c);
+					if (m.matches()) {						
+						Concept c = addType(m.group(1), true);
 						if (m.group(2) != null) {
-							Concept parent = taxonomy.getConcept(m.group(2));
-							if (parent == null)
-								throw new Exception("Error in declaration of type '" + m.group(1) + "': The parent type '" + m.group(2)	+ "' is undeclared.");
+							Concept parent = addType(m.group(2), false);
 							c.setParent(parent);
 						}
 						return true;
@@ -253,6 +239,26 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * adds a concept for a type to the taxonomy unless it is already present
+	 * @param typeName the name of the type
+	 * @param explicitlyDeclared whether the type is to be added due to its explicit declaration (all other type creations must issue a warning!)
+	 * @return the taxonomy object for the given
+	 */
+	protected Concept addType(String typeName, boolean explicitlyDeclared) {
+		if(BooleanDomain.isBooleanType(typeName))
+			return null;
+		if(taxonomy == null) 
+			taxonomy = new Taxonomy();
+		Concept c = taxonomy.getConcept(typeName);
+		if(c == null) {
+			taxonomy.addConcept(c = new Concept(typeName));
+			if(!explicitlyDeclared)
+				System.err.println("Warning: The type '" + typeName + "' was not explicitly declared before it was first used; implicitly adding it to the taxonomy...");
+		}
+		return c;
 	}
 
 	/**
