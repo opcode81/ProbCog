@@ -23,6 +23,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import random
+
 # simulated annealing maximum sat (silly)
 class SAMaxWalkSAT(object):
     def __init__(self, state, mln, evidenceBlocks, threshold=None, hardWeight=10):

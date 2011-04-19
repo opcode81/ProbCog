@@ -26,7 +26,6 @@
 from MCMCInference import *
 from SAMaxWalkSAT import * 
 
-
 class GibbsSampler(MCMCInference):
     class Chain(MCMCInference.Chain):
         def __init__(self, gibbsSampler):
@@ -68,7 +67,7 @@ class GibbsSampler(MCMCInference):
                 if idxBlock in self.gs.evidenceBlocks: # do not sample if we have evidence 
                     continue
                 if block != None:
-                    expsums = self._getBlockExpsums(block, wt, self.state, None, mln.blockRelevantGFs[idxBlock])
+                    expsums = self.gs.mln._getBlockExpsums(block, wt, self.state, None, mln.blockRelevantGFs[idxBlock])
                     if idxBlock in self.gs.blockExclusions:
                         for i in self.gs.blockExclusions[idxBlock]:
                             expsums[i] = 0
