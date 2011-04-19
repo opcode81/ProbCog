@@ -17,6 +17,11 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		super(declsFile, fragmentsFile, logicFile);
 		kb = new KnowledgeBase(logicFile);
 	}
+	
+	public BayesianLogicNetwork(String declsFile, String fragmentsFile) throws Exception {
+		super(declsFile, fragmentsFile, null);
+		kb = new KnowledgeBase();
+	}
 
 	public BayesianLogicNetwork(File declsFile) throws Exception {
 		this(FileUtil.readTextFile(declsFile));				
