@@ -64,6 +64,7 @@ class GibbsSampler(MCMCInference):
             # reassign values by sampling from the conditional distributions given the Markov blanket
             wt = mln._weights()
             for idxBlock, (idxGA, block) in enumerate(mln.pllBlocks):
+                # compute distribution to sample from
                 if idxBlock in self.gs.evidenceBlocks: # do not sample if we have evidence 
                     continue
                 if block != None:
@@ -73,12 +74,27 @@ class GibbsSampler(MCMCInference):
                             expsums[i] = 0
                 else:
                     expsums = mln._getAtomExpsums(idxGA, wt, self.state, mln.blockRelevantGFs[idxBlock])
-                r = random.uniform(0, sum(expsums))
-                idx = 0
-                s = expsums[0]
-                while r > s:
-                    idx += 1
-                    s += expsums[idx]
+                Z = sum(expsums)           
+                # check for soft evidence and greedily satisfy it if possible                
+                idx = None
+                if block == None:
+                    formula = self.gs.mln.gndAtomsByIdx[idxGA]
+                    p = self.gs.mln._getSoftEvidence(formula)
+                    if p is not None:
+                        currentBelief = self.getSoftEvidenceFrequency(formula)
+                        if p > currentBelief and expsums[1] > 0:
+                            idx = 1
+                        elif p < currentBelief and expsums[0] > 0:
+                            idx = 0
+                # sample value
+                if idx is None:
+                    r = random.uniform(0, Z)                    
+                    idx = 0
+                    s = expsums[0]
+                    while r > s:
+                        idx += 1
+                        s += expsums[idx]                
+                # make assignment
                 if block != None:
                     for i, idxGA in enumerate(block):
                         tv = (i == idx)
@@ -106,16 +122,23 @@ class GibbsSampler(MCMCInference):
     # infer one or more probabilities P(F1 | F2)
     #   what: a ground formula (string) or a list of ground formulas (list of strings) (F1)
     #   given: a formula as a string (F2)
-    def _infer(self, verbose=True, numChains=3, maxSteps=5000, shortOutput=False, details=False, debug=False, debugLevel=1, infoInterval=10, resultsInterval=100, **args):
+    def _infer(self, verbose=True, numChains=3, maxSteps=5000, shortOutput=False, details=False, debug=False, debugLevel=1, infoInterval=10, resultsInterval=100, softEvidence=None, **args):
         random.seed(time.time())
         # set evidence according to given conjunction (if any)
         self._readEvidence(self.given)
+        if softEvidence is None:
+            self.softEvidence = self.mln.softEvidence
+        else:
+            self.softEvidence = softEvidence
         # initialize chains
         if verbose and details:
             print "initializing %d chain(s)..." % numChains
         chainGroup = MCMCInference.ChainGroup(self)
         for i in range(numChains):
-            chainGroup.addChain(GibbsSampler.Chain(self))
+            chain = GibbsSampler.Chain(self)
+            chainGroup.addChain(chain)
+            if self.softEvidence is not None:
+                chain.setSoftEvidence(self.softEvidence)
         # do Gibbs sampling
         if verbose and details: print "sampling..."
         converged = 0
