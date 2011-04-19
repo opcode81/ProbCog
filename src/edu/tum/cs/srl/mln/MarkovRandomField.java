@@ -77,6 +77,8 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     			// build the block of variables and check if we have positive evidence for one of them
     			Vector<GroundAtom> block = new Vector<GroundAtom>();
         		Iterable<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
+        		if(dom == null)
+        			throw new Exception("Domain " + sig.argTypes[functionallyDeterminedArg] + " not in database");
         		GroundAtom trueOne = null;
         		for(String value : dom) {
         			args[functionallyDeterminedArg] = value;
