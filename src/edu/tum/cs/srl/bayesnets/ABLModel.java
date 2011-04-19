@@ -126,9 +126,19 @@ public class ABLModel extends RelationalBeliefNetwork {
 				boolean isLogical = matcher.group(1).equals("logical");
 				String retType = matcher.group(2);
 				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
-				Signature sig = new Signature(matcher.group(3), retType,
-						argTypes, isLogical);
+				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical);				
 				addSignature(sig);
+				// ensure types used in signature exist, adding them if necessary
+				if(taxonomy == null) 
+					taxonomy = new Taxonomy();
+				Concept c = taxonomy.getConcept(sig.returnType);
+				if(c == null)
+					taxonomy.addConcept(new Concept(sig.returnType));
+				for(String t : sig.argTypes) {
+					c = taxonomy.getConcept(t);
+					if(c == null)
+						taxonomy.addConcept(new Concept(t));
+				}					
 				return true;
 			}
 			return false;
