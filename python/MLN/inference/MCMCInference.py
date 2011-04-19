@@ -78,10 +78,12 @@ class MCMCInference(Inference):
     class Chain:
         def __init__(self, inferenceObject, queries):
             self.queries = queries
+            self.softEvidence = None
             self.numSteps = 0
             self.numTrue = [0 for i in range(len(self.queries))]
             self.converged = False
             self.lastResult = 10
+            self.inferenceObject = inferenceObject
             # copy the current mln evidence as this chain's state
             self.state = list(inferenceObject.mln.evidence)
             # initialize remaining variables randomly (but consistently)
@@ -102,11 +104,29 @@ class MCMCInference(Inference):
                 if diff < 0.001:
                     self.converged = True
                 self.lastResult = currentResult
+            # keep track of counts for soft evidence
+            if self.softEvidence is not None:
+                for se in self.softEvidence:
+                    self.softEvidenceCounts[se["expr"]] += self.currentlyTrue(se["formula"])
             # debug output
             if self.numSteps % 50 == 0 and debug:
                 #print "  --> %s" % str(self.state),
                 #print "after %d steps: P(%s | e) = %f" % (self.numSteps, str(self.query), float(self.numTrue) / self.numSteps)
                 pass
+        
+        def setSoftEvidence(self, softEvidence):
+            self.softEvidence = softEvidence
+            self.softEvidenceCounts = {}
+            for se in softEvidence:
+                if "formula" not in se:
+                    formula = FOL.parseFormula(se["expr"])
+                    se["formula"] = formula.ground(self.inferenceObject.mln, {})
+                    se["expr"] = strFormula(se["formula"])
+                self.softEvidenceCounts[se["expr"]] = self.currentlyTrue(se["formula"])
+        
+        def getSoftEvidenceFrequency(self, formula):
+            if self.numSteps == 0: return 0
+            return float(self.softEvidenceCounts[strFormula(formula)]) / self.numSteps
         
         def getResults(self):
             results = []
