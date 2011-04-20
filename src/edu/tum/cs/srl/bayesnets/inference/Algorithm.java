@@ -46,6 +46,7 @@ public enum Algorithm {
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
 		SampleSearchIB("SampleSearch with intelligent backtracking", null, edu.tum.cs.bayesnets.inference.SampleSearchIB.class),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
+		Experimental2b("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning2"),
 		BackwardSampleSearch("backward sample searching","dev.BackwardSampleSearch"),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
 		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", null, edu.tum.cs.bayesnets.inference.ACE.class),
