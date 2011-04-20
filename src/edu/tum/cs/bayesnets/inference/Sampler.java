@@ -171,7 +171,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	public static int sample(Collection<Double> distribution, double sum, Random generator) {
 		double random = generator.nextDouble() * sum;
 		if(sum == 0)
-			throw new RuntimeException("Sampled from distribution with Z = 0");
+			return -1;
 		sum = 0;
 		int i = 0;
 		for(Double d : distribution) {
