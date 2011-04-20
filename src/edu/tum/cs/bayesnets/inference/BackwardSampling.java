@@ -307,6 +307,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 		s.nodeDomainIndices = evidenceDomainIndices.clone();
 		s.weight = 1.0;
 		s.trials = 1;
+		s.operations = 0;
 	}
 	
 	protected boolean sampleForward(BeliefNode node, WeightedSample s) {
