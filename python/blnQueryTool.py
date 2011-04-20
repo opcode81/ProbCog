@@ -101,10 +101,11 @@ class BLNQuery:
             "Enumeration-Ask (exact)": "EnumerationAsk",
             "Lifted Backward Sampling with Children": "LiftedBackwardSampling",
             "SMILE Backward Sampling": "SmileBackwardSampling",
-            "Backward Sampling with Priors": "BackwardSamplingPriors",
-            "Backward Sampling with Children":"BackwardSamplingChildren",
-            "Experimental": "Experimental",
+            "Backward Sampling with priors": "BackwardSamplingPriors",
+            "Backward Sampling with children":"BackwardSamplingChildren",
+            "SampleSearch with intelligent backtracking": "SampleSearchIB",
             "Experimental2": "Experimental2",
+            "Experimental2b": "Experimental2b",
             "Experimental3": "Experimental3",
             "SAT-IS": "SATIS",
             "SAT-IS Extended": "SATISEx",
@@ -386,7 +387,7 @@ if __name__ == '__main__':
     if os.path.exists(CONFIG_FILENAME):
         try:
             settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file(CONFIG_FILENAME, "r").readlines())))
-        except:
+        except: 
             pass
         
     # process command line arguments
