@@ -237,7 +237,7 @@ public class BackwardSampling extends Sampler {
 	public void getSample(WeightedSample s) throws Exception {
 		double probzerotime = 0.0;
 		int MAX_TRIALS = this.maxTrials;	
-loop1:  for(int t = 1; t <= MAX_TRIALS; t++) {
+loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 			// initialize sample
 			initSample(s);
 			// backward sampling
