@@ -98,13 +98,13 @@ class Object(object):
         '''
             prints information on the object (its name, its attributes and its relations to other objects)
         '''
-        links = []
+        alllinks = []
         for lname, lobjs in self.links.items():
             links = []
-            for linkobj in lobjs:
-                links.append(str(linkobj))
-            links.append("%s: %s" % (lname, ", ".join(links)))
-        print "%s %s %s" % (self.name(), str(self.attributes), str(links))
+            for linkobj in lobjs:                
+                links.append(str(linkobj))                
+            alllinks.append("%s: %s" % (lname, ", ".join(links)))
+        print "%s %s %s" % (self.name(), str(self.attributes), str(alllinks))
 
     def linkto(self, linkName, other, *moreothers):
         '''
