@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 
 # MLN Query Tool
 #
@@ -510,7 +511,6 @@ if __name__ == '__main__':
         
     # update settings with command-line information
     settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
-    print options
     if len(args) > 1:
         settings["params"] = (settings.get("params", "") + " ".join(args)).strip()
     
