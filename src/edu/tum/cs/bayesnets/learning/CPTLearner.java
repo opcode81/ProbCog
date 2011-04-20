@@ -45,7 +45,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * controls how to finalize a column of the CPT for which there were no examples (i.e. all of the 
 	 * column entries are 0); If true, assume a uniform distribution, otherwise keep the zeros. 
 	 */
-	protected boolean uniformDefault;
+	protected boolean uniformDefault = false;
 	protected boolean initialized = false;
 	protected double pseudoCount = 0.0; 
 	protected ParameterHandler paramHandler;
@@ -106,7 +106,6 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * and the array of example counters (one for each node) 
 	 */
 	protected void init() {
-		uniformDefault = false;
 		clusterers = new Clusterer[nodes.length];
         // create example counters for each node
         counters = new ExampleCounter[nodes.length];		
