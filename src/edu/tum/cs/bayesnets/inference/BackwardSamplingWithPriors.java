@@ -60,8 +60,9 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 		}
 		
 		@Override
-		public void applyWeight(WeightedSample s, int sampledValue) {
-			s.weight *= Z / parentProbs.get(sampledValue);
+		public double getWeightingFactor(int sampledValue) {
+			// child_prob / ((child_prob * parent_prob) / Z) = Z / parent_prob
+			return Z / parentProbs.get(sampledValue);
 		}
 	}
 	
