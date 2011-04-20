@@ -47,8 +47,12 @@ public class BackwardSampling extends Sampler {
 			Z += p;
 		}
 		
+		public double getWeightingFactor(int sampledValue) {
+			return Z;
+		}
+		
 		public void applyWeight(WeightedSample s, int sampledValue) {
-			s.weight *= Z;
+			s.weight *= getWeightingFactor(sampledValue);
 		}
 		
 		public void construct(BeliefNode node, int[] nodeDomainIndices) {
@@ -302,6 +306,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 	public void initSample(WeightedSample s) throws Exception {
 		s.nodeDomainIndices = evidenceDomainIndices.clone();
 		s.weight = 1.0;
+		s.trials = 1;
 	}
 	
 	protected boolean sampleForward(BeliefNode node, WeightedSample s) {
