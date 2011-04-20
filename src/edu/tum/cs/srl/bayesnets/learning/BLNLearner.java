@@ -141,6 +141,8 @@ public class BLNLearner implements IParameterHandler {
 			boolean learnParams = true;
 			if(learnParams) {
 				System.out.println("Learning parameters...");
+				if(uniformDefault)
+					System.out.println("  option: uniform distribution is assumed as default");
 				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
 				paramHandler.addSubhandler(cptLearner);
 				//cptLearner.setUniformDefault(true);
@@ -150,14 +152,14 @@ public class BLNLearner implements IParameterHandler {
 					cptLearner.finish();
 				// write learnt BLOG/ABL model
 				if(outFileDecls != null) {
-					System.out.println("Writing "+ acronym + " output to " + outFileDecls + "...");
+					System.out.println("Writing declarations to " + outFileDecls + "...");
 					PrintStream out = new PrintStream(new File(outFileDecls));
 					bn.write(out);			
 					out.close();
 				}
 				// write parameters to Bayesian network template
 				if(outFileNetwork != null) {
-					System.out.println("Writing network output to " + outFileNetwork + "...");
+					System.out.println("Writing network to " + outFileNetwork + "...");
 					bn.save(outFileNetwork);
 				}
 			}
