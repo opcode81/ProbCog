@@ -231,7 +231,11 @@ public class WeightedSample implements Cloneable{
 			if(i > 0)
 				cond.append(", ");
 			cond.append(domain_product[i].getName()).append(" = ");
-			cond.append(domain_product[i].getDomain().getName(nodeDomainIndices[this.bn.getNodeIndex(domain_product[i])]));
+			int domIdx = nodeDomainIndices[this.bn.getNodeIndex(domain_product[i])];
+			if(domIdx >= 0)
+				cond.append(domain_product[i].getDomain().getName(domIdx));
+			else
+				cond.append(Integer.toString(domIdx));
 		}
 		return cond.toString();
 	}
