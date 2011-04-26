@@ -19,8 +19,8 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 		this.rbn = this;
 	}
 	
-	public AbstractBayesianLogicNetwork(String decls) throws Exception {
-		super(decls);
+	public AbstractBayesianLogicNetwork(String declsFile) throws Exception {
+		super(declsFile);
 		this.paramHandler = new ParameterHandler(this);
 		this.rbn = this;
 	}

@@ -23,12 +23,8 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		kb = new KnowledgeBase();
 	}
 
-	public BayesianLogicNetwork(File declsFile) throws Exception {
-		this(FileUtil.readTextFile(declsFile));				
-	}
-	
-	public BayesianLogicNetwork(String decls) throws Exception {
-		super(decls);
+	public BayesianLogicNetwork(String declsFile) throws Exception {
+		super(declsFile);				
 		if(kb == null)
 			kb = new KnowledgeBase();
 	}
