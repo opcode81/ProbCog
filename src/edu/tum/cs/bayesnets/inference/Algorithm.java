@@ -28,7 +28,8 @@ public enum Algorithm {
 	SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 	//VarElim("variable elimination (exact)", BNJVariableElimination.class),
 	VarElim("variable elimination (exact)", VariableElimination.class),
-	BackwardSampleSearch("Backward Sample Searching","dev.BackwardSampleSearch"),
+	BackwardSampleSearch("Backward SampleSearch","dev.BackwardSampleSearch"),
+	BackwardSampleSearchIB("Backward SampleSearch with intelligent backtracking","dev.BackwardSampleSearchIB"),
 	ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", ACE.class);
 	
 	String description;
