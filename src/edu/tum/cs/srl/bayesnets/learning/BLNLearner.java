@@ -84,10 +84,7 @@ public class BLNLearner implements IParameterHandler {
 					throw new IllegalArgumentException("No network file given");
 				}
 				// 	create an ABL model			
-				if(declsFile != null)
-					bn = new ABLModel(declsFile, bifFile);
-				else
-					bn = new ABLModel(new File(bifFile));
+				bn = new ABLModel(declsFile, bifFile);
 			}
 			
 			// prepare it for learning
