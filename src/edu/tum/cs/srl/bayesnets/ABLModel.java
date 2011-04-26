@@ -37,6 +37,7 @@ import edu.tum.cs.util.StringTool;
 public class ABLModel extends RelationalBeliefNetwork {
 	
 	protected File networkFile = null;
+	protected File[] declsFiles = null;
 	
 	/**
 	 * constructs a model by obtaining the node data from a fragment
@@ -48,8 +49,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * @throws Exception
 	 */
 	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {
-		String decls = readBlogContent(declarationsFiles);
-		init(decls, networkFile);
+		init(declarationsFiles, networkFile);
 	}
 	
 	/**
@@ -57,34 +57,32 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * network template and function signatures from a BLOG file.
 	 * 
 	 * @param declarationsFile
-	 * @param xmlbifFile
-	 * @throws Exception
-	 */
-	public ABLModel(String declarationsFile, String networkFile) throws Exception {
-		this(new String[] { declarationsFile }, networkFile);
-	}
-
-	/**
-	 * constructs a BLOG model from a Bayesian network template. The function
-	 * signatures are derived from node/parameter names.
-	 * 
 	 * @param networkFile
 	 * @throws Exception
 	 */
-	public ABLModel(File networkFile) throws Exception {
-		init(null, networkFile.toString());
+	public ABLModel(String declarationsFile, String networkFile) throws Exception {
+		String[] decls = null;
+		if(declarationsFile != null)
+			decls = new String[] { declarationsFile };
+		init(decls, networkFile);
+	}
+
+	public ABLModel(String declarationsFile) throws Exception {
+		if(declarationsFile == null)
+			throw new Exception("Declarations file cannot be null");
+		init(new String[]{ declarationsFile }, null);
 	}
 	
-	public ABLModel(String decls) throws Exception {
-		init(decls, null);
-	}
-	
-	protected void init(String decls, String networkFile) throws Exception {
+	private void init(String[] declarationsFiles, String networkFile) throws Exception {
 		if(networkFile != null)
 			this.networkFile = new File(networkFile);
 		boolean guessedSignatures = true;
-		if(decls != null) {
-			readDeclarations(decls);
+		if(declarationsFiles != null) {
+			declsFiles = new File[declarationsFiles.length];
+			for(int i = 0; i < declarationsFiles.length; i++)
+				declsFiles[i] = new File(declarationsFiles[i]).getAbsoluteFile();
+			String content = readBlogContent(declarationsFiles);
+			readDeclarations(content);
 			guessedSignatures = false;
 		}
 		if(this.networkFile == null)
@@ -227,18 +225,33 @@ public class ABLModel extends RelationalBeliefNetwork {
 			Pattern pat = Pattern.compile("fragments\\s+([^\\s]+)\\s*;?");
 			Matcher matcher = pat.matcher(line);			
 			if(matcher.matches()) {
-				File f = new File(matcher.group(1)).getAbsoluteFile();
+				String filename = matcher.group(1);
+				File f = findReferencedFile(filename);
+				if(f == null)
+					throw new Exception("Declared fragments file " + filename + " could not be found");					
 				if(networkFile != null) { // if we already have another network file, then the one that is declared here is not used
-					System.err.println("Declared network file " + f + " is overridden by " + networkFile);
+					System.err.println("Notice: Declared network file " + filename + " is overridden by " + networkFile);
 					return true;			
 				}				
-				if(!f.exists())
-					throw new Exception("Fragments file " + f + " does not exist");					
 				networkFile = f;
 				return true;
 			}
 		}
 		return false;
+	}
+	
+	protected File findReferencedFile(String filename) {
+		File f = new File(filename).getAbsoluteFile();
+		if(f.exists())
+			return f;
+		else {
+			for(File parentFile : this.declsFiles) {
+				f = new File(parentFile, filename).getAbsoluteFile();
+				if(f.exists())
+					return f;
+			}
+		}
+		return null;
 	}
 	
 	/**
