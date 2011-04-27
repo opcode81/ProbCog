@@ -99,7 +99,6 @@ public class SampleSearch extends Sampler {
 	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
-		createDistribution();
 		out.println("sampling...");
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
@@ -173,6 +172,7 @@ public class SampleSearch extends Sampler {
 		}
 		sw.stop();
 		out.println("ApproxWeighting,Q has length:"+maxQ.size());
+		SampledDistribution dist = distributionBuilder.getDistribution();
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
 		return dist;
 	}

@@ -20,7 +20,6 @@ public class LikelihoodWeighting extends Sampler {
 	public SampledDistribution _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
-		createDistribution();
 		out.println("sampling...");
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
@@ -45,6 +44,7 @@ public class LikelihoodWeighting extends Sampler {
 				break;
 		}
 		sw.stop();
+		SampledDistribution dist = distributionBuilder.getDistribution();
 		out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
 		return dist;
 	}
@@ -71,7 +71,7 @@ loop:	while(!successful) {
 					double prob = getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
 					if(prob == 0.0) {
 						if(debug)
-							out.println("!!! evidence probability was 0 at node " + nodes[nodeIdx] + " in step " + (dist.steps+1));
+							out.println("!!! evidence probability was 0 at node " + nodes[nodeIdx]);
 						continue loop;
 					}
 					s.weight *= prob;
@@ -81,7 +81,7 @@ loop:	while(!successful) {
 					domainIdx = sampleForward(nodes[nodeIdx], s.nodeDomainIndices);
 					if(domainIdx < 0) {
 						if(debug)
-							out.println("!!! could not sample forward because of column with only 0s in CPT of " + nodes[nodeIdx].getName() + " in step " + (dist.steps+1));
+							out.println("!!! could not sample forward because of column with only 0s in CPT of " + nodes[nodeIdx].getName());
 						bn.removeAllEvidences();
 						continue loop;
 					}

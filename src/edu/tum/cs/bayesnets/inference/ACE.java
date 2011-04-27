@@ -109,9 +109,9 @@ public class ACE extends Sampler {
 		}
 		
 		// create output distribution
+		SampledDistribution dist = createDistribution();
 		File marginalsFile = new File(bnFile.getName() + ".marginals");
 		if(verbose) System.out.println("reading results...");
-		this.createDistribution();
 		String results = FileUtil.readTextFile(marginalsFile);
 		if(debug)
 			System.out.println(results);
@@ -142,6 +142,7 @@ public class ACE extends Sampler {
 			cnt++;
 		}		
 		System.out.println(cnt + " marginals read");
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 		
 		// clean up
 		new File(bnFile.getName() + ".ac").delete();
@@ -163,5 +164,9 @@ public class ACE extends Sampler {
 	
 	protected static double parseDouble(String s) {
 		return Double.parseDouble(s.replace(',', '.'));
+	}
+	
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
 	}
 }

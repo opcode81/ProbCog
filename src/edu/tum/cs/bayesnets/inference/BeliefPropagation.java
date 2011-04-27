@@ -419,7 +419,7 @@ public class BeliefPropagation extends Sampler {
 		}
 		// compute probabilities and store results in distribution
 		if(verbose) out.println("computing results....");
-		this.createDistribution();
+		SampledDistribution dist = createDistribution();
 		dist.Z = 1.0;
 		for (BeliefNode n : nodes) {
 			int i = getNodeIndex(n);
@@ -439,7 +439,12 @@ public class BeliefPropagation extends Sampler {
 				dist.values[i][j] /= normalize;
 			}
 		}
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
+		
 		return dist;
 	}
 
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
+	}
 }

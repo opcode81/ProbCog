@@ -36,7 +36,7 @@ public class BNJInference extends Sampler {
 		algo.run(bn.bn);
 		
 		// retrieve results
-		createDistribution();
+		SampledDistribution dist = createDistribution();
 		for(int i = 0; i < nodes.length; i++) {
 			CPF cpf = algo.queryMarginal(nodes[i]);
 			for(int j = 0; j < dist.values[i].length; j++)
@@ -45,6 +45,7 @@ public class BNJInference extends Sampler {
 		dist.Z = 1.0;
 		dist.steps = 1;
 		dist.trials = 1;
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 
 		// remove evidence
 		bn.removeAllEvidences();
@@ -52,4 +53,7 @@ public class BNJInference extends Sampler {
 		return dist;
 	}
 	
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
+	}	
 }

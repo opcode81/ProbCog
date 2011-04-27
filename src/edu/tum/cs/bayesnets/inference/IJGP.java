@@ -64,6 +64,10 @@ public class IJGP extends Sampler {
 	 * bn.bn.getNodes(); jg = new JoinGraph(bn, bound); jg.print(out);
 	 * jgNodes = jg.getTopologicalorder(); // construct join-graph }
 	 */
+	
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
+	}
 
 	@Override
 	public SampledDistribution _infer() throws Exception {
@@ -153,7 +157,7 @@ public class IJGP extends Sampler {
 
 		// compute probabilities and store results in distribution
 		out.println("computing results...");
-		this.createDistribution();
+		SampledDistribution dist = createDistribution();
 		dist.Z = 1.0;
 		for (int i = 0; i < nodes.length; i++) {
 			//out.println("Computing: " + nodes[i].getName() + "\n");
@@ -195,6 +199,7 @@ public class IJGP extends Sampler {
 				dist.values[i][j] /= Z;
 		}
 		// dist.print(out);
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 		return dist;
 	}
 

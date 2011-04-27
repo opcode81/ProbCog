@@ -24,7 +24,6 @@ public class EnumerationAsk extends Sampler {
 		Stopwatch sw = new Stopwatch();
 		numPathsPruned = 0;
 		numWorldsPruned = numWorldsCounted = 0;
-		createDistribution();
 		if(verbose) out.printf("enumerating %s worlds...\n", numTotalWorlds);
 		sw.start();
 		WeightedSample s = new WeightedSample(bn);
@@ -32,8 +31,8 @@ public class EnumerationAsk extends Sampler {
 		timer.start();		
 		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0, 1); 
 		sw.stop();
-		report(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), dist.steps, numPathsPruned));
-		return dist;
+		report(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), numWorldsCounted, numPathsPruned));
+		return distributionBuilder.getDistribution();
 	}
 	
 	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws Exception {
