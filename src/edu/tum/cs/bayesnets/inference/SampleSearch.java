@@ -7,8 +7,6 @@ import java.util.Vector;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.bayesnets.util.TopologicalOrdering;
-import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.util.Stopwatch;
 
 /**
@@ -43,10 +41,10 @@ public class SampleSearch extends Sampler {
 	public SampleSearch(BeliefNetworkEx bn) throws Exception {
 		super(bn);
 				
-/*		this.paramHandler.add("importanceFunction", "setImportanceFunction");
+		this.paramHandler.add("importanceFunction", "setImportanceFunction");
 		this.paramHandler.add("ifSteps", "setImportanceFunctionSteps");
 		this.paramHandler.add("bpSteps", "setImportanceFunctionSteps");
-		this.paramHandler.add("ijgpSteps", "setImportanceFunctionSteps");*/
+		this.paramHandler.add("ijgpSteps", "setImportanceFunctionSteps");
 		this.paramHandler.add("unbiased", "setUseProperWeighting");
 	}
 	
