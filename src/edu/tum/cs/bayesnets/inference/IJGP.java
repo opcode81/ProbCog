@@ -70,7 +70,7 @@ public class IJGP extends Sampler {
 	}
 
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		// Create topological order
 		if(verbose) out.println("determining order...");
 		jgNodes = jg.getTopologicalorder();
@@ -200,7 +200,6 @@ public class IJGP extends Sampler {
 		}
 		// dist.print(out);
 		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
-		return dist;
 	}
 
 	protected void computeSum(int i, BeliefNode[] varsToSumOver,

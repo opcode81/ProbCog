@@ -211,7 +211,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {		
+	public void _infer() throws Exception {		
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
@@ -231,7 +231,6 @@ public class BackwardSampling extends Sampler {
 		
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
-		return dist;
 	}
 	
 	/**

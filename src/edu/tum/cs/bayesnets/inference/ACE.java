@@ -92,7 +92,7 @@ public class ACE extends Sampler {
 	}
 	
 	@Override
-	protected SampledDistribution _infer() throws Exception {
+	protected void _infer() throws Exception {
 		// run Ace inference
 		if(verbose) System.out.println("evaluating...");
 		BufferedInputStream is = runAce("evaluate", bnFile.getName() + " " + instFile.getName());		
@@ -147,11 +147,9 @@ public class ACE extends Sampler {
 		// clean up
 		new File(bnFile.getName() + ".ac").delete();
 		new File(bnFile.getName() + ".lmap").delete();
-//		bnFile.delete();
-//		instFile.delete();
-//		marginalsFile.delete();
-		
-		return dist;
+		bnFile.delete();
+		instFile.delete();
+		marginalsFile.delete();
 	}
 	
 	public double getAceCompileTime() {

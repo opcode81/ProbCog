@@ -24,7 +24,7 @@ public class SmileInference extends Sampler {
 	//	new java.io.File("temp.net").delete();
 	}
 
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		net.setBayesianAlgorithm(algorithmID);
 		net.setSampleCount(numSamples);
 		
@@ -48,8 +48,6 @@ public class SmileInference extends Sampler {
 		}
 		dist.Z = 1.0;
 		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
-		
-		return dist;
 	}
 	
 	protected IDistributionBuilder createDistributionBuilder() {

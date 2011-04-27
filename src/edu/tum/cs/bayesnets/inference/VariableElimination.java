@@ -243,7 +243,7 @@ public class VariableElimination extends Sampler {
 		dist.values[nodeIdx] = marginal;
 	}
 	
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		
 		sw.start();
@@ -256,7 +256,6 @@ public class VariableElimination extends Sampler {
 		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 		
 		sw.stop();
-		return dist;
 	}
 	
 	protected IDistributionBuilder createDistributionBuilder() {

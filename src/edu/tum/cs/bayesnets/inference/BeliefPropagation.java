@@ -228,7 +228,7 @@ public class BeliefPropagation extends Sampler {
 	}
 
 	@Override
-	protected SampledDistribution _infer() throws Exception {
+	protected void _infer() throws Exception {
 		// initialization of lambda and pi.
 		priors = bn.computePriors(evidenceDomainIndices);
 		for (BeliefNode n : nodes){
@@ -440,8 +440,6 @@ public class BeliefPropagation extends Sampler {
 			}
 		}
 		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
-		
-		return dist;
 	}
 
 	protected IDistributionBuilder createDistributionBuilder() {
