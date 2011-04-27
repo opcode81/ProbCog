@@ -113,9 +113,9 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	/**
 	 * polls the results during time-limited inference
 	 * @return
-	 * @throws CloneNotSupportedException 
+	 * @throws Exception 
 	 */
-	public synchronized SampledDistribution pollResults() throws CloneNotSupportedException {
+	public synchronized SampledDistribution pollResults() throws Exception {
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		if(dist == null)
 			return null;

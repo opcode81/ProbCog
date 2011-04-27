@@ -327,16 +327,15 @@ public class LiftedBackwardSampling extends Sampler {
 		}
 		
 		@Override
-		public SampledDistribution _infer() throws Exception {
+		public void _infer() throws Exception {
 			probSW = new Stopwatch();
 			distSW = new Stopwatch();
-			SampledDistribution d = super.infer();
+			super._infer();
 			System.out.println("prob time: " + probSW.getElapsedTimeSecs());
 			System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
 			System.out.println("dist time: " + distSW.getElapsedTimeSecs());
 			System.out.println(String.format("  cache hit ratio: %f (%d accesses)", this.distCache.getHitRatio(), this.distCache.getNumAccesses()));
 			System.out.println();
-			return d;
 		}
 	}
 }

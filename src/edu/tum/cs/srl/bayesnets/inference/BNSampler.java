@@ -75,7 +75,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		return "BNInference:" + samplerClass.getSimpleName();
 	}
 	
-	public SampledDistribution pollResults() throws CloneNotSupportedException {
+	public SampledDistribution pollResults() throws Exception {
 		if(sampler == null)
 			return null;
 		return sampler.pollResults();
