@@ -250,14 +250,13 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		probSW = new Stopwatch();
 		distSW = new Stopwatch();
-		SampledDistribution d = super._infer();
+		super._infer();
 		report("prob time: " + probSW.getElapsedTimeSecs());
 		report(String.format("  cache hit ratio: %f (%d accesses)", this.probCache.getHitRatio(), this.probCache.getNumAccesses()));
 		report("dist time: " + distSW.getElapsedTimeSecs());
 		report(String.format("  cache hit ratio: %f (%d accesses)", this.distCache.getHitRatio(), this.distCache.getNumAccesses()));
-		return d;
 	}
 }

@@ -20,7 +20,7 @@ public class GibbsSampling extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 
 		// get initial setting with non-zero evidence probability
@@ -44,7 +44,6 @@ public class GibbsSampling extends Sampler {
 
 		sw.stop();
 		report(String.format("time taken: %.2fs (%.4fs per sample)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples));
-		return distributionBuilder.getDistribution();
 	}
 	
 	public void gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {

@@ -17,7 +17,7 @@ public class LikelihoodWeighting extends Sampler {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public void _infer() throws Exception {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		out.println("sampling...");
@@ -46,7 +46,6 @@ public class LikelihoodWeighting extends Sampler {
 		sw.stop();
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
-		return dist;
 	}
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {

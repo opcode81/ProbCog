@@ -1,11 +1,12 @@
-/*
- * Created on Apr 27, 2011
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
 package edu.tum.cs.bayesnets.inference;
 
+/**
+ * Distribution builder that builds up a distribution at once -
+ * simply by setting the entire distribution. 
+ * This is for non-sampling-based algorithms
+ * 
+ * @author jain
+ */
 public class ImmediateDistributionBuilder implements IDistributionBuilder {
 
 	protected SampledDistribution d;

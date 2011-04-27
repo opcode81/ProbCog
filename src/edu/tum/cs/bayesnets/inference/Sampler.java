@@ -228,7 +228,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		generator.setSeed(seed);
 	}
 	
-	protected abstract SampledDistribution _infer() throws Exception;
+	protected abstract void _infer() throws Exception;
 	protected void _initialize() throws Exception {}
 	
 	/**
@@ -256,13 +256,13 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		// run inference
 		Stopwatch sw = new Stopwatch();
 		sw.start();
-		SampledDistribution ret = _infer();
+		_infer();
 		inferenceTime = sw.getElapsedTimeSecs();
 		
 		report(String.format("total inference time: %fs (initialization: %fs; core %fs)\n", getTotalInferenceTime(), getInitTime(), getInferenceTime()));
 		if(verbose) out.print(report.toString());
 		
-		return ret;
+		return distributionBuilder.getDistribution();
 	}
 	
 	/**

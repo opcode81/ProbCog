@@ -24,7 +24,7 @@ public class BNJInference extends Sampler {
 	}
 
 	@Override
-	public SampledDistribution _infer()
+	public void _infer()
 			throws Exception {
 		// set evidence
 		for(int i = 0; i < evidenceDomainIndices.length; i++)
@@ -49,8 +49,6 @@ public class BNJInference extends Sampler {
 
 		// remove evidence
 		bn.removeAllEvidences();
-		
-		return dist;
 	}
 	
 	protected IDistributionBuilder createDistributionBuilder() {
