@@ -15,7 +15,6 @@ import edu.tum.cs.util.Stopwatch;
 
 public abstract class Sampler implements ITimeLimitedInference, IParameterHandler {
 	public BeliefNetworkEx bn;
-	public SampledDistribution dist;
 	public HashMap<BeliefNode, Integer> nodeIndices;
 	public Random generator;
 	public BeliefNode[] nodes;
@@ -26,6 +25,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	protected boolean verbose;
 	protected PrintStream out;
 	protected boolean initialized = false;
+	protected IDistributionBuilder distributionBuilder;
 	
 	/**
 	 * general sampler setting: how many samples to pull from the distribution
@@ -60,10 +60,11 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		paramHandler.add("verbose", "setVerbose");
 	}
 	
-	protected void createDistribution() throws Exception {
-		this.dist = new SampledDistribution(bn);
+	protected SampledDistribution createDistribution() throws Exception {
+		SampledDistribution dist = new SampledDistribution(bn);
 		dist.setDebugMode(debug);
 		paramHandler.addSubhandler(dist.getParameterHandler());
+		return dist;
 	}
 	
 	protected synchronized void addSample(WeightedSample s) throws Exception {
@@ -73,8 +74,8 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 				if(evidenceDomainIndices[i] >= 0 && s.nodeDomainIndices[i] != evidenceDomainIndices[i])
 					throw new Exception("Attempted to add sample to distribution that does not respect evidence");
 		}
-		// add to distribution
-		this.dist.addSample(s);
+		// add to distribution builder
+		distributionBuilder.addSample(s);
 	}
 	
 	public void setQueryVars(Collection<Integer> queryVars) {
@@ -83,6 +84,9 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	}
 	
 	protected boolean converged() throws Exception {
+		if(!(this.distributionBuilder instanceof DirectDistributionBuilder))
+			return false;
+		SampledDistribution dist = distributionBuilder.getDistribution();
 		if(dist.getNumSamples() % this.convergenceCheckInterval != 0)
 			return false; // TODO assumes that all algorithms call this method after each step
 		// determine convergence based on confidence interval sizes
@@ -112,6 +116,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	 * @throws CloneNotSupportedException 
 	 */
 	public synchronized SampledDistribution pollResults() throws CloneNotSupportedException {
+		SampledDistribution dist = distributionBuilder.getDistribution();
 		if(dist == null)
 			return null;
 		return dist.clone();
@@ -233,6 +238,8 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		_initialize();
+		createDistribution();
+		distributionBuilder = createDistributionBuilder();
 		sw.stop();
 		initTime = sw.getElapsedTimeSecs();
 		initialized = true;
@@ -256,6 +263,15 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		if(verbose) out.print(report.toString());
 		
 		return ret;
+	}
+	
+	/**
+	 * @return returns the distribution builder that creates the distribution 
+	 * based on weighted samples
+	 * @throws Exception 
+	 */
+	protected IDistributionBuilder createDistributionBuilder() throws Exception {
+		return new DirectDistributionBuilder(createDistribution());
 	}
 	
 	/**

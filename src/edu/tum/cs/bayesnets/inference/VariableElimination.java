@@ -15,9 +15,10 @@ import edu.tum.cs.util.StringTool;
  * @author jain
  */
 public class VariableElimination extends Sampler {
-	int[] nodeOrder;
-	Stopwatch timer;
-	int[] nodeDomainIndices;
+	protected int[] nodeOrder;
+	protected Stopwatch timer;
+	protected int[] nodeDomainIndices;
+	protected SampledDistribution dist;
 	
 	public VariableElimination(BeliefNetworkEx bn) throws Exception {
 		super(bn);
@@ -245,16 +246,20 @@ public class VariableElimination extends Sampler {
 	public SampledDistribution _infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
 		
-		createDistribution();
-		dist.Z = 1.0;
-		
 		sw.start();
-		
+
+		dist = createDistribution();
+		dist.Z = 1.0;
 		nodeDomainIndices = evidenceDomainIndices.clone();
 		for(Integer nodeIdx : queryVars)
-			computeMarginal(nodes[nodeIdx]);
+			computeMarginal(nodes[nodeIdx]);		
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 		
 		sw.stop();
 		return dist;
+	}
+	
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
 	}
 }

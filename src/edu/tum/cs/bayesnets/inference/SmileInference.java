@@ -41,13 +41,18 @@ public class SmileInference extends Sampler {
 		
 		// store results in distribution
 		System.out.println("reading results...");
-		this.createDistribution();
+		SampledDistribution dist = createDistribution();
 		for(int i = 0; i < nodes.length; i++) {			
 			double[] values = net.getNodeValue("N" + i);
 			dist.values[i] = values;
 		}
 		dist.Z = 1.0;
+		((ImmediateDistributionBuilder)distributionBuilder).setDistribution(dist);
 		
 		return dist;
-	}	
+	}
+	
+	protected IDistributionBuilder createDistributionBuilder() {
+		return new ImmediateDistributionBuilder();
+	}
 }

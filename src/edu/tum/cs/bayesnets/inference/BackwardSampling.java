@@ -215,7 +215,6 @@ public class BackwardSampling extends Sampler {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
-		this.createDistribution();
 		if(verbose) out.println("sampling...");
 		WeightedSample s = new WeightedSample(this.bn, evidenceDomainIndices.clone(), 1.0, null, 0);
 		for(currentStep = 1; currentStep <= this.numSamples; currentStep++) {	
@@ -229,8 +228,10 @@ public class BackwardSampling extends Sampler {
 		}
 		
 		sw.stop();
+		
+		SampledDistribution dist = distributionBuilder.getDistribution();
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
-		return this.dist;
+		return dist;
 	}
 	
 	/**

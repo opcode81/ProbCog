@@ -22,7 +22,6 @@ public class GibbsSampling extends Sampler {
 	
 	public SampledDistribution _infer() throws Exception {
 		Stopwatch sw = new Stopwatch();
-		createDistribution();		
 
 		// get initial setting with non-zero evidence probability
 		out.println("initial setting...");
@@ -44,8 +43,8 @@ public class GibbsSampling extends Sampler {
 		}
 
 		sw.stop();
-		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/step)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep()));
-		return dist;
+		report(String.format("time taken: %.2fs (%.4fs per sample)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples));
+		return distributionBuilder.getDistribution();
 	}
 	
 	public void gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {
