@@ -188,7 +188,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 					double v1 = referenceDist.getProbability(i, j);
 					double v2 = otherDist.getProbability(i2, j);
 					for(DistributionEntryComparison p : processors)
-						p.process(i, j, v1, v2);
+						p.process(i, j, referenceDist.values[i].length, v1, v2);
 				}
 			}			
 		}
@@ -212,7 +212,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		public DistributionEntryComparison(BasicSampledDistribution refDist) {
 			this.refDist = refDist;
 		}
-		public abstract void process(int varIdx, int domIdx, double p1, double p2);
+		public abstract void process(int varIdx, int domIdx, int domSize, double p1, double p2);
 		public abstract double getResult();
 		public void printResult() {
 			System.out.printf("%s = %s\n", getClass().getSimpleName(), getResult());
@@ -225,7 +225,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			super(refDist);
 		}
 		@Override
-		public void process(int varIdx, int domIdx, double p1, double p2) {
+		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
 			++cnt;
 			double error = p1-p2;
 			error *= error;
@@ -237,31 +237,60 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		}
 	}
 	
+	public static class MeanAbsError extends DistributionEntryComparison {
+		double sum = 0.0; int cnt = 0;
+		public MeanAbsError(BasicSampledDistribution refDist) {
+			super(refDist);
+		}
+		@Override
+		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
+			++cnt;
+			double error = Math.abs(p1-p2);
+			sum += error;
+		}
+		@Override
+		public double getResult() {
+			return sum/cnt;
+		}
+	}
+	
+	public static class MaxAbsError extends DistributionEntryComparison {
+		double max = 0.0;
+		public MaxAbsError(BasicSampledDistribution refDist) {
+			super(refDist);
+		}
+		@Override
+		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
+			double error = Math.abs(p1-p2);
+			if(error > max)
+				max = error;
+		}
+		@Override
+		public double getResult() {
+			return max;
+		}
+	}
+	
 	public static class HellingerDistance extends DistributionEntryComparison {
 		double BhattacharyyaCoefficient = 0.0;
 		double sum = 0.0;
-		int prevVarIdx = -1;
 		int numVars = 0;
 		public HellingerDistance(BasicSampledDistribution refDist) {
 			super(refDist);
 		}
 		@Override
-		public void process(int varIdx, int domIdx, double p1, double p2) {
-			if(prevVarIdx != varIdx) {
-				//if(prevVarIdx >= 0) 
-				//	System.out.printf("BC(%s) = %s\n", refDist.getVariableName(prevVarIdx), BhattacharyyaCoefficient);
-				prevVarIdx = varIdx;
+		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
+			BhattacharyyaCoefficient += Math.sqrt(p1*p2);
+			if(domIdx+1 == domSize) {
 				numVars++;
-				sum += BhattacharyyaCoefficient;
+				double Hellinger = Math.sqrt(1.0 - BhattacharyyaCoefficient); 
+				sum += Hellinger;
 				BhattacharyyaCoefficient = 0;
 			}
-			BhattacharyyaCoefficient += Math.sqrt(p1*p2);
 		}
 		@Override
 		public double getResult() {
-			sum += BhattacharyyaCoefficient;
-			sum /= numVars;
-			return Math.sqrt(1-sum);
+			return sum /= numVars;
 		}
 	}
 	
@@ -270,7 +299,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			super(refDist);
 		}
 		@Override
-		public void process(int varIdx, int domIdx, double p1, double p2) {
+		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
 			double error = p1 - p2;
 			if(error != 0.0) {
 				System.out.printf("%s=%s: %f %f -> %f\n", refDist.getVariableName(varIdx), refDist.getDomain(varIdx)[domIdx], p1, p2, error);

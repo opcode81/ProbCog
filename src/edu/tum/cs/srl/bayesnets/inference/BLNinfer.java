@@ -496,8 +496,10 @@ public class BLNinfer implements IParameterHandler {
 		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(d1, d2);
 		dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MeanSquaredError(d1));
+		dc.addEntryComparison(new BasicSampledDistribution.MeanAbsError(d1));
+		dc.addEntryComparison(new BasicSampledDistribution.MaxAbsError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.HellingerDistance(d1));
-		dc.compare();		
+		dc.compare();
 		dc.printResults();
 	}
 
