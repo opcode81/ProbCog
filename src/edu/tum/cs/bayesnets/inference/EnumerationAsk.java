@@ -31,7 +31,7 @@ public class EnumerationAsk extends Sampler {
 		timer.start();		
 		enumerateWorlds(s, nodeOrder, evidenceDomainIndices, 0, 1); 
 		sw.stop();
-		report(String.format("\ntime taken: %.2fs (%d worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), numWorldsCounted, numPathsPruned));
+		report(String.format("\ntime taken: %.2fs (%f worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), numWorldsCounted, numPathsPruned));
 	}
 	
 	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws Exception {
