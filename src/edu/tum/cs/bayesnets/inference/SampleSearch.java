@@ -44,8 +44,9 @@ public class SampleSearch extends Sampler {
 	
 	@Override
 	protected void _initialize() throws Exception {
-		// TODO should guarantee for BLNs that formula nodes appear as early as possible
+		// TODO could help to guarantee for BLNs that formula nodes appear as early as possible
 		nodeOrder = computeNodeOrdering();
+		samplingProb = new double[nodes.length];
 		
 		if(importanceFunction != ImportanceFunction.Prior) {
 			if(verbose) System.out.println("computing importance function with " + importanceFunction + "...");
@@ -87,85 +88,46 @@ public class SampleSearch extends Sampler {
 		Stopwatch sw = new Stopwatch();
 		out.println("sampling...");
 		sw.start();
-		WeightedSample s = new WeightedSample(bn);
-		Vector<WeightedSample> samples = new Vector<WeightedSample>();
 		
+		WeightedSample s = new WeightedSample(bn);		
 		for(int i = 1; i <= numSamples; i++) {
 			currentStep = i;
 			if(i % infoInterval == 0)
 				info(i);			
 			WeightedSample ret = getWeightedSample(s, nodeOrder, evidenceDomainIndices); 
 			if(ret != null) {
-				if(false) { // debugging of weighting
-					//out.print("w=" + ret.weight);
-					double prod = 1.0;
-					for(int j = 0; j < evidenceDomainIndices.length; j++)
-						if(true || evidenceDomainIndices[j] == -1) {
-							BeliefNode node = nodes[j];							
-							out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
-							double p = bn.getCPTProbability(node, s.nodeDomainIndices);
-							out.printf(" %f", p);
-							if(p == 0.0)
-								throw new Exception("Sample has 0 probability.");							
-							prod *= p;
-							if(prod == 0.0)
-								throw new Exception("Precision loss - product became 0");
-						}
-					//out.println();
-				}
-				//out.println("sample: "+ret.weight);
 				addSample(ret);
+				/*
+				// debugging of weighting
+				out.print("w=" + ret.weight);
+				double prod = 1.0;
+				for(int j = 0; j < evidenceDomainIndices.length; j++)
+					if(true || evidenceDomainIndices[j] == -1) {
+						BeliefNode node = nodes[j];							
+						out.print(" " + node.getName() + "=" + node.getDomain().getName(s.nodeDomainIndices[j]));
+						double p = bn.getCPTProbability(node, s.nodeDomainIndices);
+						out.printf(" %f", p);
+						if(p == 0.0)
+							throw new Exception("Sample has 0 probability.");							
+						prod *= p;
+						if(prod == 0.0)
+							throw new Exception("Precision loss - product became 0");
+					}
+				out.println();
+				*/
 			}
 			if(converged())
 				break;
 		}
 		
-/*
-		if(useProperWeighting){
-			//for (WeightedSample sample : samples){
-				//out.println("Sample: "+sample+"\n has weight:"+sample.weight);
-
-
-			for (WeightedSample sample : samples) {
-				sample.weight = 1.0;
-				Vector<Integer> partAssign = new Vector<Integer>();
-				if (debug) {
-					out.println("Sample:" + sample + "\n maxQ:" + maxQ);
-				}
-				// out.println("NEW SAMPLE ------------------------------------------------");
-
-				for (int i = 0; i < this.nodes.length; i++) {
-					int nodeIdx = nodeOrder[i];
-					partAssign.add(sample.nodeDomainIndices[nodeIdx]);
-					sample.weight *= getCPTProbability(nodes[nodeIdx], sample.nodeDomainIndices);
-					if (evidenceDomainIndices[nodeIdx] < 0) {
-						// if(debug)
-						// {out.println("PartAss:"+partAssign+"\n"+"max Q(x_i/Pa(xi))"+this.maxQ.get(partAssign));}
-						// out.println("Q:"+this.maxQ.get(partAssign)+"\n w:"+sample.weight);
-						sample.weight /= this.maxQ.get(partAssign);
-						// out.println("w'="+sample.weight);
-					}
-				}
-				// out.println("Adding s:"+sample+"\n weight:"+sample.weight);
-				// out.println("sample: weight"+sample.weight);
-				// out.println("sample:"+sample);
-				addSample(sample);	
-			}
-		}
-		sw.stop();
-		//out.println("ApproxWeighting,Q has length:"+maxQ.size());
-		 * 
-		 */
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
 	}
 	
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
-		s.trials = 0;
+		s.trials = 1;
 		s.operations = 0;	
-		s.weight = 1.0;
-		s.trials++;
-		samplingProb = new double[nodeOrder.length];
+		s.weight = 1.0;		
 		// assign values to the nodes in order
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
@@ -216,7 +178,6 @@ public class SampleSearch extends Sampler {
 					out.println("      impossible case; backtracking...");
 			}
 			// if we get here, we need to backtrack to the last non-evidence node
-			// TODO better: backtrack to last (non-evidence) parent of current node
 			s.trials++;
 			do {
 				// kill the current node's exclusions
