@@ -115,10 +115,9 @@ public class SampleSearchIB extends SampleSearch {
 	}
 
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
-		s.trials = 0;
+		s.trials = 1;
 		s.operations = 0;
 		s.weight = 1.0;
-		s.trials++;		
 
 		SamplingQueue queue = new SamplingQueue();		
 		PriorityQueue<BeliefNode> backtrack = new PriorityQueue<BeliefNode>(10, new BacktrackOrderingComparator());
@@ -126,7 +125,6 @@ public class SampleSearchIB extends SampleSearch {
 		DomainExclusions domExclusions = new DomainExclusions();
 
 		// assign values to the nodes in order
-		double[] samplingProb = new double[nodeOrder.length];
 		while(!queue.isEmpty() || backtracking) {
 			s.operations++;
 			int nodeIdx;
@@ -232,11 +230,7 @@ public class SampleSearchIB extends SampleSearch {
 				}
 			}
 		}			
-		
-		// we found a sample, determine its weight
-		for(int i = 0; i < this.nodes.length; i++) {
-			s.weight *= getCPTProbability(nodes[i], s.nodeDomainIndices) / samplingProb[i];
-		}
+ 
 		return s;
 	}
 	
