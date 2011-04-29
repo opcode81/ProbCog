@@ -29,6 +29,7 @@ public class TimeLimitedInference implements IParameterHandler {
 	protected Vector<Class<? extends DistributionEntryComparison>> comparisonClasses;
 	protected ParameterHandler paramHandler;
 	protected boolean verbose = true;
+	protected int[] evidenceDomainIndices = null;
 
 	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws Exception {
 		this.inference = inference;
@@ -86,11 +87,20 @@ public class TimeLimitedInference implements IParameterHandler {
 		return results;
 	}
 	
+	/**
+	 * sets evidence domain indices for distribution comparison (in order to be able to ignore
+	 * evidence variables in the comparisons)
+	 * @param evidenceDomainIndices
+	 */
+	public void setEvidenceDomainIndices(int[] evidenceDomainIndices) {
+		this.evidenceDomainIndices = evidenceDomainIndices;
+	}
+	
 	protected DistributionComparison doComparison(BasicSampledDistribution dist) throws Exception {
 		DistributionComparison dc = new DistributionComparison(this.referenceDistribution, dist);
 		for(Class<? extends DistributionEntryComparison> c : comparisonClasses) 
 			dc.addEntryComparison(c);
-		dc.compare();		
+		dc.compare(this.evidenceDomainIndices);		
 		dc.printResults();
 		return dc;
 	}

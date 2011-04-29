@@ -317,8 +317,10 @@ public class BLNinfer implements IParameterHandler {
 		
 		// read reference distribution if any
 		GeneralSampledDistribution referenceDist = null;
+		int[] evidenceDomainIndices = null; // to filter out evidence in distribution comparisons
 		if(referenceDistFile != null) {
 			referenceDist = GeneralSampledDistribution.fromFile(new File(referenceDistFile));
+			evidenceDomainIndices = gbln.getFullEvidence(gbln.getDatabase().getEntriesAsArray());
 		}
 		
 		// run inference
@@ -330,7 +332,7 @@ public class BLNinfer implements IParameterHandler {
 		// - set options
 		paramHandler.addSubhandler(sampler);
 		// - run inference
-		SampledDistribution dist;		
+		SampledDistribution dist;
 		if(timeLimitedInference) {
 			if(!(sampler instanceof ITimeLimitedInference)) 
 				throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");					
@@ -338,9 +340,10 @@ public class BLNinfer implements IParameterHandler {
 			if(!useMaxSteps)				
 				sampler.setNumSamples(Integer.MAX_VALUE);
 			sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
-			tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
+			tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);			
 			paramHandler.addSubhandler(tli);
 			tli.setReferenceDistribution(referenceDist);
+			tli.setEvidenceDomainIndices(evidenceDomainIndices);
 			if(samplerInitializationBeforeTimingStarts)
 				tliSampler.initialize(); // otherwise initialization is called by infer()
 			dist = tli.run();
@@ -382,7 +385,7 @@ public class BLNinfer implements IParameterHandler {
 		// compare distributions
 		if(referenceDist != null) {				
 			System.out.println("comparing to reference distribution...");
-			compareDistributions(referenceDist, dist, gbln.getFullEvidence(gbln.getDatabase().getEntriesAsArray()));
+			compareDistributions(referenceDist, dist, evidenceDomainIndices);
 		}
 		
 		return results;
