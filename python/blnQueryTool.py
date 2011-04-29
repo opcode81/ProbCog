@@ -1,7 +1,7 @@
 # BLN Query Tool
 #
 # (C) 2008-2011 by Dominik Jain
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -30,6 +30,7 @@ import re
 import pickle
 from fnmatch import fnmatch
 import traceback
+import widgets
 from widgets import *
 import configBLN as config
 
@@ -42,7 +43,7 @@ class BLNQuery:
     def __init__(self, master, dir, settings):
         self.initialized = False
         master.title("BLN Query Tool")
-        
+
         self.master = master
         self.settings = settings
         if not "queryByDB" in self.settings: self.settings["queryByDB"] = {}
@@ -66,7 +67,7 @@ class BLNQuery:
         # show button
         start_button = Button(frame, text="show", command=self.showBN)
         start_button.grid(row=0, column=1, sticky="NEWS")
-        
+
         # declarations selection
         row += 1
         Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
@@ -80,7 +81,7 @@ class BLNQuery:
         self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
         self.selected_bln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
-        
+
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
@@ -91,7 +92,7 @@ class BLNQuery:
         # inference method selection
         row += 1
         self.list_methods_row = row
-        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
+        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
         self.methods = {
             "Likelihood Weighting":"LikelihoodWeighting",
             "Gibbs Sampling":"GibbsSampling",
@@ -128,16 +129,16 @@ class BLNQuery:
         stored_method = self.settings.get("method")
         if stored_method is None or stored_method not in method_names:
             stored_method = "Likelihood Weighting" # default value
-        self.selected_method.set(stored_method) 
+        self.selected_method.set(stored_method)
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(method_names))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
-        self.selected_method.trace("w", self.changedMethod)        
+        self.selected_method.trace("w", self.changedMethod)
 
         # inference duration parameters
         row += 1
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
-        col = 0        
+        col = 0
         # steps
         # - checkbox
         self.use_max_steps = var = IntVar()
@@ -150,7 +151,7 @@ class BLNQuery:
         self.maxSteps = var = StringVar(master)
         var.set(self.settings.get("maxSteps", "1000"))
         self.entry_steps = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")        
+        entry.grid(row=0, column=col, sticky="NEW")
         # - interval entry
         col += 1
         frame.columnconfigure(col, weight=1)
@@ -178,7 +179,7 @@ class BLNQuery:
         self.timeInterval = var = StringVar(master)
         var.set(self.settings.get("timeInterval", "1"))
         self.entry_time_interval = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")        
+        entry.grid(row=0, column=col, sticky="NEW")
 
         # queries
         row += 1
@@ -236,13 +237,13 @@ class BLNQuery:
         start_button.grid(row=row, column=1, sticky="NEW", pady=(0,10))
 
         self.initialized = True
-        
+
         self.setOutputFilename()
         self.setGeometry()
-    
+
     def setAddParams(self):
         self.params.set(self.paramsDict.get(self.selected_method.get(), self.params.get()))
-    
+
     def setGeometry(self):
         g = self.settings.get("geometry")
         if g is None: return
@@ -251,14 +252,14 @@ class BLNQuery:
     def changedBLN(self, name):
         self.bln_filename = name
         #self.setOutputFilename()
-    
+
     def changedBIF(self, name):
         self.bif_filename = name
         self.setOutputFilename()
-    
+
     def changedBLOG(self, name):
         pass
-            
+
     def changedDB(self, name):
         self.db_filename = name
         self.setOutputFilename()
@@ -266,18 +267,18 @@ class BLNQuery:
         query = self.settings["queryByDB"].get(name)
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
-            
+
     def changedMethod(self, name, *args):
         self.setAddParams()
         self.setOutputFilename()
-        
+
     def setOutputFilename(self):
         if not self.initialized or not hasattr(self, "bif_filename") or not hasattr(self, "db_filename") or not hasattr(self, "selected_method"):
             return
         method = self.methods[self.selected_method.get()]
         fn = "%s-%s-%s.dist" % (os.path.splitext(self.bif_filename)[0], os.path.splitext(self.db_filename)[0], method)
         self.output_filename.set(fn)
-        
+
     def showBN(self):
         bif = self.selected_bif.get()
         if "spawnvp" in dir(os):
@@ -299,7 +300,7 @@ class BLNQuery:
         outfile = self.output_filename.get()
         cwPreds = self.cwPreds.get().strip().replace(" ", "")
         refdist = self.selected_refdist.get().strip()
-        
+
         # update settings
         self.settings["bln"] = bln
         self.settings["bln_rename"] = self.selected_bln.rename_on_edit.get()
@@ -316,7 +317,7 @@ class BLNQuery:
         self.settings["timeLimit"] = self.timeLimit.get()
         self.settings["timeInterval"] = self.timeInterval.get()
         self.settings["params"] = self.paramsDict
-        self.settings["query"] = self.query.get()        
+        self.settings["query"] = self.query.get()
         #self.settings["openWorld"] = self.open_world.get()
         self.settings["cwPreds"] = cwPreds
         #self.settings["numChains"] = self.numChains.get()
@@ -325,20 +326,20 @@ class BLNQuery:
         self.settings["output_filename"] = outfile
         self.settings["reference_distribution"] = refdist
         self.settings["saveResults"] = self.save_results.get()
-       
+
         # write query to settings
         self.settings["queryByDB"][db] = self.settings["query"]
 
         # write settings
         pickle.dump(self.settings, file(CONFIG_FILENAME, "w+"))
-        
+
         # hide main window
         self.master.withdraw()
-        
+
         # some information
         print "\n--- query ---\n%s" % self.settings["query"]
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
-        
+
         # create command to execute
         params = ["-ia", self.methods[method], '-x "%s"' % bif, '-b "%s"' % blog, '-l "%s"' % bln, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
         if addparams != "":
@@ -361,18 +362,21 @@ class BLNQuery:
             params.append('"--acePath=%s"' % config.acePath)
         command = 'BLNinfer %s' % " ".join(params)
 
-        # execute 
+        # execute
         print "\nstarting BLNinfer..."
         print "\ncommand:\n%s\n" % command
         t_start = time.time()
-        os.system(command)
+        try:
+			os.system(command)
+        except KeyboardInterrupt:
+            pass
         t_taken = time.time() - t_start
         print "\ntotal execution time: %.3f seconds" % t_taken
 
         # restore main window
         self.master.deiconify()
         self.setGeometry()
-        
+
         # update GUI
         # - reload files (in case they changed)
         self.selected_bln.reloadFile()
@@ -389,22 +393,25 @@ if __name__ == '__main__':
     if os.path.exists(CONFIG_FILENAME):
         try:
             settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file(CONFIG_FILENAME, "r").readlines())))
-        except: 
+        except:
             pass
-        
+
     # process command line arguments
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
+    parser.add_option("--noPMW", action="store_true", dest="noPMW", default=False, help="do not use Python mega widgets even if available")
     (options, args) = parser.parse_args()
-    
+
     settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
     if len(args) > 0:
         add_params = settings.get("params", "")
         settings["params"] = (add_params + " ".join(args)).strip()
-        
+
     # create gui/run
-    root = Tk()    
+    if options.noPMW:
+        widgets.havePMW = False
+    root = Tk()
     app = BLNQuery(root, ".", settings)
     if not options.run:
         root.mainloop()
