@@ -314,14 +314,12 @@ public class SampleSearch extends Sampler {
 	 */
 	protected class UnbiasedEstimator implements IDistributionBuilder {
 		protected Map2D<Integer,BigInteger,Double> maxQ;
-		protected HashMap<Vector<Integer>,Double> maxQ2;
 		protected Vector<WeightedSample> samples;
 		protected SampledDistribution dist;
 		protected boolean dirty = false;
 		
 		public UnbiasedEstimator() throws Exception {
 			maxQ = new Map2D<Integer,BigInteger,Double>();
-			maxQ2 = new HashMap<Vector<Integer>,Double>();
 			samples = new Vector<WeightedSample>();
 		}
 		
@@ -338,18 +336,7 @@ public class SampleSearch extends Sampler {
 					Double p = maxQ.get(i, partAssign);
 					if(p == null || samplingProb[nodeIdx] > p) {							
 						this.maxQ.put(i, partAssign, samplingProb[nodeIdx]);
-						//out.printf("[value %d/%d] setting %f for %s\n", s.nodeDomainIndices[nodeIdx], nodes[nodeIdx].getDomain().getOrder(), samplingProb[nodeIdx], partAssign);
 					}
-					p = maxQ2.get(partAssign2);
-					if(p == null || samplingProb[nodeIdx] > p) {
-						this.maxQ2.put((Vector<Integer>) partAssign2.clone(), samplingProb[nodeIdx]);
-					}
-					/*
-					if(p != null) {
-						if(samplingProb[nodeIdx] > p)
-							out.println("increasing from " + p + " to " + samplingProb[nodeIdx] + " for " + partAssign); 
-					}
-					*/
 				}
 			}
 			samples.add(s.clone());
@@ -365,19 +352,12 @@ public class SampleSearch extends Sampler {
 			for(WeightedSample s : samples) {
 				s.weight = 1.0;					
 				BigInteger partAssign = BigInteger.valueOf(0);
-				Vector<Integer> partAssign2 = new Vector<Integer>();
 				for(int i = 0; i < nodeOrder.length; i++) {
 					int nodeIdx = nodeOrder[i];					
 					if(evidenceDomainIndices[nodeIdx] < 0) {
 						partAssign = partAssign.multiply(BigInteger.valueOf(nodes[nodeIdx].getDomain().getOrder()));
 						partAssign = partAssign.add(BigInteger.valueOf(s.nodeDomainIndices[nodeIdx]));
-						partAssign2.add(s.nodeDomainIndices[nodeIdx]);
-						//s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / maxQ.get(partAssign);
-						Double p2 = maxQ2.get(partAssign2);
-						Double p = maxQ.get(i, partAssign);
-						if(!p.equals(p2))
-							System.err.println(p + " vs " + p2);
-						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / p;
+						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / maxQ.get(i, partAssign);
 					}
 					else
 						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
