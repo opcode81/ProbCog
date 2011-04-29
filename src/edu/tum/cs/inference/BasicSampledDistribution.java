@@ -186,18 +186,18 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		 * @throws Exception
 		 */
 		public void compare(int[] evidenceDomainIndices) throws Exception {
-			for(int i = 0; i < referenceDist.values.length; i++) {
+			for(int i = 0; i < otherDist.values.length; i++) {
 				if(evidenceDomainIndices != null && evidenceDomainIndices[i] >= 0)
 					continue;
-				String varName = referenceDist.getVariableName(i);
-				int i2 = otherDist.getVariableIndex(varName);
+				String varName = otherDist.getVariableName(i);
+				int i2 = referenceDist.getVariableIndex(varName);
 				if(i2 < 0) 
-					throw new Exception("Variable " + referenceDist.getVariableName(i) + " has no correspondence in second distribution");
-				for(int j = 0; j < referenceDist.values[i].length; j++) {
-					double v1 = referenceDist.getProbability(i, j);
-					double v2 = otherDist.getProbability(i2, j);
+					throw new Exception("Variable " + varName + " has no correspondence in reference distribution");
+				for(int j = 0; j < otherDist.values[i].length; j++) {
+					double v1 = referenceDist.getProbability(i2, j);
+					double v2 = otherDist.getProbability(i, j);
 					for(DistributionEntryComparison p : processors)
-						p.process(i, j, referenceDist.values[i].length, v1, v2);
+						p.process(i, j, otherDist.values[i].length, v1, v2);
 				}
 			}			
 		}
