@@ -52,6 +52,7 @@ public class BLNinfer implements IParameterHandler {
 	boolean resultsFilterEvidence = false;
 	double timeLimit = 10.0, infoIntervalTime = 1.0;
 	boolean timeLimitedInference = false;
+	boolean samplerInitializationBeforeTimingStarts = true;
 	String outputDistFile = null, referenceDistFile = null;
 	Map<String,Object> params;
 	AbstractBayesianLogicNetwork bln = null;
@@ -339,6 +340,8 @@ public class BLNinfer implements IParameterHandler {
 			TimeLimitedInference tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
 			paramHandler.addSubhandler(tli);
 			tli.setReferenceDistribution(referenceDist);
+			if(samplerInitializationBeforeTimingStarts)
+				tliSampler.initialize(); // otherwise initialization is called by infer()
 			dist = tli.run();
 			if(referenceDist != null)
 				System.out.println("MSEs: " + tli.getMSEs());
@@ -378,7 +381,7 @@ public class BLNinfer implements IParameterHandler {
 		// compare distributions
 		if(referenceDist != null) {				
 			System.out.println("comparing to reference distribution...");
-			compareDistributions(referenceDist, dist);
+			compareDistributions(referenceDist, dist, gbln.getFullEvidence(gbln.getDatabase().getEntriesAsArray()));
 		}
 		
 		return results;
@@ -492,14 +495,14 @@ public class BLNinfer implements IParameterHandler {
 		return n == 0;
 	}
 	
-	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2) throws Exception {
+	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2, int[] evidenceDomainIndices) throws Exception {
 		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(d1, d2);
 		dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MeanSquaredError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MeanAbsError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MaxAbsError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.HellingerDistance(d1));
-		dc.compare();
+		dc.compare(evidenceDomainIndices);
 		dc.printResults();
 	}
 
