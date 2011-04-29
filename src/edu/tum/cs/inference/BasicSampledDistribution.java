@@ -178,8 +178,17 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			addEntryComparison(c.getConstructor(BasicSampledDistribution.class).newInstance(referenceDist));
 		}
 		
-		public void compare() throws Exception {
+		/**
+		 * compare the (posterior marginal) distributions of the 
+		 * non-evidence variables, i.e. variables whose domain indices
+		 * in evidenceDomainIndices are < 0 
+		 * @param evidenceDomainIndices evidence domain indices, indexed by variable index
+		 * @throws Exception
+		 */
+		public void compare(int[] evidenceDomainIndices) throws Exception {
 			for(int i = 0; i < referenceDist.values.length; i++) {
+				if(evidenceDomainIndices != null && evidenceDomainIndices[i] >= 0)
+					continue;
 				String varName = referenceDist.getVariableName(i);
 				int i2 = otherDist.getVariableIndex(varName);
 				if(i2 < 0) 
@@ -191,6 +200,10 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 						p.process(i, j, referenceDist.values[i].length, v1, v2);
 				}
 			}			
+		}
+		
+		public void compare() throws Exception {
+			compare(null);
 		}
 		
 		public void printResults() {
