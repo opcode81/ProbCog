@@ -61,6 +61,7 @@ public class BLNinfer implements IParameterHandler {
 	Iterable<String> queries = null;
 	ParameterHandler paramHandler;	
 	Sampler sampler;
+	TimeLimitedInference tli;
 	
 	enum SortOrder implements Comparator<InferenceResult> { 
 		Atom {
@@ -337,7 +338,7 @@ public class BLNinfer implements IParameterHandler {
 			if(!useMaxSteps)				
 				sampler.setNumSamples(Integer.MAX_VALUE);
 			sampler.setInfoInterval(Integer.MAX_VALUE); // provide intermediate results only triggered by time-limited inference
-			TimeLimitedInference tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
+			tli = new TimeLimitedInference(tliSampler, timeLimit, infoIntervalTime);
 			paramHandler.addSubhandler(tli);
 			tli.setReferenceDistribution(referenceDist);
 			if(samplerInitializationBeforeTimingStarts)
@@ -509,5 +510,9 @@ public class BLNinfer implements IParameterHandler {
 	@Override
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
+	}
+	
+	public TimeLimitedInference getTimeLimitedInference() {
+		return this.tli;
 	}
 }
