@@ -7,6 +7,7 @@
 package edu.tum.cs.bayesnets.inference;
 
 public interface ITimeLimitedInference {
+	public void initialize() throws Exception;
 	public SampledDistribution infer() throws Exception;
 	public SampledDistribution pollResults() throws Exception;
 }
