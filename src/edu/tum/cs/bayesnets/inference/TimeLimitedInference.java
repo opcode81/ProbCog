@@ -61,9 +61,10 @@ public class TimeLimitedInference implements IParameterHandler {
 		if(!useIntervals) 
 			Thread.sleep((int)(1000*time));
 		else {
-			while(sw.getElapsedTimeSecs() < time && thread.isAlive()) {				
+			int numSteps = (int)(time / interval);
+			for(int i = 1; i <= numSteps && thread.isAlive(); i++) {							
 				Thread.sleep((int)(1000*interval));
-				if(verbose) System.out.println("polling results after " + sw.getElapsedTimeSecs() + "s...");
+				if(verbose) System.out.printf("polling results after %fs (interval %d)...\n", sw.getElapsedTimeSecs(), i);
 				SampledDistribution dist = pollResults(true);
 				if(verbose && dist != null) System.out.printf("%d samples taken\n", dist.steps);
 				if(referenceDistribution != null) {
