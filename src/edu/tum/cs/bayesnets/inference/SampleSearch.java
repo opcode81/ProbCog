@@ -8,6 +8,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.datastruct.Map2D;
 
 /**
  * simple implementation of the SampleSearch algorithm by Gogate & Dechter.
@@ -132,8 +133,6 @@ public class SampleSearch extends Sampler {
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		for(int i=0; i < nodeOrder.length;) {
 			s.operations++;
-			if(i == -1)
-				throw new Exception("It appears that the evidence is contradictory.");
 			int nodeIdx = nodeOrder[i];
 			int domainIdx = evidenceDomainIndices[nodeIdx];
 			// get domain exclusions
@@ -314,28 +313,36 @@ public class SampleSearch extends Sampler {
 	 * unbiased "max"-estimator (additional storage space and computation time required)
 	 */
 	protected class UnbiasedEstimator implements IDistributionBuilder {
-		protected HashMap<BigInteger,Double> maxQ;
+		protected Map2D<Integer,BigInteger,Double> maxQ;
+		protected HashMap<Vector<Integer>,Double> maxQ2;
 		protected Vector<WeightedSample> samples;
 		protected SampledDistribution dist;
 		protected boolean dirty = false;
 		
 		public UnbiasedEstimator() throws Exception {
-			maxQ = new HashMap<BigInteger,Double>();
+			maxQ = new Map2D<Integer,BigInteger,Double>();
+			maxQ2 = new HashMap<Vector<Integer>,Double>();
 			samples = new Vector<WeightedSample>();
 		}
 		
 		@Override
-		public synchronized void addSample(WeightedSample s) throws Exception {			
+		public synchronized void addSample(WeightedSample s) throws Exception {
 			BigInteger partAssign = BigInteger.valueOf(0);
-			for(int i = 0; i < nodeOrder.length; i++) {
+			Vector<Integer> partAssign2 = new Vector<Integer>();
+			for(int i = 0; i < nodeOrder.length; i++) {				
 				int nodeIdx = nodeOrder[i];
 				if(evidenceDomainIndices[nodeIdx] < 0) {
 					partAssign = partAssign.multiply(BigInteger.valueOf(nodes[nodeIdx].getDomain().getOrder()));
-					partAssign = partAssign.add(BigInteger.valueOf(s.nodeDomainIndices[nodeIdx]));					
-					Double p = maxQ.get(partAssign);
+					partAssign = partAssign.add(BigInteger.valueOf(s.nodeDomainIndices[nodeIdx]));
+					partAssign2.add(s.nodeDomainIndices[nodeIdx]);
+					Double p = maxQ.get(i, partAssign);
 					if(p == null || samplingProb[nodeIdx] > p) {							
-						this.maxQ.put(partAssign, samplingProb[nodeIdx]);
+						this.maxQ.put(i, partAssign, samplingProb[nodeIdx]);
 						//out.printf("[value %d/%d] setting %f for %s\n", s.nodeDomainIndices[nodeIdx], nodes[nodeIdx].getDomain().getOrder(), samplingProb[nodeIdx], partAssign);
+					}
+					p = maxQ2.get(partAssign2);
+					if(p == null || samplingProb[nodeIdx] > p) {
+						this.maxQ2.put((Vector<Integer>) partAssign2.clone(), samplingProb[nodeIdx]);
 					}
 					/*
 					if(p != null) {
@@ -358,12 +365,19 @@ public class SampleSearch extends Sampler {
 			for(WeightedSample s : samples) {
 				s.weight = 1.0;					
 				BigInteger partAssign = BigInteger.valueOf(0);
+				Vector<Integer> partAssign2 = new Vector<Integer>();
 				for(int i = 0; i < nodeOrder.length; i++) {
-					int nodeIdx = nodeOrder[i];
+					int nodeIdx = nodeOrder[i];					
 					if(evidenceDomainIndices[nodeIdx] < 0) {
 						partAssign = partAssign.multiply(BigInteger.valueOf(nodes[nodeIdx].getDomain().getOrder()));
 						partAssign = partAssign.add(BigInteger.valueOf(s.nodeDomainIndices[nodeIdx]));
-						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / maxQ.get(partAssign);
+						partAssign2.add(s.nodeDomainIndices[nodeIdx]);
+						//s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / maxQ.get(partAssign);
+						Double p2 = maxQ2.get(partAssign2);
+						Double p = maxQ.get(i, partAssign);
+						if(!p.equals(p2))
+							System.err.println(p + " vs " + p2);
+						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices) / p;
 					}
 					else
 						s.weight *= getCPTProbability(nodes[nodeIdx], s.nodeDomainIndices);
