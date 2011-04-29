@@ -40,7 +40,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	protected void initialize() throws Exception {
+	protected void _initialize() throws Exception {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);

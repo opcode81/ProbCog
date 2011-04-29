@@ -25,6 +25,7 @@ public abstract class Sampler implements IParameterHandler {
 	protected Vector<Integer> queryVars;
 	protected AbstractGroundBLN gbln;
 	double inferenceTime, initTime;
+	protected boolean initialized = false;
 	
 	public Sampler(AbstractGroundBLN gbln) throws Exception {
 		this.gbln = gbln;
@@ -75,17 +76,25 @@ public abstract class Sampler implements IParameterHandler {
 		infoInterval = n;
 	}
 	
-	protected void initialize() throws Exception {		
+	public final void initialize() throws Exception {
+		if(verbose) 
+			System.out.println("initializing...");
+		Stopwatch sw = new Stopwatch();
+		sw.start();
+		_initialize();
+		initTime = sw.getElapsedTimeSecs();
+		initialized = true;
+	}
+	
+	protected void _initialize() throws Exception {		
 	}
 	
 	public SampledDistribution infer() throws Exception {
 		// initialization
-		Stopwatch sw = new Stopwatch();
-		sw.start();
-		if(verbose) System.out.println("initializing...");
-		initialize();
-		initTime = sw.getElapsedTimeSecs();
+		if(!initialized)
+			initialize();
 		// actual inference
+		Stopwatch sw = new Stopwatch();
 		sw.start();
 		SampledDistribution ret = _infer();
 		inferenceTime = sw.getElapsedTimeSecs();

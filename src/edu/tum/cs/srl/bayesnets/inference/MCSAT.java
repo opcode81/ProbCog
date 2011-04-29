@@ -39,7 +39,11 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 	
 	public MCSAT(GroundBLN gbln) throws Exception {
 		super(gbln);
-		this.gbln = gbln;
+		this.gbln = gbln;		
+	}
+	
+	@Override
+	protected void _initialize() throws Exception {
 		kb = new WeightedClausalKB();		
 		// add weighted clauses for probabilistic constraints
 		for(BeliefNode n : gbln.getRegularVariables()) {
@@ -56,8 +60,9 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 			kb.addClause(new WeightedClause(f, hardWeight, true));
 		// clean up
 		hardConstraintsInCPTs = null;
+		// construct sampler
 		sampler = new edu.tum.cs.logic.sat.weighted.MCSAT(kb, gbln.getWorldVars(), gbln.getDatabase());
-		// parameter handling
+		// pass on parameter handling
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 	}
 	
