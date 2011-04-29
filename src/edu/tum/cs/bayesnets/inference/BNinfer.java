@@ -219,7 +219,7 @@ public class BNinfer {
 			// compare distributions
 			if(referenceDist != null) {				
 				System.out.println("comparing to reference distribution...");
-				BLNinfer.compareDistributions(referenceDist, dist);
+				BLNinfer.compareDistributions(referenceDist, dist, evidenceDomainIndices);
 			}
 		}
 		catch(Exception e) {
