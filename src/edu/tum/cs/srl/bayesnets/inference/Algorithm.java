@@ -37,6 +37,7 @@ public enum Algorithm {
 		SATISEx("SAT-IS, extended with constraints from CPDs", SATISEx.class, null),
 		SATISExGibbs("SAT-IS extended with interspersed Gibbs Sampling steps", SATISExGibbs.class, null),
 		SampleSearch("SampleSearch: backtracking search for satisfiable states", null, SampleSearch.class),
+		SampleSearchOld("SampleSearch: backtracking search for satisfiable states", "dev.SampleSearchOld"),
 		MCSAT("MC-SAT (MCMC method based on SAT-solving)", MCSAT.class, null),
 		IJGP("Iterative Join-Graph Propagation", null, IJGP.class),
 		BeliefPropagation("Belief Propagation", null, BeliefPropagation.class),
