@@ -116,6 +116,8 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	 * @throws Exception 
 	 */
 	public synchronized SampledDistribution pollResults() throws Exception {
+		if(distributionBuilder == null)
+			return null;
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		if(dist == null)
 			return null;
@@ -238,7 +240,6 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		_initialize();
-		createDistribution();
 		distributionBuilder = createDistributionBuilder();
 		sw.stop();
 		initTime = sw.getElapsedTimeSecs();
