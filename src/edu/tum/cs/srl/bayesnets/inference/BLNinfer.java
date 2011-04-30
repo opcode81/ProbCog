@@ -357,7 +357,8 @@ public class BLNinfer implements IParameterHandler {
 		}
 		this.inferenceTime = sampler.getInferenceTime();
 		this.inferenceInitTime = sampler.getInitTime();
-		this.stepsTaken = dist.steps;
+		if(dist != null)
+			this.stepsTaken = dist.steps;
 		sw.stop();
 		
 		// print results
@@ -383,7 +384,7 @@ public class BLNinfer implements IParameterHandler {
 		}
 		
 		// compare distributions
-		if(referenceDist != null) {				
+		if(referenceDist != null && dist != null) {				
 			System.out.println("comparing to reference distribution...");
 			compareDistributions(referenceDist, dist, evidenceDomainIndices);
 		}
