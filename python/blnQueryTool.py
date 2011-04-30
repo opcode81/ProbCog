@@ -107,6 +107,7 @@ class BLNQuery:
             "Backward Sampling with priors": "BackwardSamplingPriors",
             "Backward Sampling with children":"BackwardSamplingChildren",
             "SampleSearch with intelligent backtracking": "SampleSearchIB",
+            "SampleSearch with backjumping": "SampleSearchBJ",
             "Experimental2": "Experimental2",
             "Experimental2b": "Experimental2b",
             "Experimental3": "Experimental3",
@@ -120,6 +121,7 @@ class BLNQuery:
             "Belief Propagation": "BeliefPropagation",
             "Iterative Join-Graph Propagation": "IJGP",
             "SampleSearch": "SampleSearch",
+            "SampleSearchOld": "SampleSearchOld",
             "ACE": "ACE",
             "SampleSearch with Choco Solver" : "SampleSearchChoco",
             "QGraph inference via database counts": "QGraphInference"
