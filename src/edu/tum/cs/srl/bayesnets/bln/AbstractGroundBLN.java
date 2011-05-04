@@ -1,6 +1,7 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,8 +16,10 @@ import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.bayesnets.core.Discretized;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
+import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.ParameterGrounder;
 import edu.tum.cs.srl.Signature;
@@ -86,6 +89,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("verbose", "setVerbose");
 		this.bln = bln;
+		db.finalize(); // before we start grounding with the DB, make sure it's really finalized
 		this.db = db;		
 		cpfIDs = new HashMap<BeliefNode, String>();
 		groundNode2TemplateNode = new HashMap<BeliefNode, RelationalNode>();
@@ -777,15 +781,61 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			fullEvidence[i][0] = evidence[i][0];
 			fullEvidence[i][1] = evidence[i][1];
 		}
-		{
-			int i = evidence.length;
-			for(BeliefNode node : hardFormulaNodes) {
-				fullEvidence[i][0] = node.getName();
-				fullEvidence[i][1] = "True";
-				i++;
-			}
+		int i = evidence.length;
+		for(BeliefNode node : hardFormulaNodes) {
+			fullEvidence[i][0] = node.getName();
+			fullEvidence[i][1] = BooleanDomain.True;
+			i++;
 		}
-		return groundBN.evidence2DomainIndices(fullEvidence);
+		return evidence2DomainIndices(groundBN, fullEvidence);
+	}
+	
+	/**
+	 * converts variables-value pairs to list of domain indices.
+	 * (Copy from BeliefNetworkEx that ignores superfluous evidence on evidence functions)
+	 * @param bn
+	 * @param evidences
+	 * @return
+	 */
+	protected int[] evidence2DomainIndices(BeliefNetworkEx bn, String[][] evidences) {
+		BeliefNode[] nodes = bn.getNodes();
+		int[] evidenceDomainIndices = new int[nodes.length];
+		Arrays.fill(evidenceDomainIndices, -1);
+		for (String[] evidence: evidences) {
+			if(evidence == null || evidence.length != 2)
+				throw new IllegalArgumentException("Evidences not in the correct format: "+Arrays.toString(evidence)+"!");
+			int nodeIdx = bn.getNodeIndex(evidence[0]); // TODO inefficient linear search
+			if (nodeIdx < 0) {
+				Pair<String,String[]> p = Signature.parseVarName(evidence[0]);
+				if(this.bln.isEvidenceFunction(p.first))
+					continue;
+				else {
+					String error = "Variable with the name "+ evidence[0]+" not found in model but mentioned in evidence!";
+					System.err.println("Warning: " + error);
+					continue;
+				}
+			}
+			/*if (evidenceDomainIndices[nodeIdx] > 0)
+				logger.warn("Evidence "+evidence[0]+" set twice!");*/
+			Discrete domain = (Discrete)nodes[nodeIdx].getDomain();
+			int domainIdx = domain.findName(evidence[1]);
+			if (domainIdx < 0) {
+				if (domain instanceof Discretized) {
+					try {
+						double value = Double.parseDouble(evidence[1]);
+						String domainStr = ((Discretized)domain).getNameFromContinuous(value);
+						domainIdx = domain.findName(domainStr);
+					} catch (Exception e) {
+						throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+"!");
+					}
+				} 
+				else {
+					throw new IllegalArgumentException("Cannot find evidence value "+evidence[1]+" in domain "+domain+" of node " + nodes[nodeIdx].getName());
+				}
+			}
+			evidenceDomainIndices[nodeIdx]=domainIdx;
+		}
+		return evidenceDomainIndices;
 	}
 	
 	public BeliefNetworkEx getGroundNetwork() {
