@@ -1,7 +1,6 @@
 package edu.tum.cs.logic;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
@@ -40,6 +39,10 @@ public class KnowledgeBase implements Iterable<Formula> {
 	 */
 	public KnowledgeBase(String filename) throws IOException, ParseException {
 		this();
+		readFile(filename);
+	}
+	
+	public void readFile(String filename) throws IOException, ParseException {
 		// read KB file
 		String fileContent = FileUtil.readTextFile(filename);
 		// remove comments
@@ -60,7 +63,7 @@ public class KnowledgeBase implements Iterable<Formula> {
 				formulas.add(FormulaParser.parse(line.substring(0, line.length()-1)));
 			else
 				System.err.println("Warning: Line without terminating period ignored: " + line);
-		}
+		}		
 	}
 	
 	public Vector<Formula> getFormulas() {
