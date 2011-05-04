@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.prolog.PrologKnowledgeBase;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.FileUtil;
@@ -36,6 +37,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	public RelationalModel model;
 	protected PrologKnowledgeBase prolog;
 	protected Boolean prologDatabaseExtended = false;
+	protected boolean immutable = false;
 
 	// taxonomy-related variables
 
@@ -144,6 +146,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	}
 
 	protected boolean addVariable(VariableType var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws Exception {
+		if(immutable)
+			throw new Exception("Tried to add a value to an immutable database");
+		
 		boolean ret = false;
 		String entryKey = var.getKeyString().toLowerCase();
 		if(entries.containsKey(entryKey))
@@ -263,6 +268,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 			if(matcher.matches()) { // parse domain decls
 				String domName = matcher.group(1);
 				String[] constants = matcher.group(2).split("\\s*,\\s*");
+				constants = ABLModel.makeDomainElements(constants);
 				for(String c : constants)
 					fillDomain(domName, c);
 				continue;
@@ -391,15 +397,20 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 
 	/**
 	 * retrieves all entries in the database 
-	 * 
-	 * TODO Because of the prolog database extension, calling this method should render the database immutable
-	 * 
 	 * @return
 	 * @throws Exception
 	 */
 	public Collection<VariableType> getEntries() throws Exception {
-		// If we are using a Prolog KB, extend the database (unless it has already been extended)
-		// TODO This does quite a bit of unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query 
+		finalize();
+		return entries.values();
+	}
+	
+	/**
+	 * If we are using a Prolog KB, extends the database (unless it has already been extended)
+	 * @throws Exception
+	 */
+	protected void extendWithPrologValues() throws Exception {
+		// TODO This does quite a bit of unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query
 		if(prolog != null && !prologDatabaseExtended) {			
 			prologDatabaseExtended = true;
 			for(Signature sig : this.model.getSignatures()) {
@@ -409,8 +420,21 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 						getPrologValue(sig, b);
 				}
 			}			
-		}
-		return entries.values();
+		}		
+	}
+	
+	/**
+	 * makes sure this database is finalized, i.e. all values that can be derived via prolog,
+	 * have been computed and renders the database immutable.
+	 * There is no harm in calling this function several times.
+	 */
+	public void finalize() throws Exception {
+		extendWithPrologValues();		
+		immutable = true;
+	}
+	
+	public boolean isFinalized() {
+		return immutable;
 	}
 	
 	/**
