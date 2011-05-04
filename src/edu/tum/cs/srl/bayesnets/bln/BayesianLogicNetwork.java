@@ -1,13 +1,10 @@
 package edu.tum.cs.srl.bayesnets.bln;
 
-import java.io.File;
-
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.MLNConverter;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
-import edu.tum.cs.util.FileUtil;
 
 public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 
@@ -15,26 +12,14 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	
 	public BayesianLogicNetwork(String declsFile, String fragmentsFile, String logicFile) throws Exception {
 		super(declsFile, fragmentsFile, logicFile);
-		kb = new KnowledgeBase(logicFile);
 	}
 	
 	public BayesianLogicNetwork(String declsFile, String fragmentsFile) throws Exception {
 		super(declsFile, fragmentsFile, null);
-		kb = new KnowledgeBase();
 	}
 
 	public BayesianLogicNetwork(String declsFile) throws Exception {
 		super(declsFile);				
-		if(kb == null)
-			kb = new KnowledgeBase();
-	}
-	
-	@Override
-	protected boolean readDeclaration(String line) throws Exception {
-		if(super.readDeclaration(line))
-			return true;
-		
-		return false;
 	}
 	
 	public MarkovLogicNetwork toMLN() throws Exception {
@@ -49,5 +34,12 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	@Override
 	public GroundBLN ground(Database db) throws Exception {
 		return new GroundBLN(this, db);
+	}
+	
+	@Override 
+	public void initKB() throws Exception {
+		kb = new KnowledgeBase();
+		if(logicFile != null)
+			kb.readFile(logicFile.toString());
 	}
 }
