@@ -48,7 +48,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 *            a fragment network file
 	 * @throws Exception
 	 */
-	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {
+	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {		
 		init(declarationsFiles, networkFile);
 	}
 	
@@ -81,7 +81,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			declsFiles = new File[declarationsFiles.length];
 			for(int i = 0; i < declarationsFiles.length; i++)
 				declsFiles[i] = new File(declarationsFiles[i]).getAbsoluteFile();
-			String content = readBlogContent(declarationsFiles);
+			String content = readBlogContent(declsFiles);
 			readDeclarations(content);
 			guessedSignatures = false;
 		}
@@ -93,6 +93,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		else
 			checkSignatures();
 	}
+
 		
 	protected void readDeclarations(String decls) throws Exception {
 		// remove comments
@@ -222,7 +223,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			return true;
 		}
 		if(line.startsWith("fragments")) {
-			Pattern pat = Pattern.compile("fragments\\s+([^\\s]+)\\s*;?");
+			Pattern pat = Pattern.compile("fragments\\s+([^;\\s]+)\\s*;?");
 			Matcher matcher = pat.matcher(line);			
 			if(matcher.matches()) {
 				String filename = matcher.group(1);
@@ -282,11 +283,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	protected String readBlogContent(String[] files)
+	protected String readBlogContent(File[] files)
 			throws FileNotFoundException, IOException {
 		// read the blog files
 		StringBuffer buf = new StringBuffer();
-		for (String blogFile : files) {
+		for (File blogFile : files) {
 			buf.append(FileUtil.readTextFile(blogFile));
 			buf.append('\n');
 		}
