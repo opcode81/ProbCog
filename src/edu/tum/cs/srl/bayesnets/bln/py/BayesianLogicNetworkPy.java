@@ -8,7 +8,6 @@ import org.python.util.PythonInterpreter;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
-import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.tools.JythonInterpreter;
 
 /**
@@ -36,8 +35,6 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 		// load MLN 
 		System.out.println("importing libraries...");
 		jython.exec("from MLN import MLN");
-		System.out.println("loading logic network...");
-		jython.exec("mln = MLN('%s')", logicFile);
 	}
 	
 	public void generateGroundFormulas(String domainFile) {
@@ -56,5 +53,11 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	@Override
 	public GroundBLN ground(Database db) throws Exception {
 		return new GroundBLN(this, db);
+	}
+
+	@Override
+	protected void initKB() throws Exception {
+		System.out.println("loading logic network...");
+		jython.exec("mln = MLN('%s')", logicFile);
 	}
 }
