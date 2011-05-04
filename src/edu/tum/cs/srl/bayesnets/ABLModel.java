@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -25,6 +28,7 @@ import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * Advanced Bayesian Logical (ABL) Model
@@ -115,7 +119,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 
 	protected boolean readDeclaration(String line) throws Exception {
 		// function signature
-		// TODO: logical Boolean required - split this into random / logical w/o Boolean
+		// TODO: logical Boolean required - split this into random / logical w/o Boolean?
 		if(line.startsWith("random") || line.startsWith("logical")) {
 			Pattern pat = Pattern.compile("(random|logical)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
 			Matcher matcher = pat.matcher(line);
@@ -133,6 +137,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			return false;
 		}
+		
 		// obtain guaranteed domain elements
 		if (line.startsWith("guaranteed")) {
 			Pattern pat = Pattern.compile("guaranteed\\s+(\\w+)\\s+(.*?)\\s*;?");
@@ -140,11 +145,13 @@ public class ABLModel extends RelationalBeliefNetwork {
 			if (matcher.matches()) {
 				String domName = matcher.group(1);
 				String[] elems = matcher.group(2).split("\\s*,\\s*");
+				elems = makeDomainElements(elems);
 				guaranteedDomElements.put(domName, elems);
 				return true;
 			}
 			return false;
 		}
+		
 		// read functional dependencies among relation arguments
 		if (line.startsWith("relationKey") || line.startsWith("RelationKey")) {
 			Pattern pat = Pattern.compile("[Rr]elationKey\\s+(\\w+)\\s*\\((.*)\\)\\s*;?");
@@ -157,6 +164,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			return false;
 		}
+		
 		// read type information
 		if (line.startsWith("type") || line.startsWith("Type")) {
 			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?);?");
@@ -180,6 +188,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			return false;
 		}
+		
 		// prolog rule
 		if (line.startsWith("prolog")) {
 			String rule = line.substring(6).trim();
@@ -188,6 +197,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			prologRules.add(rule);
 			return true;
 		}
+		
 		// combining rule
 		if(line.startsWith("combining-rule")) {
 			Pattern pat = Pattern.compile("combining-rule\\s+(\\w+)\\s+([-\\w]+)\\s*;?");
@@ -212,6 +222,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 				return true;
 			}
 		}
+		
+		// declaration of uniform default distribution if no fragment applicable
 		if(line.startsWith("uniform-default")) {
 			Pattern pat = Pattern.compile("uniform-default\\s+([-\\w]+(?:\\s*,\\s*[-\\w]+)*)\\s*;?");
 			Matcher matcher = pat.matcher(line);
@@ -222,6 +234,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 			return true;
 		}
+		
+		// fragment network file reference
 		if(line.startsWith("fragments")) {
 			Pattern pat = Pattern.compile("fragments\\s+([^;\\s]+)\\s*;?");
 			Matcher matcher = pat.matcher(line);			
@@ -239,6 +253,33 @@ public class ABLModel extends RelationalBeliefNetwork {
 			}
 		}
 		return false;
+	}
+	
+	public static String[] makeDomainElements(String[] elems) {
+		// handle "i..j" -> list of integers from i to j
+		Vector<String> vElems = null;
+		for(int i = 0; i < elems.length; i++) {
+			String item = elems[i];
+			if(item.contains("..")) {
+				if(vElems == null) {					
+					vElems = new Vector<String>();
+					for(int j = 0; j < i; j++)
+						vElems.add(elems[j]);
+				}
+				String[] strBounds = item.split("\\.\\.");
+				Integer from = Integer.parseInt(strBounds[0]);
+				Integer to = Integer.parseInt(strBounds[1]);
+				for(Integer k = from; k <= to; k++)
+					vElems.add(k.toString());
+			}
+			else {
+				if(vElems != null)
+					vElems.add(item);					
+			}
+		}
+		if(vElems != null)
+			return vElems.toArray(new String[vElems.size()]);
+		return elems;
 	}
 	
 	protected File findReferencedFile(String filename) {
