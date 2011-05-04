@@ -55,10 +55,6 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 */
 	protected Vector<String> uniformDefaultFunctions = new Vector<String>();
 	
-	/**
-	 * a set of functions/predicates that are required to be fully specified in the evidence
-	 */
-	protected HashSet<String> evidenceFunctions = new HashSet<String>();
 	protected Taxonomy taxonomy = null;
 	protected Vector<String> prologRules = new Vector<String>();
 	
@@ -850,16 +846,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return getSignature(functionName).isBoolean();
 	}
 	
-	/**
-	 * sets the given function as an evidence function that must always be given
-	 * @param functionName
-	 */
-	public void setEvidenceFunction(String functionName) {
-		this.evidenceFunctions.add(functionName);
-	}
-	
 	public boolean isEvidenceFunction(String functionName) {
-		return evidenceFunctions.contains(functionName);
+		return getSignature(functionName).isLogical;
 	}
 
 	public Taxonomy getTaxonomy() {
