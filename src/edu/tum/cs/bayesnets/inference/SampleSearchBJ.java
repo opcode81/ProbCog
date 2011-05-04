@@ -12,7 +12,7 @@ import edu.tum.cs.bayesnets.util.TopologicalSort;
 import edu.tum.cs.util.datastruct.PrioritySet;
 
 /**
- * SampleSearch with "intelligent" backtracking
+ * SampleSearch with backjumping
  * @author jain
  */
 public class SampleSearchBJ extends SampleSearch {
