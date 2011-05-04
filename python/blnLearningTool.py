@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # BLN Learning Tool
 #
 # (C) 2008 by Dominik Jain
@@ -31,7 +32,7 @@ import pickle
 from fnmatch import fnmatch
 import traceback
 from widgets import *
-import config
+import configBLN as config
 
 CONFIG_FILENAME = "blnlearn.config.dat"
 
