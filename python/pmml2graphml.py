@@ -32,10 +32,10 @@ class Node:
         #Shape of node, depending on whether decision node or random variable:
         if self.nodeDict["type"] == "chance":
             shapeType = "ellipse"
-            color = "#00CCFF"
+            color = "#B1CBDA"
         else:
             shapeType = "rectangle"
-            color = "#00FF00"
+            color = "#45CA46" # "#00FF00"
         ret.append('<y:ShapeNode>')
         ret.append('<y:Geometry height="30.0" width="%s" x="%s" y="%s"/>' %(str(width),self.nodeDict["x"],self.nodeDict["y"]))
         ret.append('<y:Fill color="%s" transparent="false"/>' %(color))
