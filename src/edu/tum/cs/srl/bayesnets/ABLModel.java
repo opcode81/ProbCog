@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Vector;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -28,7 +25,6 @@ import edu.tum.cs.srl.taxonomy.Concept;
 import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.FileUtil;
 import edu.tum.cs.util.StringTool;
-import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * Advanced Bayesian Logical (ABL) Model
@@ -245,7 +241,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 				if(f == null)
 					throw new Exception("Declared fragments file " + filename + " could not be found");					
 				if(networkFile != null) { // if we already have another network file, then the one that is declared here is not used
-					System.err.println("Notice: Declared network file " + filename + " is overridden by " + networkFile);
+					if(!networkFile.getAbsoluteFile().equals(f.getAbsoluteFile()))
+						System.err.println("Notice: Declared network file " + filename + " is overridden by " + networkFile);
 					return true;			
 				}				
 				networkFile = f;
