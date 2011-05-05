@@ -2,7 +2,6 @@ package edu.tum.cs.bayesnets.inference;
 
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.PriorityQueue;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -40,57 +39,6 @@ public class SampleSearchBJ extends SampleSearch {
 			node2orderIndex.put(nodes[samplingOrder[i]], i);			
 		
 		return samplingOrder;
-	}
-	
-	protected class SamplingQueue {
-		protected PriorityQueue<BeliefNode> queue = new PriorityQueue<BeliefNode>(nodes.length, new SamplingOrderComparator());
-		protected HashSet<Integer> enqueued = new HashSet<Integer>();
-
-		public SamplingQueue() {
-			// initially add all nodes without parents to the queue
-			for(int i : topologicalOrdering.getTier(0)) {
-				//System.out.println(nodes[i].getName());
-				queue.add(nodes[i]);
-				enqueued.add(i);
-			}
-		}
-		
-		public boolean add(Integer nodeIdx) {
-			if(!enqueued.contains(nodeIdx)) {
-				queue.add(nodes[nodeIdx]);
-				enqueued.add(nodeIdx);
-				return true;
-			}
-			return false;
-		}
-		
-		public boolean isEmpty() {
-			return queue.isEmpty();
-		}
-		
-		public Integer remove() {
-			Integer ret = getNodeIndex(queue.remove());
-			enqueued.remove(ret);
-			return ret;
-		}
-		
-		public class SamplingOrderComparator implements Comparator<BeliefNode> {
-
-			@Override
-			public int compare(BeliefNode o1, BeliefNode o2) {					
-				return node2orderIndex.get(o1) - node2orderIndex.get(o2);
-			}
-			
-		}
-	}
-	
-	protected class BacktrackOrderingComparator implements Comparator<BeliefNode> {
-		
-		@Override
-		public int compare(BeliefNode o1, BeliefNode o2) {			
-			return -(node2orderIndex.get(o1) - node2orderIndex.get(o2));
-		}
-		
 	}
 	
 	class HighestFirst implements Comparator<Integer> {
@@ -258,10 +206,6 @@ public class SampleSearchBJ extends SampleSearch {
 		}			
  
 		return s;
-	}
-	
-	protected void onInitiatedBacktracking() {
-		
 	}
 }
 
