@@ -31,18 +31,22 @@ public class EvidenceHandler {
 	protected WorldVariables vars;
 	protected Random rand;
 	
-	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
+	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
 		this.vars = vars;
 		this.rand = new Random();
 
 		this.evidence = new HashMap<Integer,Boolean>();
 		evidenceBlocks = new HashSet<Block>();
 		blockExclusions = new Map2Set<Block,GroundAtom>();
-		for(AbstractVariable var : db) {
+		for(AbstractVariable<?> var : db) {
 			String strGndAtom = var.getPredicate();
 			GroundAtom gndAtom = vars.get(strGndAtom);
-			if(gndAtom == null)
-				throw new Exception("Evidence ground atom '" + strGndAtom + "' not in set of world variables.");
+			if(gndAtom == null) {
+				if(var.pertainsToEvidenceFunction()) // pure evidence functions may be missing from the model altogether
+					continue;
+				else
+					throw new Exception("Evidence ground atom '" + strGndAtom + "' not in set of world variables.");
+			}
 			if(!var.isBoolean()) { // if the variable isn't boolean, it is mapped to a block, which we set in its entirety
 				Block block = vars.getBlock(gndAtom.index);
 				if(block == null) 
