@@ -41,11 +41,10 @@ public enum Algorithm {
 		MCSAT("MC-SAT (MCMC method based on SAT-solving)", MCSAT.class, null),
 		IJGP("Iterative Join-Graph Propagation", null, IJGP.class),
 		BeliefPropagation("Belief Propagation", null, BeliefPropagation.class),
-		EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", null, EnumerationAsk.class),
+		EnumerationAsk("Enumeration-Ask (exact)", null, EnumerationAsk.class),
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "edu.tum.cs.bayesnets.inference.SmilePearl"),
 		VarElim("variable elimination (exact)", null, VariableElimination.class),
-		SampleSearchIB("SampleSearch with intelligent backtracking", null, edu.tum.cs.bayesnets.inference.SampleSearchIB.class),
 		SampleSearchBJ("SampleSearch with backjumping", null, edu.tum.cs.bayesnets.inference.SampleSearchBJ.class),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
 		Experimental2b("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning2"),
@@ -54,7 +53,7 @@ public enum Algorithm {
 		BackwardSampleSearchBJPruning("backward SampleSearch with backjumping and backpruning","dev.BackwardSampleSearchBJPruning"),
 		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
 		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", null, edu.tum.cs.bayesnets.inference.ACE.class),
-		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search.", "dev.SampleSearchChoco"),
+		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search", "dev.SampleSearchChoco"),
 		QGraphInference("Inference based on counting in the training database", "dev.QGraphInference");
 		
 		protected String description;
@@ -106,7 +105,7 @@ public enum Algorithm {
 					 constructor = blnClass.getConstructor(gbln.getClass());
 				}
 				catch(NoSuchMethodException e) {
-					throw new Exception("Don't know how to instantiate a sampler for the algorithm '" + toString() + "'");
+					throw new Exception("Don't know how to instantiate a sampler for the algorithm '" + toString() + "'.");
 				}
 				sampler = constructor.newInstance(gbln);
 			}

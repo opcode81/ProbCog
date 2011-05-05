@@ -194,7 +194,7 @@ public class SampleSearch extends Sampler {
 		return s;
 	}
 	
-	protected class SampledAssignment {
+	public class SampledAssignment {
 		public int domIdx;
 		public double probability;
 		public SampledAssignment(int domainIdx, double p) {
