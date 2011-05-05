@@ -36,7 +36,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	public abstract AbstractGroundBLN ground(Database db) throws Exception;
 	
 	protected void setConstraintsFile(File f) {
-		if(logicFile != null && !logicFile.equals(f)) // if we already have another constraints file, then issue a warning
+		if(logicFile != null && !logicFile.getAbsoluteFile().equals(f.getAbsoluteFile())) // if we already have another constraints file, then issue a warning
 			System.err.println("Notice: Previously declared constraints file " + logicFile + " is overridden by " + f);					
 		logicFile = f;
 	}
