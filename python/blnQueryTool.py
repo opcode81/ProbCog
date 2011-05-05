@@ -53,32 +53,35 @@ class BLNQuery:
         self.frame.columnconfigure(1, weight=1)
 
         row = 0
+        
+        self.networksDict = self.settings.get("networksDict", {})
+        self.constraintsDict = self.settings.get("constraintsDict", {})
+
+        # declarations selection
+        Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
+        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 12, self.changedDecls, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
+        self.selected_blog.grid(row=row, column=1, sticky="NWES")
+        self.frame.rowconfigure(row, weight=1)
 
         # - fragments selection
+        row += 1
         Label(self.frame, text="Fragments: ").grid(row=row, column=0, sticky=NE)
         # frame
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
         frame.columnconfigure(0, weight=1)
         # file picker
-        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedBIF, font=config.fixed_width_font)
+        self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedNetwork, font=config.fixed_width_font)
         self.selected_bif.grid(row=0, column=0, sticky="NWES")
         frame.rowconfigure(0, weight=1)
         # show button
         start_button = Button(frame, text="show", command=self.showBN)
         start_button.grid(row=0, column=1, sticky="NEWS")
 
-        # declarations selection
-        row += 1
-        Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
-        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 12, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
-        self.selected_blog.grid(row=row, column=1, sticky="NWES")
-        self.frame.rowconfigure(row, weight=1)
-
         # logical constraints selection
         row += 1
         Label(self.frame, text="Logic: ").grid(row=row, column=0, sticky=NE)
-        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedBLN, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
+        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedLogic, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
         self.selected_bln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
@@ -251,16 +254,31 @@ class BLNQuery:
         if g is None: return
         self.master.geometry(g)
 
-    def changedBLN(self, name):
+    def changedLogic(self, name):
         self.bln_filename = name
         #self.setOutputFilename()
 
-    def changedBIF(self, name):
+    def changedNetwork(self, name):
         self.bif_filename = name
         self.setOutputFilename()
+        
+    def getDefaultFile(self, prefix):
+        content = self.selected_blog.get_text()
+        m = re.search(r'%s\s+([^\s;]+)' % prefix, content, re.MULTILINE)
+        if m is not None:
+            return m.group(1)
+        return None
 
-    def changedBLOG(self, name):
-        pass
+    def changedDecls(self, name):
+        if hasattr(self, 'selected_blog'):
+            fragmentsFile = self.networksDict.get(name, self.getDefaultFile("fragments"))
+            if fragmentsFile is not None:
+                print "setting ", fragmentsFile
+                self.selected_bif.set(fragmentsFile)
+            constraintsFile = self.constraintsDict.get(name, self.getDefaultFile("constraints"))
+            if constraintsFile is not None:
+                print "setting ", constraintsFile
+                self.selected_bln.set(constraintsFile)
 
     def changedDB(self, name):
         self.db_filename = name
@@ -299,6 +317,8 @@ class BLNQuery:
         method = self.selected_method.get()
         addparams = self.params.get().strip()
         self.paramsDict[method] = addparams
+        self.networksDict[blog] = bif
+        self.constraintsDict[blog] = bln
         outfile = self.output_filename.get()
         cwPreds = self.cwPreds.get().strip().replace(" ", "")
         refdist = self.selected_refdist.get().strip()
@@ -319,6 +339,8 @@ class BLNQuery:
         self.settings["timeLimit"] = self.timeLimit.get()
         self.settings["timeInterval"] = self.timeInterval.get()
         self.settings["params"] = self.paramsDict
+        self.settings["networksDict"] = self.networksDict
+        self.settings["constraintsDict"] = self.constraintsDict
         self.settings["query"] = self.query.get()
         #self.settings["openWorld"] = self.open_world.get()
         self.settings["cwPreds"] = cwPreds
@@ -369,7 +391,7 @@ class BLNQuery:
         print "\ncommand:\n%s\n" % command
         t_start = time.time()
         try:
-			os.system(command)
+            os.system(command)
         except KeyboardInterrupt:
             pass
         t_taken = time.time() - t_start
