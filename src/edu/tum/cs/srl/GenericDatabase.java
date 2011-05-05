@@ -73,7 +73,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		Collection<String> prologRules = model.getPrologRules();
 		prolog = new PrologKnowledgeBase();
 		if(prologRules != null && !prologRules.isEmpty()) {
-			System.out.println("  building prolog knowledge base... ");
+			System.out.println("building Prolog knowledge base... ");
 			for(String rule : prologRules) {
 				prolog.tell(rule);
 			}
