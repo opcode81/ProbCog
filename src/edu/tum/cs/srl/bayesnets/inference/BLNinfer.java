@@ -502,7 +502,7 @@ public class BLNinfer implements IParameterHandler {
 	
 	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2, int[] evidenceDomainIndices) throws Exception {
 		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(d1, d2);
-		//dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
+		dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MeanSquaredError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MeanAbsError(d1));
 		dc.addEntryComparison(new BasicSampledDistribution.MaxAbsError(d1));
