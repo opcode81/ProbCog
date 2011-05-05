@@ -46,4 +46,6 @@ public abstract class AbstractVariable<ValueType> {
 	public abstract ValueType getValue();
 	
 	public abstract boolean hasValue(String value);
+	
+	public abstract boolean pertainsToEvidenceFunction(); 
 }

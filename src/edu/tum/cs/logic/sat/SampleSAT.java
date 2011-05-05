@@ -61,7 +61,7 @@ public class SampleSAT implements IParameterHandler {
 	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
 	 * @throws Exception
 	 */
-	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
+	public SampleSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
 		this.state = state;
 		this.vars = vars;
 		this.kb = kb;
@@ -85,7 +85,7 @@ public class SampleSAT implements IParameterHandler {
 	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
 	 * @throws Exception
 	 */
-	public SampleSAT(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception { 
+	public SampleSAT(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception { 
 		this(null, state, vars, db);
 	}
 	

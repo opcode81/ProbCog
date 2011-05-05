@@ -39,4 +39,9 @@ public class SoftVariable extends AbstractVariable<ValueDistribution> {
 			return false;
 		return value.equalsIgnoreCase(singleVal);
 	}
+
+	@Override
+	public boolean pertainsToEvidenceFunction() {
+		return false;
+	}
 }

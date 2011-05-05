@@ -12,7 +12,7 @@ import edu.tum.cs.srl.AbstractVariable;
 
 public class WalkSAT extends SampleSAT {
 
-	public WalkSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db) throws Exception {
+	public WalkSAT(Iterable<? extends edu.tum.cs.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
 		super(kb, state, vars, db);
 	}
 

@@ -39,4 +39,9 @@ public class Variable extends StringVariable {
 	public String getName() {
 		return Signature.formatVarName(functionName, this.params); 
 	}
+
+	@Override
+	public boolean pertainsToEvidenceFunction() {
+		return model.getSignature(functionName).isLogical;
+	}
 }

@@ -96,7 +96,7 @@ public class SATIS extends BNSampler {
 		HashMap<BeliefNode, double[]> priors = null;
 		Random generator;
 		
-		public SampleSATPriors(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable> db, BeliefNetworkEx bn) throws Exception {
+		public SampleSATPriors(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db, BeliefNetworkEx bn) throws Exception {
 			super(state, vars, db);
 			this.bn = bn;
 			generator = new Random();

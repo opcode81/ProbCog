@@ -179,6 +179,11 @@ public class SATIS_BSampler extends BackwardSampling {
 		public boolean isBoolean() {			
 			return false;
 		}
+
+		@Override
+		public boolean pertainsToEvidenceFunction() {
+			return false;
+		}
 	}
 	
 	@Override
