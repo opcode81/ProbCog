@@ -461,9 +461,9 @@ class FilePickEdit(Frame):
         ''' selects the item given by filename '''
         if filename in self.files:
             if not havePMW:
-                self.picked_name.set(filename) # default value
+                self.picked_name.set(filename)
             else:
-                self.list.selectitem(filename)
+                self.list.selectitem(self.files.index(filename))
                 self.onSelChange(filename)
     
     def makelist(self):
@@ -589,7 +589,7 @@ class FilePick(Frame):
             if not havePMW:
                 self.picked_name.set(default_file) # default value
             else:
-                self.list.selectitem(default_file)
+                self.list.selectitem(self.files.index(default_file))
                 self.onSelChange(default_file)
                 pass
 
