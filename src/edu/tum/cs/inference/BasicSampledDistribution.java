@@ -315,7 +315,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
 			double error = p1 - p2;
 			if(error != 0.0) {
-				System.out.printf("%s=%s: %f %f -> %f\n", refDist.getVariableName(varIdx), refDist.getDomain(varIdx)[domIdx], p1, p2, error);
+				System.out.printf("  %s=%s: %f %f -> %f\n", refDist.getVariableName(varIdx), refDist.getDomain(varIdx)[domIdx], p1, p2, error);
 			}
 		}
 		@Override
