@@ -42,7 +42,7 @@ public class RelationalNode extends ExtendedNode {
 	 * collection of indices of parameters that are constants rather than variables
 	 */
 	public Vector<Integer> constantParamIndices = new Vector<Integer>();
-	public boolean isConstant, isAuxiliary, isPrecondition, isUnobserved;
+	public boolean isConstant, isAuxiliary, isPrecondition;
 	/**
 	 * specification of an aggregation to handle a variable number of parent sets
 	 */
@@ -62,7 +62,12 @@ public class RelationalNode extends ExtendedNode {
 	 */
 	protected ParentGrounder parentGrounder = null;
 	
+	/**
+	 * Deprecated: the built-in predicates EQ and NEQ can more appropriately be handled using decision nodes that use a formula with =
+	 */
+	@Deprecated
 	public static final String BUILTINPRED_EQUALS = "EQ";
+	@Deprecated
 	public static final String BUILTINPRED_NEQUALS = "NEQ";
 	
 	public static enum Aggregator {
