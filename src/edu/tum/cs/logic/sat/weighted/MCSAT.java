@@ -73,7 +73,7 @@ public class MCSAT implements IParameterHandler {
 		}
 		verbose = verbose || debug;
 		if(verbose) 
-			System.out.printf("%s sampling...\n", this.getAlgorithmName());		
+			System.out.printf("%s sampling (%d weighted formulas)...\n", this.getAlgorithmName(), this.kb.size());		
 		
 		// find initial state satisfying all hard constraints
 		if(verbose) System.out.println("finding initial state...");
