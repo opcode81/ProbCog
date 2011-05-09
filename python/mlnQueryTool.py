@@ -179,8 +179,6 @@ class MLNQuery:
         self.cb_save_results = Checkbutton(frame, text="save", variable=self.save_results)
         self.cb_save_results.grid(row=0, column=1, sticky=W)
 
-        if len(self.settings.get("output_filename", "")) > 0:
-            self.settings["saveResults"] = 1
         self.save_results.set(self.settings.get("saveResults", 0))
         # start button
         row += 1
