@@ -327,10 +327,13 @@ class FilePickEdit(Frame):
     def reloadFile(self):
         self.editor.delete("1.0", END)
         filename = self.picked_name.get()
-        new_text = file(filename).read()
-        if new_text.strip() == "":
-            new_text = "// %s is empty\n" % filename;
-        new_text = new_text.replace("\r", "")
+        if os.path.exists(filename):
+            new_text = file(filename).read()
+            if new_text.strip() == "":
+                new_text = "// %s is empty\n" % filename;
+            new_text = new_text.replace("\r", "")
+        else:
+            new_text = ""
         self.editor.insert(INSERT, new_text)
 
     def onSelChange(self, name, index=0, mode=0):
@@ -389,7 +392,7 @@ class FilePickEdit(Frame):
         else:
             self.save_name.set(self.picked_name.get())
     
-    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None, coloring=True):
+    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None, coloring=True, allowNone=False):
         '''
             file_mask: file mask (e.g. "*.foo") or list of file masks (e.g. ["*.foo", "*.abl"])
         '''
@@ -398,19 +401,15 @@ class FilePickEdit(Frame):
         Frame.__init__(self, master)
         row = 0
         self.unmodified = True
+        self.allowNone = allowNone
         self.file_extension = ""
-        if "." in file_mask:
-            self.file_extension = file_mask[file_mask.rfind('.'):]
-        # read filenames
         if type(file_mask) != list:
-            file_mask = [file_mask]        
-        self.files = []
-        for filename in os.listdir("."):
-            for fm in file_mask:
-                if fnmatch(filename, fm):
-                    self.files.append(filename)
-        self.files.sort()
-        if len(self.files) == 0: self.files.append("(no %s files found)" % file_mask)
+            file_mask = [file_mask]
+        if "." in file_mask[0]:
+            self.file_extension = file_mask[0][file_mask[0].rfind('.'):]
+        # read filenames
+        self.file_mask = file_mask
+        self.updateList()
         # filename frame
         self.list_frame = Frame(self)
         self.list_frame.grid(row=row, column=0, sticky="WE")
@@ -456,6 +455,17 @@ class FilePickEdit(Frame):
         # pick default if applicable
         self.select(default_file)
         self.row = row
+        
+    def updateList(self):
+        self.files = []
+        if self.allowNone:
+            self.files.append("")
+        for filename in os.listdir("."):
+            for fm in self.file_mask:
+                if fnmatch(filename, fm):
+                    self.files.append(filename)
+        self.files.sort()
+        if len(self.files) == 0 and not self.allowNone: self.files.append("(no %s files found)" % file_mask)
     
     def select(self, filename):
         ''' selects the item given by filename '''
