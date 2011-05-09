@@ -242,14 +242,16 @@ public class BLNinfer implements IParameterHandler {
 	}
 	
 	public Collection<InferenceResult> run() throws Exception {
-		if(networkFile == null && bln == null)
-			throw new IllegalArgumentException("No fragment network given");
+		if(bln == null) { 
+			if(networkFile == null)
+				throw new IllegalArgumentException("No fragment network given");
+			if(declsFile == null)
+				throw new IllegalArgumentException("No model declarations given");
+			//if(logicFile == null)
+			//	throw new IllegalArgumentException("No logical constraints definitions given");
+		}
 		if(dbFile == null && db == null)
 			throw new IllegalArgumentException("No evidence given");
-		if(declsFile == null && bln == null)
-			throw new IllegalArgumentException("No model declarations given");
-		if(logicFile == null && bln == null)
-			throw new IllegalArgumentException("No logical constraints definitions given");
 		if(queries == null)
 			throw new IllegalArgumentException("No queries given");			
 
