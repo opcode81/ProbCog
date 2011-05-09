@@ -95,7 +95,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	}
 	
 	/**
-	 * gets the mean squared error of another distribution d, assuming that values of this distribution are correct
+	 * gets the mean squared error when comparing to another distribution d, assuming that values of this distribution are correct
 	 * @param d the other distribution
 	 * @return the mean squared error (averaged across all entries of the distribution)
 	 * @throws Exception
@@ -197,7 +197,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 					double v1 = referenceDist.getProbability(i2, j);
 					double v2 = otherDist.getProbability(i, j);
 					for(DistributionEntryComparison p : processors)
-						p.process(i, j, otherDist.values[i].length, v1, v2);
+						p.process(i2, j, otherDist.values[i].length, v1, v2);
 				}
 			}			
 		}
