@@ -16,9 +16,16 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	public File logicFile;
 	protected ParameterHandler paramHandler;
 	
+	/**
+	 * @param declsFile
+	 * @param networkFile
+	 * @param logicFile may be null
+	 * @throws Exception
+	 */
 	public AbstractBayesianLogicNetwork(String declsFile, String networkFile, String logicFile) throws Exception {
 		super(declsFile, networkFile); // reads declarations
-		setConstraintsFile(new File(logicFile));
+		if(logicFile != null)
+			setConstraintsFile(new File(logicFile));
 		this.paramHandler = new ParameterHandler(this);
 		this.rbn = this;
 		initKB();
