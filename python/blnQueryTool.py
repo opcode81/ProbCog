@@ -81,7 +81,7 @@ class BLNQuery:
         # logical constraints selection
         row += 1
         Label(self.frame, text="Logic: ").grid(row=row, column=0, sticky=NE)
-        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedLogic, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font)
+        self.selected_bln = FilePickEdit(self.frame, ["*.blnl", "*.bln"], self.settings.get("bln", ""), 8, self.changedLogic, rename_on_edit=self.settings.get("bln_rename", False), font=config.fixed_width_font, allowNone=True)
         self.selected_bln.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
@@ -109,7 +109,6 @@ class BLNQuery:
             "SMILE Backward Sampling": "SmileBackwardSampling",
             "Backward Sampling with priors": "BackwardSamplingPriors",
             "Backward Sampling with children":"BackwardSamplingChildren",
-            "SampleSearch with intelligent backtracking": "SampleSearchIB",
             "SampleSearch with backjumping": "SampleSearchBJ",
             "Experimental2": "Experimental2",
             "Experimental2b": "Experimental2b",
@@ -124,7 +123,6 @@ class BLNQuery:
             "Belief Propagation": "BeliefPropagation",
             "Iterative Join-Graph Propagation": "IJGP",
             "SampleSearch": "SampleSearch",
-            "SampleSearchOld": "SampleSearchOld",
             "ACE": "ACE",
             "SampleSearch with Choco Solver" : "SampleSearchChoco",
             "QGraph inference via database counts": "QGraphInference"
@@ -273,11 +271,9 @@ class BLNQuery:
         if hasattr(self, 'selected_blog'):
             fragmentsFile = self.networksDict.get(name, self.getDefaultFile("fragments"))
             if fragmentsFile is not None:
-                print "setting ", fragmentsFile
                 self.selected_bif.set(fragmentsFile)
             constraintsFile = self.constraintsDict.get(name, self.getDefaultFile("constraints"))
             if constraintsFile is not None:
-                print "setting ", constraintsFile
                 self.selected_bln.set(constraintsFile)
 
     def changedDB(self, name):
@@ -365,7 +361,9 @@ class BLNQuery:
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
 
         # create command to execute
-        params = ["-ia", self.methods[method], '-x "%s"' % bif, '-b "%s"' % blog, '-l "%s"' % bln, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
+        params = ["-ia", self.methods[method], '-x "%s"' % bif, '-b "%s"' % blog, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
+        if bln != "":
+            params.append('-l "%s"' % bln)
         if addparams != "":
             params.append(addparams)
         if cwPreds != "":
