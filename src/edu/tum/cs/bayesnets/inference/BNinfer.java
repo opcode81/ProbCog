@@ -11,8 +11,8 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BNDatabase;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
+import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
-import edu.tum.cs.srl.bayesnets.inference.BLNinfer;
 import edu.tum.cs.util.Stopwatch;
 
 
@@ -219,7 +219,7 @@ public class BNinfer {
 			// compare distributions
 			if(referenceDist != null) {				
 				System.out.println("comparing to reference distribution...");
-				BLNinfer.compareDistributions(referenceDist, dist, evidenceDomainIndices);
+				BasicSampledDistribution.compareDistributions(dist, referenceDist, evidenceDomainIndices);
 			}
 		}
 		catch(Exception e) {

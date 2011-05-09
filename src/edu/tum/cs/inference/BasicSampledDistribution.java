@@ -127,6 +127,24 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		return paramHandler;
 	}
 	
+	/**
+	 * compares two (sets of posterior marginal) distributions
+	 * @param mainDist
+	 * @param referenceDist
+	 * @param evidenceDomainIndices evidence domain indices array (indexed by variable indices in main distribution)
+	 * @throws Exception
+	 */
+	public static void compareDistributions(BasicSampledDistribution mainDist, BasicSampledDistribution referenceDist, int[] evidenceDomainIndices) throws Exception {
+		DistributionComparison dc = new DistributionComparison(mainDist, referenceDist);
+		dc.addEntryComparison(new ErrorList(mainDist));
+		dc.addEntryComparison(new MeanSquaredError(mainDist));
+		dc.addEntryComparison(new MeanAbsError(mainDist));
+		dc.addEntryComparison(new MaxAbsError(mainDist));
+		dc.addEntryComparison(new HellingerDistance(mainDist));
+		dc.compare(evidenceDomainIndices);
+		dc.printResults();
+	}
+
 	public class ConfidenceInterval {
 		public double lowerEnd, upperEnd;		
 		protected int precisionDigits = 4;
@@ -161,12 +179,12 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	}
 	
 	public static class DistributionComparison {
-		protected BasicSampledDistribution referenceDist, otherDist;
+		protected BasicSampledDistribution referenceDist, mainDist;
 		protected Vector<DistributionEntryComparison> processors;
 		
-		public DistributionComparison(BasicSampledDistribution referenceDist, BasicSampledDistribution otherDist) {
+		public DistributionComparison(BasicSampledDistribution mainDist, BasicSampledDistribution referenceDist) {
 			this.referenceDist = referenceDist;
-			this.otherDist = otherDist;
+			this.mainDist = mainDist;
 			processors = new Vector<DistributionEntryComparison>();
 		}
 		
@@ -186,18 +204,18 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		 * @throws Exception
 		 */
 		public void compare(int[] evidenceDomainIndices) throws Exception {
-			for(int i = 0; i < otherDist.values.length; i++) {
+			for(int i = 0; i < mainDist.values.length; i++) {
 				if(evidenceDomainIndices != null && evidenceDomainIndices[i] >= 0)
 					continue;
-				String varName = otherDist.getVariableName(i);
+				String varName = mainDist.getVariableName(i);
 				int i2 = referenceDist.getVariableIndex(varName);
 				if(i2 < 0) 
 					throw new Exception("Variable " + varName + " has no correspondence in reference distribution");
-				for(int j = 0; j < otherDist.values[i].length; j++) {
+				for(int j = 0; j < mainDist.values[i].length; j++) {
 					double v1 = referenceDist.getProbability(i2, j);
-					double v2 = otherDist.getProbability(i, j);
+					double v2 = mainDist.getProbability(i, j);
 					for(DistributionEntryComparison p : processors)
-						p.process(i2, j, otherDist.values[i].length, v1, v2);
+						p.process(i, j, mainDist.values[i].length, v1, v2);
 				}
 			}			
 		}
@@ -221,9 +239,9 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	}
 		
 	public static abstract class DistributionEntryComparison {
-		BasicSampledDistribution refDist;
+		BasicSampledDistribution mainDist;
 		public DistributionEntryComparison(BasicSampledDistribution refDist) {
-			this.refDist = refDist;
+			this.mainDist = refDist;
 		}
 		public abstract void process(int varIdx, int domIdx, int domSize, double p1, double p2);
 		public abstract double getResult();
@@ -315,7 +333,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		public void process(int varIdx, int domIdx, int domSize, double p1, double p2) {
 			double error = p1 - p2;
 			if(error != 0.0) {
-				System.out.printf("  %s=%s: %f %f -> %f\n", refDist.getVariableName(varIdx), refDist.getDomain(varIdx)[domIdx], p1, p2, error);
+				System.out.printf("  %s=%s: %f %f -> %f\n", mainDist.getVariableName(varIdx), mainDist.getDomain(varIdx)[domIdx], p1, p2, error);
 			}
 		}
 		@Override

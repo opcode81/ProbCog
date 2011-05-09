@@ -21,7 +21,6 @@ import edu.tum.cs.inference.BasicSampledDistribution;
 import edu.tum.cs.inference.GeneralSampledDistribution;
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
-import edu.tum.cs.inference.BasicSampledDistribution.DistributionComparison;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.bln.AbstractBayesianLogicNetwork;
@@ -386,7 +385,7 @@ public class BLNinfer implements IParameterHandler {
 		// compare distributions
 		if(referenceDist != null && dist != null) {				
 			System.out.println("comparing to reference distribution...");
-			compareDistributions(referenceDist, dist, evidenceDomainIndices);
+			BasicSampledDistribution.compareDistributions(dist, referenceDist, evidenceDomainIndices);
 		}
 		
 		return results;
@@ -500,22 +499,16 @@ public class BLNinfer implements IParameterHandler {
 		return n == 0;
 	}
 	
-	public static void compareDistributions(BasicSampledDistribution d1, BasicSampledDistribution d2, int[] evidenceDomainIndices) throws Exception {
-		BasicSampledDistribution.DistributionComparison dc = new DistributionComparison(d1, d2);
-		dc.addEntryComparison(new BasicSampledDistribution.ErrorList(d1));
-		dc.addEntryComparison(new BasicSampledDistribution.MeanSquaredError(d1));
-		dc.addEntryComparison(new BasicSampledDistribution.MeanAbsError(d1));
-		dc.addEntryComparison(new BasicSampledDistribution.MaxAbsError(d1));
-		dc.addEntryComparison(new BasicSampledDistribution.HellingerDistance(d1));
-		dc.compare(evidenceDomainIndices);
-		dc.printResults();
-	}
-
 	@Override
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
 	}
 	
+	/**
+	 * If time-limited inference was performed, returns the corresponding object
+	 * @return  an instance of {@link TimeLimitedInference} 
+	 * 			(or null if time-limited inference was not carried out)
+	 */
 	public TimeLimitedInference getTimeLimitedInference() {
 		return this.tli;
 	}
