@@ -33,8 +33,18 @@ import traceback
 import widgets
 from widgets import *
 import configBLN as config
+import subprocess
 
 CONFIG_FILENAME = config.queryToolSettingsFilename
+
+
+def spawn(*args):
+    try:
+        subprocess.Popen(args)
+    except:
+        args = list(args)
+        args[0] = args[0] + ".bat"
+        subprocess.Popen(args)
 
 # --- main gui class ---
 
@@ -297,10 +307,7 @@ class BLNQuery:
 
     def showBN(self):
         bif = self.selected_bif.get()
-        if "spawnvp" in dir(os):
-            os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
-        else:
-            os.system("bnj %s" % bif)
+        spawn("bnj", bif)
 
     def start(self, saveGeometry=True):
         # get mln, db, qf and output filename
