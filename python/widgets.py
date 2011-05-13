@@ -1,6 +1,6 @@
 # widgets module for use with MLN tools
 # 
-# (C) 2006-2008 by Dominik Jain
+# (C) 2006-2011 by Dominik Jain
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -465,7 +465,7 @@ class FilePickEdit(Frame):
                 if fnmatch(filename, fm):
                     self.files.append(filename)
         self.files.sort()
-        if len(self.files) == 0 and not self.allowNone: self.files.append("(no %s files found)" % file_mask)
+        if len(self.files) == 0 and not self.allowNone: self.files.append("(no %s files found)" % str(self.file_mask    ))
     
     def select(self, filename):
         ''' selects the item given by filename '''
