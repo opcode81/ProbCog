@@ -1,5 +1,5 @@
 # widgets module for use with MLN tools
-# 
+#
 # (C) 2006-2011 by Dominik Jain
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -37,24 +37,34 @@ class ScrolledText2(ScrolledText):
     def __init__(self, root, change_hook = None):
         ScrolledText.__init__(self,root,wrap=NONE,bd=0,width=80,height=25,undo=1,maxundo=50,padx=0,pady=0,background="white",foreground="black")
 
+class Highlighter(object):
+    def __init__(self):
+        # syntax highlighting definitions
+        self.tags = {
+                'com': dict(foreground='#aaa'), # comment
+                'mlcom': dict(foreground='#aaa'), # multi-line comment
+                'str': dict(foreground='darkcyan'), # string
+                'kw': dict(foreground='blue'), # keyword
+                'obj': dict(foreground='#00F'), # function/class name
+                'number': dict(foreground='cyan'), # number
+                'op' : dict(foreground='blue'), # operator
+                'bracket_hl': dict(background="yellow") # bracket highlighting
+                }
+        self.brackets = (('(',')'), ('{', '}'))
+        self.open_brackets = map(lambda x: x[0], self.brackets)
+        self.close_brackets = map(lambda x: x[1], self.brackets)
+        self.operators = ['v', '^', '!', '+', '=>', '<=>']
+        self.keywords = [] #keyword.kwlist
+
+class BLNHighlighter(Highlighter):
+    def __init__(self):
+        Highlighter.__init__(self)
+        self.keywords = ["type", "Type", "fragments", "isa", "random", "logical", "relationKey", "constraints", "guaranteed"]
+
 class SyntaxHighlightingText(ScrolledText2):
-    # syntax highlighting definitions
-    tags = {'com': dict(foreground='#aaa'), # comment
-            'mlcom': dict(foreground='#aaa'), # multi-line comment
-            'str': dict(foreground='darkcyan'), # string
-            'kw': dict(foreground='orange'), # keyword
-            'obj': dict(foreground='#00F'), # function/class name
-            'number': dict(foreground='blue'), # number
-            'op' : dict(foreground='darkblue'), # operator
-            'bracket_hl': dict(background="yellow") # bracket highlighting
-            }
-    brackets = (('(',')'), ('{', '}'))
-    open_brackets = map(lambda x: x[0], brackets)
-    close_brackets = map(lambda x: x[1], brackets)
-    operators = ['v', '^', '!', '+', '=>', '<=>']
 
     # constructor
-    def __init__(self, root, change_hook = None):
+    def __init__(self, root, change_hook = None, highlighter = None):
         ScrolledText2.__init__(self,root,change_hook)
         # Non-wrapping, no border, undo turned on, max undo 50
         self.text = self # For the methods taken from IDLE
@@ -62,7 +72,7 @@ class SyntaxHighlightingText(ScrolledText2):
         self.change_hook = change_hook
         self.characters = ascii_letters + digits + punctuation
         self.tabwidth = 8    # for IDLE use, must remain 8 until Tk is fixed
-        self.indentwidth = 4 
+        self.indentwidth = 4
         self.indention = 0   # The current indention level
         self.set_tabwidth(self.indentwidth) # IDLE...
         self.previous_line = "0"
@@ -83,9 +93,15 @@ class SyntaxHighlightingText(ScrolledText2):
         self.bind('<Button-3>', self.popup) # right mouse button opens popup
         self.bind('<Button-1>', self.recolorCurrentLine) # left mouse can reposition cursor, so recolor (e.g. bracket highlighting necessary)
         self.bind('<Control-Any-KeyPress>', self.ctrl)
-        
+
+        self.setHighlighter(highlighter)
+
+    def setHighlighter(self, highlighter):
+        if highlighter == None:
+            highlighter = Highlighter()
+        self.highlighter = highlighter
         # sets up the tags
-        for tag, settings in self.tags.items():
+        for tag, settings in self.highlighter.tags.items():
             self.tag_config(tag, **settings)
 
     def popup(self, event):
@@ -95,7 +111,7 @@ class SyntaxHighlightingText(ScrolledText2):
         # From IDLE
         current = self['tabs'] or 5000
         return int(current)
-    
+
     def set_tabwidth(self, newtabwidth):
         # From IDLE
         text = self
@@ -104,9 +120,9 @@ class SyntaxHighlightingText(ScrolledText2):
                                   "-displayof", text.master,
                                   "n" * newtabwidth)
             text.configure(tabs=pixels)
-        
+
     def remove_singleline_tags(self, start, end):
-        for tag in self.tags.keys():
+        for tag in self.highlighter.tags.keys():
             if tag[:2] != 'ml':
                 self.tag_remove(tag, start, end)
 
@@ -177,7 +193,7 @@ class SyntaxHighlightingText(ScrolledText2):
         if cline != self.previous_line: self.colorize(self.previous_line)
         self.colorize(cline)
         self.previous_line = cline
-               
+
     def key_release(self, key):
         #print "pressed", key.keysym, dir(key)
         if key.char in ' :[(]),"\'':
@@ -203,11 +219,11 @@ class SyntaxHighlightingText(ScrolledText2):
         else:
             pass
             #print key
-    
+
     def onChange(self):
         if self.change_hook is not None:
             self.change_hook()
-    
+
     def ctrl(self, key):
         #if key.keysym == 'c': self.copy()
         #elif key.keysym == 'x': self.cut()
@@ -217,7 +233,7 @@ class SyntaxHighlightingText(ScrolledText2):
     def colorize(self, cline):
         cursorPos = self.index(INSERT)
         buffer = self.get('%s.%d' % (cline,0), '%s.end' % (cline))
-       
+
         # remove non-multiline tags
         self.remove_singleline_tags('%s.%d'% (cline, 0), '%s.end'% (cline))
 
@@ -236,7 +252,7 @@ class SyntaxHighlightingText(ScrolledText2):
             if not in_quote:
                 # operators
                 if False:
-                    for op in self.operators:
+                    for op in self.highlighter.operators:
                         if buffer[i:i+len(op)] == op:
                             self.tag_add('op', "%s.%d" % (cline, i), "%s.%d" % (cline, i+len(op)))
                 # comments
@@ -264,12 +280,12 @@ class SyntaxHighlightingText(ScrolledText2):
                         #print "multiline comment from %s to %s" % (start_pos, end_pos)
                         self.tag_add('mlcom', start_pos, end_pos)
                 # bracket highlighting
-                elif buffer[i] in self.open_brackets and here == cursorPos:
-                    idxBracketType = self.open_brackets.index(buffer[i])
-                    openb, closeb = self.brackets[idxBracketType]
+                elif buffer[i] in self.highlighter.open_brackets and here == cursorPos:
+                    idxBracketType = self.highlighter.open_brackets.index(buffer[i])
+                    openb, closeb = self.highlighter.brackets[idxBracketType]
                     stack = 1
                     for j,c in enumerate(buffer[i+1:]):
-                        if c == openb: 
+                        if c == openb:
                             stack += 1
                         elif c == closeb:
                             stack -= 1
@@ -277,14 +293,14 @@ class SyntaxHighlightingText(ScrolledText2):
                                 self.tag_add('bracket_hl', here, here + " + 1 char")
                                 self.tag_add('bracket_hl', "%s.%d" % (cline, i+1+j), "%s.%d" % (cline, i+1+j+1))
                                 break
-                elif buffer[i] in self.close_brackets and self.index(here + " + 1 char") == cursorPos:
-                    idxBracketType = self.close_brackets.index(buffer[i])
-                    openb, closeb = self.brackets[idxBracketType]
+                elif buffer[i] in self.highlighter.close_brackets and self.index(here + " + 1 char") == cursorPos:
+                    idxBracketType = self.highlighter.close_brackets.index(buffer[i])
+                    openb, closeb = self.highlighter.brackets[idxBracketType]
                     stack = 1
                     l = list(buffer[:i])
                     l.reverse()
                     for j,c in enumerate(l):
-                        if c == closeb: 
+                        if c == closeb:
                             stack += 1
                         elif c == openb:
                             stack -= 1
@@ -303,7 +319,7 @@ class SyntaxHighlightingText(ScrolledText2):
                 self.tag_add('obj', start_index, end_index)
                 obj_flag = 0
             # keywords
-            if token.strip() in []: #keyword.kwlist:
+            if token.strip() in self.highlighter.keywords:
                 self.tag_add('kw', start_index, end_index)
                 if token.strip() in ['def','class']:
                     obj_flag = 1
@@ -318,7 +334,7 @@ class SyntaxHighlightingText(ScrolledText2):
             start += len(token)+1
 
     def insert(self, index, text, *args):
-        line = int(self.index(index).split(".")[0])        
+        line = int(self.index(index).split(".")[0])
         Text.insert(self, index, text, *args)
         for i in range(text.count("\n")):
             self.colorize(str(line+i))
@@ -347,8 +363,8 @@ class FilePickEdit(Frame):
 
     def onSaveChange(self, name, index, mode):
         if self.user_onChange != None:
-            self.user_onChange(self.save_name.get())        
-    
+            self.user_onChange(self.save_name.get())
+
     def autoRename(self):
         # modify "save as" name
         filename = self.picked_name.get()
@@ -375,7 +391,7 @@ class FilePickEdit(Frame):
         if self.user_onChange != None:
             self.user_onChange(filename)
 
-    def onEdit(self):    
+    def onEdit(self):
         if self.unmodified == True:
             self.unmodified = False
             # do auto rename if it's enabled or there is no file selected (editing new file)
@@ -383,7 +399,7 @@ class FilePickEdit(Frame):
                 self.autoRename()
             # enable editing of save as name
             self.save_edit.configure(state=NORMAL)
-    
+
     def onChangeRename(self):
         # called when clicking on "rename on edit" checkbox
         if self.rename_on_edit.get() == 1:
@@ -391,8 +407,8 @@ class FilePickEdit(Frame):
                 self.autoRename()
         else:
             self.save_name.set(self.picked_name.get())
-    
-    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None, coloring=True, allowNone=False):
+
+    def __init__(self, master, file_mask, default_file, edit_height = None, user_onChange = None, rename_on_edit=0, font = None, coloring=True, allowNone=False, highlighter=None):
         '''
             file_mask: file mask (e.g. "*.foo") or list of file masks (e.g. ["*.foo", "*.abl"])
         '''
@@ -423,7 +439,7 @@ class FilePickEdit(Frame):
         # editor
         row += 1
         if coloring:
-            self.editor = SyntaxHighlightingText(self, self.onEdit)
+            self.editor = SyntaxHighlightingText(self, self.onEdit, highlighter=highlighter)
         else:
             self.editor = ScrolledText2(self, self.onEdit)
         if font != None:
@@ -455,7 +471,7 @@ class FilePickEdit(Frame):
         # pick default if applicable
         self.select(default_file)
         self.row = row
-        
+
     def updateList(self):
         self.files = []
         if self.allowNone:
@@ -466,7 +482,7 @@ class FilePickEdit(Frame):
                     self.files.append(filename)
         self.files.sort()
         if len(self.files) == 0 and not self.allowNone: self.files.append("(no %s files found)" % str(self.file_mask    ))
-    
+
     def select(self, filename):
         ''' selects the item given by filename '''
         if filename in self.files:
@@ -475,7 +491,7 @@ class FilePickEdit(Frame):
             else:
                 self.list.selectitem(self.files.index(filename))
                 self.onSelChange(filename)
-    
+
     def makelist(self):
         if havePMW:
             self.list = Pmw.ComboBox(self.list_frame,
@@ -484,7 +500,7 @@ class FilePickEdit(Frame):
             )
             self.list.grid(row=0, column=0, padx=0, pady=0, sticky="NEWS")
             self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
-            self.picked_name = self.list            
+            self.picked_name = self.list
         else:
             self.list = apply(OptionMenu, (self.list_frame, self.picked_name) + tuple(self.files))
             self.list.grid(row=0, column=0, sticky="NEW")
@@ -492,10 +508,10 @@ class FilePickEdit(Frame):
 
     def save(self):
         self.get()
-        
+
     def set(self, selected_item):
         self.select(selected_item)
-    
+
     def get(self):
         ''' gets the name of the currently selected file, saving it first if necessary '''
         filename = self.save_name.get()
@@ -522,7 +538,7 @@ class FilePickEdit(Frame):
 
     def get_text(self):
         return self.editor.get("1.0", END)
-    
+
     def get_filename(self):
         return self.save_name.get()
 
@@ -547,7 +563,7 @@ class FilePick(Frame):
         self.updateList()
         # pick default if applicable
         self.set(default_file)
-    
+
     def onSelChange(self, name, index=0, mode=0):
         filename = self.picked_name.get()
         if self.user_onChange != None:
@@ -561,7 +577,7 @@ class FilePick(Frame):
             self.files.append("")
         for fm in self.file_masks:
             for dir in self.dirs:
-                try: 
+                try:
                     for filename in os.listdir(dir):
                         if fnmatch(filename, fm):
                             if dir != ".":
@@ -573,11 +589,11 @@ class FilePick(Frame):
                     pass
         self.files.sort()
         if len(self.files) == 0: self.files.append("(no %s files found)" %  self.file_masks)
-        # create list object        
+        # create list object
         self._makelist()
         # reselect
         self.set(prev_sel)
-    
+
     def _makelist(self):
         if havePMW:
             self.list = Pmw.ComboBox(self,
@@ -586,7 +602,7 @@ class FilePick(Frame):
             )
             self.list.grid(row=0, column=0, padx=0, sticky="NEWS")
             self.list.component('entryfield').component('entry').configure(state = 'readonly', relief = 'raised')
-            self.picked_name = self.list            
+            self.picked_name = self.list
         else:
             self.picked_name = StringVar(self)
             self.list = apply(OptionMenu, (self, self.picked_name) + tuple(self.files))
@@ -626,17 +642,17 @@ class DropdownList:
             self.set(default)
         else:
             self.set(self.items[0])
-    
-    def __getattr__(self, name):        
+
+    def __getattr__(self, name):
         return getattr(self.list, name)
-    
+
     def get(self):
         return self.picked_name.get()
-    
+
     def set(self, item):
         if item in self.items:
             if not havePMW:
-                self.picked_name.set(item) 
+                self.picked_name.set(item)
             else:
                 self.list.selectitem(item)
                 #self.onSelChange(default_file)
@@ -647,7 +663,6 @@ class Checkbox(Checkbutton):
         Checkbutton.__init__(self, master, text=text, variable=self.var, **args)
         if default is not None:
             self.var.set(default)
-    
+
     def get(self):
         return self.var.get()
-        

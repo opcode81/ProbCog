@@ -63,13 +63,13 @@ class BLNQuery:
         self.frame.columnconfigure(1, weight=1)
 
         row = 0
-        
+
         self.networksDict = self.settings.get("networksDict", {})
         self.constraintsDict = self.settings.get("constraintsDict", {})
 
         # declarations selection
         Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
-        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 12, self.changedDecls, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
+        self.selected_blog = FilePickEdit(self.frame, ["*.blnd", "*.blog", "*.abl"], self.settings.get("blog", ""), 12, self.changedDecls, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font, highlighter=BLNHighlighter())
         self.selected_blog.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
@@ -269,7 +269,7 @@ class BLNQuery:
     def changedNetwork(self, name):
         self.bif_filename = name
         self.setOutputFilename()
-        
+
     def getDefaultFile(self, prefix):
         content = self.selected_blog.get_text()
         m = re.search(r'%s\s+([^\s;]+)' % prefix, content, re.MULTILINE)
