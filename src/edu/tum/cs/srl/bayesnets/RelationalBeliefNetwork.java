@@ -299,7 +299,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				}
 				// check for the right number of arguments and their types
 				if(sig.argTypes.length != node.params.length)
-					throw new Exception(String.format("Signature of '%s' does not match node definition: It contains %d elements vs. %d elements in the node definition.", node.toString(), sig.argTypes.length, node.params.length));
+					throw new Exception(String.format("Signature of '%s' is in conflict with node '%s': Signature requires %d arguments, node has %d.", sig.functionName, node.toString(), sig.argTypes.length, node.params.length));
 				for(int i = 0; i < node.params.length; i++) {
 					String key = node.params[i];
 					String prevType = types.get(key);

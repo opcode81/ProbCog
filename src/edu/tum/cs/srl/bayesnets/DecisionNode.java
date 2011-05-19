@@ -11,7 +11,6 @@ import edu.tum.cs.logic.PossibleWorldFromDatabase;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 
 public class DecisionNode extends ExtendedNode {
@@ -22,7 +21,7 @@ public class DecisionNode extends ExtendedNode {
 	protected Operator operator;
 	protected Formula formula;
 	
-	public DecisionNode(RelationalBeliefNetwork rbn, edu.ksu.cis.bnj.ver3.core.BeliefNode node) throws ParseException {
+	public DecisionNode(RelationalBeliefNetwork rbn, edu.ksu.cis.bnj.ver3.core.BeliefNode node) throws Exception {
 		super(rbn, node);
 		// check if the node is an operator that is to be applied to its parents, which are also decision nodes
 		operator = null;
@@ -31,7 +30,12 @@ public class DecisionNode extends ExtendedNode {
 		}
 		// if it's not an operator, it's a formula which we have to parse
 		if(operator == null) {
-			formula = FormulaParser.parse(node.getName());
+			try {
+				formula = FormulaParser.parse(node.getName());
+			}
+			catch(ParseException e) {
+				throw new Exception("Could not parse the formula '" + node.getName() + "'", e);
+			}
 		}
 	}
 	
