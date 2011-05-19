@@ -1,5 +1,6 @@
 package edu.tum.cs.srl.bayesnets;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,6 +19,7 @@ import edu.tum.cs.logic.Exist;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.Literal;
 import edu.tum.cs.logic.Negation;
+import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
@@ -613,48 +615,57 @@ public class RelationalNode extends ExtendedNode {
 	}
 	
 	public Vector<Map<Integer, String[]>> checkTemplateApplicability(String[] params, Database db) throws Exception {
-		RelationalNode relNode = this;
-		
-		// check constant parameters of this fragment
-		for(Integer i : this.constantParamIndices)
-			if(!params[i].equals(this.params[i]))
+		try {
+			RelationalNode relNode = this;
+			
+			// check constant parameters of this fragment
+			for(Integer i : this.constantParamIndices)
+				if(!params[i].equals(this.params[i]))
+					return null;
+			
+			// if the node is subject to preconditions (decision node parents), check if they are met
+			boolean preconditionsMet = true;
+			for(DecisionNode decision : relNode.getDecisionParents()) {	
+				// TODO consider generating the current variable assignment using the parent grounder (instead of using relNode.params and params), so that we can also use functionally determined parents in the decision node (if we make this change, we also have to modify the learning code); example application: kitchen/actionSeq/decisionsDemo2
+				if(!decision.isTrue(relNode.params, params, db, false)) {
+					preconditionsMet = false;
+					break;
+				}
+			}
+			if(!preconditionsMet)
 				return null;
-		
-		// if the node is subject to preconditions (decision node parents), check if they are met
-		boolean preconditionsMet = true;
-		for(DecisionNode decision : relNode.getDecisionParents()) {					
-			if(!decision.isTrue(relNode.params, params, db, false)) {
-				preconditionsMet = false;
-				break;
+			
+			// get groundings of parents
+			ParentGrounder pg = this.bn.getParentGrounder(relNode);
+			Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+			
+			// if we got no actual groundings, then we can't instantiate (e.g. because all the precondition parents were false)
+			if(groundings == null)
+				return null;
+			
+			// if there are precondition parents, 
+			// filter out the inadmissible parent groundings
+			Vector<RelationalNode> preconds = relNode.getPreconditionParents();
+			for(RelationalNode precond : preconds) {
+				Iterator<Map<Integer, String[]>> iter = groundings.iterator();
+				while(iter.hasNext()) {				
+					Map<Integer, String[]> grounding = iter.next();
+					String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
+					if(!value.equals(BooleanDomain.True)) {
+						iter.remove();
+					}
+				}
 			}
+			
+			// if there are no groundings left, there is nothing to instantiate
+			if(groundings.isEmpty())
+				return null;
+			
+			return groundings;
 		}
-		if(!preconditionsMet)
-			return null;
-		
-		// get groundings of parents
-		ParentGrounder pg = this.bn.getParentGrounder(relNode);
-		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
-		if(groundings == null)
-			throw new Exception("Could not ground '" + pg + "'");
-		
-		// if there are precondition parents, 
-		// filter out the inadmissible parent groundings
-		Vector<RelationalNode> preconds = relNode.getPreconditionParents();
-		for(RelationalNode precond : preconds) {
-			Iterator<Map<Integer, String[]>> iter = groundings.iterator();
-			while(iter.hasNext()) {
-				Map<Integer, String[]> grounding = iter.next();
-				String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
-				if(!value.equals("True"))
-					iter.remove();
-			}
+		catch(Throwable e) {
+			throw new Exception("Error checking template applicability of '" + this.toString() + "' for parameters [" + StringTool.join(", ", params) + "]", e);
 		}
-		
-		// if there are no groundings left, there is nothing to instantiate
-		if(groundings.isEmpty())
-			return null;
-		
-		return groundings;
 	}
 }
 
