@@ -207,7 +207,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				if(groundings.size() > 1 && !relNode.hasAggregator())
 					combiningRuleNeeded = true;			
 				
-				// we also need a cominbing rule if we already have a suitable template
+				// we also need a combining rule if we already have a suitable template
 				if(!suitableTemplates.isEmpty())
 					combiningRuleNeeded = true;
 	
@@ -406,28 +406,38 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates, CombiningRule r) throws Exception {
 		// get the parent set
 		HashMap<BeliefNode, Integer> parentIndices = new HashMap<BeliefNode, Integer>();
-		Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap = new Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>>(); 
+		// * for all the templates (relational nodes) that are involved in the combining rule, we remember
+		//   the mapping from (relational) parent nodes to indices in the domain product of the CPF
+		//   we are instantiating
+		Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap = new Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>>();
+		// * build up the domain product of the CPF we are constructing by going over all suitable
+		//   templates and all applicable groundings thereof
 		int domProdIndex = 1;
 		for(Pair<RelationalNode, Vector<Map<Integer, String[]>>> template : suitableTemplates) {
 			RelationalNode relNode = template.first;
 			Vector<Map<Integer, String[]>> nodeGroundings = template.second;
+			// for each grounding, instantiate all relevant nodes and maintain the mapping as described above 
 			for(Map<Integer, String[]> nodeGrounding : nodeGroundings) {
-				Map<BeliefNode,Integer> relParentIndex2domprodIndex = new HashMap<BeliefNode,Integer>();
+				Map<BeliefNode,Integer> relParent2domprodIndex = new HashMap<BeliefNode,Integer>();
 				for(Entry<Integer,String[]> entry : nodeGrounding.entrySet()) {
 					RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
 					if(relParent == relNode)
 						continue;
 					BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
-					if(parent == null)
-						throw new Exception();
+					if(parent == null) { // we could not instantiate the parent
+						// this is OK only if the parent is a precondition
+						if(relParent.isPrecondition)
+							continue;
+						throw new Exception("Could not instantiate " + relParent + " with params [" + StringTool.join(", ", entry.getValue()) + "] as a parent for " + mainNode);
+					}
 					Integer index = parentIndices.get(parent);					
 					if(index == null) {
 						index = domProdIndex++;
 						parentIndices.put(parent, index);
 					}
-					relParentIndex2domprodIndex.put(relParent.node, index);
+					relParent2domprodIndex.put(relParent.node, index);
 				}				
-				templateDomprodMap.add(new Pair<RelationalNode, Map<BeliefNode,Integer>>(relNode, relParentIndex2domprodIndex));
+				templateDomprodMap.add(new Pair<RelationalNode, Map<BeliefNode,Integer>>(relNode, relParent2domprodIndex));
 			}
 		}
 		
@@ -494,8 +504,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				Integer i1 = m.second.get(domprod2[i2]);
 				if(i1 != null)
 					addr2[i2] = addr[i1];
-				else
-					addr2[i2] = 0;					
+				else // this case applies to decision parents and precondition parents that were not instantiated
+					addr2[i2] = 0; // 0 corresponds to True
 			}				
 			Double v = cpf2.getDouble(addr2);
 			values.add(v);
