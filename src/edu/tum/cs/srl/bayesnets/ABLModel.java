@@ -163,24 +163,24 @@ public class ABLModel extends RelationalBeliefNetwork {
 		
 		// read type information
 		if (line.startsWith("type") || line.startsWith("Type")) {
-			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?);?");
+			Pattern pat = Pattern.compile("[Tt]ype\\s+(.*?)\\s*;?$");
 			Matcher matcher = pat.matcher(line);
 			Pattern typeDecl = Pattern.compile("(\\w+)(?:\\s+isa\\s+(\\w+))?");
 			if (matcher.matches()) {
 				String[] decls = matcher.group(1).split("\\s*,\\s*");
 				for (String d : decls) {
 					Matcher m = typeDecl.matcher(d);
-					if (m.matches()) {						
+					if(m.matches()) {						
 						Concept c = addType(m.group(1), true);
 						if (m.group(2) != null) {
 							Concept parent = addType(m.group(2), false);
 							c.setParent(parent);
 						}
-						return true;
-					} 
+					}
 					else
-						throw new Exception("The type declaration '" + d + "' is invalid");
+						throw new Exception("The type declaration '" + d + "' is invalid");					
 				}
+				return true;
 			}
 			return false;
 		}
@@ -188,7 +188,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 		// prolog rule
 		if (line.startsWith("prolog")) {
 			String rule = line.substring(6).trim();
-			if (!rule.endsWith("."))
+			if(rule.endsWith(";"))
+				rule = rule.substring(0, rule.length()-1);
+			if(!rule.endsWith("."))
 				rule += ".";
 			prologRules.add(rule);
 			return true;
