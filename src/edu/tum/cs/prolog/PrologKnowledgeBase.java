@@ -22,7 +22,7 @@ public class PrologKnowledgeBase extends yprolog.YProlog {
 	 * @throws ParseException
 	 */
 	public void tell(String formula) throws ParseException {
-		this.consult(formula);
+		this.yp_eng.consultStringFront(formula);
 	}
 	
 	/**

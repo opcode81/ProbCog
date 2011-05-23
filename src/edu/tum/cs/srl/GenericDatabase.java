@@ -74,8 +74,15 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		prolog = new PrologKnowledgeBase();
 		if(prologRules != null && !prologRules.isEmpty()) {
 			System.out.println("building Prolog knowledge base... ");
-			for(String rule : prologRules) {
-				prolog.tell(rule);
+			for(String rule : prologRules) { 
+				try {
+					System.out.println("telling " + rule);
+					prolog.tell(rule);
+				}
+				catch(Throwable e) {
+					System.out.println("DID catch");
+					throw new Exception("Error processing rule '" + rule + "'", e);
+				}
 			}
 		}
 
