@@ -473,6 +473,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 	}
 
 	protected void writeDeclarations(PrintStream out) {
+		if(this.networkFile != null) {
+			out.printf("fragments %s;\n\n", this.networkFile.toString());
+		}
+		
 		// write type decls
 		for(Concept c : this.taxonomy.getConcepts()) {
 			if(c.parent == null)
@@ -528,6 +532,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 				}
 			}
 		}
+	}
+	
+	public void setNetworkFilename(String networkFilename) {
+		this.networkFile = new File(networkFilename);
 	}
 	
 	public static void main(String[] args) {
