@@ -150,6 +150,8 @@ public class BLNLearner implements IParameterHandler {
 				// write learnt BLOG/ABL model
 				if(outFileDecls != null) {
 					System.out.println("Writing declarations to " + outFileDecls + "...");
+					if(outFileNetwork != null)
+						bn.setNetworkFilename(outFileNetwork);
 					PrintStream out = new PrintStream(new File(outFileDecls));
 					bn.write(out);			
 					out.close();
