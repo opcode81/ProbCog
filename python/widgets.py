@@ -59,7 +59,7 @@ class Highlighter(object):
 class BLNHighlighter(Highlighter):
     def __init__(self):
         Highlighter.__init__(self)
-        self.keywords = ["type", "Type", "fragments", "isa", "random", "logical", "relationKey", "constraints", "guaranteed"]
+        self.keywords = ["type", "Type", "fragments", "isa", "random", "logical", "relationKey", "constraints", "guaranteed", "combining-rule", "uniform-default", "prolog"]
 
 class SyntaxHighlightingText(ScrolledText2):
 
@@ -593,6 +593,10 @@ class FilePick(Frame):
         self._makelist()
         # reselect
         self.set(prev_sel)
+        
+    def getList(self):
+        ''' returns the current list of files '''
+        return self.files
 
     def _makelist(self):
         if havePMW:
