@@ -42,7 +42,7 @@ public class Signature {
 	
 	@Override
 	public String toString() {
-		return String.format("%s %s(%s)", returnType, functionName, StringTool.join(",", argTypes));
+		return String.format("%s %s %s(%s)", isLogical ? "logical" : "non-logical", returnType, functionName, StringTool.join(",", argTypes));
 	}
 
 	public static String formatVarName(String functionName, String[] args) {
