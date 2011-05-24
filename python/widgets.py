@@ -46,7 +46,7 @@ class Highlighter(object):
                 'str': dict(foreground='darkcyan'), # string
                 'kw': dict(foreground='blue'), # keyword
                 'obj': dict(foreground='#00F'), # function/class name
-                'number': dict(foreground='cyan'), # number
+                'number': dict(foreground='darkred'), # number
                 'op' : dict(foreground='blue'), # operator
                 'bracket_hl': dict(background="yellow") # bracket highlighting
                 }
