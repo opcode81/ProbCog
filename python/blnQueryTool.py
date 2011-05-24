@@ -73,7 +73,7 @@ class BLNQuery:
         self.selected_blog.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
-        # - fragments selection
+        # fragments selection
         row += 1
         Label(self.frame, text="Fragments: ").grid(row=row, column=0, sticky=NE)
         # frame
@@ -84,9 +84,12 @@ class BLNQuery:
         self.selected_bif = FilePick(frame, ["*.xml", "*.pmml"], self.settings.get("bif", ""), self.changedNetwork, font=config.fixed_width_font)
         self.selected_bif.grid(row=0, column=0, sticky="NWES")
         frame.rowconfigure(0, weight=1)
+        # new button
+        new_button = Button(frame, text="new", command=self.newNetwork)
+        new_button.grid(row=0, column=1, sticky="NEWS")
         # show button
-        start_button = Button(frame, text="show", command=self.showBN)
-        start_button.grid(row=0, column=1, sticky="NEWS")
+        start_button = Button(frame, text="show", command=self.showNetwork)
+        start_button.grid(row=0, column=2, sticky="NEWS")
 
         # logical constraints selection
         row += 1
@@ -305,7 +308,16 @@ class BLNQuery:
         fn = "%s-%s-%s.dist" % (os.path.splitext(self.bif_filename)[0], os.path.splitext(self.db_filename)[0], method)
         self.output_filename.set(fn)
 
-    def showBN(self):
+    def newNetwork(self):
+        oldList = set(self.selected_bif.getList())
+        os.system("bnj")
+        self.selected_bif.updateList()
+        newList = set(self.selected_bif.getList())
+        diff = newList - oldList
+        if len(diff) > 0:
+            self.selected_bif.set(diff.pop())
+
+    def showNetwork(self):
         bif = self.selected_bif.get()
         spawn("bnj", bif)
 
