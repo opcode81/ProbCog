@@ -201,8 +201,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return ret;
 	}
 	
-	public void addSignature(Signature sig) {
+	public void addSignature(Signature sig) throws Exception {
 		String key = sig.functionName; //.toLowerCase()
+		Signature old = signatures.get(key);
+		if(old != null)
+			throw new Exception("Duplicate signature definition for '" + sig.functionName + "'; previously defined as " + old + ", now defined as " + sig);		
 		signatures.put(key, sig);
 	}
 	
