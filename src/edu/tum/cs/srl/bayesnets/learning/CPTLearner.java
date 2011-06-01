@@ -6,7 +6,11 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.ksu.cis.bnj.ver3.core.Value;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.ksu.cis.bnj.ver3.core.values.ValueZero;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
@@ -311,11 +315,28 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
  
 		// learn CPTs
 		for(RelationalNode node : bn.getRelationalNodes()) { // for each node...
-			if(node.isConstant || node.isBuiltInPred()) // ignore constant nodes as they do not correspond to logical atoms 
+			
+			// ignore constant nodes as they do not correspond to logical atoms
+			if(node.isConstant || node.isBuiltInPred())  
 				continue;
-			numExamples = 0;
+
 			if(verbose)
 				System.out.println("  " + node.getName());				
+			
+			// for precondition nodes, simply set CPT to 100% true
+			if(node.isPrecondition) {
+				CPF cpf = node.node.getCPF();
+				int numColumns = cpf.getRowLength(); // should be 1 (just in case)
+				ValueDouble v1 = new ValueDouble(1.0);
+				ValueZero zero = new ValueZero();
+				for(int i = 0; i < numColumns; i++) { 
+					cpf.put(i, v1);				
+					cpf.put(i+cpf.getColumnValueAddressOffset(), zero);
+				}
+				continue;
+			}
+			
+			numExamples = 0;
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
 			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
