@@ -69,6 +69,10 @@ public class MLNWriter {
 		return formatAsPredName(predName) + params;
 	}
 	
+	public static String formatAsConstant(String constant) {
+		return upperCaseString(constant);
+	}
+	
 	/**
 	 * returns a string where the first letter is lower case
 	 * @param s the string to convert
