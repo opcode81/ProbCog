@@ -17,6 +17,7 @@ import edu.tum.cs.clustering.BasicClusterer;
 import edu.tum.cs.clustering.ClusterNamer;
 import edu.tum.cs.clustering.EMClusterer;
 import edu.tum.cs.clustering.SimpleClusterer;
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srldb.datadict.AutomaticDataDictionary;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
@@ -124,7 +125,15 @@ public class Database implements Cloneable, Serializable {
 		}
 	}
 	
-	public void writeBLOGDatabase(PrintStream out) throws DDException {
+	public void writeBLOGDatabase(PrintStream out) throws Exception {
+		// check function names
+		for(DDAttribute ddattr : this.getDataDictionary().getAttributes()) {
+			if(ddattr.isDiscarded())
+				continue;
+			if(!ABLModel.isValidFunctionName(ddattr.getName()))
+				throw new Exception("'" + ddattr.getName() + "' is not a valid function name");
+		}
+		// write all facts
 		for(Object obj : objects) {
 			obj.BLOGprintFacts(out);
 		}

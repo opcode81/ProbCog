@@ -3,10 +3,14 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.Map.Entry;
 
+import edu.tum.cs.srl.bayesnets.ABLModel;
+import edu.tum.cs.srl.bayesnets.MLNConverter;
+import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.IDDRelationArgument;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
+import edu.tum.cs.util.StringTool;
 
 public class Link extends Item implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -26,27 +30,19 @@ public class Link extends Item implements Serializable {
 	/*public void addAttribute(String attribute, String value, DataTypeEnum type) {
 		addAttribute(attribute, value, type, "L");
 	}*/
-
-	/**
-	 * gets the parameters (i.e. the constants) that this link connects in a comma-separated string, e.g. "Foo, Bar" 
-	 */
-	protected String getLinkParams() {
-		StringBuffer linkParams = new StringBuffer();
-		for(int i = 0; i < arguments.length; i++) {
-			if(i > 0)
-				linkParams.append(", ");
-			linkParams.append(Database.upperCaseString(arguments[i].getConstantName()));
-		}	
-		return linkParams.toString();
-	}
 	
 	public String getLogicalAtom() {
-		return linkName + "(" + getLinkParams() + ")";
+		return linkName + "(" + StringTool.join(", ", arguments) + ")";
 	}
 	
 	public void MLNprintFacts(java.io.PrintStream out) throws DDException {
+		String[] params = new String[this.arguments.length];
+		for(int i = 0; i < params.length; i++)
+			params[i] = MLNWriter.formatAsConstant(arguments[i].getConstantName());
+		String allParams = StringTool.join(", ", params);
+		String atom = linkName + "(" + allParams + ")";
 		// print the relation fact
-		out.println(getLogicalAtom());
+		out.println(atom);
 		// if the link has boolean attributes, output further facts with the attribute
 		// name as the predicate name
 		for(String attribName : attribs.keySet()) {			
@@ -55,7 +51,7 @@ public class Link extends Item implements Serializable {
 			if(/*data != null) {
 				if(data.type == DataTypeEnum.STR &&*/ ddAttr.isBoolean()) {
 					out.print(((BooleanDomain)ddAttr.getDomain()).isTrue(attribs.get(attribName)) ? "" : "!");
-					out.println(attribName + "(" + getLinkParams() + ")");
+					out.println(attribName + "(" + allParams + ")");
 				//}
 			}
 			else
@@ -66,17 +62,28 @@ public class Link extends Item implements Serializable {
 	/**
 	 * prints facts on this link object (for BLOG databases)
 	 * @param out
-	 * @throws DDException
+	 * @throws Exception 
 	 */
-	public void BLOGprintFacts(PrintStream out) throws DDException {
-		out.printf("%s = True;\n", getLogicalAtom());
+	public void BLOGprintFacts(PrintStream out) throws Exception {
+		String[] params = new String[this.arguments.length];
+		for(int i = 0; i < params.length; i++) {
+			params[i] = Database.upperCaseString(arguments[i].getConstantName());
+			if(!ABLModel.isValidEntityName(params[i]))
+				throw new Exception("'" + params[i] + "' is not a valid entity name");
+		}
+		String allParams = StringTool.join(", ", params);
+		String atom = linkName + "(" + allParams + ")";
+		out.printf("%s = True;\n", atom);		
 		// attributes
-		String linkObjects = getLinkParams();
-		for(Entry<String, String> entry : getAttributes().entrySet()) {
+		String linkObjects = allParams;
+		for(Entry<String, String> entry : getAttributes().entrySet()) {			
 			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(entry.getKey()); 
 			if(ddAttrib.isDiscarded())
 				continue;
-			out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, Database.upperCaseString(entry.getValue())); 
+			String value = Database.upperCaseString(entry.getValue());
+			if(!ABLModel.isValidEntityName(value))
+				throw new DDException("\"" + value + "\" is not a valid entity name");
+			out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, value); 
 		}
 	}
 	

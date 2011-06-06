@@ -39,6 +39,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 	protected File networkFile = null;
 	protected File[] declsFiles = null;
 	
+	public static Pattern regexFunctionName = Pattern.compile("[\\w]+");
+	public static Pattern regexTypeName = regexFunctionName;
+	public static Pattern regexEntity = Pattern.compile("(?:[A-Z][\\w]+|[0-9]+(?:\\.[0-9]+)?)");
+	
 	/**
 	 * constructs a model by obtaining the node data from a fragment
 	 * network and declarations from one or more files.
@@ -73,6 +77,18 @@ public class ABLModel extends RelationalBeliefNetwork {
 		init(new String[]{ declarationsFile }, null);
 	}
 	
+	public static boolean isValidEntityName(String s) {
+		return regexEntity.matcher(s).matches();
+	}
+	
+	public static boolean isValidFunctionName(String s) {
+		return regexFunctionName.matcher(s).matches();
+	}
+
+	public static boolean isValidTypeName(String s) {
+		return regexTypeName.matcher(s).matches();
+	}
+
 	private void init(String[] declarationsFiles, String networkFile) throws Exception {
 		if(networkFile != null)
 			this.networkFile = new File(networkFile);
