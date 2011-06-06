@@ -25,7 +25,7 @@ import edu.tum.cs.util.StringTool;
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	
 	protected HashMap<Integer, HashMap<String, Integer>> marginals;
-	protected int numExamples;
+	protected int numCounted, numNotCounted;
 	protected boolean verbose;
 	protected boolean debug = false;
 	
@@ -38,6 +38,13 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		setUniformDefault(uniformDefault);
 		this.debug = debug;
 		//marginals = new HashMap<Integer, HashMap<String,Integer>>(); // just for debugging
+	}
+	
+	protected void printCountStatus(boolean force) {
+		int total = numCounted+numNotCounted;
+		boolean doPrint = force ? true : total % 10 == 0; 
+		if(verbose && doPrint) 
+			System.out.printf("    %d/%d counted\r", numCounted, total);
 	}
 	
 	/**
@@ -168,14 +175,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				}				
 			}
 			//System.out.println("checking preconditions done");
-			if(!countExample)
+			if(!countExample) {
+				numNotCounted++;
+				printCountStatus(false);
 				continue;
+			}
 
 			// if preconditions were met, handle domain indices of all parents		
 			int domainIndices[] = new int[this.nodes.length];
 			countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, 0);
 
-			numExamples++;
+			numCounted++;
 			if(debug && verbose) { // just debug output
 				StringBuffer condition = new StringBuffer();
 				for(Entry<Integer, String[]> e : paramSets.entrySet()) {
@@ -206,6 +216,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		// count the example
 		if(i == counter.nodeIndices.length) {
 			counter.count(domainIndices, exampleWeight);
+			printCountStatus(false);
 			return;
 		}
 		
@@ -336,12 +347,15 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				continue;
 			}
 			
-			numExamples = 0;
+			numCounted = 0;
+			numNotCounted = 0;
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
 			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
-			if(verbose) 
-				System.out.println("    " + numExamples + " counted");
+			if(verbose) {
+				printCountStatus(true);
+				System.out.println();
+			}
 			//System.out.println("    counts: " + marginals.get(node.index));
 		}
 	}
@@ -372,8 +386,11 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			Collection<DecisionNode> decisions = node.getDecisionParents();
 			if(decisions.size() > 0) {
 				for(DecisionNode decision : decisions) {
-					if(!decision.isTrue(node.params, params, db, closedWorld))
+					if(!decision.isTrue(node.params, params, db, closedWorld)) {
+						numNotCounted++;
+						printCountStatus(false);
 						return;
+					}
 				}
 			}
 			
