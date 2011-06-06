@@ -3,6 +3,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
@@ -115,11 +116,18 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 	}
 	
 	public void BLOGprintFacts(PrintStream out) throws DDException {
+		String constant = getConstantName();
+		if(!ABLModel.isValidEntityName(constant))
+			throw new DDException("\"" + constant + "\" is not a valid entity name");
 		for(Entry<String, String> entry : getAttributes().entrySet()) {
-			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(entry.getKey()); 
+			String functionName = entry.getKey();
+			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(functionName); 
 			if(ddAttrib.isDiscarded())
-				continue;
-			out.printf("%s(%s) = %s;\n", entry.getKey(), getConstantName(), Database.upperCaseString(entry.getValue())); 
+				continue;					
+			String value = Database.upperCaseString(entry.getValue());
+			if(!ABLModel.isValidEntityName(value))
+				throw new DDException("\"" + value + "\" is not a valid entity name");
+			out.printf("%s(%s) = %s;\n", functionName, constant, value); 
 		}
 	}
 	
