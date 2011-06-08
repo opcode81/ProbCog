@@ -259,7 +259,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				if(f == null)
 					throw new Exception("Declared fragments file " + filename + " could not be found");					
 				if(networkFile != null) { // if we already have another network file, then the one that is declared here is not used
-					if(!networkFile.getAbsoluteFile().equals(f.getAbsoluteFile()))
+					if(!networkFile.getAbsoluteFile().equals(f.getAbsoluteFile())) 
 						System.err.println("Notice: Declared network file " + filename + " is overridden by " + networkFile);
 					return true;			
 				}				
@@ -299,11 +299,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 	
 	protected File findReferencedFile(String filename) {
 		File f = new File(filename).getAbsoluteFile();
-		if(f.exists())
+		if(f.exists())			
 			return f;
 		else {
 			for(File parentFile : this.declsFiles) {
-				f = new File(parentFile, filename).getAbsoluteFile();
+				f = new File(parentFile, filename).getParentFile().getAbsoluteFile();
 				if(f.exists())
 					return f;
 			}
