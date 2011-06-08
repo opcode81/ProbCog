@@ -127,7 +127,11 @@ public class RelationalNode extends ExtendedNode {
 	 * @param identifier
 	 */
 	public static boolean isConstant(String identifier) {
-		return Character.isUpperCase(identifier.charAt(0));
+		return !isVariable(identifier);
+	}
+	
+	public static boolean isVariable(String identifier) {
+		return Character.isLowerCase(identifier.charAt(0));
 	}
 	
 	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
