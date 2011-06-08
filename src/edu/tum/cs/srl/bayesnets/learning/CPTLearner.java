@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.ksu.cis.bnj.ver3.core.values.ValueZero;
 import edu.tum.cs.srl.Database;
@@ -55,10 +54,25 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param closedWorld	whether the closed-world assumption is to be made
 	 * @throws Exception
 	 */
-	protected void countVariable(GenericDatabase<?,?> db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
+	protected void processGrounding(GenericDatabase<?,?> db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
 		// if the node is not CPT-based, skip it
 		if(!node.hasCPT())
 			return;
+		
+		// to determine if we really have to count the example, we must
+		// check if there are any decision parents and count only if all
+		// decision parents are true
+		Collection<DecisionNode> decisions = node.getDecisionParents();
+		if(decisions.size() > 0) {
+			for(DecisionNode decision : decisions) {
+				if(!decision.isTrue(node.params, params, db, closedWorld)) {
+					numNotCounted++;
+					printCountStatus(false);
+					return;
+				}
+			}
+		}
+		
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork)this.bn;
 		// get the node and its associated counter
 		ExampleCounter counter = this.counters[node.index];
@@ -155,7 +169,8 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			
 		// set the domain indices of all relevant nodes (node itself and parents)
 		for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
-			// check precondition parents
+
+			// check precondition parents			
 			// TODO do we really need this? Preconditions are checked in ParentGrounder?
 			boolean countExample = true;
 			//System.out.println("checking preconditions of grounding of " + node.getVariableName(paramSets.get(node.index)));
@@ -181,11 +196,12 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				continue;
 			}
 
-			// if preconditions were met, handle domain indices of all parents		
+			// if preconditions were met, handle domain indices of all parents	
+			// and count the example
 			int domainIndices[] = new int[this.nodes.length];
 			countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, 0);
-
 			numCounted++;
+			
 			if(debug && verbose) { // just debug output
 				StringBuffer condition = new StringBuffer();
 				for(Entry<Integer, String[]> e : paramSets.entrySet()) {
@@ -351,7 +367,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 			numNotCounted = 0;
 			// consider all possible bindings for the node's parameters and count
 			String[] params = new String[node.params.length];			
-			countVariable(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
+			processAllGroundings(db, node, params, bn.getSignature(node.getFunctionName()).argTypes, 0, closedWorld);
 			if(verbose) {
 				printCountStatus(true);
 				System.out.println();
@@ -370,7 +386,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 	 * @param closedWorld	whether to make the closed-world assumption
 	 * @throws Exception
 	 */
-	protected void countVariable(GenericDatabase<?,?> db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
+	protected void processAllGroundings(GenericDatabase<?,?> db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
 		// if we have the full set of parameters, count the example
 		if(i == params.length) {
 			
@@ -380,34 +396,21 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 					throw new Exception("Incomplete data: No value for " + varName);
 			}
 			
-			// to determine if we really have to count the example, we must
-			// check if there are any decision parents and count only if all
-			// decision parents are true
-			Collection<DecisionNode> decisions = node.getDecisionParents();
-			if(decisions.size() > 0) {
-				for(DecisionNode decision : decisions) {
-					if(!decision.isTrue(node.params, params, db, closedWorld)) {
-						numNotCounted++;
-						printCountStatus(false);
-						return;
-					}
-				}
-			}
-			
-			countVariable(db, node, params, closedWorld);
+			processGrounding(db, node, params, closedWorld);
 			return;
 		}
 		
-		// otherwise consider all ways of extending the current list of parameters using the domain elements that are applicable		
+		// otherwise consider all ways of extending the current list of parameters 
+		// using the domain elements that are applicable		
 		if(RelationalNode.isConstant(node.params[i])) {
 			params[i] = node.params[i];
-			countVariable(db, node, params, domainNames, i+1, closedWorld);
+			processAllGroundings(db, node, params, domainNames, i+1, closedWorld);
 		}
 		else {
 			Iterable<String> domain = db.getDomain(domainNames[i]);
 			for(String element : domain) {
 				params[i] = element;
-				countVariable(db, node, params, domainNames, i+1, closedWorld);	
+				processAllGroundings(db, node, params, domainNames, i+1, closedWorld);	
 			}
 		}
 	}
