@@ -53,12 +53,13 @@ public class MaxWalkSAT {
     protected int SAMoves;
     protected int flips;
     double minSum;
-    protected int deltaCostCalcMethod = 1; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
+    public static enum DeltaCostMethod { ClauseWeights, FormulaWeights, Mixed};
+    protected DeltaCostMethod deltaCostCalcMethod = DeltaCostMethod.ClauseWeights; //(1 - Calculate always 1/Count of constraints; 2 - Calculate only if value of formula was changed (then complete weight of the formula); 3 - see 2, if no change were made then see 1)
     protected int maxSteps = 1000;
     /**
      * probability of a greedy move
      */
-    protected double p = 0.999;
+    protected double p = 0.8;
 
     /**
      *  Constructor to instantiate an object of MAPMaxWalkSAT
@@ -218,7 +219,18 @@ public class MaxWalkSAT {
 
         // run of the algorithm until condition of termination is reached
         bestState = state.clone();
-        while (step < maxSteps && unsatisfiedConstraints.size() > 0) {
+        while (step <= maxSteps && unsatisfiedConstraints.size() > 0) {
+            // choose between walkSATMove (greedy flip) and SAMove(random flip)
+            String move;
+            if (rand.nextDouble() < p) {
+                walkSATMove();
+                move = "greedy";                
+            } 
+            else {
+                SAMove();
+                move = "SA";
+            }
+            
             // calculation of the difference between actually found (unsSum) and globally found minimal unsatisfied sum (minSum) -> acually unused
             diffSum = unsSum - minSum;
             boolean newBest = false;
@@ -239,22 +251,16 @@ public class MaxWalkSAT {
                     minSteps++;
             }
 
-            // choose between walkSATMove (greedy flip) and SAMove(random flip)
-            String move;
-            if (rand.nextDouble() < p) {
-                walkSATMove();
-                move = "greedy";
-            } 
-            else {
-                SAMove();
-                move = "SA";
-            }
+            // print progress   
+            boolean printStepCounter = true;
+            boolean printProgress = newBest || step % 100 == 0;            
+            if(printProgress) {
+            	System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f  %s\n", step, move, countUnsCon, unsSum, minSum, newBest ? "[NEW BEST]" : "");
+            }	
+            else if(printStepCounter)
+            	System.out.printf("  step %d\r", step);
+            
             step++;
-
-            // print progress
-            if(step % 100 == 0 || newBest) {
-                System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f  %s\n", step, move, countUnsCon, unsSum, minSum, newBest ? "[NEW BEST]" : "");
-            }
         }
     }
 
@@ -290,19 +296,35 @@ public class MaxWalkSAT {
         evidenceHandler.setRandomState(state);
     }
 
-    /**
-     * Chooses randomly an unsatisfied constraint and tries to flip the according formula
-     */
     protected void walkSATMove() {
+    	//walkSATMoveFormulaBased();
+    	walkSATMoveClauseBased();
+    }
+    
+    /**
+     * this is the standard greedy move as defined in the paper
+     */
+    protected void walkSATMoveClauseBased() {
+    	Constraint c = randomlyChosen();
+    	Vector<?> v = c.greedySatisfy();
+        for (Object o : v) {
+            if (o instanceof GroundAtom) {
+                flipGndAtom((GroundAtom) o);
+            }
+        }
+    }
+
+    protected void walkSATMoveFormulaBased() {
         // chooses randomly a unsatisfied constraint
-        Constraint c = randomlyChosen();
+    	Constraint c = randomlyChosen();
         Vector<Object> bestGAinFormula = new Vector<Object>();
         double formulaDelta = 0;
-        // gets related formula
+        // get the formula from which the clause originated
         Formula parent = cl2Formula.get(c);
         do {
+        	// check all the clauses of the parent formula
             for (WeightedClause con : formula2clauses.get(parent)) {
-                if (unsatisfiedConstraints.contains(con)) {
+                if(unsatisfiedConstraints.contains(con)) {
                     // gets all unsatisfied constraints of the formula and calculates the best groundatom to flip (related to the deltacosts) -> for details see greedySat
                     bestGAinFormula.addAll(con.greedySatisfy());
                 }
@@ -320,10 +342,11 @@ public class MaxWalkSAT {
                         flipGndAtom((GroundAtom) o);
                     }
                 }
-            } else {
+            } 
+            else {
                 break;
             }
-        } while (!parent.isTrue(state));
+        } while(!parent.isTrue(state)); // TODO there is a bug here, this can be an infinite loop
     }
 
     /**
@@ -381,13 +404,13 @@ public class MaxWalkSAT {
             double delta = 0;
             // deltacost calculation methods are described in line 61
             switch (deltaCostCalcMethod) {
-                case 1:
+                case ClauseWeights:
                     delta = deltaCost(gndAtom);
                     break;
-                case 2:
+                case FormulaWeights:
                     delta = deltaCostFormula(gndAtom);
                     break;
-                case 3:
+                case Mixed:
                     delta = deltaCostConAndForm(gndAtom);
             }
             // if the atom is in a block, we must consider the cost of flipping the second atom
@@ -408,13 +431,13 @@ public class MaxWalkSAT {
                         double d = 0;
                         // deltacost calculation methods are described in line 61
                         switch (deltaCostCalcMethod) {
-                            case 1:
+                            case ClauseWeights:
                                 d = deltaCost(ga2);
                                 break;
-                            case 2:
+                            case FormulaWeights:
                                 d = deltaCostFormula(ga2);
                                 break;
-                            case 3:
+                            case Mixed:
                                 d = deltaCostConAndForm(ga2);
                         }
                         // if the deltacosts enhances the state we found a better one to flip among the block
@@ -442,6 +465,7 @@ public class MaxWalkSAT {
             }
         }
         // return a vector with the best groundatom(s) and the double value representing the change in the actual state
+        // TODO this is bad style and should be changed
         Vector<Object> sol = new Vector();
         sol.add(bestGA);
         sol.add(bestGASecond);
@@ -617,8 +641,8 @@ public class MaxWalkSAT {
      * 3 - see 2, if no change of the value of the according formula was made then see 1
      * @param deltaCostCalcMethod 1, 2 or 3 (see above for details)
      */
-    public void setDeltaCostCalcMethod(int deltaCostCalcMethod) {
-        this.deltaCostCalcMethod = deltaCostCalcMethod;
+    public void setDeltaCostCalcMethod(DeltaCostMethod method) {
+        this.deltaCostCalcMethod = method;
     }
 
     protected abstract class Constraint {
@@ -767,8 +791,9 @@ public class MaxWalkSAT {
         }
 
         /**
-         * Method returns the weight of the clause always as 1/count of clauses of the according formula
-         * @return deltacosts of the clause as double value
+         * Gets the delta cost of satisfying the clause as weight/N, 
+         * where N is the number of clauses in the formula the clause originated from
+         * @return delta costs of the clause as double value
          */
         @Override
         public double getDelta() {
