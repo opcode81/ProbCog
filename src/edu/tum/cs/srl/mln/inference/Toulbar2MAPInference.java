@@ -41,8 +41,8 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		converter.run("temp.wcsp", null);
 		
 		// run Toulbar2
-		System.out.println("running Toulbar2...");
-		Process p = Runtime.getRuntime().exec("toulbar2 temp.wcsp s");
+		System.out.println("running Toulbar2... now");
+		Process p = Runtime.getRuntime().exec("toulbar2 -s temp.wcsp");
 		InputStream s = p.getInputStream();
 		BufferedReader br = new BufferedReader(new InputStreamReader(s));
 		String solution = null;
