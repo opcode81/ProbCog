@@ -261,60 +261,60 @@ class MLNQuery:
         self.output_filename.set(fn)
 
     def start(self, saveGeometry = True):
-        #try:
-            # get mln, db, qf and output filename
-            mln = self.selected_mln.get()
-            emln = self.selected_emln.get()
-            db = self.selected_db.get()
-            qf = self.selected_qf.get()
-            mln_text = self.selected_mln.get_text()
-            db_text = self.selected_db.get_text()
-            qf_text = self.selected_qf.get_text()
-            output = self.output_filename.get()
-            method = self.selected_method.get()
-            keep_written_db = True
-            params = self.params.get()
-            # update settings
-            self.settings["mln"] = mln
-            self.settings["mln_rename"] = self.selected_mln.rename_on_edit.get()
-            self.settings["db"] = db
-            self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
-            self.settings["method%d" % int(self.numEngine)] = method
-            self.settings["params%d" % int(self.numEngine)] = params
-            self.settings["query"] = self.query.get()
-            self.settings["queryByDB"][db] = self.settings["query"]
-            self.settings["emlnByDB"][db] = emln
-            self.settings["engine"] = self.selected_engine.get()
-            self.settings["qf"] = qf
-            self.settings["output_filename"] = output
-            self.settings["openWorld"] = self.open_world.get()
-            self.settings["cwPreds"] = self.cwPreds.get()
-            self.settings["convertAlchemy"] = self.convert_to_alchemy.get()
-            self.settings["useEMLN"] = self.use_emln.get()
-            self.settings["maxSteps"] = self.maxSteps.get()
-            self.settings["numChains"] = self.numChains.get()
-            if saveGeometry:
-                self.settings["geometry"] = self.master.winfo_geometry()
-            self.settings["saveResults"] = self.save_results.get()
-            # write query to file
-            write_query_file = False
-            if write_query_file:
-                query_file = "%s.query" % db
-                f = file(query_file, "w")
-                f.write(self.settings["query"])
-                f.close()
-            # write settings
-            pickle.dump(self.settings, file(configname, "w+"))
-            # hide main window
-            self.master.withdraw()
-            # some information
-            print "\n--- query ---\n%s" % self.settings["query"]
-            print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
-            # MLN input files
-            input_files = [mln]            
-            if settings["useEMLN"] == 1 and emln != "": # using extended model                
-                input_files.append(emln)
-            print input_files
+        mln = self.selected_mln.get()
+        emln = self.selected_emln.get()
+        db = self.selected_db.get()
+        qf = self.selected_qf.get()
+        mln_text = self.selected_mln.get_text()
+        db_text = self.selected_db.get_text()
+        qf_text = self.selected_qf.get_text()
+        output = self.output_filename.get()
+        method = self.selected_method.get()
+        keep_written_db = True
+        params = self.params.get()
+        # update settings
+        self.settings["mln"] = mln
+        self.settings["mln_rename"] = self.selected_mln.rename_on_edit.get()
+        self.settings["db"] = db
+        self.settings["db_rename"] = self.selected_db.rename_on_edit.get()
+        self.settings["method%d" % int(self.numEngine)] = method
+        self.settings["params%d" % int(self.numEngine)] = params
+        self.settings["query"] = self.query.get()
+        self.settings["queryByDB"][db] = self.settings["query"]
+        self.settings["emlnByDB"][db] = emln
+        self.settings["engine"] = self.selected_engine.get()
+        self.settings["qf"] = qf
+        self.settings["output_filename"] = output
+        self.settings["openWorld"] = self.open_world.get()
+        self.settings["cwPreds"] = self.cwPreds.get()
+        self.settings["convertAlchemy"] = self.convert_to_alchemy.get()
+        self.settings["useEMLN"] = self.use_emln.get()
+        self.settings["maxSteps"] = self.maxSteps.get()
+        self.settings["numChains"] = self.numChains.get()
+        if saveGeometry:
+            self.settings["geometry"] = self.master.winfo_geometry()
+        self.settings["saveResults"] = self.save_results.get()
+        # write query to file
+        write_query_file = False
+        if write_query_file:
+            query_file = "%s.query" % db
+            f = file(query_file, "w")
+            f.write(self.settings["query"])
+            f.close()
+        # write settings
+        pickle.dump(self.settings, file(configname, "w+"))
+        # some information
+        print "\n--- query ---\n%s" % self.settings["query"]
+        print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
+        # MLN input files
+        input_files = [mln]            
+        if settings["useEMLN"] == 1 and emln != "": # using extended model                
+            input_files.append(emln)
+        print input_files
+        # hide main window
+        self.master.withdraw()
+        # do inference
+        try:
             # engine
             haveOutFile = False
             if self.settings["engine"] == "internal": # internal engine
@@ -372,7 +372,7 @@ class MLNQuery:
                     traceback.print_tb(tb)
             elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
                 if self.settings["useEMLN"] == 1:
-                    raise Exception("Model extensions not supported by J-MLNs")
+                    raise Exception("Model extensions are not supported by J-MLNs")
                 # create command to execute
                 params = ' -i "%s" -e "%s" -q "%s" %s %s' % (mln, db, self.settings["query"], self.jmlns_methods[method], params)
                 if self.settings["maxSteps"] != "":
@@ -469,17 +469,18 @@ class MLNQuery:
                 if "spawnlp" in dir(os):
                     run = os.spawnlp
                 run(os.P_NOWAIT, editor, editor, output)
-            # restore main window
-            self.master.deiconify()
-            self.setGeometry()
-            # reload the files (in case they changed)
-            self.selected_mln.reloadFile()
-            self.selected_db.reloadFile()
-            
-            sys.stdout.flush()
-        #except Exception, e:
-        #    print e
-        #    sys.exit(1)
+        except:
+            cls, e, tb = sys.exc_info()
+            sys.stderr.write("Error: %s\n" % str(e))
+            traceback.print_tb(tb)
+        # restore main window
+        self.master.deiconify()
+        self.setGeometry()
+        # reload the files (in case they changed)
+        self.selected_mln.reloadFile()
+        self.selected_db.reloadFile()
+        
+        sys.stdout.flush()
 
 # -- main app --
 
