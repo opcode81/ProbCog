@@ -502,11 +502,13 @@ public class MaxWalkSAT {
             }
         }
         // consider newly satisfied constraints (negative)
-        for (Constraint c : this.GAOccurrences.get(gndAtom.index)) {
-            if (c.flipSatisfies(gndAtom)) {
-                delta -= c.getDelta();
-            }
-        }
+        Vector<Constraint> v = this.GAOccurrences.get(gndAtom.index);
+        if(v != null)
+	        for (Constraint c : v) {
+	            if (c.flipSatisfies(gndAtom)) {
+	                delta -= c.getDelta();
+	            }
+	        }
         //System.out.println("GA :" + gndAtom.toString() + " with weight " + delta);
         return delta;
     }
