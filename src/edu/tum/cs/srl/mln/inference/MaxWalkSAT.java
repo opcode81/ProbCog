@@ -10,18 +10,19 @@ import java.util.ArrayList;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
+import edu.tum.cs.logic.sat.weighted.IMaxSAT;
 import edu.tum.cs.logic.sat.weighted.WeightedClausalKB;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 
 public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	
-	protected edu.tum.cs.logic.sat.weighted.MaxWalkSATEx sat;
+	protected IMaxSAT sat;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws Exception {
 		this(mrf, edu.tum.cs.logic.sat.weighted.MaxWalkSATEx.class);
 	}
 	
-	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends edu.tum.cs.logic.sat.weighted.MaxWalkSATEx> mwsClass) throws Exception {
+	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends IMaxSAT> mwsClass) throws Exception {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
@@ -44,18 +45,9 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	public PossibleWorld getSolution() {
 		return sat.getBestState();
 	}
-	
-	/**
-	 * sets the probability of a greedy move
-	 * @param p
-	 */
-	public void setP(double p) {
-		sat.setP(p);
-	}
-	
+
 	@Override
 	public String getAlgorithmName() {
-		return String.format("MAP/%s[p=%f]", sat.getClass().getSimpleName(), sat.getP());
+		return String.format("MAP:%s", sat.getAlgorithmName());
 	}
-
 }
