@@ -12,7 +12,7 @@ import edu.tum.cs.srl.Database;
  * This class ia an extension of the MAPMaxWalkSAT-class in which some methods are fitted to our special facility management problem.
  * @author wernickr
  */
-public class MaxWalkSATRoom extends MaxWalkSAT {
+public class MaxWalkSATRoom extends MaxWalkSATEx {
 	
 	/**
 	 * whether to use an alternative method that does not actually use the p parameter (Ralf's method)
@@ -79,11 +79,11 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
         //fr.close();
     }
     
-    protected void SAMove() {
+    protected void randomMove() {
     	if(alternativeMethod)
-    		walkSATMove();
+    		greedyMove();
     	else
-    		super.SAMove();
+    		super.randomMove();
     }
     
     /**
@@ -91,9 +91,9 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
      * If no one is found the algorithm executes a SAMove (random flip) with a possibility of 100% (optional value possible, see lines 240 - 243)
      */
     @Override
-    protected void walkSATMove() {
+    protected void greedyMove() {
     	if(!alternativeMethod) {
-    		super.walkSATMove();
+    		super.greedyMove();
     		return;
     	}
         boolean found;
@@ -106,7 +106,7 @@ public class MaxWalkSATRoom extends MaxWalkSAT {
             // if the end of the list is reached execute a SAMove
             if (x == unsatisfiedConstraints.size()) {
                 SAMoves++;
-                super.SAMove();
+                super.randomMove();
                 return;
             } else {
                 // else search for an unsatisfied constraint to be satisfied

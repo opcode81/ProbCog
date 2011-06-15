@@ -23,10 +23,10 @@ import edu.tum.cs.srl.Database;
 import edu.tum.cs.util.StringTool;
 
 /**
- * Implementation of a stochastic weighted Maximum-a-posteriori WalkSAT algorithm
+ * Implementation of the MaxWalkSAT algorithm with some custom changes/extensions
  * @author wernicke
  */
-public class MaxWalkSAT {
+public class MaxWalkSATEx {
 
     protected HashMap<Integer, Vector<Constraint>> bottlenecks;
     protected HashMap<Integer, Vector<Constraint>> GAOccurrences;
@@ -69,7 +69,7 @@ public class MaxWalkSAT {
      * @param evidence an evidence database
      * @throws java.lang.Exception
      */
-    public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
+    public MaxWalkSATEx(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database evidence) throws Exception {
 
         this.state = state;
         this.vars = vars;
@@ -223,12 +223,12 @@ public class MaxWalkSAT {
             // choose between walkSATMove (greedy flip) and SAMove(random flip)
             String move;
             if (rand.nextDouble() < p) {
-                walkSATMove();
+                greedyMove();
                 move = "greedy";                
             } 
             else {
-                SAMove();
-                move = "SA";
+                randomMove();
+                move = "random";
             }
             
             // calculation of the difference between actually found (unsSum) and globally found minimal unsatisfied sum (minSum) -> acually unused
@@ -252,7 +252,7 @@ public class MaxWalkSAT {
             }
 
             // print progress   
-            boolean printStepCounter = true;
+            boolean printStepCounter = false;
             boolean printProgress = newBest || step % 100 == 0;            
             if(printProgress) {
             	System.out.printf("  step %d: %s move, %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f  %s\n", step, move, countUnsCon, unsSum, minSum, newBest ? "[NEW BEST]" : "");
@@ -296,15 +296,15 @@ public class MaxWalkSAT {
         evidenceHandler.setRandomState(state);
     }
 
-    protected void walkSATMove() {
-    	//walkSATMoveFormulaBased();
-    	walkSATMoveClauseBased();
+    protected void greedyMove() {
+    	//greedyMoveFormulaBased();
+    	greedyMoveClauseBased();
     }
     
     /**
      * this is the standard greedy move as defined in the paper
      */
-    protected void walkSATMoveClauseBased() {
+    protected void greedyMoveClauseBased() {
     	Constraint c = randomlyChosen();
     	Vector<?> v = c.greedySatisfy();
         for (Object o : v) {
@@ -314,7 +314,10 @@ public class MaxWalkSAT {
         }
     }
 
-    protected void walkSATMoveFormulaBased() {
+    /**
+     * wernicke's old implementation, which makes some problematic assumptions (see below)
+     */
+    protected void greedyMoveFormulaBased() {
         // chooses randomly a unsatisfied constraint
     	Constraint c = randomlyChosen();
         Vector<Object> bestGAinFormula = new Vector<Object>();
@@ -350,9 +353,11 @@ public class MaxWalkSAT {
     }
 
     /**
-     * Randomly chooses and flips a possible groundatom
+     * Randomly chooses and flips a possible ground atom
+     * 
+     * TODO this implementation is not faithful to the original algorithm: It flips any ground atom rather than one in an unsatisfied clause
      */
-    protected void SAMove() {
+    protected void randomMove() {
         boolean done = false;
         // ensure that one flip will be done
         while (!done) {

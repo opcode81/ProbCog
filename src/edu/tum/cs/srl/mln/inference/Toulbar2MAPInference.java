@@ -61,6 +61,9 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			}			
 		}	
 		
+		if(solution == null)
+			throw new Exception("No solution was found");
+		
 		// set solution state
 		System.out.println("WCSP solution: " + solution);
 		String[] solutionParts = solution.trim().split(" ");		
