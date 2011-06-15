@@ -26,7 +26,7 @@ import edu.tum.cs.util.StringTool;
  * Implementation of the MaxWalkSAT algorithm with some custom changes/extensions
  * @author wernicke
  */
-public class MaxWalkSATEx {
+public class MaxWalkSATEx implements IMaxSAT {
 
     protected HashMap<Integer, Vector<Constraint>> bottlenecks;
     protected HashMap<Integer, Vector<Constraint>> GAOccurrences;
@@ -839,5 +839,10 @@ public class MaxWalkSATEx {
             return gndAtoms;
         }
     }
+
+	@Override
+	public String getAlgorithmName() {
+		return String.format("%s[p=%f]", this.getClass().getSimpleName(), p);
+	}
 }
 

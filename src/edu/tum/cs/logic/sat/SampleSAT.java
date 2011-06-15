@@ -117,7 +117,7 @@ public class SampleSAT implements IParameterHandler {
 		constraints = new Vector<Constraint>();
 		GAOccurrences = new HashMap<Integer,Vector<Constraint>>();
 		for(edu.tum.cs.logic.sat.Clause c : kb) 
-			constraints.add(new Clause(c.lits));
+			constraints.add(makeConstraint(c));
 		
 		// preprocessing
 		if(useUnitPropagation)
@@ -125,6 +125,10 @@ public class SampleSAT implements IParameterHandler {
 		
 		// set evidence in state
 		evidenceHandler.setEvidenceInState(state);
+	}
+	
+	protected Constraint makeConstraint(edu.tum.cs.logic.sat.Clause c) {
+		return new Clause(c.lits);
 	}
 	
 	/**
@@ -206,11 +210,7 @@ public class SampleSAT implements IParameterHandler {
 		v.add(c);
 	}
 	
-	/**
-	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
-	 * @throws Exception 
-	 */
-	public void run() throws Exception {		
+	protected void initialize() throws Exception {
 		// instantiate constraints
 		if(constraints == null)
 			initConstraints(kb);
@@ -223,7 +223,14 @@ public class SampleSAT implements IParameterHandler {
 		if(debug) state.print();
 		for(Constraint c : constraints)
 			c.initState();
-		
+	}
+	
+	/**
+	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
+	 * @throws Exception 
+	 */
+	public void run() throws Exception {		
+		initialize();		
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {
 			// debug code
