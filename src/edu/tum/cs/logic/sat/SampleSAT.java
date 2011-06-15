@@ -1,6 +1,5 @@
 package edu.tum.cs.logic.sat;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -16,7 +15,6 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.bln.BayesianLogicNetwork;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.util.Stopwatch;
