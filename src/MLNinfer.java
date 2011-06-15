@@ -128,7 +128,7 @@ public class MLNinfer {
 				break;
 			case MaxWalkSAT:
 			case MaxWalkSATRooms:
-				infer = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class : MaxWalkSATRoom.class); 
+				infer = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? edu.tum.cs.logic.sat.weighted.MaxWalkSATEx.class : MaxWalkSATRoom.class); 
 				break;
 			case Toulbar2:
 				infer = new Toulbar2MAPInference(mrf);

@@ -15,13 +15,13 @@ import edu.tum.cs.srl.mln.MarkovRandomField;
 
 public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	
-	protected edu.tum.cs.logic.sat.weighted.MaxWalkSAT sat;
+	protected edu.tum.cs.logic.sat.weighted.MaxWalkSATEx sat;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws Exception {
-		this(mrf, edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class);
+		this(mrf, edu.tum.cs.logic.sat.weighted.MaxWalkSATEx.class);
 	}
 	
-	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends edu.tum.cs.logic.sat.weighted.MaxWalkSAT> mwsClass) throws Exception {
+	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends edu.tum.cs.logic.sat.weighted.MaxWalkSATEx> mwsClass) throws Exception {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
