@@ -24,6 +24,9 @@ import edu.tum.cs.util.StringTool;
 
 /**
  * Implementation of the MaxWalkSAT algorithm with some custom changes/extensions
+ * 
+ * NOTE: This implementation most certainly has a few bugs. It is recommended to use MaxWalkSAT instead.
+ * 
  * @author wernicke
  */
 public class MaxWalkSATEx implements IMaxSAT {
