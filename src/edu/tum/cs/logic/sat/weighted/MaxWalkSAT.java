@@ -14,6 +14,9 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.Database;
 
+/**
+ * @author jain
+ */
 public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	protected int maxSteps = 1000;
 	protected PossibleWorld bestState = null;
@@ -65,18 +68,12 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 		return bestState;
 	}
 	
-	/**
-	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
-	 * @throws Exception 
-	 */
 	@Override
 	public void run() throws Exception {		
 		initialize();		
 		
-		int step = 1;
 		double bestSum = Double.MAX_VALUE;
-		
-		while(true) {
+		for(int step = 1; step <= this.maxSteps; step++) {
 			
 			double unsatisfiedSum = 0.0;
 			int hardMissing = 0;
@@ -102,7 +99,6 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 				break;
 			
 			makeMove();
-			step++;
 		}
 	}
 
