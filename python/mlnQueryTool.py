@@ -107,8 +107,8 @@ class MLNQuery:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
-        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MAP (MaxWalkSAT)":"-a", "belief propagation":"-bp"}
-        self.jmlns_methods = {"MAP (MaxWalkSAT)":"-mws", "MC-SAT":"-mcsat", "MAP (Toulbar2 B&B)":"-t2"}
+        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MaxWalkSAT (MPE)":"-a", "belief propagation":"-bp"}
+        self.jmlns_methods = {"MaxWalkSAT (MPE)":"-mws", "MC-SAT":"-mcsat", "Toulbar2 B&B (MPE)":"-t2"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
 
@@ -248,8 +248,12 @@ class MLNQuery:
         # change additional parameters
         self.params.set(self.settings.get("params%d" % int(self.numEngine), ""))
         
-        # change supported inference methods
-        self.selected_method.set(self.settings.get("method%d" % int(self.numEngine), methods[0])) # default value
+        # change selected inference methods
+        preferredMethod = self.settings.get("method%d" % int(self.numEngine), methods[0])
+        if preferredMethod not in methods: preferredMethod = methods[0]
+        self.selected_method.set(preferredMethod)
+        
+        # change list control
         if "list_methods" in dir(self): self.list_methods.grid_forget()
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(methods))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
