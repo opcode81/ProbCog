@@ -76,8 +76,8 @@ public class MLNinfer {
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
 									 "    -t2              algorithm: Toulbar2 branch & bound\n" +
-							         "    -debug           debug mode with additional outputs\n" 
-//							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
+							         "    -debug           debug mode with additional outputs\n" +
+							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
 									 );
 				return;
 			}			
@@ -109,6 +109,11 @@ public class MLNinfer {
 			System.out.printf("reading database %s...\n", dbFile);
 			Database db = new Database(mln);
 			db.readMLNDB(dbFile);
+			if(cwPreds != null) {
+				for(String predName : cwPreds)
+					db.setClosedWorldPred(predName);
+			}
+			
 			System.out.printf("creating ground MRF...\n");
 			MarkovRandomField mrf = mln.ground(db);
 			if(debug) {
