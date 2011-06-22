@@ -656,46 +656,6 @@ class MLN(object):
         idxFirst = self.gndAtoms[gndAtom].idx
         return range(idxFirst, idxFirst + numGroundings)
     
-    # expands the list of queries where necessary, e.g. queries that are just predicate names are expanded to the corresponding list of atoms
-    def _expandQueries(self, queries):
-        equeries = []
-        for query in queries:
-            if type(query) == str:
-                prevLen = len(equeries)
-                if "(" in query: # a fully or partially grounded atom
-                    predName, args = parsePredicate(query)
-                    newargs = []
-                    fullygrounded = True
-                    for arg in args:
-                        if not arg[0].isalpha() or arg[0].isupper(): # argument is constant
-                            newargs.append(arg)
-                        else: # not a constant, so replace by regex that non-greedily matches anyting
-                            fullygrounded = False
-                            newargs.append(r".*?")
-                    if fullygrounded: # fully grounded atom, so we can directly use the original string as a query
-                        equeries.append(query)
-                    else: # partially grounded atom: look through all groundings of the predicate for matches
-                        ex = "%s(%s)" % (predName, ",".join(newargs))
-                        #print ex
-                        pat = re.compile(r"%s\(%s\)" % (predName, ",".join(newargs)))
-                        for gndAtom in self._getPredGroundings(predName):
-                            if pat.match(gndAtom):
-                                equeries.append(gndAtom)
-                            #else:
-                            #    print "%s does not match " % gndAtom
-                else: # just a predicate name
-                    try: 
-                        equeries.extend(self._getPredGroundings(query))
-                    except:
-                        raise Exception("Could not expand query '%s'" % query)
-                if len(equeries) - prevLen == 0:
-                    raise Exception("String query '%s' could not be expanded." % query)
-            elif isinstance(query, FOL.Formula):
-                equeries.append(query)
-            else:
-                raise Exception("Received query of unsupported type '%s'" % str(type(query)))
-        return equeries
-        
     # infer a probability P(F1 | F2) where F1 and F2 are formulas - using the default inference method specified for this MLN
     #   what: a formula, e.g. "foo(A,B)", or a list of formulas
     #   given: either

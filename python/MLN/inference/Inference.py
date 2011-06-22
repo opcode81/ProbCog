@@ -39,15 +39,32 @@ class Inference(object):
         # check for single/multiple query and expand
         if type(queries) != list:
             queries = [queries]
-        queries = self.mln._expandQueries(queries)
-        # parse queries that aren't already formulas
-        self.queries = []
-        for q in queries:
-            if isinstance(q, FOL.Formula):
-                self.queries.append(q)
+        self.queries = self._expandQueries(queries)
+
+    def _expandQueries(self, queries):
+        ''' expands the list of queries where necessary, e.g. queries that are just predicate names are expanded to the corresponding list of atoms '''
+        equeries = []
+        for query in queries:
+            print "got query '%s' of type '%s'" % (str(query), str(type(query)))
+            if type(query) == str:
+                prevLen = len(equeries)
+                if "(" in query: # a fully or partially grounded formula
+                    f = FOL.parseFormula(query)
+                    for gndFormula in f.iterGroundings(self.mln):
+                        equeries.append(gndFormula[0])
+                else: # just a predicate name
+                    try:
+                        for gndPred in self.mln._getPredGroundings(query):
+                            equeries.append(FOL.parseFormula(gndPred).ground(self.mln, {}))
+                    except:
+                        raise #Exception("Could not expand query '%s'" % query)
+                if len(equeries) - prevLen == 0:
+                    raise Exception("String query '%s' could not be expanded." % query)
+            elif isinstance(query, FOL.Formula):
+                equeries.append(query)
             else:
-                q = FOL.parseFormula(q)
-                self.queries.append(q.ground(self.mln, {}))
+                raise Exception("Received query of unsupported type '%s'" % str(type(query)))
+        return equeries
     
     # set evidence in the MLN according to the given conjunction of ground literals
     def _setEvidence(self, conjunction):
