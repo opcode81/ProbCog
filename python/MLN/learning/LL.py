@@ -31,7 +31,7 @@ from AbstractLearner import *
 class LL(AbstractLearner):
     
     def __init__(self, mln, **params):
-        super(LL, self).__init__(self, mln, **params)
+        AbstractLearner.__init__(self, mln, **params)
     
     def _computeCounts(self):
         ''' computes the number of true groundings of each formula in each possible world (sufficient statistics) '''
