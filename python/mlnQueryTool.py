@@ -453,7 +453,9 @@ class MLNQuery:
                 # print results file
                 if True:
                     print "\n\n--- output ---\n"
-                    os.system("cat %s" % output)
+                    f = file(output, "r")
+                    print f.read()
+                    f.close()
                     print "\n"
                 # append information on query and mln to results file
                 f = file(output, "a")
