@@ -41,7 +41,7 @@ public class SampleSAT implements IParameterHandler {
 	Iterable<? extends edu.tum.cs.logic.sat.Clause> kb;
 	protected ParameterHandler paramHandler;
 	/**
-	 * SampleSAT's p parameter: probability of performing a random walk (WalkSAT-style) move rather than a simulated annealing-style move
+	 * SampleSAT's p parameter: probability of performing a greedy (WalkSAT-style) move rather than a simulated annealing-style move
 	 */
 	protected double pSampleSAT = 0.9; // 0.5
 	
