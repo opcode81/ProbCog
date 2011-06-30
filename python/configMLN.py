@@ -50,28 +50,20 @@ new_usage = {
     "maxSteps": "-maxSteps",
     "numChains": "-numChains"
 }
-default_infer_usage = old_usage # the usage that is to apply when the "usage" of an Alchemy installation is not set explicitly in the dictionary below
+default_infer_usage = new_usage # the usage that is to apply when the "usage" of an Alchemy installation is not set explicitly in the dictionary below
 
 # installed Alchemy versions:
 # - Keys are names of the installations as they should appear in the two tools.
 # - Values should be either paths to the Alchemy root or "bin" directory or 
 #   a dictionary with at least the key "path" set to the Alchemy root or bin directory.
 #   The dictionary can additionally set "usage" to one of the above mappings
-alchemy_versions = {#"Alchemy - current (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
-                    "Alchemy - July 2009 (AMD64)": {"path": "/usr/wiss/jain/work/code/alchemy-2009-07-07/bin", "usage": new_usage},
-                    #"Alchemy - January 2007 (AMD64)": os.getenv("ALCHEMY_JAN07"),
-                    "Alchemy - June 2008 (AMD64)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
-                    "Alchemy - June 2008 (i386)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
-                    #"Alchemy - January 2007 (i386)": os.getenv("ALCHEMY_JAN07_32"),
-                    #"Alchemy - January 2007/dev (i386)": os.getenv("ALCHEMY_JAN07_32")+"_dev",
-		    #"Alchemy - February 2008 (i386)": {"path": "/usr/wiss/jain/work/code/alchemy-2008-02-07/bin/i386", "usage": new_usage}
-                    #"dev" : os.getenv("ALCHEMY_HOME_DEV"),
-                    #"old" : os.getenv("ALCHEMY_HOME_OLD"),
-                    #"snapshot dev" : os.getenv("ALCHEMY_HOME_NEW"),
-                    #"snapshot" : os.path.join(os.getenv("ALCHEMY_HOME_NEW"), "bin", "stable"),
-                    #"snapshot original" : r"C:\Dev\C++\alchemy\alchemy-snapshot",
-                    #"snapshot learnwts-startpoint" : os.path.join(os.getenv("ALCHEMY_HOME_NEW"), "bin", "stable-startpt")
-                   }
+alchemy_versions = {
+    #"Alchemy - current (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
+    "Alchemy - July 2009 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2009-07-07/bin", "usage": new_usage},
+    "Alchemy - June 2008 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
+    #"Alchemy - June 2008 (i386)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
+    "Alchemy (win32)": {"path": r"c:\research\code\alchemy\bin", "usage": new_usage},
+}
 '''
 # snapshot, snapshot original and (if the weights in the input MLN are all 0) all yield the same results when weight learning
 # snapshot is a lot faster than snapshot original though
