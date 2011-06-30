@@ -104,8 +104,11 @@ class ExactInferenceLinear(Inference):
         if given is None:
             given = evidence2conjunction(self.mln.getEvidenceDatabase())        
         # ground the evidence formula
-        given = FOL.parseFormula(given)
-        given = given.ground(self.mln, {})
+        if given == "":
+            given = None
+        else:
+            given = FOL.parseFormula(given)
+            given = given.ground(self.mln, {})
         # start summing
         if verbose and details: print "summing..."
         wts = self.mln._weights()
