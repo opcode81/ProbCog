@@ -28,7 +28,7 @@ InferenceMethods = Enum(
     {"Exact": "exact inference", 
      "GibbsSampling": "Gibbs sampling", 
      "MCSAT": "MC-SAT", 
-     "ExactLinear": "exact inference (linear space)", 
+     #"ExactLinear": "exact inference (linear space)",  # deprecated, as EnumerationAsk is preferable
      "IPFPM_exact": "IPFP-M[exact]", 
      "IPFPM_MCSAT": "IPFP-M[MC-SAT]",
      "EnumerationAsk": "Enumeration-Ask (exact)"
