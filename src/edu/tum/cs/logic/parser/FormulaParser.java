@@ -10,6 +10,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
                 String test;
                 test = "foo(x,y) => !bar(x,zt) v baz(y)";
                 test = "numberEats(o,2) <=> EXIST p, p2 (eats(o,p) ^ eats(o,p2) ^ !(o=p) ^ !(o=p2) ^ !(p=p2) ^ !(EXIST q (eats(o,q) ^ !(p=q) ^ !(p2=q))))";
+                test = "foo(v) => bar(v)";
                 Formula f = parse(test);
                 System.out.println("formula: " + f);
         }
@@ -25,8 +26,19 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
 
   final public String variable() throws ParseException {
                       Token t;
-    t = jj_consume_token(LCIDENT);
-                                                  {if (true) return t.image;}
+    switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+    case LCIDENT:
+      t = jj_consume_token(LCIDENT);
+      break;
+    case OR:
+      t = jj_consume_token(OR);
+      break;
+    default:
+      jj_la1[0] = jj_gen;
+      jj_consume_token(-1);
+      throw new ParseException();
+    }
+                                                               {if (true) return t.image;}
     throw new Error("Missing return statement in function");
   }
 
@@ -40,7 +52,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       t = jj_consume_token(NUMBER);
       break;
     default:
-      jj_la1[0] = jj_gen;
+      jj_la1[1] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -53,6 +65,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         String arg;
           ret = new Vector<String>();
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+    case OR:
     case LCIDENT:
       arg = variable();
       break;
@@ -61,7 +74,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       arg = constant();
       break;
     default:
-      jj_la1[1] = jj_gen;
+      jj_la1[2] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -73,11 +86,12 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         ;
         break;
       default:
-        jj_la1[2] = jj_gen;
+        jj_la1[3] = jj_gen;
         break label_1;
       }
       jj_consume_token(LISTSEP);
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+      case OR:
       case LCIDENT:
         arg = variable();
         break;
@@ -86,7 +100,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         arg = constant();
         break;
       default:
-        jj_la1[3] = jj_gen;
+        jj_la1[4] = jj_gen;
         jj_consume_token(-1);
         throw new ParseException();
       }
@@ -109,7 +123,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         ;
         break;
       default:
-        jj_la1[4] = jj_gen;
+        jj_la1[5] = jj_gen;
         break label_2;
       }
       jj_consume_token(LISTSEP);
@@ -130,7 +144,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       t = jj_consume_token(UCIDENT);
       break;
     default:
-      jj_la1[5] = jj_gen;
+      jj_la1[6] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -165,7 +179,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
                   isTrue = false;
       break;
     default:
-      jj_la1[6] = jj_gen;
+      jj_la1[7] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -210,6 +224,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   final public Equality equality() throws ParseException {
         String left, right;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+    case OR:
     case LCIDENT:
       left = variable();
       break;
@@ -218,12 +233,13 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       left = constant();
       break;
     default:
-      jj_la1[7] = jj_gen;
+      jj_la1[8] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
     jj_consume_token(EQUALS);
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
+    case OR:
     case LCIDENT:
       right = variable();
       break;
@@ -232,7 +248,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       right = constant();
       break;
     default:
-      jj_la1[8] = jj_gen;
+      jj_la1[9] = jj_gen;
       jj_consume_token(-1);
       throw new ParseException();
     }
@@ -265,7 +281,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         f = forall();
         break;
       default:
-        jj_la1[9] = jj_gen;
+        jj_la1[10] = jj_gen;
         jj_consume_token(-1);
         throw new ParseException();
       }
@@ -287,7 +303,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         ;
         break;
       default:
-        jj_la1[10] = jj_gen;
+        jj_la1[11] = jj_gen;
         break label_3;
       }
       jj_consume_token(OR);
@@ -311,7 +327,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
         ;
         break;
       default:
-        jj_la1[11] = jj_gen;
+        jj_la1[12] = jj_gen;
         break label_4;
       }
       jj_consume_token(AND);
@@ -332,7 +348,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       f2 = conjunction();
       break;
     default:
-      jj_la1[12] = jj_gen;
+      jj_la1[13] = jj_gen;
       ;
     }
           {if (true) return f2 == null ? f1 : new Implication(f1, f2);}
@@ -349,7 +365,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       f2 = implication();
       break;
     default:
-      jj_la1[13] = jj_gen;
+      jj_la1[14] = jj_gen;
       ;
     }
           {if (true) return f2 == null ? f1 : new Biimplication(f1, f2);}
@@ -414,7 +430,12 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   }
 
   final private boolean jj_3R_10() {
-    if (jj_scan_token(LCIDENT)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_scan_token(22)) {
+    jj_scanpos = xsp;
+    if (jj_scan_token(6)) return true;
+    }
     return false;
   }
 
@@ -448,13 +469,13 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
   public boolean lookingAhead = false;
   private boolean jj_semLA;
   private int jj_gen;
-  final private int[] jj_la1 = new int[14];
+  final private int[] jj_la1 = new int[15];
   static private int[] jj_la1_0;
   static {
       jj_la1_0();
    }
    private static void jj_la1_0() {
-      jj_la1_0 = new int[] {0x300000,0x700000,0x8000,0x700000,0x8000,0x600000,0x600020,0x700000,0x700000,0x603820,0x40,0x80,0x100,0x400,};
+      jj_la1_0 = new int[] {0x400040,0x300000,0x700040,0x8000,0x700040,0x8000,0x600000,0x600020,0x700040,0x700040,0x603820,0x40,0x80,0x100,0x400,};
    }
   final private JJCalls[] jj_2_rtns = new JJCalls[2];
   private boolean jj_rescan = false;
@@ -469,7 +490,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -482,7 +503,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -492,7 +513,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -502,7 +523,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -511,7 +532,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -520,7 +541,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
     token = new Token();
     jj_ntk = -1;
     jj_gen = 0;
-    for (int i = 0; i < 14; i++) jj_la1[i] = -1;
+    for (int i = 0; i < 15; i++) jj_la1[i] = -1;
     for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
   }
 
@@ -636,7 +657,7 @@ public @SuppressWarnings("all") class FormulaParser implements FormulaParserCons
       la1tokens[jj_kind] = true;
       jj_kind = -1;
     }
-    for (int i = 0; i < 14; i++) {
+    for (int i = 0; i < 15; i++) {
       if (jj_la1[i] == jj_gen) {
         for (int j = 0; j < 32; j++) {
           if ((jj_la1_0[i] & (1<<j)) != 0) {

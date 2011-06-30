@@ -5,6 +5,7 @@
 options {
   JDK_VERSION = "1.5";
   STATIC = false;
+  //LOOKAHEAD = 1;
 }
 
 PARSER_BEGIN(FormulaParser)
@@ -19,6 +20,7 @@ public class FormulaParser {
 		String test;
 		test = "foo(x,y) => !bar(x,zt) v baz(y)";
 		test = "numberEats(o,2) <=> EXIST p, p2 (eats(o,p) ^ eats(o,p2) ^ !(o=p) ^ !(o=p2) ^ !(p=p2) ^ !(EXIST q (eats(o,q) ^ !(p=q) ^ !(p2=q))))";
+		test = "foo(v) => bar(v)";
   		Formula f = parse(test);
   		System.out.println("formula: " + f);
   	}
@@ -56,7 +58,7 @@ TOKEN : {
 | < LCIDENT: (<LCCHAR> | "_")(<IDENTCHAR>)* >
 }
 
-String variable() : { Token t; } { t = <LCIDENT> {return t.image;} }
+String variable() : { Token t; } { (t = <LCIDENT> | t = <OR>) {return t.image;} }
 String constant() : { Token t; } { (t = <UCIDENT> | t = <NUMBER>) {return t.image;} }
 
 Collection<String> paramlist() : 
