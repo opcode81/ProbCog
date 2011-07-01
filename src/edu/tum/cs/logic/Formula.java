@@ -84,7 +84,9 @@ public abstract class Formula {
             	f = f.simplify(db);
             if(f instanceof TrueFalse) {
             	if(!((TrueFalse)f).isTrue())
-            		throw new Exception("Unsatisfiable formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");
+            		// TODO this may be an error if the formula that was grounded was "hard"
+            		;//throw new Exception("Unsatisfiable formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");            		
+            	return;
             }
             else
                 ret.add(f);
