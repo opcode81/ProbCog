@@ -673,14 +673,14 @@ class MLN(object):
             return self.inferGibbs(what, given, verbose, **args)
         elif self.defaultInferenceMethod == InferenceMethods.MCSAT:
             return self.inferMCSAT(what, given, verbose, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.ExactLinear:
-            return self.inferExactLinear(what, given, **args)
         elif self.defaultInferenceMethod == InferenceMethods.IPFPM_exact:
             return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.Exact, **args)
         elif self.defaultInferenceMethod == InferenceMethods.IPFPM_MCSAT:
             return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.MCSAT, **args)
         elif self.defaultInferenceMethod == InferenceMethods.EnumerationAsk:
             return self._infer(EnumerationAsk(self), what, given, verbose=verbose, **args)
+        #elif self.defaultInferenceMethod == InferenceMethods.ExactLinear:
+        #    return self.inferExactLinear(what, given, **args)
         else:
             raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
 
@@ -688,7 +688,7 @@ class MLN(object):
         return self._infer(ExactInference(self), what, given, verbose, **args)
 
     def inferExactLinear(self, what, given=None, verbose=True, **args):
-        return self._infer(ExactInferenceLazy(self), what, given, verbose, **args)
+        return self._infer(ExactInferenceLinear(self), what, given, verbose, **args)
 
     def inferGibbs(self, what, given=None, verbose=True, **args):
         return self._infer(GibbsSampler(self), what, given, verbose=verbose, **args)
