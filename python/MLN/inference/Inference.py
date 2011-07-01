@@ -45,7 +45,7 @@ class Inference(object):
         ''' expands the list of queries where necessary, e.g. queries that are just predicate names are expanded to the corresponding list of atoms '''
         equeries = []
         for query in queries:
-            print "got query '%s' of type '%s'" % (str(query), str(type(query)))
+            #print "got query '%s' of type '%s'" % (str(query), str(type(query)))
             if type(query) == str:
                 prevLen = len(equeries)
                 if "(" in query: # a fully or partially grounded formula
