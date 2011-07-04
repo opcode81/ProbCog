@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from Inference import *
+import sys
 
 class ExactInference(Inference):
     def __init__(self, mln):
@@ -177,6 +178,7 @@ class EnumerationAsk(Inference):
     
     def __init__(self, mln):
         Inference.__init__(self, mln)
+        self.haveSoftEvidence = len(self.mln.softEvidence) > 0
     
     # verbose: whether to print results (or anything at all, in fact)
     # details: (given that verbose is true) whether to output additional status information
@@ -194,8 +196,13 @@ class EnumerationAsk(Inference):
         for worldValues in self._enumerateWorlds():
             # compute exp. sum of weights for this world
             expsum = 0
-            for gf in self.mln.gndFormulas:
-                expsum += self.mln.getTruthDegreeGivenSoftEvidence(gf, worldValues) * self.mln.formulas[gf.idxFormula].weight
+            if self.haveSoftEvidence:
+                for gf in self.mln.gndFormulas:                
+                    expsum += self.mln.getTruthDegreeGivenSoftEvidence(gf, worldValues) * self.mln.formulas[gf.idxFormula].weight
+            else:
+                for gf in self.mln.gndFormulas:
+                    if gf.isTrue(worldValues):
+                        expsum +=  self.mln.formulas[gf.idxFormula].weight
             expsum = exp(expsum)
             # update numerators
             for i, query in enumerate(self.queries):
@@ -203,7 +210,10 @@ class EnumerationAsk(Inference):
                     numerators[i] += expsum
             denominator += expsum
             k += 1
-            print "%d %s\r" % (k, map(str, self.summedGndAtoms)),
+            #print "%d %s\r" % (k, map(str, self.summedGndAtoms)),
+            if k % 100 == 0:
+                print "%d worlds enumerated\r" % k,
+                sys.stdout.flush()
         print "%d worlds enumerated" % k
         # normalize answers
         return map(lambda x: x / denominator, numerators)
@@ -221,8 +231,7 @@ class EnumerationAsk(Inference):
         idxGA, block = self.mln.pllBlocks[i]
         if block is not None: # block of mutex ground atoms
             haveEvidence = i in self.evidenceBlocks
-            if not haveEvidence:
-                # check for soft evidence
+            if self.haveSoftEvidence and not haveEvidence: # check for soft evidence                
                 numSoft = 0
                 for idxGA in block:
                     se = self.mln._getSoftEvidence(self.mln.gndAtomsByIdx[idxGA])
@@ -242,8 +251,11 @@ class EnumerationAsk(Inference):
                     for w in self.__enumerateWorlds(i+1, worldValues):
                         yield w
         else: # it's a regular ground atom
-            gndAtom = self.mln.gndAtomsByIdx[idxGA]            
-            e = self.mln._getEvidenceDegree(gndAtom)        
+            gndAtom = self.mln.gndAtomsByIdx[idxGA]
+            if self.haveSoftEvidence:
+                e = True if self.mln._getEvidenceDegree(gndAtom) > 0 else False
+            else:
+                e = self.mln._getEvidence(idxGA, False)
             if e is not None:
                 worldValues[idxGA] = True if e > 0 else False
                 for w in self.__enumerateWorlds(i+1, worldValues):
