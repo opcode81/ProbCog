@@ -185,6 +185,8 @@ class EnumerationAsk(Inference):
     # debug: (given that verbose is true) if true, outputs debug information, in particular the distribution over possible worlds
     # debugLevel: level of detail for debug mode
     def _infer(self, verbose=True, details=False, shortOutput=False, debug=False, debugLevel=1, **args):
+        self.totalWorlds = 1.0
+        self.doneCountingTotalWorlds = False
         # get blocks
         self.mln._getPllBlocks()
         self._getEvidenceBlockData(self.given)
@@ -211,8 +213,8 @@ class EnumerationAsk(Inference):
             denominator += expsum
             k += 1
             #print "%d %s\r" % (k, map(str, self.summedGndAtoms)),
-            if k % 100 == 0:
-                print "%d worlds enumerated\r" % k,
+            if k % 500 == 0:
+                print "%d of %f worlds enumerated\r" % (k, self.totalWorlds),
                 sys.stdout.flush()
         print "%d worlds enumerated" % k
         # normalize answers
@@ -226,6 +228,7 @@ class EnumerationAsk(Inference):
     def __enumerateWorlds(self, i, worldValues):
         numBlocks = len(self.mln.pllBlocks)
         if i == numBlocks:
+            self.doneCountingTotalWorlds = True
             yield worldValues
             return
         idxGA, block = self.mln.pllBlocks[i]
@@ -245,9 +248,10 @@ class EnumerationAsk(Inference):
                 for w in self.__enumerateWorlds(i+1, worldValues):
                     yield w
             else:
+                if not self.doneCountingTotalWorlds: self.totalWorlds *= len(block)
                 for idxGA in block:
                     for idxGA2 in block:
-                        worldValues[idxGA2] = idxGA == idxGA2
+                        worldValues[idxGA2] = idxGA == idxGA2 # TODO it seems that this does not consider block exclusions
                     for w in self.__enumerateWorlds(i+1, worldValues):
                         yield w
         else: # it's a regular ground atom
@@ -261,6 +265,7 @@ class EnumerationAsk(Inference):
                 for w in self.__enumerateWorlds(i+1, worldValues):
                     yield w
             else:
+                if not self.doneCountingTotalWorlds: self.totalWorlds *= 2
                 self.summedGndAtoms.add(gndAtom)
                 for v in (True, False):
                     worldValues[gndAtom.idx] = v                
