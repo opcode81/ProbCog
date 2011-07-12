@@ -208,7 +208,7 @@ class SyntaxHighlightingText(ScrolledText2):
             i = 0
             while i < len(ranges):
                 range = ranges[i:i+2]
-                second_range = (self.index(range[0] + " + 1 char"), self.index(range[1] + " - 1 char"))
+                second_range = (self.index(str(range[0]) + " + 1 char"), self.index(str(range[1]) + " - 1 char"))
                 #print pos, range, second_range
                 if pos in range or pos in second_range:
                     self.tag_remove('mlcom', range[0], range[1])
@@ -593,7 +593,7 @@ class FilePick(Frame):
         self._makelist()
         # reselect
         self.set(prev_sel)
-        
+
     def getList(self):
         ''' returns the current list of files '''
         return self.files
