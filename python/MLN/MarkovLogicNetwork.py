@@ -75,6 +75,8 @@ import time
 import traceback
 import pickle
 
+#sys.setrecursionlimit(10000)
+
 if "java" not in sys.platform:
     from pyparsing import ParseException
 else: # using Jython (assuming 2.2)
@@ -178,6 +180,7 @@ class MLN(object):
         self.vars = {}
         self.allSoft = False
         self.fixedWeightFormulas = []
+        
         # read MLN file
         text = ""
         if filename_or_list is not None:
@@ -197,6 +200,7 @@ class MLN(object):
         text = re.compile(r'//\s*</group>\s*$', re.MULTILINE).sub("#group.", text)
         # remove comments
         text = stripComments(text)
+        
         # read lines
         self.hard_formulas = []
         if verbose: print "reading MLN..."
@@ -334,6 +338,14 @@ class MLN(object):
                 cls, e, tb = sys.exc_info()
                 traceback.print_tb(tb)
                 raise e
+        
+        # augment domains with constants appearing in formula templates
+        for f in formulatemplates:
+            constants = {}
+            f.getVariables(self, None, constants)
+            for domain, constants in constants.iteritems():
+                for c in constants: self.addConstant(domain, c)
+            
         # materialize formula templates
         if verbose: print "materializing formula templates..."
         idxGroup = None
@@ -366,6 +378,10 @@ class MLN(object):
             self.formulaGroups.append(group)
         #print "time taken: %fs" % (time.time()-t_start)
 
+    def addConstant(self, domainName, constant):        
+        if domainName not in self.domains: self.domains[domainName] = []
+        dom = self.domains[domainName]
+        if constant not in dom: dom.append(constant)
 
     def _groundAtoms(self, cur, predName, domNames):
         # if there are no more parameters to ground, we're done
