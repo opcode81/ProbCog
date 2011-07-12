@@ -205,7 +205,11 @@ class MLN(object):
         idxGroup = -1
         fixWeightOfNextFormula = False 
         fixedWeightTemplateIndices = []
-        for line in text.split("\n"):
+        lines = text.split("\n")
+        iLine = 0
+        while iLine < len(lines):
+            line = lines[iLine]
+            iLine += 1
             line = line.strip()
             try:
                 if len(line) == 0: continue
@@ -219,6 +223,12 @@ class MLN(object):
                     continue
                 elif line.startswith("#fixWeightFreq"):
                     fixWeightOfNextFormula = True
+                    continue
+                elif line.startswith("#include"):
+                    filename = line[len("#include "):].strip()
+                    content = stripComments(file(filename, "r").read())
+                    lines = content.split("\n") + lines[iLine:]
+                    iLine = 0
                     continue
                 elif line.startswith("#fixUnitary:"): # deprecated (use instead #fixedWeightFreq)
                     predName = line[12:len(line)]
