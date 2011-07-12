@@ -113,7 +113,10 @@ class Formula(Constraint):
 
     def iterGroundings(self, mln):
         '''iteratively yields the groundings of the formula for the given MLN/ground MRF'''
-        vars = self.getVariables(mln)
+        try:
+            vars = self.getVariables(mln)
+        except Exception, e:
+            raise Exception("Error grounding '%s': %s" % (str(self), str(e)))
         for grounding, referencedGndAtoms in self._iterGroundings(mln, vars, {}):
             yield grounding, referencedGndAtoms
         
@@ -164,14 +167,30 @@ class Formula(Constraint):
 
 # a formula that has other formulas as subelements (children)
 class ComplexFormula(Formula):
-
-    # get the free (unquantified) variables of the formula in a dict that maps the variable name to the corresp. domain name
-    def getVariables(self, mln, vars = None):
-        if vars == None: vars = {}
+    
+    def getVariables(self, mln, vars = None, constants = None):
+        '''
+            get the free (unquantified) variables of the formula in a dict that maps the variable name to the corresp. domain name
+            The vars and constants parameters can be omitted.
+            If vars is given, it must be a dictionary with already known variables.
+            If constants is given, then it must be a dictionary that is to be extended with all constants appearing in the formula;
+                it will be a dictionary mapping domain names to lists of constants
+            If constants is not given, then constants are not collected, only variables.
+            The dictionary of variables is returned.
+        '''
+        if vars is None: vars = {}
         for child in self.children:
             if not hasattr(child, "getVariables"): continue
-            vars = child.getVariables(mln, vars)
+            vars = child.getVariables(mln, vars, constants)
         return vars
+    
+    def getConstants(self, mln, constants = None):
+        ''' get the constants appearing in the formula in a dict that maps the constant name to the domain name the constant belongs to '''
+        if constants == None: constants = {}
+        for child in self.children:
+            if not hasattr(child, "getConstants"): continue
+            constants = child.getConstants(mln, vars)
+        return constants  
 
     def ground(self, mln, assignment, referencedGndAtoms = None):
         children = []
@@ -224,7 +243,7 @@ class Lit(Formula):
     def __str__(self):
         return {True:"!", False:""}[self.negated] + self.predName + "(" + ", ".join(self.params) + ")"
 
-    def getVariables(self, mln, vars = None):
+    def getVariables(self, mln, vars = None, constants = None):
         if vars == None: vars = {}
         paramDomains = mln.predicates[self.predName]
         if len(paramDomains) != len(self.params): raise Exception("Wrong number of parameters in '%s'; expected %d!" % (str(self), len(paramDomains)))
@@ -235,6 +254,10 @@ class Lit(Formula):
                 if varname in vars and vars[varname] != domain:
                     raise Exception("Variable '%s' bound to more than one domain" % varname)
                 vars[varname] = domain
+            elif constants is not None:
+                domain = paramDomains[i]
+                if domain not in constants: constants[domain] = []
+                constants[domain].append(param)
         return vars
     
     def getSingleVariableIndex(self, mln):
@@ -625,10 +648,10 @@ class Exist(ComplexFormula):
     def __str__(self):
         return "EXIST " + ", ".join(self.vars) + " (" + str(self.children[0]) + ")"
 
-    def getVariables(self, mln, vars = None):
+    def getVariables(self, mln, vars = None, constants = None):
         if vars == None: vars = {}
         # get the child's variables:
-        newvars = self.children[0].getVariables(mln)
+        newvars = self.children[0].getVariables(mln, None, constants)
         # remove the quantified variable(s)
         for var in self.vars:
             try:
@@ -694,7 +717,17 @@ class Equality(Formula):
     def _getTemplateVariables(self, mln, vars = None):
         return vars
     
-    def getVariables(self, mln, vars = None):
+    def getVariables(self, mln, vars = None, constants = None):        
+        if constants is not None:
+            # determine type of constant appearing in expression such as "x=Foo"
+            for i,p in enumerate(self.params):
+                other = self.params[(i+1)%2].islower()
+                if not p.islower() and other.islower():
+                    domain = vars.get(other)
+                    if domain is None:
+                        raise Exception("Type of constant '%s' could not be determined" % p)
+                    if domain not in constants: constants[domain] = []
+                    constants[domain].append(p)
         return vars
     
     def getVarDomain(self, varname, mln):
