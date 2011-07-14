@@ -61,7 +61,7 @@ alchemy_versions = {
     #"Alchemy - current (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
     "Alchemy - July 2009 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2009-07-07/bin", "usage": new_usage},
     "Alchemy - June 2008 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
-    "Alchemy - August 2010 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2010-08-23/bin", "usage": new_usage},
+    "Alchemy - August 2010 (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
     #"Alchemy - June 2008 (i386)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
     "Alchemy (win32)": {"path": r"c:\research\code\alchemy\bin", "usage": new_usage},
 }
