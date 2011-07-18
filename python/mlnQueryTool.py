@@ -334,13 +334,14 @@ class MLNQuery:
                             queries.append(query)
                             query = ""
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
-                    # create MLN and evidence conjunction
+                    # create MLN
                     mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
-                    mln.combineDB(db, verbose=True)
                     # set closed-world predicates
                     cwPreds = map(str.strip, self.settings["cwPreds"].split(","))
                     for pred in cwPreds:
                         if pred != "": mln.setClosedWorldPred(pred)
+                    # load evidence db
+                    mln.combineDB(db, verbose=True)
                     # collect inference arguments
                     args = {"details":True, "verbose":True, "shortOutput":True, "debugLevel":1}
                     args.update(eval("dict(%s)" % params)) # add additional parameters
