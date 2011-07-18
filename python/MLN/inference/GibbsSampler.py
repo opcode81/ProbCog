@@ -30,7 +30,7 @@ class GibbsSampler(MCMCInference):
     class Chain(MCMCInference.Chain):
         def __init__(self, gibbsSampler):
             self.gs = gibbsSampler
-            MCMCInference.Chain.__init__(self, gibbsSampler, gibbsSampler.queries)
+            MCMCInference.Chain.__init__(self, gibbsSampler, gibbsSampler.queries)            
             # run walksat
             mws = SAMaxWalkSAT(self.state, self.gs.mln, self.gs.evidenceBlocks)
             mws.run()
@@ -107,6 +107,7 @@ class GibbsSampler(MCMCInference):
     
     def __init__(self, mln):
         print "initializing Gibbs sampler...",
+        self.useConvergenceTest = False
         MCMCInference.__init__(self, mln)
         # check compatibility with MLN
         for f in mln.formulas:
@@ -148,9 +149,9 @@ class GibbsSampler(MCMCInference):
             numSteps += 1
             for chain in chainGroup.chains:
                 chain.step(debug=debug)
-                if chain.converged and numSteps >= minSteps:
-                    #pass
-                    converged += 1
+                if self.useConvergenceTest:
+                    if chain.converged and numSteps >= minSteps:
+                        converged += 1
             if verbose and details:
                 if numSteps % infoInterval == 0:
                     print "step %d (fraction converged: %.2f)" % (numSteps, float(converged) / numChains)
