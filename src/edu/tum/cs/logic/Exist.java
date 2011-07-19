@@ -12,8 +12,8 @@ import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
 public class Exist extends UngroundedFormula {
-	Formula f;
-	Collection<String> vars;
+	public Formula f;
+	public Collection<String> vars;
 	/**
 	 * maps the quantified variables to their domain names
 	 */
