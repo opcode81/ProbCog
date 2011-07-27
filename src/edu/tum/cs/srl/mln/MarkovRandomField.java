@@ -133,7 +133,14 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         	if(weight == null)
         		throw new Exception(String.format("MLN does not assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
         	boolean isHard = weight.equals(mln.getHardWeight());
-            for(Formula gf : form.getAllGroundings(db, vars, simplifyGroundedFormulas)) {
+        	Vector<Formula> groundings;
+        	try {
+        		groundings = form.getAllGroundings(db, vars, simplifyGroundedFormulas);
+        	}
+        	catch(Exception e) {
+        		throw new Exception("Error grounding formula '" + form + "'", e);
+        	}
+            for(Formula gf : groundings) {
             	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
                 if(makelist)
                     weightedFormulas.add(wf);
