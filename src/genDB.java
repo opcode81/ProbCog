@@ -12,8 +12,53 @@ public class genDB {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		try {			
+		try {
+			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false, writeProxDB = false;
+			boolean printDB = false;
+			int i = 0;
+
+			boolean abort = false;
 			if(args.length < 3) {
+				abort = true;
+			}
+			else {
+				// read args
+				int tasks = 0;
+				for(; i < args.length; i++) {
+					if(args[i].equals("-m")) {
+						writeMLNDB = true;
+						++tasks;
+					}
+					else if(args[i].equals("-b")) {
+						writeBLOGDB = true;
+						++tasks;
+					}
+					else if(args[i].equals("-p")) {
+						writeProxDB = true;
+						++tasks;
+					}
+					else if(args[i].equals("-s")) {
+						printDB = true;
+						++tasks;
+					}
+					else if(args[i].equals("-bm")) {
+						writeBasicMLN = true;
+						++tasks;
+					}
+					else if(args[i].equals("-bb")) {
+						writeBasicBLND = true;
+						++tasks;
+					}
+					else 
+						break;
+				}
+				if(tasks == 0) {
+					abort = true;
+					System.err.println("\nError: No tasks were specified. Add at least one option.\n");
+				}
+			}
+
+			if(abort) {
 				System.out.println("\ngenDB - a database generator");
 				System.out.println("\n  usage: genDB [options] <Jython generator script> <output base filename> [parameters to pass on to generator]\n" +
 						             "           -m   output MLN database (.db)\n" +
@@ -41,28 +86,7 @@ public class genDB {
 			Properties sysprops = System.getProperties();
 			PythonInterpreter.initialize(sysprops, props, null);
 			PythonInterpreter jython = new PythonInterpreter();
-
-			// read args
-			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false, writeProxDB = false;
-			boolean printDB = false;
-			int i = 0; 
-			for(; i < args.length; i++) {
-				if(args[i].equals("-m"))
-					writeMLNDB = true;
-				else if(args[i].equals("-b"))
-					writeBLOGDB = true;
-				else if(args[i].equals("-p"))
-					writeProxDB = true;
-				else if(args[i].equals("-s"))
-					printDB = true;
-				else if(args[i].equals("-bm"))
-					writeBasicMLN = true;
-				else if(args[i].equals("-bb"))
-					writeBasicBLND = true;
-				else 
-					break;
-			}			
-			
+		
 			jython.exec("import sys");
 			String jythonscript = args[i++];
 			jython.exec("sys.argv.append('" + jythonscript + "')");
@@ -74,7 +98,7 @@ public class genDB {
 			jython.execfile(jythonscript);
 			PyObject dbObj = jython.get("db");
 			if(dbObj == null) {
-				System.err.println("Error: Generator script does not define 'db' object!");
+				System.err.println("\nError: Generator script does not define 'db' object!");
 				return;
 			}
 			Database db = (Database) dbObj.__tojava__(Database.class);
