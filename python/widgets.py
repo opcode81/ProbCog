@@ -268,7 +268,7 @@ class SyntaxHighlightingText(ScrolledText2):
                             continue
                         #!!! make sure the area does not contain any "/*", because the "*/" is not the right one otherwise
                         #print "multiline comment from %s to %s" % (here, str(end_pos))
-                        self.tag_add('mlcom', here, end_pos + " + 2 chars")
+                        self.tag_add('mlcom', here, str(end_pos) + " + 2 chars")
                 elif buffer[i:i+2] == "*/":
                     end_pos = self.index(here + " + 2 chars")
                     if not end_pos in self.tag_ranges('mlcom'):
