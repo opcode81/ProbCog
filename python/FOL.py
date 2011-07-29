@@ -33,6 +33,12 @@ if __name__ != '__main__':
 
 DEBUG_NF = False # whether to display debug information while performing normal form conversion
 
+def isVar(identifier):
+    return identifier.islower() or identifier[0] == "+"
+
+def isConstant(identifier):
+    return not isVar(identifier)
+
 class Constraint(object):
     def getTemplateVariants(self):
         '''gets all the template variants of the constraint for the given mln/ground markov random field'''
@@ -88,19 +94,20 @@ class Formula(Constraint):
         '''gets all the template variants of the formula for the given mln (ground markov random field)'''        
         tvars = self._getTemplateVariables(mln)
         variants = []
-        self._getTemplateVariants(mln, tvars, {}, variants)
+        self._getTemplateVariants(mln, tvars.items(), {}, variants, 0)
         return variants
 
-    def _getTemplateVariants(self, mln, vars, assignment, variants):
-        if vars == {}: # all template variables have been assigned a value
+    def _getTemplateVariants(self, mln, vars, assignment, variants, i):
+        if i == len(vars): # all template variables have been assigned a value
             # ground the vars in all children
-            variants.extend(self._groundTemplate(assignment))            
+            variants.extend(self._groundTemplate(assignment))
+            return
         else:
             # ground the next variable
-            varname, domname = vars.popitem()
+            varname, domname = vars[i]
             for value in mln.domains[domname]:
                 assignment[varname] = value
-                self._getTemplateVariants(mln, dict(vars), assignment, variants)
+                self._getTemplateVariants(mln, vars, assignment, variants, i+1)
     
     def _getTemplateVariables(self, mln, vars = None):
         '''gets all variables of this formula that are required to be expanded (i.e. variables to which a '+' was appended) and returns a mapping (dict) from variable name to domain name'''
@@ -248,7 +255,7 @@ class Lit(Formula):
         paramDomains = mln.predicates[self.predName]
         if len(paramDomains) != len(self.params): raise Exception("Wrong number of parameters in '%s'; expected %d!" % (str(self), len(paramDomains)))
         for i,param in enumerate(self.params):
-            if param[0].islower():
+            if isVar(param[0]):
                 varname = param
                 domain = paramDomains[i]
                 if varname in vars and vars[varname] != domain:
@@ -265,7 +272,7 @@ class Lit(Formula):
         if len(paramDomains) != len(self.params): raise Exception("Wrong number of parameters in '%s'; expected %d!" % (str(self), len(paramDomains)))
         varIndex = -1
         for i,param in enumerate(self.params):
-            if param[0].islower():
+            if isVar(param[0]):
                 if varIndex == -1:
                     varIndex = i
                 else:
@@ -721,8 +728,8 @@ class Equality(Formula):
         if constants is not None:
             # determine type of constant appearing in expression such as "x=Foo"
             for i,p in enumerate(self.params):
-                other = self.params[(i+1)%2].islower()
-                if not p.islower() and other.islower():
+                other = self.params[(i+1)%2]
+                if not isVar(p) and isVar(other):
                     domain = vars.get(other)
                     if domain is None:
                         raise Exception("Type of constant '%s' could not be determined" % p)
