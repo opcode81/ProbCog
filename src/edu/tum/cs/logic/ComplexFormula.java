@@ -1,12 +1,12 @@
 package edu.tum.cs.logic;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 
 public abstract class ComplexFormula extends Formula {
 	public Formula[] children;
@@ -27,6 +27,12 @@ public abstract class ComplexFormula extends Formula {
 	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
 		for(Formula f : children)
 			f.getVariables(db, ret);
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) throws Exception {
+		for(Formula f : children)
+			f.addConstantsToModel(m);
 	}
 	
 	@Override

@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.util.StringTool;
 
-public class GroundAtom extends Formula {
+public class GroundAtom extends GroundedFormula {
 	public String predicate;
 	public String[] args;
 	public int index;
@@ -36,15 +36,6 @@ public class GroundAtom extends Formula {
 
 	public void setIndex(int i) {
 		index = i;
-	}
-
-	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) {
-	}
-
-	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) {
-		return this;
 	}
 
 	@Override

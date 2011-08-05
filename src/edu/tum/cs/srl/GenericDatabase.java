@@ -65,7 +65,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		paramHandler.add("debug", "setVerbose");
 
 		// fill domains with guaranteed domain elements
-		for(Entry<String, String[]> e : model.getGuaranteedDomainElements().entrySet()) {
+		for(Entry<String, ? extends Collection<String>> e : model.getGuaranteedDomainElements().entrySet()) {
 			for(String element : e.getValue())
 				fillDomain(e.getKey(), element);
 		}

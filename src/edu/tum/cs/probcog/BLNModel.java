@@ -112,12 +112,13 @@ public class BLNModel extends Model {
 	
 	public Vector<String[]> getDomains() {
 		Vector<String[]> ret = new Vector<String[]>();
-		for(Entry<String,String[]> e : this.bln.rbn.getGuaranteedDomainElements().entrySet()) {
-			String[] elems = e.getValue();
-			ArrayList<String> tuple = new ArrayList<String>(elems.length+1);
+		for(Entry<String,? extends Collection<String>> e : this.bln.rbn.getGuaranteedDomainElements().entrySet()) {
+			Collection<String> elems = e.getValue();
+			ArrayList<String> tuple = new ArrayList<String>(elems.size()+1);
 			tuple.add(e.getKey());
-			for(int i = 0; i < elems.length; i++) {
-				String c = mapConstantFromProbCog(elems[i]);
+			int i = 0;
+			for(String elem : elems) {
+				String c = mapConstantFromProbCog(elem);
 				if(c == null)
 					continue;
 				tuple.add(c);

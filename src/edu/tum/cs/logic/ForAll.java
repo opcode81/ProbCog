@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.util.StringTool;
 
 public class ForAll extends UngroundedFormula {
@@ -32,6 +33,11 @@ public class ForAll extends UngroundedFormula {
 		for(String var : vars) {
 			var2domName.put(var, ret.remove(var));
 		}
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) throws Exception {
+		f.addConstantsToModel(m);
 	}
 
 	@Override

@@ -6,22 +6,22 @@
  */
 package edu.tum.cs.srl.bayesnets;
 
+import java.util.Collection;
+
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
-import edu.tum.cs.srldb.Database;
 
 /**
  * abstract base class for conversions of relational models to MLNs
  * @author jain
  */
 public abstract class MLNConverter {
-	public abstract void addGuaranteedDomainElements(String domain, String[] elements);
+	public abstract void addGuaranteedDomainElements(String domain, Collection<String> elements);
 	public abstract void addSignature(Signature sig);
 	public abstract void beginCPT(RelationalNode node);
-	public abstract void addFormula(edu.tum.cs.logic.Formula f, double weight);
-	public abstract void addHardFormula(Formula f);
+	public abstract void addFormula(edu.tum.cs.logic.Formula f, double weight) throws Exception;
+	public abstract void addHardFormula(Formula f) throws Exception;
 	public abstract void endCPT();
 	public abstract void addFunctionalDependency(String predicate, Integer functionallyDeterminedArg);
 	
@@ -33,7 +33,7 @@ public abstract class MLNConverter {
 		}
 
 		@Override
-		public void addFormula(Formula f, double weight) {
+		public void addFormula(Formula f, double weight) throws Exception {
 			mln.addFormula(f, weight);
 		}
 
@@ -60,15 +60,13 @@ public abstract class MLNConverter {
 		}
 
 		@Override
-		public void addGuaranteedDomainElements(String domain, String[] elements) {
-			String[] mlnConstants = new String[elements.length];
-			for(int i = 0; i < elements.length; i++)
-				mlnConstants[i] = MLNWriter.upperCaseString(elements[i]);
-			mln.addGuaranteedDomainElements(domain, mlnConstants);	
+		public void addGuaranteedDomainElements(String domain, Collection<String> elements) {
+			for(String e : elements)
+				mln.addGuaranteedDomainElement(domain, e);
 		}
 
 		@Override
-		public void addHardFormula(Formula f) {
+		public void addHardFormula(Formula f) throws Exception {
 			mln.addHardFormula(f);			
 		}	
 	}

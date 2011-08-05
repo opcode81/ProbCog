@@ -3,6 +3,7 @@ package edu.tum.cs.logic;
 import java.util.Map;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 
 public class Equality extends UngroundedFormula {
 	public String left, right;
@@ -15,9 +16,14 @@ public class Equality extends UngroundedFormula {
 	public String toString() {
 		return left + "=" + right;
 	}
-
+	
 	@Override
 	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) {
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) {
+		// TODO it's difficult to determine the types of any constants appearing in Equality statements; they are ignored for now (in the hope that they also appear elsewhere) 
 	}
 
 	@Override

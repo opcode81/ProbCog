@@ -2,9 +2,13 @@ package edu.tum.cs.srl.bayesnets;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -40,7 +44,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	/**
 	 * maps the name of a fixed domain to the vector of elements it contains
 	 */
-	protected HashMap<String, String[]> guaranteedDomElements;	
+	protected HashMap<String, List<String>> guaranteedDomElements;	
 	/**
 	 * a mapping of function/relation names to RelationKey objects which signify argument groups that are keys of the relation (which may be used for a functional lookup)
 	 */
@@ -71,7 +75,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
 		signatures = new HashMap<String, Signature>();
 		relationKeys = new HashMap<String, Collection<RelationKey>>();
-		guaranteedDomElements = new HashMap<String, String[]>();
+		guaranteedDomElements = new HashMap<String, List<String>>();
 	}
 	
 	/**
@@ -513,7 +517,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		
 		// domain declarations
 		System.out.printf("Converting %d domains...\n", this.getGuaranteedDomainElements().size());
-		for(java.util.Map.Entry<String, String[]> e : this.getGuaranteedDomainElements().entrySet()) {
+		for(java.util.Map.Entry<String, List<String>> e : this.getGuaranteedDomainElements().entrySet()) {
 			converter.addGuaranteedDomainElements(e.getKey(), e.getValue());
 		}
 		
@@ -808,12 +812,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		//show();
 	}
 	
-	public HashMap<String, String[]> getGuaranteedDomainElements() {
+	@Override
+	public HashMap<String, List<String>> getGuaranteedDomainElements() {
 		return guaranteedDomElements;
 	}
 	
 	public void setGuaranteedDomainElements(String domName, String[] elements) {
-		this.guaranteedDomElements.put(domName, elements);
+		this.guaranteedDomElements.put(domName, Arrays.asList(elements));
 	}
 	
 	/**
@@ -868,6 +873,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	public boolean usesUniformDefault(String functionName) {
 		return uniformDefaultFunctions.contains(functionName);
+	}
+
+	@Override
+	public void addGuaranteedDomainElement(String domain, String element) {
+		throw new UnsupportedOperationException();
 	}
 }
 

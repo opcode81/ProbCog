@@ -3,6 +3,7 @@ package edu.tum.cs.logic;
 import java.util.Map;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 
 public class Literal extends UngroundedFormula {
 	public boolean isPositive;
@@ -20,6 +21,11 @@ public class Literal extends UngroundedFormula {
 	@Override
 	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
 		atom.getVariables(db, ret);	
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) throws Exception {
+		atom.addConstantsToModel(m);
 	}
 
 	@Override
