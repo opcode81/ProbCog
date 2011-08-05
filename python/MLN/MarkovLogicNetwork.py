@@ -75,7 +75,7 @@ import time
 import traceback
 import pickle
 
-#sys.setrecursionlimit(10000)
+sys.setrecursionlimit(10000)
 
 if "java" not in sys.platform:
     from pyparsing import ParseException
@@ -606,7 +606,8 @@ class MLN(object):
             #if verbose: print "  ", strFormula(f)
             f.weight = hard_weight
         if verbose:
-            self.printGroundFormulas()
+            pass
+            #self.printGroundFormulas()
     
     def domSize(self, domName):
         return len(self.domains[domName])
