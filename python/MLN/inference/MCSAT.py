@@ -170,7 +170,6 @@ class MCSAT(MCMCInference):
         self.chainGroup = chainGroup
         mln = self.mln
         self.wt = [f.weight for f in self.formulas]
-        print "weights: ", self.wt
         for i in range(numChains):
             chain = MCMCInference.Chain(self, self.queries)
             chainGroup.addChain(chain)
