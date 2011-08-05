@@ -5,7 +5,7 @@ import java.util.Set;
 
 import edu.tum.cs.srl.GenericDatabase;
 
-public class GroundLiteral extends Formula {
+public class GroundLiteral extends GroundedFormula {
 	public boolean isPositive;
 	public GroundAtom gndAtom;
 	
@@ -20,17 +20,8 @@ public class GroundLiteral extends Formula {
 	}
 
 	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) {
-	}
-
-	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
-		return this;
-	}
-
-	@Override
 	public void getGroundAtoms(Set<GroundAtom> ret) {   
-            ret.add(gndAtom);              
+        ret.add(gndAtom);              
 	}
 	
 	@Override

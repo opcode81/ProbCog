@@ -12,7 +12,7 @@ public class MLNWriter {
 		this.out = out;
 	}
 	
-	public void writeDomainDecl(String domName, String[] elems) {
+	public void writeDomainDecl(String domName, Iterable<String> elems) {
 		out.printf("%s = {%s}\n", formatAsTypeName(domName), StringTool.join(", ", elems));
 	}
 	

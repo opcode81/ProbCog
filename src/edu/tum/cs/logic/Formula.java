@@ -10,6 +10,7 @@ import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 
 public abstract class Formula {	
 	/**
@@ -19,6 +20,11 @@ public abstract class Formula {
 	 * @throws Exception
 	 */
 	public abstract void getVariables(GenericDatabase<?, ?> db, Map<String,String> ret) throws Exception;
+	/**
+	 * adds any constants appearing in the formula to the given relational model
+	 * @param m
+	 */
+	public abstract void addConstantsToModel(RelationalModel m) throws Exception;
 	/**
 	 * grounds this formula for a particular binding of its variables
 	 * @param binding		the variable binding

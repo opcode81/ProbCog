@@ -30,7 +30,7 @@ public class MLNinfer {
 	 */
 	public static void main(String[] args) {
 		try {
-			String mlnFile = null;
+			String[] mlnFiles = null;
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
@@ -42,7 +42,7 @@ public class MLNinfer {
 			// read arguments
 			for(int i = 0; i < args.length; i++) {
 				if(args[i].equals("-i"))
-					mlnFile = args[++i];
+					mlnFiles = args[++i].split(",");
 				else if(args[i].equals("-q"))
 					query = args[++i];
 				else if(args[i].equals("-e"))
@@ -70,8 +70,8 @@ public class MLNinfer {
 				else
 					System.err.println("Warning: unknown option " + args[i] + " ignored!");
 			}			
-			if(mlnFile == null || dbFile == null || query == null) {
-				System.out.println("\n usage: MLNinfer <-i <MLN file>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
+			if(mlnFiles == null || dbFile == null || query == null) {
+				System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
 									 "    -maxSteps #      the maximum number of steps to take [default: 1000]\n" +
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
@@ -102,8 +102,8 @@ public class MLNinfer {
 			// load relational model
 			Stopwatch constructSW = new Stopwatch();
 			constructSW.start();
-			System.out.printf("reading model %s...\n", mlnFile);
-			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFile);
+			System.out.printf("reading model %s...\n", mlnFiles.toString());
+			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFiles);
 			
 			// instantiate ground model
 			System.out.printf("reading database %s...\n", dbFile);

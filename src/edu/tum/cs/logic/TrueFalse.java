@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 
 public class TrueFalse extends Formula {
 	
@@ -31,6 +32,10 @@ public class TrueFalse extends Formula {
 
 	@Override
 	public void getGroundAtoms(Set<GroundAtom> ret) {
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) {		
 	}
 
 	@Override

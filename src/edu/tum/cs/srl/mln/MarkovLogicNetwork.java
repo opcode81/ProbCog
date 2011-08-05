@@ -8,6 +8,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -38,7 +39,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     /**
      * maps domain/type names to a list of guaranteed domain elements
      */
-    protected HashMap<String, String[]> guaranteedDomainElements;
+    protected HashMap<String, HashSet<String>> guaranteedDomainElements;
     /**
      * mapping from predicate name to index of argument that is functionally determined
      */
@@ -52,7 +53,19 @@ public class MarkovLogicNetwork implements RelationalModel {
      */
     public MarkovLogicNetwork(String mlnFileLoc) throws Exception {
     	this();
-        read(mlnFile = new File(mlnFileLoc));
+        // read the complete MLN-File and save it in a String
+    	mlnFile = new File(mlnFileLoc);
+        String content = FileUtil.readTextFile(mlnFile);
+        read(content);
+    }
+    
+    public MarkovLogicNetwork(String[] mlnFiles) throws Exception {
+    	this();
+    	mlnFile = new File(mlnFiles[0]);
+    	StringBuffer content = new StringBuffer();
+    	for(String filename : mlnFiles)
+    		content.append(FileUtil.readTextFile(filename));
+    	read(content.toString());
     }
     
     /**
@@ -62,7 +75,7 @@ public class MarkovLogicNetwork implements RelationalModel {
     	mlnFile = null;
         signatures = new HashMap<String, Signature>();
         functionalPreds = new HashMap<String, Integer>();        
-        guaranteedDomainElements = new HashMap<String, String[]>();
+        guaranteedDomainElements = new HashMap<String, HashSet<String>>();
         formula2weight = new HashMap<Formula, Double>();
     }
     
@@ -74,11 +87,12 @@ public class MarkovLogicNetwork implements RelationalModel {
         signatures.put(sig.functionName, sig);
     }
     
-    public void addFormula(Formula f, double weight) {
+    public void addFormula(Formula f, double weight) throws Exception {
+    	f.addConstantsToModel(this);
     	this.formula2weight.put(f, weight);
     }
     
-    public void addHardFormula(Formula f) {
+    public void addHardFormula(Formula f) throws Exception {
     	addFormula(f, getHardWeight());
     }
     
@@ -86,8 +100,16 @@ public class MarkovLogicNetwork implements RelationalModel {
     	this.functionalPreds.put(predicateName, index);
     }
     
+    public void addGuaranteedDomainElement(String domain, String element) {
+    	HashSet<String> s = guaranteedDomainElements.get(domain);
+    	if(s == null)
+    		guaranteedDomainElements.put(domain, s=new HashSet<String>());
+    	s.add(element);
+    }
+    
     public void addGuaranteedDomainElements(String domain, String[] elements) {
-    	this.guaranteedDomainElements.put(domain, elements);
+    	for(String e : elements)
+    		addGuaranteedDomainElement(domain, e);
     }
     
     public Set<Formula> getFormulas() {
@@ -129,13 +151,10 @@ public class MarkovLogicNetwork implements RelationalModel {
      * reads the contents of an MLN file
      * @throws Exception 
      */
-    public void read(File mlnFile) throws Exception {
+    public void read(String content) throws Exception {
         String actLine;
         ArrayList<Formula> hardFormulas = new ArrayList<Formula>();
     	
-        // read the complete MLN-File and save it in a String
-        String content = FileUtil.readTextFile(mlnFile);
-        
         // remove all comments
         Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
         Matcher matcher = comments.matcher(content);
@@ -287,7 +306,8 @@ public class MarkovLogicNetwork implements RelationalModel {
     /**
      * @return a mapping from domain names to arrays of elements
      */
-    public HashMap<String, String[]> getGuaranteedDomainElements() {
+	@Override
+    public HashMap<String, HashSet<String>> getGuaranteedDomainElements() {
         return guaranteedDomainElements;
     }
 
@@ -325,7 +345,7 @@ public class MarkovLogicNetwork implements RelationalModel {
 		// domain declarations
 		if(this.guaranteedDomainElements.size() > 0) {
 			out.println("// domain declarations");
-			for(java.util.Map.Entry<String,String[]> e : this.getGuaranteedDomainElements().entrySet()) {
+			for(java.util.Map.Entry<String,? extends Iterable<String>> e : this.getGuaranteedDomainElements().entrySet()) {
 				writer.writeDomainDecl(e.getKey(), e.getValue());			
 			}
 			out.println();

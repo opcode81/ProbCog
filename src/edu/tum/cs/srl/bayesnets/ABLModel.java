@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -158,7 +159,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String domName = matcher.group(1);
 				String[] elems = matcher.group(2).split("\\s*,\\s*");
 				elems = makeDomainElements(elems);
-				guaranteedDomElements.put(domName, elems);
+				guaranteedDomElements.put(domName, Arrays.asList(elems));
 				return true;
 			}
 			return false;
@@ -434,7 +435,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			ret.add(setting.clone());
 			return;
 		}
-		String[] elems = guaranteedDomElements.get(domNames[idx]);
+		Collection<String> elems = guaranteedDomElements.get(domNames[idx]);
 		if (elems == null) {
 			throw new Exception("No guaranteed domain elements for "
 					+ domNames[idx]);
@@ -503,7 +504,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		out.println();
 
 		// write domains
-		for(Entry<String, String[]> e : guaranteedDomElements.entrySet()) {
+		for(Entry<String, ? extends Collection<String>> e : guaranteedDomElements.entrySet()) {
 			out.println("guaranteed " + e.getKey() + " "  + StringTool.join(", ", e.getValue()) + ";");
 		}
 		out.println();

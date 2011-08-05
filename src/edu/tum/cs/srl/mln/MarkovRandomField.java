@@ -14,7 +14,6 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
-import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.Variable;

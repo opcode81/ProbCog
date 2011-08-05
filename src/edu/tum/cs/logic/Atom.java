@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import edu.tum.cs.srl.GenericDatabase;
+import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.util.StringTool;
 
@@ -44,6 +45,25 @@ public class Atom extends UngroundedFormula {
 					if(lessSpecific)
 						ret.put(param, oldtype);
 				}
+			}
+			++i;
+		}
+	}
+	
+	@Override
+	public void addConstantsToModel(RelationalModel m) throws Exception {
+        Signature sig = m.getSignature(predName);
+        if(sig == null)
+        	throw new Exception("Unknown predicate '" + predName + "'");
+		int i = 0;
+		for(String param : params) {
+			if(!isVariable(param)) {
+				String type;
+				if(i < sig.argTypes.length)
+					type = sig.argTypes[i];
+				else
+					type = sig.returnType;
+				m.addGuaranteedDomainElement(type, param);
 			}
 			++i;
 		}
