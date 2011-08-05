@@ -314,7 +314,6 @@ class MLNQuery:
         input_files = [mln]            
         if settings["useEMLN"] == 1 and emln != "": # using extended model                
             input_files.append(emln)
-        print input_files
         # hide main window
         self.master.withdraw()
         # do inference
@@ -376,10 +375,8 @@ class MLNQuery:
                     sys.stderr.write("Error: %s\n" % str(e))
                     traceback.print_tb(tb)
             elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
-                if self.settings["useEMLN"] == 1:
-                    raise Exception("Model extensions are not supported by J-MLNs")
                 # create command to execute
-                params = ' -i "%s" -e "%s" -q "%s" %s %s' % (mln, db, self.settings["query"], self.jmlns_methods[method], params)
+                params = ' -i "%s" -e "%s" -q "%s" %s %s' % (",".join(input_files), db, self.settings["query"], self.jmlns_methods[method], params)
                 if self.settings["maxSteps"] != "":
                     params += " -maxSteps %s" % (self.settings["maxSteps"])
                 # run                
@@ -445,6 +442,7 @@ class MLNQuery:
                 # remove old output file (if any)
                 if os.path.exists(output):
                     os.remove(output)
+                    pass
                 # execute 
                 print "\nStarting Alchemy..."
                 print "\ncommand:\n%s\n" % command
@@ -455,7 +453,15 @@ class MLNQuery:
                 if True:
                     print "\n\n--- output ---\n"
                     f = file(output, "r")
-                    print f.read()
+                    results = []
+                    while True:
+                        l = f.readline().strip().split(" ")
+                        if len(l) != 2: break
+                        atom = l[0]
+                        prob = float(l[1])
+                        results.append((atom, prob))
+                    for r in results:
+                        print "%.4f  %s" % (r[1], r[0])
                     f.close()
                     print "\n"
                 # append information on query and mln to results file
