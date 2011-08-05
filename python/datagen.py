@@ -71,7 +71,7 @@ class Object(object):
         self.guid = GUID
         if constantName is not None:
             if type(constantName) != str:
-                raise Exception("Cannot use constant name '%s' (not a string)" % str(constantName))
+                raise Exception("Cannot use constant name '%s' (not a string, type is '%s')" % (str(constantName), str(type(constantName))))
         self.constantName = constantName
     
     def __str__(self):
