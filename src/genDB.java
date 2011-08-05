@@ -107,12 +107,21 @@ public class genDB {
 			if(printDB)
 				db.printData();
 			
-			if(writeMLNDB)
-				db.writeMLNDatabase(new PrintStream(new java.io.File(outfilename + ".db")));
-			if(writeBLOGDB)
-				db.writeBLOGDatabase(new PrintStream(new java.io.File(outfilename + ".blogdb")));
-			if(writeProxDB)
-				db.writeProximityDatabase(new PrintStream(new java.io.File(outfilename + ".proxdb.xml")));
+			if(writeMLNDB) {
+				File file = new java.io.File(outfilename + ".db");
+				System.out.println("Writing Proximity database to " + file);
+				db.writeMLNDatabase(new PrintStream(file));
+			}
+			if(writeBLOGDB) {
+				File file = new java.io.File(outfilename + ".blogdb");
+				System.out.println("Writing Proximity database to " + file);
+				db.writeBLOGDatabase(new PrintStream(file));
+			}
+			if(writeProxDB) {
+				File file = new java.io.File(outfilename + ".proxdb.xml");
+				System.out.println("Writing Proximity database to " + file);
+				db.writeProximityDatabase(new PrintStream(file));
+			}
 			if(writeBasicMLN)
 				db.writeBasicMLN(new PrintStream(new File(outfilename + ".basic.mln")));
 			if(writeBasicBLND)
