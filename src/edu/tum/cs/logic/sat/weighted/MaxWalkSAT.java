@@ -73,6 +73,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 		initialize();		
 		
 		double bestSum = Double.MAX_VALUE;
+		int bestHardMissing = Integer.MAX_VALUE;
 		for(int step = 1; step <= this.maxSteps; step++) {
 			
 			double unsatisfiedSum = 0.0;
@@ -87,6 +88,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 			boolean newBest = false;
 			if(unsatisfiedSum < bestSum) {
 				bestSum = unsatisfiedSum;
+				bestHardMissing = hardMissing;
 				newBest = true;
 				this.bestState = state.clone();
 			}
@@ -100,6 +102,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 			
 			makeMove();
 		}
+		System.out.printf("solution quality: sum of unsatisfied constraints: %f, hard constraints unsatisfied: %d\n", bestSum, bestHardMissing);
 	}
 
 	@Override
