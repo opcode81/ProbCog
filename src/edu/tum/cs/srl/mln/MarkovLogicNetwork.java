@@ -265,7 +265,7 @@ public class MarkovLogicNetwork implements RelationalModel {
      * @return the weight used for hard constraints
      */
     public double getHardWeight() {
-        return sumAbsWeights + 100;
+        return sumAbsWeights + 100000; // TODO this number should be selected with extreme care (especially for MPE inference it is very relevant); we should set it to the sum of abs. weights of soft formulas in the *ground* model + X
     }
 
     /**
