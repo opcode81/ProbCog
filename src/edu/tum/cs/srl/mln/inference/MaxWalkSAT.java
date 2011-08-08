@@ -19,7 +19,7 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	protected IMaxSAT sat;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws Exception {
-		this(mrf, edu.tum.cs.logic.sat.weighted.MaxWalkSATEx.class);
+		this(mrf, edu.tum.cs.logic.sat.weighted.MaxWalkSAT.class);
 	}
 	
 	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends IMaxSAT> mwsClass) throws Exception {
