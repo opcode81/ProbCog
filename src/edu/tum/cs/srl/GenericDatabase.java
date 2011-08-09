@@ -232,7 +232,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		return ret;
 	}
 	
-	protected abstract void fillDomain(String domName, VariableType var) throws Exception;
+	public abstract void fillDomain(String domName, VariableType var) throws Exception;
 
 	
 	public String[] getParameterSet(RelationKey key, String[] keyValues) {
@@ -307,7 +307,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 *            the value/entity name to add
 	 * @throws Exception
 	 */
-	protected void fillDomain(String type, String value) throws Exception {
+	public void fillDomain(String type, String value) throws Exception {
 		// if(debug) System.out.printf("  adding %s to domain %s\n", value, type);
 		// if we are working with a taxonomy, we need to check whether we
 		// previously assigned the value to a super-type of type

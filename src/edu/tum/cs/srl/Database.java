@@ -158,7 +158,7 @@ public class Database extends GenericDatabase<Variable, String> {
 	}
 
 	@Override
-	protected void fillDomain(String domName, Variable var) throws Exception {
+	public void fillDomain(String domName, Variable var) throws Exception {
 		fillDomain(domName, var.value);		
 	}
 

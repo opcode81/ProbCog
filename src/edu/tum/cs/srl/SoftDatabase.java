@@ -13,7 +13,7 @@ public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistributio
 	}
 
 	@Override
-	protected void fillDomain(String domName, SoftVariable var) throws Exception {
+	public void fillDomain(String domName, SoftVariable var) throws Exception {
 		for(String v : var.value.getDomainElements()) {
 			fillDomain(domName, v);
 		}
