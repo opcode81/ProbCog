@@ -345,7 +345,23 @@ class MLN(object):
             f.getVariables(self, None, constants)
             for domain, constants in constants.iteritems():
                 for c in constants: self.addConstant(domain, c)
-            
+        
+        # save data on formula templates for materialization
+        self.materializedTemplates = False
+        self.formulas = formulatemplates
+        self.templateIdx2GroupIdx = templateIdx2GroupIdx
+        self.fixedWeightTemplateIndices = fixedWeightTemplateIndices
+    
+    def _materializeFormulaTemplates(self, verbose=True):
+        if self.materializedTemplates:
+            raise Exception("This MLN's formula templates were previously materialized")
+        
+        formulatemplates = self.formulas
+        templateIdx2GroupIdx = self.templateIdx2GroupIdx
+        fixedWeightTemplateIndices = self.fixedWeightTemplateIndices
+        self.materializedTemplates = True
+        self.formulas = []
+        
         # materialize formula templates
         if verbose: print "materializing formula templates..."
         idxGroup = None
@@ -414,7 +430,7 @@ class MLN(object):
         for value in dom:
             self._groundAtoms(cur + [value], predName, domNames[1:])
      
-    def _generateGroundAtoms(self, domain):        
+    def _generateGroundAtoms(self):        
         self.gndAtoms = {}
         self.gndBlockLookup = {}
         self.gndBlocks = {}
@@ -830,18 +846,23 @@ class MLN(object):
                 domain: a dictionary with domainName->list of string constants to add'''
         # combine domains
         domNames = self.domains.keys() + domain.keys()
-        #print domNames
         domNames = set(self.domains.keys() + domain.keys())
         for domName in domNames:
             a = self.domains.get(domName, [])
             b = domain.get(domName, [])
             self.domains[domName] = list(set(a + b))
-        # collect data
-        self._generateGroundAtoms(domain)
-        if groundFormulas: self._createFormulaGroundings(verbose)
+        # collect data        
+        if groundFormulas:
+            self.ground(verbose=verbose)
+        
+    def ground(self, verbose=False):
+        self._generateGroundAtoms()
+        self._materializeFormulaTemplates(verbose)
+        self._createFormulaGroundings(verbose)
         if verbose:
             print "ground atoms: %d" % len(self.gndAtoms)
             print "ground formulas: %d" % len(self.gndFormulas)
+        
         
     def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
         '''
@@ -979,7 +1000,7 @@ class MLN(object):
                 self.domains[domName] = list(b)
                 
         # collect data
-        self._generateGroundAtoms(domain)
+        self._generateGroundAtoms()
         if groundFormulas: self._createFormulaGroundings()
         if verbose:
             print "ground atoms: %d" % len(self.gndAtoms)
@@ -1149,6 +1170,7 @@ class MLN(object):
             it makes sense to instantiate it with this size only). Obviously, a request domain that is larger than the domain
             in the database file is not allowed.
         '''
+        # extend domain
         domain, evidence = self._readDBFile(dbfile)
         for domName, dbd in domain.iteritems():
             if domName not in self.domains:
@@ -1163,8 +1185,8 @@ class MLN(object):
             for constant in dbd:
                 if constant not in d:
                     d.append(constant)
-        self._generateGroundAtoms(domain)
-        self._createFormulaGroundings()
+        # ground
+        self.ground(verbose=False)
 
     def _setEvidence(self, idxGndAtom, value):
         self.evidence[idxGndAtom] = value
@@ -1441,7 +1463,10 @@ class MLN(object):
                     if excl[i]: f.write("!")
                 f.write(")\n")
         f.write("\n// formulas\n")
-        for formula in self.formulas:            
+        for formula in self.formulas:
+            if formula.weight is None:
+                f.write("%s.\n" % strFormula(formula))
+                continue
             try:
                 weight = "%-10.6f" % float(eval(str(formula.weight)))
             except:
