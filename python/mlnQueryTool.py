@@ -314,6 +314,8 @@ class MLNQuery:
         input_files = [mln]            
         if settings["useEMLN"] == 1 and emln != "": # using extended model                
             input_files.append(emln)
+        # determine closed-world preds 
+        cwPreds = filter(lambda x: x != "", map(str.strip, self.settings["cwPreds"].split(",")))
         # hide main window
         self.master.withdraw()
         # do inference
@@ -335,10 +337,9 @@ class MLNQuery:
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
                     # create MLN
                     mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
-                    # set closed-world predicates
-                    cwPreds = map(str.strip, self.settings["cwPreds"].split(","))
+                    # set closed-world predicates                    
                     for pred in cwPreds:
-                        if pred != "": mln.setClosedWorldPred(pred)
+                        mln.setClosedWorldPred(pred)
                     # load evidence db
                     mln.combineDB(db, verbose=True)
                     # collect inference arguments
@@ -379,6 +380,8 @@ class MLNQuery:
                 params = ' -i "%s" -e "%s" -q "%s" %s %s' % (",".join(input_files), db, self.settings["query"], self.jmlns_methods[method], params)
                 if self.settings["maxSteps"] != "":
                     params += " -maxSteps %s" % (self.settings["maxSteps"])
+                if len(cwPreds) > 0:
+                    params += " -cw %s" % ",".join(cwPreds)
                 # run                
                 app = "MLNinfer"
                 command = "%s %s" % (app, params)
@@ -433,11 +436,15 @@ class MLNQuery:
                 path2 = os.path.join(path, "bin")
                 if os.path.exists(path2):
                     path = path2
+                owPreds = []
                 if self.settings["openWorld"] == 1:
                     print "\nFinding predicate names..."
                     if mlnObject is None:
                         mlnObject = MLN.MLN(mln)
-                    params += " %s %s" % (usage["openWorld"], ",".join(mlnObject.predicates))
+                    owPreds = filter(lambda x: x not in cwPreds, mlnObject.predicates)
+                    params += " %s %s" % (usage["openWorld"], ",".join(owPreds))
+                if len(cwPreds) > 0:
+                    params += " -cw %s" % ",".join(cwPreds)
                 command = '%s %s' % (os.path.join(path, "infer"), params)
                 # remove old output file (if any)
                 if os.path.exists(output):
