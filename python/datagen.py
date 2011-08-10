@@ -131,6 +131,10 @@ class Object(object):
         	self.partners[linkName].append(others)
         # return the link object
         return linkobj
+    
+    def notlinkto(self, linkName, other, *moreothers):
+        lnk = self.linkto(linkName, other, *moreothers)
+        lnk.setExists(False)
 
     def linkfrom(self, linkName, other, *moreothers):
         return other.linkto(linkName, self, *moreothers)
@@ -154,6 +158,10 @@ class Link(object):
         self.attributes = {}
         self.relationName = name
         self.objects = objects
+        self.exists = True
+    
+    def setExists(self, exists):
+        self.exists = exists
     
     def setAttr(self, attrName, value):
         # attribute values must be strings or integers
@@ -408,6 +416,7 @@ class World:
                     java_args.append(arg) # directly
             # construct object
             l = srldb.Link(db, linkobj.relationName, jarray.array(java_args, srldb.IRelationArgument))
+            if not linkobj.exists: l.setExists(False)
             # add attributes
             for attr, value in linkobj.attributes.items():
                 if type(value) == str:
