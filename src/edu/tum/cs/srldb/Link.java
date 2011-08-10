@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.Map.Entry;
 
 import edu.tum.cs.srl.bayesnets.ABLModel;
-import edu.tum.cs.srl.bayesnets.MLNConverter;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
@@ -16,23 +15,39 @@ public class Link extends Item implements Serializable {
 	private static final long serialVersionUID = 1L;
 	protected String linkName;
 	protected IRelationArgument[] arguments;
+	/**
+	 * whether the link is present (if false, the link does not exist)
+	 */
+	protected boolean exists; 
 		
 	public Link(Database database, String linkName, IRelationArgument arg1, IRelationArgument arg2) {
 		this(database, linkName, new IRelationArgument[]{arg1, arg2});
 	}
 	
 	public Link(Database database, String linkName, IRelationArgument[] arguments) {
+		this(database, linkName, arguments, true);
+	}
+	
+	public Link(Database database, String linkName, IRelationArgument[] arguments, boolean exists) {
 		super(database);
 		this.linkName = linkName;
-		this.arguments = arguments;		
+		this.arguments = arguments;
+		this.exists = true;
+	}
+	
+	public void setExists(boolean exists) {
+		this.exists = exists;
 	}
 	
 	/*public void addAttribute(String attribute, String value, DataTypeEnum type) {
 		addAttribute(attribute, value, type, "L");
 	}*/
 	
+	/**
+	 * gets a string representation of the literal represented by this link
+	 */
 	public String getLogicalAtom() {
-		return linkName + "(" + StringTool.join(", ", arguments) + ")";
+		return (exists ? "" : "!") + linkName + "(" + StringTool.join(", ", arguments) + ")";
 	}
 	
 	public void MLNprintFacts(java.io.PrintStream out) throws DDException {
@@ -42,6 +57,7 @@ public class Link extends Item implements Serializable {
 		String allParams = StringTool.join(", ", params);
 		String atom = linkName + "(" + allParams + ")";
 		// print the relation fact
+		if(!exists) out.print('!');
 		out.println(atom);
 		// if the link has boolean attributes, output further facts with the attribute
 		// name as the predicate name
@@ -73,7 +89,7 @@ public class Link extends Item implements Serializable {
 		}
 		String allParams = StringTool.join(", ", params);
 		String atom = linkName + "(" + allParams + ")";
-		out.printf("%s = True;\n", atom);		
+		out.printf("%s = %s;\n", atom, exists ? edu.tum.cs.srl.BooleanDomain.True : edu.tum.cs.srl.BooleanDomain.False);		
 		// attributes
 		String linkObjects = allParams;
 		for(Entry<String, String> entry : getAttributes().entrySet()) {			
