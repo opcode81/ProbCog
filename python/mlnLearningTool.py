@@ -208,7 +208,7 @@ class LearnWeights:
             if self.settings["engine"] == "internal": # internal engine
                 # load MLN and training database
                 mln = MLN.MLN(self.settings["mln"])    
-                mln.combineDB(self.settings["db"])
+                mln.combineDB(self.settings["db"], verbose=True)
                 # arguments
                 args = {"initialWts":False}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
@@ -321,7 +321,7 @@ if __name__ == '__main__':
     # run learning task/GUI
     root = Tk()    
     app = LearnWeights(root, ".", settings)
-    print "options:", options    
+    #print "options:", options    
     if options.run:
         app.learn(saveGeometry=False)
     else:
