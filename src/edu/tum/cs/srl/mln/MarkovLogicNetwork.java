@@ -63,8 +63,10 @@ public class MarkovLogicNetwork implements RelationalModel {
     	this();
     	mlnFile = new File(mlnFiles[0]);
     	StringBuffer content = new StringBuffer();
-    	for(String filename : mlnFiles)
+    	for(String filename : mlnFiles) {
     		content.append(FileUtil.readTextFile(filename));
+    		content.append("\n");
+    	}
     	read(content.toString());
     }
     
