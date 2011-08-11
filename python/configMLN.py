@@ -1,12 +1,12 @@
 # configuration script for the MLN query & parameter learning tools
-# 
+#
 #   If you want to use PyMLNs with the Alchemy System (http://alchemy.cs.washington.edu),
 #   set the path where it is installed on your system in the alchemy_versions dictionary below.
 #
 #   Depending on your naming convention for mln and database files, you may need to change
 #      query_db_filemask, query_mln_filemask, learnwts_mln_filemask and learnwts_db_filemask
 #   to suit your needs.
-# 
+#
 #   You can use os.getenv("VARIABLE") to retrieve the value of an environment variable
 
 from configGUI import *
@@ -54,7 +54,7 @@ default_infer_usage = new_usage # the usage that is to apply when the "usage" of
 
 # installed Alchemy versions:
 # - Keys are names of the installations as they should appear in the two tools.
-# - Values should be either paths to the Alchemy root or "bin" directory or 
+# - Values should be either paths to the Alchemy root or "bin" directory or
 #   a dictionary with at least the key "path" set to the Alchemy root or bin directory.
 #   The dictionary can additionally set "usage" to one of the above mappings
 alchemy_versions = {
@@ -63,7 +63,8 @@ alchemy_versions = {
     "Alchemy - June 2008 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
     "Alchemy - August 2010 (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
     #"Alchemy - June 2008 (i386)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
-    "Alchemy (win32)": {"path": r"c:\research\code\alchemy\bin", "usage": new_usage},
+	"Alchemy (Win32 desktop)": {"path": r"c:\users\Domini~1\Research\code\alchemy-2010-08-23\bin", "usage": new_usage},
+    "Alchemy (Win32 laptop)": {"path": r"c:\research\code\alchemy\bin", "usage": new_usage},
 }
 '''
 # snapshot, snapshot original and (if the weights in the input MLN are all 0) all yield the same results when weight learning
