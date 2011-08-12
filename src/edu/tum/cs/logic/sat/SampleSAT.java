@@ -382,19 +382,19 @@ public class SampleSAT implements IParameterHandler {
 	protected void pickAndFlipVar(Iterable<GroundAtom> candidates) {
 		// find the best candidate
 		GroundAtom bestGA = null, bestGASecond = null;
-		int bestDelta = Integer.MIN_VALUE;
+		double bestDelta = Double.NEGATIVE_INFINITY;
 		for(GroundAtom gndAtom : candidates) {
 			// if we have evidence, skip this ground atom
 			if(evidence.containsKey(gndAtom.index))
 				continue;
 			// calculate delta-cost
-			int delta = deltaCost(gndAtom);
+			double delta = deltaCost(gndAtom);
 			// - if the atom is in a block, we must consider the cost of flipping the second atom
 			Block block = vars.getBlock(gndAtom.index);
 			GroundAtom secondGA = null;
 			if(block != null) {
 				GroundAtom trueOne = block.getTrueOne(state);
-				int delta2 = Integer.MIN_VALUE;
+				double delta2 = Double.NEGATIVE_INFINITY;
 				if(gndAtom != trueOne) { // the second one to flip must be the true one
 					secondGA = trueOne;
 					delta2 = deltaCost(secondGA);
@@ -403,7 +403,7 @@ public class SampleSAT implements IParameterHandler {
 					for(GroundAtom ga2 : block) {
 						if(evidence.containsKey(ga2.index) || ga2 == gndAtom)
 							continue;
-						int d = deltaCost(ga2);
+						double d = deltaCost(ga2);
 						if(d > delta2) {
 							delta2 = d;
 							secondGA = ga2;
@@ -450,8 +450,8 @@ public class SampleSAT implements IParameterHandler {
 				c.handleFlip(gndAtom);
 	}
 	
-	protected int deltaCost(GroundAtom gndAtom) {
-		int delta = 0;
+	protected double deltaCost(GroundAtom gndAtom) {
+		double delta = 0;
 		// consider newly unsatisfied constraints (negative)
 		Vector<Constraint> bn = this.bottlenecks.get(gndAtom.index);
 		if(bn != null) 
