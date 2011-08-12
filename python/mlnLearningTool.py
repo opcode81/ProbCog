@@ -32,6 +32,9 @@ import traceback
 import MLN
 from widgets import *
 import configMLN as config
+import subprocess
+import shlex
+import tkMessageBox
 
 # --- gui class ---
 
@@ -223,18 +226,26 @@ class LearnWeights:
                 alchemy_version = self.alchemy_versions[self.selected_engine.get()]
                 if type(alchemy_version) != dict:
                     alchemy_version = {"path": str(alchemy_version)}
-                # run Alchemy's learnwts
-                method_switch = self.alchemy_methods[method]
-                params = '%s -i "%s" -o "%s" -t %s %s' % (method_switch, self.settings["mln"], self.settings["output_filename"], self.settings["db"], params)
+                # find binary
                 path = alchemy_version["path"]
                 path2 = os.path.join(path, "bin")
                 if os.path.exists(path2):
                     path = path2
-                command = '%s %s' % (os.path.join(path, "learnwts"), params)
+                alchemyLearn = os.path.join(path, "learnwts")
+                if not os.path.exists(alchemyLearn) and not os.path.exists(alchemyLearn+".exe"):
+                    error = "Alchemy's learnwts/learnwts.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
+                    tkMessageBox.showwarning("Error", error)
+                    raise Exception(error)
+                # run Alchemy's learnwts
+                method_switch = self.alchemy_methods[method]
+                params = [alchemyLearn, method_switch, "-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", self.settings["db"]] + shlex.split(params)
+                command = subprocess.list2cmdline(params)
                 print "\n", command, "\n"
                 self.master.withdraw() # hide gui
                 #print "running Alchemy's learnwts..."
-                cin, cout = os.popen2(command)
+                p = subprocess.Popen(params, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                cin, cout = p.stdin, p.stdout
+                #cin, cout = os.popen2(command)
                 output_text = ""
                 while True:
                     l = cout.readline()
@@ -282,9 +293,9 @@ class LearnWeights:
                     if config.learnwts_report_bottom: f.write("\n\n" + report)
                     f.close()
     
-                editor = config.editor
-                print "starting editor %s %s" % (editor, self.settings["output_filename"])
-                os.spawnl(os.P_NOWAIT, editor, editor, self.settings["output_filename"])
+                params = [config.editor, self.settings["output_filename"]]
+                print "starting editor: %s" % subprocess.list2cmdline(params)
+                subprocess.Popen(params, shell=False)
         except:
             cls, e, tb = sys.exc_info()
             print "Error: %s " % str(e)

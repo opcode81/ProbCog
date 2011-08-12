@@ -431,7 +431,7 @@ class MLNQuery:
                 if os.path.exists(path2):
                     path = path2
                 alchemyInfer = os.path.join(path, "infer")
-                if not os.path.exists(path) and not os.path.exists(path+".exe"):
+                if not os.path.exists(alchemyInfer) and not os.path.exists(alchemyInfer+".exe"):
                     error = "Alchemy's infer/infer.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
                     tkMessageBox.showwarning("Error", error)
                     raise Exception(error)
@@ -466,7 +466,7 @@ class MLNQuery:
                     pass
                 # execute
                 print "\nStarting Alchemy..."
-                command = " ".join(params)
+                command = subprocess.list2cmdline(params)
                 print "\ncommand:\n%s\n" % " ".join(params)
                 t_start = time.time()
                 call(params)
@@ -499,11 +499,9 @@ class MLNQuery:
             # open results file
             if haveOutFile and config.query_edit_outfile_when_done:
                 editor = config.editor
-                print 'starting editor: %s %s' % (editor, output)
-                run = os.spawnl
-                if "spawnlp" in dir(os):
-                    run = os.spawnlp
-                run(os.P_NOWAIT, editor, editor, output)
+                params = [editor, output]
+                print 'starting editor: %s' % subprocess.list2cmdline(params)
+                subprocess.Popen(params, shell=False)
         except:
             cls, e, tb = sys.exc_info()
             sys.stderr.write("Error: %s\n" % str(e))
