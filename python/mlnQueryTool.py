@@ -4,7 +4,7 @@
 # MLN Query Tool
 #
 # (C) 2006-2010 by Dominik Jain
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -36,11 +36,22 @@ import traceback
 from widgets import *
 import configMLN as config
 import MLN
+import tkMessageBox
+import subprocess
+import shlex
 
 def config_value(key, default):
     if key in dir(config):
         return eval("config.%s" % key)
     return default
+
+def call(args):
+    try:
+        subprocess.call(args)
+    except:
+        args = list(args)
+        args[0] = args[0] + ".bat"
+        subprocess.call(args)
 
 # --- main gui class ---
 
@@ -49,7 +60,7 @@ class MLNQuery:
     def __init__(self, master, dir, settings):
         self.initialized = False
         master.title("MLN Query Tool")
-        
+
         self.master = master
         self.settings = settings
         if not "queryByDB" in self.settings: self.settings["queryByDB"] = {}
@@ -95,7 +106,7 @@ class MLNQuery:
         # mln extension selection
         self.selected_emln = FilePickEdit(self.selected_mln, "*.emln", None, 12, None, rename_on_edit=self.settings.get("mln_rename", 0), font=config.fixed_width_font, coloring=config.coloring)
         self.onChangeUseEMLN()
-        
+
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
@@ -106,7 +117,7 @@ class MLNQuery:
         # inference method selection
         row += 1
         self.list_methods_row = row
-        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)      
+        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
         self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MaxWalkSAT (MPE)":"-a", "belief propagation":"-bp"}
         self.jmlns_methods = {"MaxWalkSAT (MPE)":"-mws", "MC-SAT":"-mcsat", "Toulbar2 B&B (MPE)":"-t2"}
         self.selected_method = StringVar(master)
@@ -123,7 +134,7 @@ class MLNQuery:
         #row += 1
         #Label(self.frame, text="Query formulas: ").grid(row=row, column=0, sticky=NE)
         self.selected_qf = FilePickEdit(self.frame, "*.qf", self.settings.get("qf", ""), 6)
-        #self.selected_qf.grid(row=row,column=1)        
+        #self.selected_qf.grid(row=row,column=1)
 
         # max. number of steps
         row += 1
@@ -186,10 +197,10 @@ class MLNQuery:
         start_button.grid(row=row, column=1, sticky="NEW")
 
         self.initialized = True
-        self.onChangeEngine()        
-        
+        self.onChangeEngine()
+
         self.setGeometry()
-    
+
     def setGeometry(self):
         g = self.settings.get("geometry")
         if g is None: return
@@ -198,7 +209,7 @@ class MLNQuery:
     def changedMLN(self, name):
         self.mln_filename = name
         self.setOutputFilename()
-            
+
     def changedDB(self, name):
         self.db_filename = name
         self.setOutputFilename()
@@ -215,14 +226,14 @@ class MLNQuery:
         # select EMLN
         emln = self.settings["emlnByDB"].get(name)
         if not emln is None:
-            self.selected_emln.set(emln)        
-    
+            self.selected_emln.set(emln)
+
     def onChangeUseEMLN(self, *args):
         if self.use_emln.get() == 0:
             self.selected_emln.grid_forget()
         else:
             self.selected_emln.grid(row=self.selected_mln.row+1, column=0, sticky="NWES")
-    
+
     def onChangeEngine(self, name = None, index = None, mode = None):
         # enable/disable controls
         engineName = self.selected_engine.get()
@@ -244,15 +255,15 @@ class MLNQuery:
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=NORMAL)
             self.cb_save_results.configure(state=DISABLED)
-        
+
         # change additional parameters
         self.params.set(self.settings.get("params%d" % int(self.numEngine), ""))
-        
+
         # change selected inference methods
         preferredMethod = self.settings.get("method%d" % int(self.numEngine), methods[0])
         if preferredMethod not in methods: preferredMethod = methods[0]
         self.selected_method.set(preferredMethod)
-        
+
         # change list control
         if "list_methods" in dir(self): self.list_methods.grid_forget()
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(methods))
@@ -311,10 +322,10 @@ class MLNQuery:
         print "\n--- query ---\n%s" % self.settings["query"]
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
         # MLN input files
-        input_files = [mln]            
-        if settings["useEMLN"] == 1 and emln != "": # using extended model                
+        input_files = [mln]
+        if settings["useEMLN"] == 1 and emln != "": # using extended model
             input_files.append(emln)
-        # determine closed-world preds 
+        # determine closed-world preds
         cwPreds = filter(lambda x: x != "", map(str.strip, self.settings["cwPreds"].split(",")))
         # hide main window
         self.master.withdraw()
@@ -323,7 +334,7 @@ class MLNQuery:
             # engine
             haveOutFile = False
             if self.settings["engine"] == "internal": # internal engine
-                try: 
+                try:
                     print "\nStarting %s...\n" % method
                     # read queries
                     queries = []
@@ -337,7 +348,7 @@ class MLNQuery:
                     if query != "": raise Exception("Unbalanced parentheses in queries!")
                     # create MLN
                     mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
-                    # set closed-world predicates                    
+                    # set closed-world predicates
                     for pred in cwPreds:
                         mln.setClosedWorldPred(pred)
                     # load evidence db
@@ -358,11 +369,11 @@ class MLNQuery:
                         haveOutFile = True
                         outFile = file(output, "w")
                         args["outFile"] = outFile
-                        
-                    args["saveResultsProlog"] = self.settings["saveResultsProlog"] 
-                    
+
+                    args["saveResultsProlog"] = self.settings["saveResultsProlog"]
+
                     args["probabilityFittingResultFileName"] = self.settings["output_filename"] + "_fitted.mln"
-                    
+
                     # check for print requests
                     if "printGroundAtoms" in args:
                         mln.printGroundAtoms()
@@ -377,19 +388,17 @@ class MLNQuery:
                     traceback.print_tb(tb)
             elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
                 # create command to execute
-                params = ' -i "%s" -e "%s" -q "%s" %s %s' % (",".join(input_files), db, self.settings["query"], self.jmlns_methods[method], params)
-                if self.settings["maxSteps"] != "":
-                    params += " -maxSteps %s" % (self.settings["maxSteps"])
-                if len(cwPreds) > 0:
-                    params += " -cw %s" % ",".join(cwPreds)
-                # run                
                 app = "MLNinfer"
-                command = "%s %s" % (app, params)
-                # execute 
+                params = [app, "-i", ",".join(input_files), "-e", db, "-q", self.settings["query"], self.jmlns_methods[method]] + shlex.split(params)
+                if self.settings["maxSteps"] != "":
+                    params += ["-maxSteps", self.settings["maxSteps"]]
+                if len(cwPreds) > 0:
+                    params += ["-cw", ",".join(cwPreds)]
+                # execute
                 print "\nStarting J-MLNs..."
-                print "\ncommand:\n%s\n" % command
+                print "\ncommand:\n%s\n" % " ".join(params)
                 t_start = time.time()
-                os.system(command)
+                call(params)
                 t_taken = time.time() - t_start
                 pass
             else: # engine is Alchemy
@@ -406,7 +415,7 @@ class MLNQuery:
                     f.close()
                     mlnObject.write(sys.stdout)
                     input_files = [infile]
-                    print "\n---"                
+                    print "\n---"
                 # get alchemy version-specific data
                 alchemy_version = self.alchemy_versions[self.selected_engine.get()]
                 print alchemy_version
@@ -416,8 +425,18 @@ class MLNQuery:
                 usage = config.default_infer_usage
                 if "usage" in alchemy_version:
                     usage = alchemy_version["usage"]
+                # find alchemy binary
+                path = alchemy_version["path"]
+                path2 = os.path.join(path, "bin")
+                if os.path.exists(path2):
+                    path = path2
+                alchemyInfer = os.path.join(path, "infer")
+                if not os.path.exists(path) and not os.path.exists(path+".exe"):
+                    error = "Alchemy's infer/infer.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
+                    tkMessageBox.showwarning("Error", error)
+                    raise Exception(error)
                 # parse additional parameters for input files
-                add_params = params.split()
+                add_params = shlex.split(params)
                 i = 0
                 while i < len(add_params):
                     if add_params[i] == "-i":
@@ -427,34 +446,30 @@ class MLNQuery:
                         continue
                     i += 1
                 # create command to execute
-                params = ' -i "%s" -e "%s" -r "%s" -q "%s" %s %s' % (",".join(input_files), db, output, self.settings["query"], self.alchemy_methods[method], " ".join(add_params))
+                params = [alchemyInfer, "-i", ",".join(input_files), "-e", db, "-r", output, "-q", self.settings["query"], self.alchemy_methods[method]] + add_params
                 if self.settings["numChains"] != "":
-                    params += " %s %s" % (usage["numChains"], self.settings["numChains"])
+                    params += [usage["numChains"], self.settings["numChains"]]
                 if self.settings["maxSteps"] != "":
-                    params += " %s %s" % (usage["maxSteps"], self.settings["maxSteps"])
-                path = alchemy_version["path"]
-                path2 = os.path.join(path, "bin")
-                if os.path.exists(path2):
-                    path = path2
+                    params += [usage["maxSteps"], self.settings["maxSteps"]]
                 owPreds = []
                 if self.settings["openWorld"] == 1:
                     print "\nFinding predicate names..."
                     if mlnObject is None:
                         mlnObject = MLN.MLN(mln)
                     owPreds = filter(lambda x: x not in cwPreds, mlnObject.predicates)
-                    params += " %s %s" % (usage["openWorld"], ",".join(owPreds))
+                    params += [usage["openWorld"], ",".join(owPreds)]
                 if len(cwPreds) > 0:
-                    params += " -cw %s" % ",".join(cwPreds)
-                command = '%s %s' % (os.path.join(path, "infer"), params)
+                    params += ["-cw", ",".join(cwPreds)]
                 # remove old output file (if any)
                 if os.path.exists(output):
                     os.remove(output)
                     pass
-                # execute 
+                # execute
                 print "\nStarting Alchemy..."
-                print "\ncommand:\n%s\n" % command
+                command = " ".join(params)
+                print "\ncommand:\n%s\n" % " ".join(params)
                 t_start = time.time()
-                os.system(command)
+                call(params)
                 t_taken = time.time() - t_start
                 # print results file
                 if True:
@@ -499,7 +514,7 @@ class MLNQuery:
         # reload the files (in case they changed)
         self.selected_mln.reloadFile()
         self.selected_db.reloadFile()
-        
+
         sys.stdout.flush()
 
 # -- main app --
@@ -507,15 +522,15 @@ class MLNQuery:
 if __name__ == '__main__':
     # read command-line options
     from optparse import OptionParser
-    parser = OptionParser()    
+    parser = OptionParser()
     parser.add_option("-i", "--mln", dest="mln", help="the MLN model file to use")
     parser.add_option("-q", "--queries", dest="query", help="queries (comma-separated)")
     parser.add_option("-e", "--evidence", dest="db", help="the evidence database file")
     parser.add_option("-r", "--results-file", dest="output_filename", help="the results file to save")
     parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
     parser.add_option("--save-results-prolog", action="store_true", dest="saveResultsProlog", default=False, help="save results as prolog file")
-    (options, args) = parser.parse_args()    
-    
+    (options, args) = parser.parse_args()
+
     # read previously saved settings
     settings = {}
     confignames = ["mlnquery.config.dat", "query.config.dat"]
@@ -527,17 +542,17 @@ if __name__ == '__main__':
             except:
                 pass
             break
-        
+
     # update settings with command-line information
     settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
     if len(args) > 1:
         settings["params"] = (settings.get("params", "") + " ".join(args)).strip()
-    
-    # create gui    
+
+    # create gui
     root = Tk()
     app = MLNQuery(root, ".", settings)
     if options.run:
         app.start(saveGeometry=False)
     else:
         root.mainloop()
-        
+

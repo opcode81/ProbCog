@@ -46,6 +46,14 @@ def spawn(*args):
         args[0] = args[0] + ".bat"
         subprocess.Popen(args)
 
+def call(args):
+    try:
+        subprocess.call(args)
+    except:
+        args = list(args)
+        args[0] = args[0] + ".bat"
+        subprocess.call(args)
+
 # --- main gui class ---
 
 class BLNQuery:
