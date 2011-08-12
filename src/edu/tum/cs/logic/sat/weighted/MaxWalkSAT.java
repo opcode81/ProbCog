@@ -42,8 +42,8 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	}
 	
 	@Override
-	protected int deltaCost(GroundAtom gndAtom) {
-		int delta = 0;
+	protected double deltaCost(GroundAtom gndAtom) {
+		double delta = 0;
 		// consider newly unsatisfied constraints (negative)
 		Vector<Constraint> bn = this.bottlenecks.get(gndAtom.index);
 		if(bn != null)
@@ -61,6 +61,33 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	@Override
 	public void makeMove() {
 		walkSATMove();
+	}
+	
+	@Override
+	protected void walkSATMove() {
+		// pick an unsatisfied constraint
+		// with probability p, satisfy the constraint randomly		
+		if(rand.nextDouble() < this.pWalkSAT) {
+			Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
+			c.satisfyRandomly();
+		}			 
+		// with probability 1-p, satisfy it greedily
+		else {
+			Vector<Constraint> hardUnsat = new Vector<Constraint>();
+			for(Constraint c : unsatisfiedConstraints) {
+				WeightedClause wc = (WeightedClause)c;
+				if(wc.isHard)
+					hardUnsat.add(c);
+			}
+			if(!hardUnsat.isEmpty()) {
+				Constraint c = hardUnsat.get(rand.nextInt(hardUnsat.size()));
+				c.satisfyGreedily();
+			}
+			else {
+				Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
+				c.satisfyGreedily();
+			}
+		}
 	}
 
 	@Override
@@ -95,7 +122,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 			
 			boolean printStatus = newBest || step % 10 == 0;
 			if(printStatus)
-				System.out.printf("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f  %s\n", step, hardMissing, unsatisfiedSum, bestSum, newBest ? "[NEW BEST]" : "");
+				System.out.printf("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f (%d) %s\n", step, hardMissing, unsatisfiedSum, bestSum, bestHardMissing, newBest ? "[NEW BEST]" : "");
 			
 			if(unsatisfiedSum == 0)
 				break;
@@ -103,6 +130,15 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 			makeMove();
 		}
 		System.out.printf("solution quality: sum of unsatisfied constraints: %f, hard constraints unsatisfied: %d\n", bestSum, bestHardMissing);
+		
+		PossibleWorld bestState = this.getBestState();
+		for(Constraint c : this.constraints) {
+			WeightedClause wc = (WeightedClause)c;
+			if(wc.isHard) {
+				if(!wc.isTrue(bestState))
+					System.out.println(wc);
+			}
+		}
 	}
 
 	@Override
