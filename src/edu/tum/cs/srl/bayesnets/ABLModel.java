@@ -18,6 +18,7 @@ import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.RealDomain;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.learning.CPTLearner;
@@ -132,15 +133,16 @@ public class ABLModel extends RelationalBeliefNetwork {
 
 	protected boolean readDeclaration(String line) throws Exception {
 		// function signature
-		// TODO: logical Boolean required - split this into random / logical w/o Boolean?
-		if(line.startsWith("random") || line.startsWith("logical")) {
-			Pattern pat = Pattern.compile("(random|logical)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
+		// TODO: logical Boolean required - split this into random / logical w/o Boolean / utility?
+		if(line.startsWith("random") || line.startsWith("logical") || line.startsWith("utility")) {
+			Pattern pat = Pattern.compile("(random|logical|utility)\\s+(\\w+)\\s+(\\w+)\\s*\\((.*)\\)\\s*;?", Pattern.CASE_INSENSITIVE);
 			Matcher matcher = pat.matcher(line);
 			if (matcher.matches()) {
 				boolean isLogical = matcher.group(1).equals("logical");
+				boolean isUtility = matcher.group(1).equals("utility");
 				String retType = matcher.group(2);
 				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
-				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical);				
+				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical, isUtility);				
 				addSignature(sig);
 				// ensure types used in signature exist, adding them if necessary
 				addType(sig.returnType, false);
@@ -319,7 +321,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * @return the taxonomy object for the given
 	 */
 	protected Concept addType(String typeName, boolean explicitlyDeclared) {
-		if(BooleanDomain.isBooleanType(typeName))
+		if(BooleanDomain.isBooleanType(typeName) || RealDomain.isRealType(typeName))
 			return null;
 		if(taxonomy == null) 
 			taxonomy = new Taxonomy();

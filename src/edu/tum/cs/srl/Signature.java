@@ -16,15 +16,21 @@ public class Signature {
 	 */
 	public boolean isLogical;
 
-	public Signature(String functionName, String returnType, String[] argTypes, boolean isLogical) {
+	/**
+	 * whether the function is a utility function
+	 */
+	public boolean isUtility;
+
+	public Signature(String functionName, String returnType, String[] argTypes, boolean isLogical, boolean isUtility) {
 		this.returnType = returnType;
 		this.argTypes = argTypes;
 		this.functionName = functionName;
 		this.isLogical = isLogical;
+		this.isUtility = isUtility;
 	}
 	
 	public Signature(String functionName, String returnType, String[] argTypes) {
-		this(functionName, returnType, argTypes, false);
+		this(functionName, returnType, argTypes, false, false);
 	}
 	
 	public void replaceType(String oldType, String newType) {
@@ -40,9 +46,13 @@ public class Signature {
 		return BooleanDomain.isBooleanType(returnType);
 	}
 	
+	public boolean isReal() {
+		return RealDomain.isRealType(returnType);
+	}
+	
 	@Override
 	public String toString() {
-		return String.format("%s %s %s(%s)", isLogical ? "logical" : "non-logical", returnType, functionName, StringTool.join(",", argTypes));
+		return String.format("%s %s %s %s(%s)", isLogical ? "logical" : "non-logical", isUtility ? "utility" : "non-utility", returnType, functionName, StringTool.join(",", argTypes));
 	}
 
 	public static String formatVarName(String functionName, String[] args) {

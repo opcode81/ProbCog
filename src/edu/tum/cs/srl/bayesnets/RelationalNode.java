@@ -75,7 +75,8 @@ public class RelationalNode extends ExtendedNode {
 	public static enum Aggregator {
 		FunctionalOr(true, "=OR"),
 		NoisyOr(false, "OR"),
-		Average(false, "AVG");
+		Average(false, "AVG"),
+		Sum(false, "SUM");
 		
 		public boolean isFunctional;
 		protected String syntax;

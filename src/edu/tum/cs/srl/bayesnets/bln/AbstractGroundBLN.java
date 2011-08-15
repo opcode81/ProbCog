@@ -285,7 +285,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			System.out.println("      " + mainNodeName);
 
 		// add the node itself to the network				
-		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain());		
+		BeliefNode mainNode = groundBN.addNode(mainNodeName, relNode.node.getDomain(), relNode.node.getType());		
 		onAddGroundAtomNode(mainNode, params, relNode.getSignature());
 		
 		// we can now instantiate the variable based on the suitable templates
@@ -338,7 +338,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				for(Map<Integer, String[]> grounding : groundings) {
 					// create auxiliary node
 					String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
-					BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain());
+					BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain(), mainNode.getType());
 					auxNodes.add(auxNode);
 					// create links from parents to auxiliary node and transfer CPF
 					instantiateCPF(grounding, relNode, auxNode);
@@ -392,11 +392,35 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					else
 						filler = new CPFFiller_OR(mainNode);
 					filler.fill();
-					// store the newly built CPF in the cache
+					// store the newly built CPF in the cache	
 					cpfCache.put(cpfid, cpf.getValues());
 				}
 				// set the CPF-id
 				cpfIDs.put(mainNode, cpfid); 
+			}
+			else if(combFunc == Aggregator.Sum) {
+				// check if the domain is really real
+				if(!RelationalBeliefNetwork.isRealDomain(mainNode.getDomain()))
+					throw new Exception("Cannot use SUM aggregator on non-Real node " + relNode.toString());
+				// build the CPF
+				CPF cpf = mainNode.getCPF();
+				String cpfid = combFunc.getFunctionSyntax() + String.format("-%d", groundings.size());
+				BeliefNode[] domprod_arr = domprod.toArray(new BeliefNode[domprod.size()]);
+				// - check if we have a cached CPF that we can reuse
+				Value[] values = cpfCache.get(cpfid);
+				if(values != null)
+					cpf.build(domprod_arr, values);
+				// - otherwise set and apply the filler
+				else {
+					cpf.buildZero(domprod_arr, false);
+					CPFFiller filler = new CPFFiller_SUM(mainNode);
+					filler.fill();
+					// store the newly built CPF in the cache	
+					cpfCache.put(cpfid, cpf.getValues());
+				}
+				// set the CPF-id
+				cpfIDs.put(mainNode, cpfid); 
+				
 			}
 			else
 				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNode.getName() + " with unhandled aggregator " + relNode.aggregator);
@@ -773,6 +797,26 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				++i;
 			}
 			return (addr[0] == 0 && isTrue) || (addr[0] == 1 && !isTrue) ? 1.0 : 0.0;
+		}
+	}
+	
+	/**
+	 * CPF filler for simple SUM of real nodes
+	 * @author meyerphi
+	 */
+	public class CPFFiller_SUM extends CPFFiller {
+		public CPFFiller_SUM(BeliefNode node) {
+			super(node);
+		}
+
+		@Override
+		protected double getValue(int[] addr) {
+			// SUM of real nodes: add up all nodes
+			double sum = 0.0;
+			boolean isTrue = false;
+			for(int i = 0; i < addr.length; i++)
+				sum += addr[i];
+			return sum;
 		}
 	}
 	

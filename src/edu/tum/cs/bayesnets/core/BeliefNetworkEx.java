@@ -180,7 +180,6 @@ public class BeliefNetworkEx {
 		bn.addBeliefNode(node);
 		return node;
 	}
-
 	
 	/**
 	 * adds a node with the given name and the standard discrete domain {True, False} to the network
@@ -210,7 +209,31 @@ public class BeliefNetworkEx {
 	 * @return			a reference to the BeliefNode object that was constructed
 	 */
 	public BeliefNode addNode(String name, Domain domain, String attributeName) {
+		return addNode(name, domain, attributeName, BeliefNode.NODE_CHANCE);
+	}
+	
+	/**
+	 * adds a node with the given name and domain and attribute name to the network.
+	 * @param name		the name of the node
+	 * @param domain	the node's domain (usually an instance of BNJ's class Discrete)
+	 * @param attributeName	the type of the node (BeliefNode.NODE_CHANCE, BeliefNode.NODE_UTILITY or BeliefNode.NODE_DECISION)
+	 * @return			a reference to the BeliefNode object that was constructed
+	 */
+	public BeliefNode addNode(String name, Domain domain, int type) {
+		return addNode(name, domain, name, type);
+	}
+	
+	/**
+	 * adds a node with the given name and domain and attribute name to the network.
+	 * @param name		the name of the node
+	 * @param domain	the node's domain (usually an instance of BNJ's class Discrete)
+	 * @param attributeName	the name of the attribute that is assigned to the node
+	 * @param attributeName	the type of the node (BeliefNode.NODE_CHANCE, BeliefNode.NODE_UTILITY or BeliefNode.NODE_DECISION)
+	 * @return			a reference to the BeliefNode object that was constructed
+	 */
+	public BeliefNode addNode(String name, Domain domain, String attributeName, int type) {
 		BeliefNode node = new BeliefNode(name, domain);
+		node.setType(type);
 		bn.addBeliefNode(node);
 		addAttributeMapping(name, attributeName);
 		//logger.debug("Added node "+name+" with attributeName "+attributeName);
