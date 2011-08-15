@@ -109,6 +109,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			return new RelationalNode(this, node);
 		case BeliefNode.NODE_DECISION:
 			return new DecisionNode(this, node);
+		case BeliefNode.NODE_UTILITY:
+			return new UtilityNode(this, node);
 		default:
 			throw new Exception("Don't know how to treat node " + node.getName() + " of type " + node.getType());
 		}	
@@ -168,6 +170,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		if(domain.getName(0).equalsIgnoreCase("true") || domain.getName(1).equalsIgnoreCase("true"))
 			return true;
 		return false;
+	}
+	
+	public static boolean isRealDomain(Domain domain) {
+		if(!(domain instanceof Discrete))
+			return false;
+		int order = domain.getOrder();
+		return order == 1;
 	}
 	
 	/**
