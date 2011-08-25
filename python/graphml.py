@@ -44,7 +44,9 @@ class Node(object):
         self.xpos = 0
         self.ypos = 0
         for key, value in kwargs.iteritems():
-            self.__setattr__(key, value)
+        	if type(value)==str:
+        		value = value.replace('<','').replace('>','')
+        	self.__setattr__(key, value)
     
     def write(self, out):
         width = max(float(len(self.label))*7,35)
@@ -61,7 +63,7 @@ class Node(object):
         out.write('<y:Shape type="%s"/>' % (shapeType))
         out.write('</y:ShapeNode>')
         out.write('</data>')
-        out.write('</node>')
+        out.write('</node>\n')
 
 class Edge(object):
     def __init__(self, graph, fromNode, toNode):
@@ -81,7 +83,7 @@ class Edge(object):
         out.write('<y:BendStyle smoothed="false"/>')
         out.write('</y:PolyLineEdge>')
         out.write('</data>')
-        out.write('</edge>')
+        out.write('</edge>\n')
 
 if __name__ == "__main__":
     g = Graph()
