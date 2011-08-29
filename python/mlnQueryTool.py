@@ -52,6 +52,19 @@ def call(args):
         args = list(args)
         args[0] = args[0] + ".bat"
         subprocess.call(args)
+        
+def readAlchemyResults(output):
+    f = file(output, "r")
+    results = []
+    while True:
+        l = f.readline().strip().split(" ")
+        if len(l) != 2: break
+        atom = l[0]
+        prob = float(l[1])
+        results.append((atom, prob))
+    f.close()
+    return results
+
 
 # --- main gui class ---
 
@@ -474,17 +487,9 @@ class MLNQuery:
                 # print results file
                 if True:
                     print "\n\n--- output ---\n"
-                    f = file(output, "r")
-                    results = []
-                    while True:
-                        l = f.readline().strip().split(" ")
-                        if len(l) != 2: break
-                        atom = l[0]
-                        prob = float(l[1])
-                        results.append((atom, prob))
+                    results = readAlchemyResults(output)
                     for r in results:
-                        print "%.4f  %s" % (r[1], r[0])
-                    f.close()
+                        print "%.4f  %s" % (r[1], r[0])                    
                     print "\n"
                 # append information on query and mln to results file
                 f = file(output, "a")
