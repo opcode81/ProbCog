@@ -350,14 +350,19 @@ public class DataDictionary implements java.io.Serializable {
 		out.println("// Advanced BLOG (ABL) Model\n\n");
 		IdentifierNamer idNamer = new IdentifierNamer(this);
 		// types
-		out.println("// ***************\n// types\n// ***************\n");		
+		out.println("// ***************\n// object types\n// ***************\n");		
 		for(DDObject ddo : this.getObjects()) 
 			out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", ddo.getDomainName()));
-		for(DDAttribute dda : this.getAttributes())
-			if(!dda.isDiscarded() && !dda.isBoolean())
-				out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", dda.getDomain().getName()));
 		// domains
 		out.println("\n// ***************\n// domains\n// ***************\n");
+		HashSet<Domain<?>> handledDomainTypes = new HashSet<Domain<?>>();
+		for(DDAttribute dda : this.getAttributes()) {
+			Domain<?> dom = dda.getDomain();
+			if(!dda.isDiscarded() && !dda.isBoolean() && !handledDomainTypes.contains(dom)) {
+				out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", dom.getName()));
+				handledDomainTypes.add(dom);
+			}
+		}
 		HashSet<String> printedDomains = new HashSet<String>(); // the names of domains that have already been printed
 		// - check all attributes for finite domains
 		for(DDAttribute attrib : this.getAttributes()) {
