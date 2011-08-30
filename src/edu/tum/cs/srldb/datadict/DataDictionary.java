@@ -347,54 +347,50 @@ public class DataDictionary implements java.io.Serializable {
 	 * @param out the stream to write to
 	 */
 	public void writeBasicBLOGModel(PrintStream out) {
-		out.println("// Advanced BLOG (ABL) Model\n\n");
+		out.println("// ABL Model\n\n");
 		IdentifierNamer idNamer = new IdentifierNamer(this);
-		// types
+		
+		// object types
 		out.println("// ***************\n// object types\n// ***************\n");		
 		for(DDObject ddo : this.getObjects()) 
-			out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", ddo.getDomainName()));
-		// domains
+			out.printf("type %s;\n", idNamer.getLongIdentifier("domain", ddo.getDomainName()));
+		
+		// fixed domains
 		out.println("\n// ***************\n// domains\n// ***************\n");
-		HashSet<Domain<?>> handledDomainTypes = new HashSet<Domain<?>>();
+		HashSet<String> handledDomainTypes = new HashSet<String>();
 		for(DDAttribute dda : this.getAttributes()) {
 			Domain<?> dom = dda.getDomain();
-			if(!dda.isDiscarded() && !dda.isBoolean() && !handledDomainTypes.contains(dom)) {
-				out.printf("Type %s;\n", idNamer.getLongIdentifier("domain", dom.getName()));
-				handledDomainTypes.add(dom);
-			}
-		}
-		HashSet<String> printedDomains = new HashSet<String>(); // the names of domains that have already been printed
-		// - check all attributes for finite domains
-		for(DDAttribute attrib : this.getAttributes()) {
-			if(attrib.isDiscarded())
+			
+			if(dda.isDiscarded() || dda.isBoolean() || handledDomainTypes.contains(dom))
 				continue;
-			Domain<?> domain = attrib.getDomain();
-			if(domain == null || attrib.isBoolean() || !domain.isFinite())
-				continue;			
-			// we have a finite domain -> output this domain if it hasn't already been printed
-			String name = domain.getName();
-			if(!printedDomains.contains(name)) {
-				// check if the domain is empty
-				String[] values = domain.getValues();
-				if(values.length == 0) {
-					System.err.println("Warning: Domain " + domain.getName() + " is empty!");
-					continue;
-				}
-				// print the domain name
-				String domIdentifier = idNamer.getLongIdentifier("domain", domain.getName());
-				out.print("guaranteed " + domIdentifier + " ");
-				// print the values (must start with upper-case letter)				
-				for(int i = 0; i < values.length; i++) {
-					if(i > 0)
-						out.print(", ");
-					out.print(Database.stdAttribStringValue(values[i]));				
-				}
-				out.println(";");
-				printedDomains.add(name);
-			}			
+			
+			handledDomainTypes.add(dom.getName());
+			
+			// print type declaration
+			String domIdentifier = idNamer.getLongIdentifier("domain", dom.getName());
+			out.printf("type %s;\n", domIdentifier);
+			
+			if(dom == null || !dom.isFinite())
+				continue;
+			
+			// check if the domain is empty
+			String[] values = dom.getValues();
+			if(values.length == 0) {
+				System.err.println("Warning: Domain " + dom.getName() + " is empty!");
+				continue;
+			}
+			// print the domain
+			out.print("guaranteed " + domIdentifier + " ");
+			for(int i = 0; i < values.length; i++) {
+				if(i > 0)
+					out.print(", ");
+				out.print(Database.stdAttribStringValue(values[i]));				
+			}
+			out.println(";");
 		}
+		
 		// predicate declarations
-		out.println("\n\n// *************************\n// predicate declarations\n// *************************\n");
+		out.println("\n\n// *************************\n// function/predicate declarations\n// *************************\n");
 		for(DDObject obj : this.getObjects()) {
 			obj.BLNprintPredicateDeclarations(idNamer, out);			
 		}
