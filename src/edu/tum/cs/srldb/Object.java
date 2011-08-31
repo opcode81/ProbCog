@@ -120,7 +120,7 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 		if(!ABLModel.isValidEntityName(constant))
 			throw new DDException("\"" + constant + "\" is not a valid entity name");
 		for(Entry<String, String> entry : getAttributes().entrySet()) {
-			String functionName = entry.getKey();
+			String functionName = Database.stdPredicateName(entry.getKey());
 			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(functionName); 
 			if(ddAttrib.isDiscarded())
 				continue;					
