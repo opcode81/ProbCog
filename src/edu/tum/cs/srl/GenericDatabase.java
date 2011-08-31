@@ -36,6 +36,10 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
 	protected PrologKnowledgeBase prolog;
+	/**
+	 * true iff the database was extended with all the values that can be computed with the Prolog KB, i.e. 
+	 * it is true iff all corresponding variables have been explicitly added to the database
+	 */
 	protected Boolean prologDatabaseExtended = false;
 	protected boolean immutable = false;
 
