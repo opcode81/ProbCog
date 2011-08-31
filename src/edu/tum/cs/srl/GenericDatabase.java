@@ -67,8 +67,13 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebug");
 		paramHandler.add("debug", "setVerbose");
-
-		// fill domains with guaranteed domain elements
+		
+		// initialize domains
+		for(Concept c : model.getTaxonomy().getConcepts()) {
+			domains.put(c.name, new HashSet<String>());
+		}
+		
+		// fill domains with guaranteed domain elements		
 		for(Entry<String, ? extends Collection<String>> e : model.getGuaranteedDomainElements().entrySet()) {
 			for(String element : e.getValue())
 				fillDomain(e.getKey(), element);
@@ -460,7 +465,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		for(int j = 0; j < args.length; j++)
 			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
 		boolean value = prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
-		VariableType var = makeVar(sig.functionName, args, value ? "True" : "False"); 
+		VariableType var = makeVar(sig.functionName, args, value ? "True" : "False"); 	
 		boolean added = addVariable(var, false, false);
 		if(added && debug) 
 			System.out.println("Prolog: computed " + var);
