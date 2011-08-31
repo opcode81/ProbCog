@@ -400,7 +400,7 @@ class World:
                                 raise Exception("None argument in %s%s" % (linkname, str(t)))
                             if type(linkedobj) == str: # link to a constant instead of an object
                                 args.append(srldb.ConstantArgument(linkedobj))
-                            elif type(linkedobj) == ConstantAsObject:
+                            elif isinstance(linkedobj, ConstantAsObject):
                                 args.append(srldb.ConstantArgument(linkedobj.constantName))
                             else:
                                 args.append(linkedobj.guid)
