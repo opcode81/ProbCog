@@ -92,14 +92,15 @@ public class Link extends Item implements Serializable {
 		out.printf("%s = %s;\n", atom, exists ? edu.tum.cs.srl.BooleanDomain.True : edu.tum.cs.srl.BooleanDomain.False);		
 		// attributes
 		String linkObjects = allParams;
-		for(Entry<String, String> entry : getAttributes().entrySet()) {			
+		for(Entry<String, String> entry : getAttributes().entrySet()) {
+			String predName = Database.stdPredicateName(entry.getKey());
 			DDAttribute ddAttrib = database.getDataDictionary().getAttribute(entry.getKey()); 
 			if(ddAttrib.isDiscarded())
 				continue;
 			String value = Database.upperCaseString(entry.getValue());
 			if(!ABLModel.isValidEntityName(value))
 				throw new DDException("\"" + value + "\" is not a valid entity name");
-			out.printf("%s(%s) = %s;\n", entry.getKey(), linkObjects, value); 
+			out.printf("%s(%s) = %s;\n", predName, linkObjects, value); 
 		}
 	}
 	
