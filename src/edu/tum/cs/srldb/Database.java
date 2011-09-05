@@ -26,6 +26,7 @@ import edu.tum.cs.srldb.datadict.DataDictionary;
 import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
+import edu.tum.cs.util.datastruct.MultiIterator;
 
 public class Database implements Cloneable, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -61,11 +62,11 @@ public class Database implements Cloneable, Serializable {
 	 * @throws DDException if problems with data dictionary conformity are discovered 
 	 * @throws Exception if there are no instances of the attribute, i.e. the attribute is undefines for all objects 
 	 */
-	public static AttributeClustering clusterAttribute(DDAttribute attribute, Collection<Object> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws DDException, Exception {
+	public static AttributeClustering clusterAttribute(DDAttribute attribute, Iterable<Item> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws DDException, Exception {
 		String attrName = attribute.getName();		
 		// create clusterer and collect instances
 		int instances = 0;
-		for(Object obj : objects) {
+		for(Item obj : objects) {
 			String value = obj.getAttributeValue(attrName);
 			if(value == null)
 				continue;
@@ -92,10 +93,10 @@ public class Database implements Cloneable, Serializable {
 		return ac;
 	}
 	
-	public static void applyClustering(DDAttribute attribute, Collection<Object> objects, AttributeClustering ac) throws NumberFormatException, Exception {
+	public static void applyClustering(DDAttribute attribute, Iterable<Item> objects, AttributeClustering ac) throws NumberFormatException, Exception {
 		// apply cluster assignment to attribute values
 		String attrName = attribute.getName();
-		for(Object obj : objects) {
+		for(Item obj : objects) {
 			String value = obj.attribs.get(attrName); 
 			if(value != null) {
 				int i = ac.clusterer.classify(Double.parseDouble(value));
@@ -393,6 +394,9 @@ public class Database implements Cloneable, Serializable {
 		System.out.println("clustering...");
 		if(clusterers == null)
 			clusterers = new HashMap<DDAttribute, AttributeClustering>();
+		MultiIterator<Item> items = new MultiIterator<Item>();
+		items.add(objects);
+		items.add(links);
 		for(DDAttribute attrib : this.datadict.getAttributes()) {	
 			if(attrib.isDiscarded())
 				continue;
@@ -401,7 +405,7 @@ public class Database implements Cloneable, Serializable {
 				AttributeClustering ac;
 				ac = clusterers.get(attrib);
 				if(ac != null) {
-					applyClustering(attrib, objects, ac);
+					applyClustering(attrib, items, ac);
 					continue;
 				}
 				Domain<?> domain = attrib.getDomain();
@@ -411,7 +415,7 @@ public class Database implements Cloneable, Serializable {
 				if(domain instanceof OrderedStringDomain) {
 					SimpleClusterer c = new SimpleClusterer();
 					((SimpleClusterer)c).setNumClusters(domain.getValues().length);
-					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
+					ac = clusterAttribute(attrib, items, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
 				}
 				// if the domain was generated automatically (no user input), either use EM 
 				// clustering to determine a suitable number of clusters or, if the number is given,
@@ -428,7 +432,7 @@ public class Database implements Cloneable, Serializable {
 						((SimpleClusterer)c).setNumClusters(numClusters);
 						System.out.printf("  applying %d-means clustering to " + attrib, numClusters);
 					}
-					ac = clusterAttribute(attrib, objects, c, new ClusterNamer.SimplePrefix(attrib.getName()));					
+					ac = clusterAttribute(attrib, items, c, new ClusterNamer.SimplePrefix(attrib.getName()));					
 				}
 				else
 					throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");
