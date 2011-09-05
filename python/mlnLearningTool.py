@@ -292,7 +292,8 @@ class LearnWeights:
                     f.write(outfile)
                     if config.learnwts_report_bottom: f.write("\n\n" + report)
                     f.close()
-    
+                
+            if config.learnwts_edit_outfile_when_done:
                 params = [config.editor, self.settings["output_filename"]]
                 print "starting editor: %s" % subprocess.list2cmdline(params)
                 subprocess.Popen(params, shell=False)
