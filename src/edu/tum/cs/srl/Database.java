@@ -34,8 +34,14 @@ public class Database extends GenericDatabase<Variable, String> {
 
 		// if it's a logically determined predicate, use prolog to retrieve a value
 		if(sig.isLogical) {
-			String[] args = varName.substring(braceIndex+1, varName.length()-1).split("\\s*,\\s*");
-			return getPrologValue(sig, args) ? BooleanDomain.True : BooleanDomain.False; 
+			if(!sig.isBoolean())
+				throw new Exception("Value for logical/evidence variable '" + varName + "' not found in the database and cannot use Prolog to retrieve a value for non-Boolean functions"); // TODO could allow Prolog via a logical coupling
+			if(this.isFinalized())
+				return BooleanDomain.False;
+			else {
+				String[] args = varName.substring(braceIndex+1, varName.length()-1).split("\\s*,\\s*");
+				return getPrologValue(sig, args) ? BooleanDomain.True : BooleanDomain.False;
+			}
 		}
 		
 		// if we are making the closed assumption return the default value of
