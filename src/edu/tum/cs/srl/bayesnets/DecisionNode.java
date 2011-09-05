@@ -66,7 +66,7 @@ public class DecisionNode extends ExtendedNode {
 				return gf.isTrue(w);				
 			}
 			catch(Exception e) {
-				throw new Exception("Cannot evaluate precondition " + formula + ": " + e.getMessage());
+				throw new Exception("Cannot evaluate precondition " + formula, e);
 			}
 		}
 	}

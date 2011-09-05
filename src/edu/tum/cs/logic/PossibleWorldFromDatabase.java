@@ -38,7 +38,7 @@ public class PossibleWorldFromDatabase implements IPossibleWorld {
 			}
 		}
 		catch(Exception e) {
-			throw new RuntimeException(e.toString());
+			throw new RuntimeException(e);
 		}
 	}
 }
