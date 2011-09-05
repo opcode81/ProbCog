@@ -842,7 +842,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			for(int i = 0; i < ga.args.length-1; i++) {
 				if(i > 0)
 					s.append(',');
-				s.append(ga.args);
+				s.append(ga.args[i]);
 			}
 			s.append(')');
 			return s.toString();
