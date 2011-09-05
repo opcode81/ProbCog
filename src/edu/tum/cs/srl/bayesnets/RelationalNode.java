@@ -194,7 +194,10 @@ public class RelationalNode extends ExtendedNode {
 		
 		// If the node is a precondition node, the corresponding function name must be an evidence function		
 		if(isPrecondition) {
-			if(!bn.getSignature(functionName).isLogical)
+			Signature sig = bn.getSignature(functionName);
+			if(sig == null)
+				throw new Exception("Function '" + functionName + "' has no signature");
+			if(!sig.isLogical)
 				System.err.println("Warning: The function '" + functionName + "' is used as a precondition but is declared as 'random'. Consider declaring it as 'logical'");		
 		}
 	}
