@@ -41,7 +41,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	protected File networkFile = null;
 	protected File[] declsFiles = null;
 	
-	public static Pattern regexFunctionName = Pattern.compile("[\\w]+");
+	public static Pattern regexFunctionName = Pattern.compile("[\\w]+"); // NOTE: should actually start with lower-case (because of Prolog compatibility), but left this way for backward comp. with older models
 	public static Pattern regexTypeName = regexFunctionName;
 	public static Pattern regexEntity = Pattern.compile("(?:[A-Z][\\w]+|[0-9]+(?:\\.[0-9]+)?)");
 	
@@ -144,6 +144,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
 				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical, isUtility);				
 				addSignature(sig);
+				// functions declared as logical must be Boolean
+				if(isLogical && !sig.isBoolean())
+					throw new Exception("Function '" + sig.functionName + "' was declared as logical but isn't a Boolean function");
 				// ensure types used in signature exist, adding them if necessary
 				addType(sig.returnType, false);
 				for(String t : sig.argTypes)

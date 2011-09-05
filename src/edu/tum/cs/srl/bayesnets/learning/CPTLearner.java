@@ -408,6 +408,8 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		}
 		else {
 			Iterable<String> domain = db.getDomain(domainNames[i]);
+			if(domain == null)
+				throw new Exception("Error while grounding " + node + ": Domain " + domainNames[i] + " not found or is empty.");
 			for(String element : domain) {
 				params[i] = element;
 				processAllGroundings(db, node, params, domainNames, i+1, closedWorld);	

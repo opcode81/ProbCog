@@ -338,6 +338,7 @@ public class Database implements Cloneable, Serializable {
 
 	public static String stdPredicateName(String name) {
 		return lowerCaseString(name);
+		// NOTE: for BLNs, it's highly advisable for functions/predicates to be lower-case, because otherwise they can't be used in Prolog
 	}
 	
 	public static String stdDomainName(String domainName) {
