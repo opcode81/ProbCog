@@ -144,9 +144,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String[] argTypes = matcher.group(4).trim().split("\\s*,\\s*");
 				Signature sig = new Signature(matcher.group(3), retType, argTypes, isLogical, isUtility);				
 				addSignature(sig);
-				// functions declared as logical must be Boolean
-				if(isLogical && !sig.isBoolean())
-					throw new Exception("Function '" + sig.functionName + "' was declared as logical but isn't a Boolean function");
+				// functions declared as logical are always given (either implicitly through the closed-world assumption which assumes false)
+				// or explicitly (in the explicit case, we do not insist that the variable must be Boolean, which is why we do not throw the exception).
+				//if(isLogical && !sig.isBoolean())
+				//	throw new Exception("Function '" + sig.functionName + "' was declared as logical but isn't a Boolean function");
 				// ensure types used in signature exist, adding them if necessary
 				addType(sig.returnType, false);
 				for(String t : sig.argTypes)
