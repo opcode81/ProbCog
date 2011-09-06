@@ -109,12 +109,12 @@ public class genDB {
 			
 			if(writeMLNDB) {
 				File file = new java.io.File(outfilename + ".db");
-				System.out.println("Writing Proximity database to " + file);
+				System.out.println("Writing MLN database to " + file);
 				db.writeMLNDatabase(new PrintStream(file));
 			}
 			if(writeBLOGDB) {
 				File file = new java.io.File(outfilename + ".blogdb");
-				System.out.println("Writing Proximity database to " + file);
+				System.out.println("Writing BLN database to " + file);
 				db.writeBLOGDatabase(new PrintStream(file));
 			}
 			if(writeProxDB) {
@@ -122,10 +122,16 @@ public class genDB {
 				System.out.println("Writing Proximity database to " + file);
 				db.writeProximityDatabase(new PrintStream(file));
 			}
-			if(writeBasicMLN)
-				db.writeBasicMLN(new PrintStream(new File(outfilename + ".basic.mln")));
-			if(writeBasicBLND)
-				db.getDataDictionary().writeBasicBLOGModel(new PrintStream(new File(outfilename + ".basic.blnd")));
+			if(writeBasicMLN) {
+				File file = new File(outfilename + ".basic.mln");
+				System.out.println("Writing basic MLN declarations to " + file);
+				db.writeBasicMLN(new PrintStream(file));
+			}
+			if(writeBasicBLND) {
+				File file = new File(outfilename + ".basic.blnd");
+				System.out.println("Writing basic BLN declarations to " + file);
+				db.getDataDictionary().writeBasicBLOGModel(new PrintStream(file));
+			}
 			
 			System.out.println("done!");
 		}
