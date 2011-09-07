@@ -109,7 +109,7 @@ public class BLNLearner implements IParameterHandler {
 						Database db = new Database(bn);
 						System.out.printf("reading %s...\n", file.getAbsolutePath());
 						db.readBLOGDB(file.getPath(), ignoreUndefPreds);
-						db.finalize(); // TODO determine whether to do this or not
+						//db.finalize(); // TODO determine whether to do this or not
 						dbs.add(db);
 					}
 				}
