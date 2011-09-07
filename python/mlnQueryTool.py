@@ -3,7 +3,7 @@
 
 # MLN Query Tool
 #
-# (C) 2006-2010 by Dominik Jain
+# (C) 2006-2011 by Dominik Jain
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -65,10 +65,208 @@ def readAlchemyResults(output):
     f.close()
     return results
 
+# --- inference class ---
+
+class MLNInfer(object):
+    def __init__(self):
+        self.pymlns_methods = MLN.InferenceMethods.getNames()
+        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MaxWalkSAT (MPE)":"-a", "belief propagation":"-bp"}
+        self.jmlns_methods = {"MaxWalkSAT (MPE)":"-mws", "MC-SAT":"-mcsat", "Toulbar2 B&B (MPE)":"-t2"}
+        self.alchemy_versions = config.alchemy_versions
+    
+    def run(self, mlnFiles, evidenceDB, method, queries, engine="internal", output_filename=None, params="", **settings):
+        '''
+            runs an MLN inference method with the given parameters
+        
+            mlnFiles: list of one or more MLN input files
+            evidenceDB: name of the MLN database file from which to read evidence data
+            engine: either "internal", "J-MLNs" or one of the keys in the configured Alchemy versions (see configMLN.py)
+            method: name of the inference method
+            queries: comma-separated list of queries
+            output_filename (compulsory only when using Alchemy): name of the file to which to save results
+                For the internal engine, specify saveResults=True as an additional settings to save the results
+            params: additional parameters to pass to inference method. For the internal engine, it is a comma-separated
+                list of assignments to parameters (dictionary-type string), for the others it's just a string of command-line
+                options to pass on
+            settings: additional settings that control the inference process (see code)
+                
+            returns 
+        '''
+        self.settings = settings
+        input_files = mlnFiles
+        db = evidenceDB
+        query = queries
+        # determine closed-world preds
+        cwPreds = []
+        if "cwPreds" in self.settings:            
+            cwPreds = filter(lambda x: x != "", map(str.strip, self.settings["cwPreds"].split(",")))
+        haveOutFile = False
+        results = None
+        # engine-specific handling
+        if engine == "internal": # internal engine
+            try:
+                print "\nStarting %s...\n" % method
+                # read queries
+                queries = []
+                q = ""
+                for s in map(str.strip, query.split(",")):
+                    if q != "": q += ','
+                    q += s
+                    if MLN.balancedParentheses(q):
+                        queries.append(q)
+                        q = ""
+                if q != "": raise Exception("Unbalanced parentheses in queries!")
+                # create MLN
+                mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
+                # set closed-world predicates
+                for pred in cwPreds:
+                    mln.setClosedWorldPred(pred)
+                # load evidence db
+                mln.combineDB(db, verbose=True)
+                # collect inference arguments
+                args = {"details":True, "verbose":True, "shortOutput":True, "debugLevel":1}
+                args.update(eval("dict(%s)" % params)) # add additional parameters
+                if args.get("debug", False) and args["debugLevel"] > 1:
+                    print "\nground formulas:"
+                    mln.printGroundFormulas()
+                    print
+                if self.settings["numChains"] != "":
+                    args["numChains"] = int(self.settings["numChains"])
+                if self.settings["maxSteps"] != "":
+                    args["maxSteps"] = int(self.settings["maxSteps"])
+                outFile = None
+                if self.settings["saveResults"]:
+                    haveOutFile = True
+                    outFile = file(output_filename, "w")
+                    args["outFile"] = outFile
+
+                args["saveResultsProlog"] = self.settings["saveResultsProlog"] # temporary code by Martin
+
+                args["probabilityFittingResultFileName"] = output_filename + "_fitted.mln"
+
+                # check for print requests
+                if "printGroundAtoms" in args:
+                    mln.printGroundAtoms()
+                # invoke inference
+                results = mln.infer(queries, **args)
+                # close output file and open if requested
+                if outFile != None:
+                    outFile.close()
+            except:
+                cls, e, tb = sys.exc_info()
+                sys.stderr.write("Error: %s\n" % str(e))
+                traceback.print_tb(tb)
+        elif engine == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
+            # create command to execute
+            app = "MLNinfer"
+            params = [app, "-i", ",".join(input_files), "-e", db, "-q", query, self.jmlns_methods[method]] + shlex.split(params)
+            if self.settings["maxSteps"] != "":
+                params += ["-maxSteps", self.settings["maxSteps"]]
+            if len(cwPreds) > 0:
+                params += ["-cw", ",".join(cwPreds)]
+            # execute
+            print "\nStarting J-MLNs..."
+            print "\ncommand:\n%s\n" % " ".join(params)
+            t_start = time.time()
+            call(params)
+            t_taken = time.time() - t_start
+            pass
+        else: # engine is Alchemy
+            haveOutFile = True
+            infile = mlnFiles[0]
+            mlnObject = None
+            # explicitly convert MLN to Alchemy format, i.e. resolve weights that are arithm. expressions (on request) -> create temporary file
+            if self.settings["convertAlchemy"]:
+                print "\n--- temporary MLN ---\n"
+                mlnObject = MLN.MLN(input_files)
+                infile = mln[:mln.rfind(".")]+".alchemy.mln"
+                f = file(infile, "w")
+                mlnObject.write(f)
+                f.close()
+                mlnObject.write(sys.stdout)
+                input_files = [infile]
+                print "\n---"
+            # get alchemy version-specific data
+            alchemy_version = self.alchemy_versions[engine]
+            if type(alchemy_version) != dict:
+                alchemy_version = {"path": str(alchemy_version)}
+            usage = config.default_infer_usage
+            if "usage" in alchemy_version:
+                usage = alchemy_version["usage"]
+            # find alchemy binary
+            path = alchemy_version["path"]
+            path2 = os.path.join(path, "bin")
+            if os.path.exists(path2):
+                path = path2
+            alchemyInfer = os.path.join(path, "infer")
+            if not os.path.exists(alchemyInfer) and not os.path.exists(alchemyInfer+".exe"):
+                error = "Alchemy's infer/infer.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
+                tkMessageBox.showwarning("Error", error)
+                raise Exception(error)
+            # parse additional parameters for input files
+            add_params = shlex.split(params)
+            i = 0
+            while i < len(add_params):
+                if add_params[i] == "-i":
+                    input_files.append(add_params[i+1])
+                    del add_params[i]
+                    del add_params[i]
+                    continue
+                i += 1
+            # create command to execute
+            if output_filename is None: raise Exception("For Alchemy, provide an output filename!")            
+            params = [alchemyInfer, "-i", ",".join(input_files), "-e", db, "-q", query, "-r", output_filename, self.alchemy_methods[method]] + add_params            
+            if self.settings["numChains"] != "":
+                params += [usage["numChains"], self.settings["numChains"]]
+            if self.settings["maxSteps"] != "":
+                params += [usage["maxSteps"], self.settings["maxSteps"]]
+            owPreds = []
+            if self.settings["openWorld"] == 1:
+                print "\nFinding predicate names..."
+                if mlnObject is None:
+                    mlnObject = MLN.MLN(infile)
+                owPreds = filter(lambda x: x not in cwPreds, mlnObject.predicates)
+                params += [usage["openWorld"], ",".join(owPreds)]
+            if len(cwPreds) > 0:
+                params += ["-cw", ",".join(cwPreds)]
+            # remove old output file (if any)
+            if os.path.exists(output_filename):
+                os.remove(output_filename)
+                pass
+            # execute
+            print "\nStarting Alchemy..."
+            command = subprocess.list2cmdline(params)
+            print "\ncommand:\n%s\n" % " ".join(params)
+            t_start = time.time()
+            call(params)
+            t_taken = time.time() - t_start
+            # print results file
+            if True:
+                print "\n\n--- output ---\n"
+                results = readAlchemyResults(output_filename)
+                for r in results:
+                    print "%.4f  %s" % (r[1], r[0])                    
+                print "\n"
+            # append information on query and mln to results file
+            f = file(output_filename, "a")
+            with file(db, "r") as dbfile: db_text = dbfile.read()
+            with file(infile, "r") as infile: mln_text = infile.read()
+            f.write("\n\n/*\n\n--- command ---\n%s\n\n--- evidence ---\n%s\n\n--- mln ---\n%s\ntime taken: %fs\n\n*/" % (command, db_text.strip(), mln_text.strip(), t_taken))
+            f.close()
+            # delete temporary mln
+            if self.settings["convertAlchemy"] and not config_value("keep_alchemy_conversions", True):
+                os.unlink(infile)
+        # open results file
+        if False and haveOutFile and config.query_edit_outfile_when_done: # this is mostly useless
+            editor = config.editor
+            params = [editor, output_filename]
+            print 'starting editor: %s' % subprocess.list2cmdline(params)
+            subprocess.Popen(params, shell=False)
+        return results
 
 # --- main gui class ---
 
-class MLNQuery:
+class MLNQuery(object):
 
     def __init__(self, master, dir, settings):
         self.initialized = False
@@ -84,8 +282,7 @@ class MLNQuery:
         self.frame.columnconfigure(1, weight=1)
 
         # engine selection
-        row = 0
-        self.alchemy_versions = config.alchemy_versions
+        row = 0        
         Label(self.frame, text="Engine: ").grid(row=row, column=0, sticky="E")
         alchemy_engines = config.alchemy_versions.keys()
         alchemy_engines.sort()
@@ -129,10 +326,9 @@ class MLNQuery:
 
         # inference method selection
         row += 1
+        self.inference = MLNInfer()
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
-        self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MaxWalkSAT (MPE)":"-a", "belief propagation":"-bp"}
-        self.jmlns_methods = {"MaxWalkSAT (MPE)":"-mws", "MC-SAT":"-mcsat", "Toulbar2 B&B (MPE)":"-t2"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
 
@@ -252,19 +448,19 @@ class MLNQuery:
         engineName = self.selected_engine.get()
         if engineName == "internal":
             self.numEngine = 1
-            methods = MLN.InferenceMethods.getNames()
+            methods = self.inference.pymlns_methods
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=DISABLED)
             self.cb_save_results.configure(state=NORMAL)
         elif engineName == "J-MLNs":
             self.numEngine = 2
-            methods = self.jmlns_methods.keys()
+            methods = self.inference.jmlns_methods.keys()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=DISABLED)
             self.cb_save_results.configure(state=DISABLED)
         else:
             self.numEngine = 0
-            methods = self.alchemy_methods.keys()
+            methods = self.inference.alchemy_methods.keys()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=NORMAL)
             self.cb_save_results.configure(state=DISABLED)
@@ -298,7 +494,6 @@ class MLNQuery:
         qf_text = self.selected_qf.get_text()
         output = self.output_filename.get()
         method = self.selected_method.get()
-        keep_written_db = True
         params = self.params.get()
         # update settings
         self.settings["mln"] = mln
@@ -332,181 +527,17 @@ class MLNQuery:
         # write settings
         pickle.dump(self.settings, file(configname, "w+"))
         # some information
-        print "\n--- query ---\n%s" % self.settings["query"]
+        print "\n--- query ---\n%s" % self.settings["query"]        
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
         # MLN input files
         input_files = [mln]
         if settings["useEMLN"] == 1 and emln != "": # using extended model
             input_files.append(emln)
-        # determine closed-world preds
-        cwPreds = filter(lambda x: x != "", map(str.strip, self.settings["cwPreds"].split(",")))
         # hide main window
         self.master.withdraw()
-        # do inference
+        # runinference
         try:
-            # engine
-            haveOutFile = False
-            if self.settings["engine"] == "internal": # internal engine
-                try:
-                    print "\nStarting %s...\n" % method
-                    # read queries
-                    queries = []
-                    query = ""
-                    for s in map(str.strip, self.settings["query"].split(",")):
-                        if query != "": query += ','
-                        query += s
-                        if MLN.balancedParentheses(query):
-                            queries.append(query)
-                            query = ""
-                    if query != "": raise Exception("Unbalanced parentheses in queries!")
-                    # create MLN
-                    mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
-                    # set closed-world predicates
-                    for pred in cwPreds:
-                        mln.setClosedWorldPred(pred)
-                    # load evidence db
-                    mln.combineDB(db, verbose=True)
-                    # collect inference arguments
-                    args = {"details":True, "verbose":True, "shortOutput":True, "debugLevel":1}
-                    args.update(eval("dict(%s)" % params)) # add additional parameters
-                    if args.get("debug", False) and args["debugLevel"] > 1:
-                        print "\nground formulas:"
-                        mln.printGroundFormulas()
-                        print
-                    if self.settings["numChains"] != "":
-                        args["numChains"] = int(self.settings["numChains"])
-                    if self.settings["maxSteps"] != "":
-                        args["maxSteps"] = int(self.settings["maxSteps"])
-                    outFile = None
-                    if self.settings["saveResults"]:
-                        haveOutFile = True
-                        outFile = file(output, "w")
-                        args["outFile"] = outFile
-
-                    args["saveResultsProlog"] = self.settings["saveResultsProlog"]
-
-                    args["probabilityFittingResultFileName"] = self.settings["output_filename"] + "_fitted.mln"
-
-                    # check for print requests
-                    if "printGroundAtoms" in args:
-                        mln.printGroundAtoms()
-                    # invoke inference
-                    results = mln.infer(queries, **args)
-                    # close output file and open if requested
-                    if outFile != None:
-                        outFile.close()
-                except:
-                    cls, e, tb = sys.exc_info()
-                    sys.stderr.write("Error: %s\n" % str(e))
-                    traceback.print_tb(tb)
-            elif self.settings["engine"] == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
-                # create command to execute
-                app = "MLNinfer"
-                params = [app, "-i", ",".join(input_files), "-e", db, "-q", self.settings["query"], self.jmlns_methods[method]] + shlex.split(params)
-                if self.settings["maxSteps"] != "":
-                    params += ["-maxSteps", self.settings["maxSteps"]]
-                if len(cwPreds) > 0:
-                    params += ["-cw", ",".join(cwPreds)]
-                # execute
-                print "\nStarting J-MLNs..."
-                print "\ncommand:\n%s\n" % " ".join(params)
-                t_start = time.time()
-                call(params)
-                t_taken = time.time() - t_start
-                pass
-            else: # engine is Alchemy
-                haveOutFile = True
-                infile = mln
-                mlnObject = None
-                # explicitly convert MLN to Alchemy format, i.e. resolve weights that are arithm. expressions (on request) -> create temporary file
-                if self.settings["convertAlchemy"]:
-                    print "\n--- temporary MLN ---\n"
-                    mlnObject = MLN.MLN(input_files)
-                    infile = mln[:mln.rfind(".")]+".alchemy.mln"
-                    f = file(infile, "w")
-                    mlnObject.write(f)
-                    f.close()
-                    mlnObject.write(sys.stdout)
-                    input_files = [infile]
-                    print "\n---"
-                # get alchemy version-specific data
-                alchemy_version = self.alchemy_versions[self.selected_engine.get()]
-                print alchemy_version
-                print type(alchemy_version)
-                if type(alchemy_version) != dict:
-                    alchemy_version = {"path": str(alchemy_version)}
-                usage = config.default_infer_usage
-                if "usage" in alchemy_version:
-                    usage = alchemy_version["usage"]
-                # find alchemy binary
-                path = alchemy_version["path"]
-                path2 = os.path.join(path, "bin")
-                if os.path.exists(path2):
-                    path = path2
-                alchemyInfer = os.path.join(path, "infer")
-                if not os.path.exists(alchemyInfer) and not os.path.exists(alchemyInfer+".exe"):
-                    error = "Alchemy's infer/infer.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
-                    tkMessageBox.showwarning("Error", error)
-                    raise Exception(error)
-                # parse additional parameters for input files
-                add_params = shlex.split(params)
-                i = 0
-                while i < len(add_params):
-                    if add_params[i] == "-i":
-                        input_files.append(add_params[i+1])
-                        del add_params[i]
-                        del add_params[i]
-                        continue
-                    i += 1
-                # create command to execute
-                params = [alchemyInfer, "-i", ",".join(input_files), "-e", db, "-r", output, "-q", self.settings["query"], self.alchemy_methods[method]] + add_params
-                if self.settings["numChains"] != "":
-                    params += [usage["numChains"], self.settings["numChains"]]
-                if self.settings["maxSteps"] != "":
-                    params += [usage["maxSteps"], self.settings["maxSteps"]]
-                owPreds = []
-                if self.settings["openWorld"] == 1:
-                    print "\nFinding predicate names..."
-                    if mlnObject is None:
-                        mlnObject = MLN.MLN(mln)
-                    owPreds = filter(lambda x: x not in cwPreds, mlnObject.predicates)
-                    params += [usage["openWorld"], ",".join(owPreds)]
-                if len(cwPreds) > 0:
-                    params += ["-cw", ",".join(cwPreds)]
-                # remove old output file (if any)
-                if os.path.exists(output):
-                    os.remove(output)
-                    pass
-                # execute
-                print "\nStarting Alchemy..."
-                command = subprocess.list2cmdline(params)
-                print "\ncommand:\n%s\n" % " ".join(params)
-                t_start = time.time()
-                call(params)
-                t_taken = time.time() - t_start
-                # print results file
-                if True:
-                    print "\n\n--- output ---\n"
-                    results = readAlchemyResults(output)
-                    for r in results:
-                        print "%.4f  %s" % (r[1], r[0])                    
-                    print "\n"
-                # append information on query and mln to results file
-                f = file(output, "a")
-                f.write("\n\n/*\n\n--- command ---\n%s\n\n--- evidence ---\n%s\n\n--- mln ---\n%s\ntime taken: %fs\n\n*/" % (command, db_text.strip(), mln_text.strip(), t_taken))
-                f.close()
-                # delete written db
-                if not(keep_written_db):
-                    os.unlink(db)
-                # delete temporary mln
-                if self.settings["convertAlchemy"] and not config_value("keep_alchemy_conversions", True):
-                    os.unlink(infile)
-            # open results file
-            if haveOutFile and config.query_edit_outfile_when_done:
-                editor = config.editor
-                params = [editor, output]
-                print 'starting editor: %s' % subprocess.list2cmdline(params)
-                subprocess.Popen(params, shell=False)
+            self.inference.run(input_files, db, method, self.settings["query"], params=params, **self.settings)
         except:
             cls, e, tb = sys.exc_info()
             sys.stderr.write("Error: %s\n" % str(e))
