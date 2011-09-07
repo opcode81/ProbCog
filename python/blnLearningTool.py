@@ -70,7 +70,7 @@ class BLNLearn:
         # blog/abl selection
         row += 1
         Label(self.frame, text="Declarations: ").grid(row=row, column=0, sticky=NE)
-        self.selected_blog = FilePickEdit(self.frame, ["*.blog", "*.abl", "*.blnd"], self.settings.get("blog", ""), 10, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font)
+        self.selected_blog = FilePickEdit(self.frame, ["*.blog", "*.abl", "*.blnd"], self.settings.get("blog", ""), 10, self.changedBLOG, rename_on_edit=self.settings.get("blog_rename", False), font=config.fixed_width_font, highlighter=BLNHighlighter())
         self.selected_blog.grid(row=row, column=1, sticky="NWES")
         self.frame.rowconfigure(row, weight=1)
 
