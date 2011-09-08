@@ -33,6 +33,7 @@ from fnmatch import fnmatch
 import traceback
 from widgets import *
 import configBLN as config
+import subprocess
 
 CONFIG_FILENAME = "blnlearn.config.dat"
 
