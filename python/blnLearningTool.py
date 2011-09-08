@@ -36,6 +36,23 @@ import configBLN as config
 
 CONFIG_FILENAME = "blnlearn.config.dat"
 
+def spawn(*args):
+    try:
+        subprocess.Popen(args)
+    except:
+        args = list(args)
+        args[0] = args[0] + ".bat"
+        subprocess.Popen(args)
+
+def call(args):
+    try:
+        subprocess.call(args)
+    except:
+        args = list(args)
+        args[0] = args[0] + ".bat"
+        subprocess.call(args)
+
+
 # --- main gui class ---
 
 class BLNLearn:
@@ -220,8 +237,7 @@ class BLNLearn:
         
     def showBN(self):
         bif = self.selected_bif.get()
-        os.spawnl(os.P_NOWAIT, "/bin/sh", "/bin/sh", "-c", "bnj %s" % bif)
-        #os.system("bnj %s" % bif)
+        spawn("bnj", bif)
 
     def start(self):
         # get mln, db, qf and output filename
