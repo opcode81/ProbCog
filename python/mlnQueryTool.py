@@ -122,13 +122,14 @@ class MLNInfer(object):
                 for pred in cwPreds:
                     mln.setClosedWorldPred(pred)
                 # load evidence db
-                mln.combineDB(db, verbose=True)
+                #mln.combineDB(db, verbose=True)
+                mrf = mln.groundMRF(db)
                 # collect inference arguments
                 args = {"details":True, "verbose":True, "shortOutput":True, "debugLevel":1}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
                 if args.get("debug", False) and args["debugLevel"] > 1:
                     print "\nground formulas:"
-                    mln.printGroundFormulas()
+                    mrf.printGroundFormulas()
                     print
                 if self.settings["numChains"] != "":
                     args["numChains"] = int(self.settings["numChains"])
@@ -146,7 +147,7 @@ class MLNInfer(object):
 
                 # check for print requests
                 if "printGroundAtoms" in args:
-                    mln.printGroundAtoms()
+                    mrf.printGroundAtoms()
                 # invoke inference
                 results = mln.infer(queries, **args)
                 # close output file and open if requested
