@@ -32,6 +32,7 @@ except:
     sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
 
 from MLN.util import *
+import MLN
 
 class AbstractLearner(object):
     
@@ -213,8 +214,6 @@ class AbstractLearner(object):
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         #print "allvecs", allvecs
         
-        
-        
     def useGrad(self):
         return True
     
@@ -233,3 +232,48 @@ class SoftEvidenceLearner(AbstractLearner):
     def _getTruthDegreeGivenEvidence(self, gf, worldValues=None):
         if worldValues is None: worldValues = self.mln.evidence
         return truthDegreeGivenSoftEvidence(gf, worldValues, self.mln)
+
+
+class MultipleDatabaseLearner(AbstractLearner):
+    '''
+    learns from multiple databases using an arbitrary sub-learning method for each database, assuming independence between individual databases
+    '''
+    
+    def __init__(self, mln, method, dbs, verbose=True, **params):
+        '''
+        dbs: list of tuples (domain, evidence) as returned by the database reading method
+        '''
+        AbstractLearner.__init__(self, mln, **params)
+        # construct ground MRFs
+        self.mrfs = []
+        for i, db in enumerate(dbs):
+            print "grounding MRF for database %d/%d..." % (i+1, len(dbs))            
+            mrf = mln.groundMRF(db)
+            #mrf.printGroundFormulas()
+            self.mrfs.append(mrf)
+        # construct learners
+        self.learners = []
+        constructor = MLN.ParameterLearningMeasures.byShortName(method)
+        for mrf in self.mrfs:
+            learner = eval("MLN.learning.%s(mrf, **params)" % constructor)
+            self.learners.append(learner) 
+    
+    def _f(self, wt):
+        likelihood = 0
+        for learner in self.learners:
+            likelihood += learner._f(wt)
+        return likelihood
+    
+    def _grad(self, wt):
+        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        for i, learner in enumerate(self.learners):
+            grad_i = learner._grad(wt)
+            print "  grad %d: %s" % (i, str(grad_i))
+            grad += grad_i
+        return grad
+
+    def _prepareOpt(self):
+        for learner in self.learners:
+            learner._prepareOpt()
+    
+    
