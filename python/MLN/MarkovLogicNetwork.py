@@ -103,8 +103,6 @@ POSSWORLDS_BLOCKING = True
 
 # TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
 
-
-
 # -- Markov logic network
 
 class MLN(object):
@@ -162,12 +160,11 @@ class MLN(object):
         self.rigidPredicates = []
         self.formulas = []
         self.blocks = {}
-        self.domDecls = []
-        self.evidenceBackup = {}
+        self.domDecls = []        
         self.probreqs = []
         self.posteriorProbReqs = []
         self.softEvidence = self.posteriorProbReqs # !!!! should get rid of this --- we treat soft evidence as constraints on posterior probabilities
-        self.evidence = {}
+        # TODO soft evidence is not safe across multiple instantiations of an MLN
         self.defaultInferenceMethod = defaultInferenceMethod
         self.probabilityFittingInferenceMethod = InferenceMethods.Exact
         self.probabilityFittingThreshold = 0.002 # maximum difference between desired and computed probability
@@ -356,7 +353,7 @@ class MLN(object):
         if self.materializedTemplates:
             raise Exception("This MLN's formula templates were previously materialized")
         
-        formulatemplates = self.formulas
+        self.formulaTemplates = self.formulas
         templateIdx2GroupIdx = self.templateIdx2GroupIdx
         fixedWeightTemplateIndices = self.fixedWeightTemplateIndices
         self.materializedTemplates = True
@@ -367,7 +364,7 @@ class MLN(object):
         idxGroup = None
         prevIdxGroup = None
         group = []
-        for idxTemplate, tf in enumerate(formulatemplates):
+        for idxTemplate, tf in enumerate(self.formulaTemplates):
             idxGroup = templateIdx2GroupIdx.get(idxTemplate)
             if idxGroup != None:
                 if idxGroup != prevIdxGroup: # starting new group
@@ -399,168 +396,8 @@ class MLN(object):
         dom = self.domains[domainName]
         if constant not in dom: dom.append(constant)
 
-    def _groundAtoms(self, cur, predName, domNames):
-        # if there are no more parameters to ground, we're done
-        if domNames == []:
-            idxAtom = len(self.gndAtoms)
-            
-            # add atom
-            gndAtom = "%s(%s)" % (predName, ",".join(cur))
-            #print gndAtom
-            self.gndAtoms[gndAtom] = FOL.GroundAtom(predName, cur, idxAtom)
-
-            # check if atom is in block
-            mutex = self.blocks.get(predName)
-            if mutex != None:
-                blockName = "%s_" % predName
-                for i, v in enumerate(mutex):
-                    if v == False:
-                        blockName += cur[i]
-                if not blockName in self.gndBlocks:
-                    self.gndBlocks[blockName] = []
-                self.gndBlocks[blockName].append(idxAtom)
-                self.gndBlockLookup[idxAtom] = blockName
-
-            return
-            
-        # create ground atoms for each way of grounding the first of the remaining variables whose domains are given in domNames
-        dom = self.domains.get(domNames[0])
-        if dom is None or len(dom) == 0:
-            raise Exception("Domain '%s' is empty!" % domNames[0])
-        for value in dom:
-            self._groundAtoms(cur + [value], predName, domNames[1:])
-     
-    def _generateGroundAtoms(self):        
-        self.gndAtoms = {}
-        self.gndBlockLookup = {}
-        self.gndBlocks = {}
-        # create ground atoms
-        atoms = []
-        for predName, domNames in self.predicates.iteritems():
-            self._groundAtoms([], predName, domNames)
-        # reverse lookup
-        self.gndAtomsByIdx = dict([(g.idx, g) for g in self.gndAtoms.values()]) 
-
-    def __createPossibleWorlds(self, values, idx, code, bit):
-        if idx == len(self.gndAtoms):
-            if code in self.worldCode2Index:
-                raise Exception("Too many possible worlds") # this actually never happens because Python can handle "infinitely" long ints
-            self.worldCode2Index[code] = len(self.worlds)
-            self.worlds.append({"values": values})
-            if len(self.worlds) % 1000 == 0:
-                #print "%d\r" % len(self.worlds)
-                pass
-            return
-        # values that can be set for the truth value of the ground atom with index idx
-        possible_settings = [True, False]
-        # check for rigid predicates: for rigid predicates, we consider both values only if the evidence value is
-        # unknown, otherwise we use the evidence value
-        restricted = False
-        if True:
-            gndAtom = self.gndAtomsByIdx[idx]
-            if gndAtom.predName in self.rigidPredicates:
-                v = self._getEvidence(idx, False)
-                if v != None:
-                    possible_settings = [v]
-                    restricted = True
-        # check if setting the truth value for idx is critical for a block (which is the case when idx is the highest index in a block)
-        if not restricted and idx in self.gndBlockLookup and POSSWORLDS_BLOCKING:
-            block = self.gndBlocks[self.gndBlockLookup[idx]]
-            if idx == max(block):
-                # count number of true values already set
-                nTrue, nFalse = 0, 0
-                for i in block:
-                    if i < len(values): # i has already been set
-                        if values[i]:
-                            nTrue += 1
-                if nTrue >= 2: # violation, cannot continue
-                    return
-                if nTrue == 1: # already have a true value, must set current value to false
-                    possible_settings.remove(True)
-                if nTrue == 0: # no true value yet, must set current value to true
-                    possible_settings.remove(False)
-        # recursive descent
-        for x in possible_settings:
-            self.__createPossibleWorlds(values + [x], idx + 1, code + (bit if x else 0), bit << 1)
-        
-    def _createPossibleWorlds(self):
-        self.worldCode2Index = {}
-        self.worlds = []
-        self.__createPossibleWorlds([], 0, 0, 1)   
-
-    # get the possible world with the given one-based world number
-    def getWorld(self, worldNo):
-        self._getWorlds()
-        return self.worlds[worldNo - 1]
-
-    def _getEvidenceTruthDegreeCW(self, gndAtom, worldValues): 
-        ''' 
-            gets (soft or hard) evidence as a degree of belief from 0 to 1, making the closed world assumption,
-            soft evidence has precedence over hard evidence 
-        '''
-        se = self._getSoftEvidence(gndAtom)
-        if se is not None:
-            return se if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se # TODO allSoft currently unsupported
-        return 1.0 if worldValues[gndAtom.idx] else 0.0
-    
-    def _getEvidenceDegree(self, gndAtom):
-        ''' 
-            gets (soft or hard) evidence as a degree of belief from 0 to 1 or None if no evidence is given,
-            soft evidence takes precedence over hard evidence 
-        '''
-        se = self._getSoftEvidence(gndAtom)
-        if se is not None:
-            return se
-        he = self._getEvidence(gndAtom.idx, False)
-        if he is None:
-            return None
-        return 1.0 if he == True else 0.0
-        
-
-    def _getSoftEvidence(self, gndAtom):
-        '''
-            gets the soft evidence value (probability) for a given ground atom (or complex formula)
-            returns None if there is no such value
-        '''
-        s = strFormula(gndAtom)
-        for se in self.softEvidence: # TODO optimize
-            if se["expr"] == s:
-                #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
-                return se["p"] 
-        return None
-    
-    def _setSoftEvidence(self, gndAtom, value):
-        s = strFormula(gndAtom)
-        for se in self.softEvidence:
-            if se["expr"] == s:
-                se["p"] = value
-                return
-            
-    def getTruthDegreeGivenSoftEvidence(self, gf, worldValues):
-        cnf = gf.toCNF()
-        prod = 1.0
-        if isinstance(cnf, FOL.Conjunction):
-            for disj in cnf.children:
-                prod *= self._noisyOr(worldValues, disj) 
-        else:
-            prod *= self._noisyOr(worldValues, cnf)  
-        return prod
-    
-    def _noisyOr(mln, worldValues, disj):
-        if isinstance(disj, FOL.GroundLit):
-            lits = [disj]
-        elif isinstance(disj, FOL.TrueFalse):
-            return 1.0 if disj.isTrue(worldValues) else 0.0
-        else:
-            lits = disj.children
-        prod = 1.0
-        for lit in lits:
-            p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
-            factor = p if not lit.negated else 1.0 - p
-            prod *= 1.0 - factor
-        return 1.0 - prod 
-
     def _groundFormula(self, formula, variables, assignment, idxFormula):
+        # DEPRECATED function
         # if all variables have been grounded...
         if variables == {}:
             #print atoms
@@ -578,53 +415,6 @@ class MLN(object):
             # recursive descent to ground further variables
             self._groundFormula(formula, dict(variables), assignment, idxFormula)
 
-    def _createFormulaGroundings(self, verbose=False):
-        '''this is the method that creates the ground MRF'''
-        self.gndFormulas = []        
-        self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
-        if verbose: print "grounding formulas..."
-        for idxFormula, formula in enumerate(self.formulas):
-            if verbose: print "  %s" % strFormula(formula)
-            #vars = formula.getVariables(self)
-            #self._groundFormula(formula, vars, {}, idxFormula)
-            for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
-                for idxGA in referencedGndAtoms:
-                    self.gndAtomOccurrencesInGFs[idxGA].append(gndFormula)
-                gndFormula.idxFormula = idxFormula
-                self.gndFormulas.append(gndFormula)
-        # materialize all formula weights
-        max_weight = 0
-        for f in self.formulas:
-            if f.weight is not None:
-                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (AMLN learning?)
-                    f.weight = f.complexWeight
-                w = str(f.weight)
-                f.complexWeight = w
-                while "$" in w:
-                    try: 
-                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
-                    except:
-                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
-                        raise
-                    if numReplacements == 0:
-                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
-                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
-                try:
-                    f.weight = eval(w)
-                except:
-                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
-                    raise
-                max_weight = max(abs(f.weight), max_weight)
-        # set weights of hard formulas
-        hard_weight = 20 + max_weight
-        if verbose: print "setting hard weights to %f" % hard_weight
-        for f in self.hard_formulas:
-            #if verbose: print "  ", strFormula(f)
-            f.weight = hard_weight
-        if verbose:
-            pass
-            #self.printGroundFormulas()
-    
     def domSize(self, domName):
         return len(self.domains[domName])
     
@@ -634,71 +424,6 @@ class MLN(object):
             raise Exception("Unknown variable '%s'" % varName)
         return self.vars[varName]
 
-    def _toCNF(self, allPositive=False):
-        self.gndFormulas, self.formulas = toCNF(self.gndFormulas, self.formulas)
-
-    def _isTrue(self, gndFormula, world_values):
-        return gndFormula.isTrue(world_values)
-        
-    def _calculateWorldValues(self, wts=None):
-        if wts == None:
-            wts = self._weights()
-        total = 0
-        for worldIndex, world in enumerate(self.worlds):
-            weights = []
-            for gndFormula in self.gndFormulas:
-                if self._isTrue(gndFormula, world["values"]):
-                    weights.append(wts[gndFormula.idxFormula])
-            exp_sum = exp(sum(weights))
-            if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or worldIndex != self.idxTrainingDB:
-                total += exp_sum
-            world["sum"] = exp_sum
-            world["weights"] = weights
-        self.partition_function = total        
-    
-    def _calculateWorldExpSum(self, world, wts=None):
-        if wts is None:
-            wts = self._weights()
-        sum = 0
-        for gndFormula in self.gndFormulas:
-            if self._isTrue(gndFormula, world):
-                sum += wts[gndFormula.idxFormula]
-        return math.exp(sum)
-
-   # get the names of all ground atoms of the given predicate
-    def _getPredGroundings(self, predName):
-        # get the string represenation of the first grounding of the predicate
-        domNames = self.predicates[predName]
-        params = []
-        for domName in domNames: 
-            params.append(self.domains[domName][0])
-        gndAtom = "%s(%s)" % (predName, ",".join(params))
-        # get all subsequent groundings (by index) until the predicate name changes
-        groundings = []
-        idx = self.gndAtoms[gndAtom].idx
-        while True:
-            groundings.append(gndAtom)
-            idx += 1
-            if idx >= len(self.gndAtoms):
-                break
-            gndAtom = str(self.gndAtomsByIdx[idx])
-            if parsePredicate(gndAtom)[0] != predName:
-                break
-        return groundings
-    
-    # get a list of all the indices of all groundings of the given predicate
-    def _getPredGroundingsAsIndices(self, predName):
-        # get the index of the first grounding of the predicate and the number of groundings
-        domNames = self.predicates[predName]
-        params = []
-        numGroundings = 1
-        for domName in domNames:
-            params.append(self.domains[domName][0])
-            numGroundings *= len(self.domains[domName])
-        gndAtom = "%s(%s)" % (predName, ",".join(params))
-        idxFirst = self.gndAtoms[gndAtom].idx
-        return range(idxFirst, idxFirst + numGroundings)
-    
     # infer a probability P(F1 | F2) where F1 and F2 are formulas - using the default inference method specified for this MLN
     #   what: a formula, e.g. "foo(A,B)", or a list of formulas
     #   given: either
@@ -728,23 +453,28 @@ class MLN(object):
             raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
 
     def inferExact(self, what, given=None, verbose=True, **args):
-        return self._infer(ExactInference(self), what, given, verbose, **args)
+        return self._infer(ExactInference(self.mrf), what, given, verbose, **args)
 
     def inferExactLinear(self, what, given=None, verbose=True, **args):
-        return self._infer(ExactInferenceLinear(self), what, given, verbose, **args)
+        return self._infer(ExactInferenceLinear(self.mrf), what, given, verbose, **args)
+
+    def inferEnumerationAsk(self, what, given=None, verbose=True, **args):
+        return self._infer(EnumerationAsk(self.mrf), what, given, verbose, **args)
 
     def inferGibbs(self, what, given=None, verbose=True, **args):
-        return self._infer(GibbsSampler(self), what, given, verbose=verbose, **args)
+        return self._infer(GibbsSampler(self.mrf), what, given, verbose=verbose, **args)
 
     def inferMCSAT(self, what, given=None, verbose=True, **args):
         verbose = args.get("details", False)
-        return self._infer(MCSAT(self, verbose=verbose), what, given, verbose, **args)        
+        self.mcsat = MCSAT(self.mrf, verbose=verbose) # can be used for later data retrieval
+        return self._infer(self.mcsat, what, given, verbose, **args)        
 
     def inferIPFPM(self, what, given=None, verbose=True, **args):
         '''
             inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
         '''
-        return self._infer(IPFPM(self), what, given, verbose, **args)
+        self.ipfpm = IPFPM(self.mrf) # can be used for later data retrieval
+        return self._infer(self.ipfpm, what, given, verbose, **args)
     
     def _infer(self, inferObj, what, given=None, verbose=True, doProbabilityFitting=True, **args):
         # if there are prior probability constraints, apply them first
@@ -761,91 +491,18 @@ class MLN(object):
         # run actual inference method
         return inferObj.infer(what, given, verbose=verbose, **args)
 
-    # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
-    # for details see printWorlds
-    def printWorld(self, world, mode=1, format=1):
-        if "weights" in world and world["weights"] == []:
-            world["weights"] = [0.0]
-        literals = []
-        for idx in range(len(self.gndAtoms)):                
-            if idx in self.gndBlockLookup: # process all gnd atoms in blocks in one go and only print the one that's true
-                block = self.gndBlocks[self.gndBlockLookup[idx]]
-                if idx == min(block): # process each block only once
-                    maxlen = 0
-                    gndAtom = None
-                    for i in block:
-                        maxlen = max(maxlen, len(str(self.gndAtomsByIdx[i])))
-                        if world["values"][i]:
-                            gndAtom = self.gndAtomsByIdx[i]
-                    literal = "%-*s" % (maxlen, str(gndAtom))
-                else:
-                    continue
-            else:
-                gndAtom = str(self.gndAtomsByIdx[idx])
-                value = world["values"][idx]
-                literal = {True: " ", False:"!"}[value] + gndAtom
-            literals.append(literal)
-        if mode == 1:
-            prob = world["sum"] / self.partition_function
-            weights = "<- " + " ".join(map(lambda s: "%.1f" % s, world["weights"]))
-            if format == 1: print "%6.2f%%  %s  %e <- %.2f %s" % (100 * prob, " ".join(literals), world["sum"], sum(world["weights"]), weights)
-            elif format == 2: print "%6.2f%%  %s  %s" % (100 * prob, " ".join(literals), str(world["counts"]))
-            #print "Pr=%.2f  %s  %15.0f" % (prob, " ".join(literals), world["sum"])
-        elif mode == 2:
-             print "%6.2f%%  %s  %.2f" % (100 * world["prod"] / self.partition_function, " ".join(literals), world["prod"])
-        elif mode == 3:
-             print " ".join(literals)
-
-    # prints all the possible worlds implicitly defined by the set of constants with which the MLN was combined
-    # Must call combine or combineDB beforehand if the MLN does not define at least one constant for every type/domain
-    # The list contains for each world its 1-based index, its probability, the (conjunction of) literals, the exponentiated
-    # sum of weights, the sum of weights and the individual weights that applied
-    def printWorlds(self, sort=False, mode=1, format=1):
-        self._getWorlds()
-        if sort:
-            worlds = list(self.worlds)
-            worlds.sort(key=lambda x:-x["sum"])
+    def combine(self, domain, verbose=False, groundFormulas=True, evidence=None):
+        '''
+            combines the existing domain (if any) with the given one
+                domain: a dictionary with domainName->list of string constants to add
+        '''
+        if groundFormulas:
+            if evidence is None: evidence = {}
+            self.groundMRF((domain, evidence))
         else:
-            worlds = self.worlds
-        print
-        k = 1
-        for world in worlds:
-            print "%*d " % (int(math.ceil(math.log(len(self.worlds)) / math.log(10))), k),
-            self.printWorld(world, mode=mode, format=format)
-            k += 1        
-        print "Z = %f" % self.partition_function
-    
-    # prints the worlds where the given formula (condition) is true (otherwise same as printWorlds)
-    def printWorldsFiltered(self, condition, mode=1, format=1):
-        condition = FOL.parseFormula(condition).ground(self, {})
-        self._getWorlds()
-        k = 1
-        for world in self.worlds:
-            if condition.isTrue(world["values"]):
-                print "%*d " % (int(math.ceil(math.log(len(self.worlds)) / math.log(10))), k),
-                self.printWorld(world, mode=mode, format=format)
-                k += 1
-
-    # prints the num worlds with the highest probability
-    def printTopWorlds(self, num=10, mode=1, format=1):
-        self._getWorlds()
-        worlds = list(self.worlds)
-        worlds.sort(key=lambda w:-w["sum"])
-        for i in range(min(num, len(worlds))):
-            self.printWorld(worlds[i], mode=mode, format=format)
-
-    # prints, for the given world, the probability, the literals, the sum of weights, plus for each ground formula the truth value on a separate line
-    def printWorldDetails(self, world):
-        self.printWorld(world)
-        for gf in self.gndFormulas:
-            isTrue = gf.isTrue(world["values"])
-            print "  %-5s  %f  %s" % (str(isTrue), self.formulas[gf.idxFormula].weight, strFormula(gf))
-
-    def combine(self, domain, verbose=False, groundFormulas=True):
-        '''combines the existing domain (if any) with the given one
-                domain: a dictionary with domainName->list of string constants to add'''
+            raise Exception("This usage is deprecated")
+        '''
         # combine domains
-        domNames = self.domains.keys() + domain.keys()
         domNames = set(self.domains.keys() + domain.keys())
         for domName in domNames:
             a = self.domains.get(domName, [])
@@ -854,15 +511,29 @@ class MLN(object):
         # collect data        
         if groundFormulas:
             self.ground(verbose=verbose)
+        # set evidence if given
+        if evidence is not None:
+            self.setEvidence(evidence)
+        '''
         
     def ground(self, verbose=False):
+        '''
+            DEPRECATED
+        '''
         self._generateGroundAtoms()
+        if verbose: print "ground atoms: %d" % len(self.gndAtoms)
         self._materializeFormulaTemplates(verbose)
         self._createFormulaGroundings(verbose)
-        if verbose:
-            print "ground atoms: %d" % len(self.gndAtoms)
-            print "ground formulas: %d" % len(self.gndFormulas)
+        if verbose: print "ground formulas: %d" % len(self.gndFormulas)
         
+    def groundMRF(self, db, verbose=False):
+        '''
+            creates a ground Markov random field for the given database
+                db: database filename or tuple
+                returns the MRF
+        '''
+        self.mrf = MRF(self, db)
+        return self.mrf
         
     def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
         '''
@@ -931,8 +602,10 @@ class MLN(object):
                 else:
                     self._calculateWorldValues()
                 results = self.inferExact(what, given=given, verbose=False, **inferenceParams)
-            elif inferenceMethod == InferenceMethods.ExactLazy:
-                results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
+            elif inferenceMethod == InferenceMethods.EnumerationAsk:
+                results = self.inferEnumerationAsk(what, given=given, verbose=False, **inferenceParams)
+            #elif inferenceMethod == InferenceMethods.ExactLazy:
+            #    results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
             elif inferenceMethod == InferenceMethods.MCSAT:
                 results = self.inferMCSAT(what, given=given, verbose=False, maxSteps = fittingMCSATSteps, **inferenceParams)
             else:
@@ -983,13 +656,14 @@ class MLN(object):
             self.write(mlnFile)
             mlnFile.close()
             print "written MLN with probability constraints to:", probabilityFittingResultFileName
-        
             
         return (results[len(probConstraints):], {"steps": min(step, maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "meandiff": meandiff, "time": time.time() - t_start})
 
     def combineOverwrite(self, domain, verbose=False, groundFormulas=True):
-        '''combines the existing domain (if any) with the given one
-                domain: a dictionary with domainName->list of string constants to add'''
+        '''
+            combines the existing domain (if any) with the given one
+                domain: a dictionary with domainName->list of string constants to add
+        '''
         domNames = set(self.domains.keys() + domain.keys())
         for domName in domNames:
             a = self.domains.get(domName, [])
@@ -1025,20 +699,13 @@ class MLN(object):
             # shift all weights in the group
             for idxFormula in group:
                 self.formulas[idxFormula].weight -= minWeight
-    
-    # creates the set of possible worlds and calculates for each world all the necessary values
-    def _getWorlds(self):
-        if not hasattr(self, "worlds"):
-            self._createPossibleWorlds()
-            if self.parameterType == 'weights':
-                self._calculateWorldValues()
-            elif self.parameterType == 'probs':
-                self._calculateWorldValues_prob()
 
-    # reads a database file containing literals and/or domains
-    # returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
-    # and evidence is a dictionary mapping ground atom strings to truth values
     def _readDBFile(self, dbfile, includeNonExplicitDomains=True):
+        '''
+            reads a database file containing literals and/or domains
+            returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
+            and evidence is a dictionary mapping ground atom strings to truth values
+        '''
         domains = {}
         # read file
         f = file(dbfile, "r")
@@ -1090,6 +757,7 @@ class MLN(object):
 
     def combineDB(self, dbfile, verbose=False, groundFormulas=True):
         '''
+          DEPRECATED method, use groundMRF instead
           This method serves two purposes:
             a) extend the domain - analogous to method 'combine' only that the constants are taken from a database base file rather than a dictionary
             b) stores the literals in the given db as evidence for future use (e.g. as a training database for weight learning)
@@ -1098,34 +766,8 @@ class MLN(object):
         '''
         domain, evidence = self._readDBFile(dbfile)
         # combine domains
-        self.combine(domain, verbose=verbose, groundFormulas=groundFormulas)
-        # set evidence
-        self.setEvidence(evidence)
-        
+        self.combine(domain, verbose=verbose, groundFormulas=groundFormulas, evidence=evidence)
         return evidence
-    
-    def setEvidence(self, evidence):
-        '''
-          sets the evidence, which is to be given as a dictionary that maps ground atom strings to their truth values.
-          Any previous evidence is cleared.
-          The closed-world assumption is applied to any predicates for which it was declared.
-        '''
-        self._clearEvidence()
-        for gndAtom, value in evidence.iteritems():
-            idx = self.gndAtoms[gndAtom].idx            
-            self._setEvidence(idx, value)
-            # If the value is true, set evidence for other vars in block (if any)
-            if value == True and idx in self.gndBlockLookup:
-                block = self.gndBlocks[self.gndBlockLookup[idx]]
-                for i in block:
-                    if i != idx:
-                        self._setEvidence(i, False)
-        # handle closed-world predicates: Set all their instances that aren't yet known to false
-        for pred in self.closedWorldPreds:
-            for idxGA in self._getPredGroundingsAsIndices(pred):
-                if self._getEvidence(idxGA, False) == None:
-                    self._setEvidence(idxGA, False)
-        
     
     def combineDBOverwriteDomains(self, dbfile, verbose=False, groundFormulas=True):
         domain, evidence = self._readDBFile(dbfile, False)
@@ -1188,46 +830,7 @@ class MLN(object):
         # ground
         self.ground(verbose=False)
 
-    def _setEvidence(self, idxGndAtom, value):
-        self.evidence[idxGndAtom] = value
-
-    def _setTemporaryEvidence(self, idxGndAtom, value):
-        self.evidenceBackup[idxGndAtom] = self._getEvidence(idxGndAtom, closedWorld=False)
-        self._setEvidence(idxGndAtom, value)        
-
-    def _getEvidence(self, idxGndAtom, closedWorld=True):
-        '''
-            gets the evidence truth value for the given ground atom or None if no evidence was given
-            if closedWorld is True, False instead of None is returned
-        '''
-        v = self.evidence[idxGndAtom]
-        if closedWorld and v == None:
-            return False
-        return v
-
-    def _clearEvidence(self):
-        self.evidence = [None for i in range(len(self.gndAtoms))]
-
-    def printEvidence(self):
-        for idxGA, value in enumerate(self.evidence):
-            print "%s = %s" % (str(self.gndAtomsByIdx[idxGA]), str(value))
-
-    def _removeTemporaryEvidence(self):
-        for idx, value in self.evidenceBackup.iteritems():
-            self._setEvidence(idx, value)
-        self.evidenceBackup.clear()
     
-    def _isTrueGndFormulaGivenEvidence(self, gf):
-        return gf.isTrue(self.evidence)
-
-    # returns, from the current evidence list, a dictionary that maps ground atom names to truth values
-    def getEvidenceDatabase(self):
-        d = {}
-        for idxGA, tv in enumerate(self.evidence):
-            if tv != None:
-                d[str(self.gndAtomsByIdx[idxGA])] = tv
-        return d
-        
     # sets the given predicate as closed-world (for inference)
     # a predicate that is closed-world is assumed to be false for any parameters not explicitly specified otherwise in the evidence
     def setClosedWorldPred(self, predicateName):
@@ -1276,6 +879,480 @@ class MLN(object):
         print "Number of worlds:", len(self.worlds)
         '''
     
+    def learnwts(self, mode=ParameterLearningMeasures.BPLL, initialWts=False, **params):
+        '''
+        This function is DEPRECATED (superseded by learnWeights)
+        learn the weights of the mln given the training data previously loaded with combineDB
+          mode: the measure that is used
+                   'PLL'    pseudo-log-likelihood based on ground atom probabilities
+                   'LL'     log-likelihood (warning: *very* slow and resource-heavy in all but the smallest domains)
+                   'BPLL'   pseudo-log-likelihood based on block probabilities
+                   'LL_fac' log-likelihood; factors between 0 and 1 are learned instead of regular weights
+           initialWts: whether to use the MLN's current weights as the starting point for the optimization
+        '''
+        
+        modeName = ParameterLearningMeasures.byShortName(mode)
+        if modeName in dir(learning) and True: # disable this case to use the old code
+            learner = eval("learning.%s(self, **params)" % modeName)
+            wt = learner.run(initialWts, **params)
+        else: 
+            learner = learning.Learner(self) # the Learner class contains the old code and the functions marked with "moved to <somewhere>" are subject to removal
+            wt = learner.run(mode, initialWts, **params)
+                
+        self.setWeights(wt)
+        
+        #delete worlds from learning
+        if  hasattr(self, "worlds"):
+            del self.worlds
+        
+        # fit prior prob. constraints if any available
+        if len(self.probreqs) > 0:
+            fittingParams = {
+                "fittingMethod": self.probabilityFittingInferenceMethod,
+                "fittingSteps": self.probabilityFittingMaxSteps,
+                "fittingThreshold": self.probabilityFittingThreshold
+            }
+            fittingParams.update(params)
+            print "fitting with params ", fittingParams 
+            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+            
+        print "\n// formulas"
+        for formula in self.formulas:
+            print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
+    
+    def learnWeights(self, dbFilenames, method=ParameterLearningMeasures.BPLL, initialWts=False, **params):
+        # read all databases and get combined domain of all databases
+        dbs = []
+        fullDomain = {}
+        for filename in dbFilenames:
+            domain, evidence = self._readDBFile(filename)
+            for domName, values in domain.iteritems():
+                if domName not in fullDomain:
+                    fullDomain[domName] = values
+                else:
+                    fullDomain[domName] = list(set(fullDomain[domName] + values))
+            dbs.append((domain, evidence))
+        
+        # materialize formula templates using full domain
+        oldDomains = self.domains
+        self.domains = fullDomain
+        self._materializeFormulaTemplates()
+        for f in self.formulas:print f
+        self.domains = oldDomains        
+        # permanently transfer domains of variables that were expanded from templates
+        for ft in self.formulaTemplates:
+            domNames = ft._getTemplateVariables(self).values()
+            for domName in domNames:
+                self.domains[domName] = fullDomain[domName]
+                print "permanent domain %s: %s" % (domName, fullDomain[domName])
+        # clean up
+        fullDomain = None
+        
+        # run learner
+        learner = learning.MultipleDatabaseLearner(self, method, dbs)
+        wt = learner.run(initialWts, **params)
+        
+        # set new weights
+        self.setWeights(wt)
+        
+        #delete worlds from learning
+        if  hasattr(self, "worlds"):
+            del self.worlds
+
+        # fit prior prob. constraints if any available
+        if len(self.probreqs) > 0:
+            fittingParams = {
+                "fittingMethod": self.probabilityFittingInferenceMethod,
+                "fittingSteps": self.probabilityFittingMaxSteps,
+                "fittingThreshold": self.probabilityFittingThreshold
+            }
+            fittingParams.update(params)
+            print "fitting with params ", fittingParams 
+            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+            
+        print "\n// formulas"
+        for formula in self.formulas:
+            print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
+
+    def setWeights(self, wt):
+        if len(wt) != len(self.formulas):
+            raise Exception("length of weight vector != number of formulas")
+        for i, f in enumerate(self.formulas):
+            f.weight = wt[i]
+
+    def write(self, f, mutexInDecls=True):
+        '''
+            writes the MLN to the given file object
+                mutexInDecls: whether to write the definitions for mutual exclusiveness directly to the predicate declaration (instead of extra constraints)
+        '''
+        if 'learnwts_message' in dir(self):
+            f.write("/*\n%s*/\n\n" % self.learnwts_message)
+        f.write("// domain declarations\n")
+        for d in self.domDecls: f.write("%s\n" % d)
+        f.write("\n// predicate declarations\n")
+        for predname, args in self.predicates.iteritems():
+            excl = self.blocks.get(predname)
+            if not mutexInDecls or excl is None:
+                f.write("%s(%s)\n" % (predname, ", ".join(args)))
+            else:
+                f.write("%s(%s)\n" % (predname, ", ".join(map(lambda x: "%s%s" % (x[0], {True:"!", False:""}[x[1]]), zip(args, excl)))))
+        if not mutexInDecls:
+            f.write("\n// mutual exclusiveness and exhaustiveness\n")
+            for predname, excl in self.blocks.iteritems():
+                f.write("%s(" % (predname))
+                for i in range(len(excl)):
+                    if i > 0: f.write(",")
+                    f.write("a%d" % i)
+                    if excl[i]: f.write("!")
+                f.write(")\n")
+        f.write("\n// formulas\n")
+        for formula in self.formulas:
+            if formula.weight is None:
+                f.write("%s.\n" % strFormula(formula))
+                continue
+            try:
+                weight = "%-10.6f" % float(eval(str(formula.weight)))
+            except:
+                weight = str(formula.weight)
+            f.write("%s  %s\n" % (weight, strFormula(formula)))
+
+    def printFormulas(self):
+        for f in self.formulas:
+            print "%7.3f  %s" % (f.weight, strFormula(f))
+
+    def setRigidPredicate(self, predName):
+        self.rigidPredicates.append(predName)
+
+    # write a .dot file for use with GraphViz (in order to visualize the current ground Markov network)
+    # must call one of the combine* functions first
+    def writeDotFile(self, filename):
+        if not hasattr(self, "gndFormulas") or len(self.gndFormulas) == 0:
+            raise Exception("Error: cannot create graph because the MLN was not combined with a concrete domain")
+        f = file(filename, "wb")
+        f.write("graph G {\n")
+        graph = {}
+        for gf in self.gndFormulas:
+            idxGndAtoms = gf.idxGroundAtoms()
+            for i in range(len(idxGndAtoms)):
+                for j in range(i + 1, len(idxGndAtoms)):
+                    edge = [idxGndAtoms[i], idxGndAtoms[j]]
+                    edge.sort()
+                    edge = tuple(edge)
+                    if not edge in graph:
+                        f.write("  ga%d -- ga%d\n" % edge)
+                        graph[edge] = True
+        for gndAtom in self.gndAtoms.values():
+            f.write('  ga%d [label="%s"]\n' % (gndAtom.idx, str(gndAtom)))
+        f.write("}\n")
+        f.close()
+    
+
+class MRF(object):
+    def __init__(self, mln, db, verbose=False):
+        self.mln = mln
+        self.evidence = {}
+        self.evidenceBackup = {}
+        
+        if type(db) == str:                
+            domain, evidence = self.mln._readDBFile(db)
+        elif type(db) == tuple:
+            domain, evidence = db
+        else:
+            raise Exception("Not a valid database argument (type %s)" % (str(type(db))))
+        
+        # get combined domain
+        self.domains = {}
+        domNames = set(mln.domains.keys() + domain.keys())
+        for domName in domNames:
+            a = self.mln.domains.get(domName, [])
+            b = domain.get(domName, [])
+            self.domains[domName] = list(set(a + b))
+        #print "MLN domains: ", self.mln.domains
+        #print "MRF domains: ", self.domains
+            
+        # ground
+        self._generateGroundAtoms()
+        self._createFormulaGroundings(verbose=verbose)
+        
+        # set evidence
+        self.setEvidence(evidence)
+        
+    def __getattr__(self, attr):
+        # forward attribute access to the MLN (yes, it's a hack)
+        return self.mln.__getattribute__(attr) 
+    
+    def _generateGroundAtoms(self):        
+        self.gndAtoms = {}
+        self.gndBlockLookup = {}
+        self.gndBlocks = {}
+        
+        # create ground atoms
+        atoms = []
+        for predName, domNames in self.mln.predicates.iteritems():
+            self._groundAtoms([], predName, domNames)
+            
+        # create reverse lookup
+        self.gndAtomsByIdx = dict([(g.idx, g) for g in self.gndAtoms.values()])
+        
+        # for backward compatibility with older code, transfer the members to the MLN
+        self.mln.gndAtoms = self.gndAtoms
+        self.mln.gndBlockLookup = self.gndBlockLookup
+        self.mln.gndBlocks = self.gndBlocks
+
+    def _groundAtoms(self, cur, predName, domNames):
+        # if there are no more parameters to ground, we're done
+        if domNames == []:
+            idxAtom = len(self.gndAtoms)
+            
+            # add atom
+            gndAtom = "%s(%s)" % (predName, ",".join(cur))
+            #print gndAtom
+            self.gndAtoms[gndAtom] = FOL.GroundAtom(predName, cur, idxAtom)
+
+            # check if atom is in block
+            mutex = self.mln.blocks.get(predName)
+            if mutex != None:
+                blockName = "%s_" % predName
+                for i, v in enumerate(mutex):
+                    if v == False:
+                        blockName += cur[i]
+                if not blockName in self.gndBlocks:
+                    self.gndBlocks[blockName] = []
+                self.gndBlocks[blockName].append(idxAtom)
+                self.gndBlockLookup[idxAtom] = blockName
+
+            return
+            
+        # create ground atoms for each way of grounding the first of the remaining variables whose domains are given in domNames
+        dom = self.domains.get(domNames[0])
+        if dom is None or len(dom) == 0:
+            raise Exception("Domain '%s' is empty!" % domNames[0])
+        for value in dom:
+            self._groundAtoms(cur + [value], predName, domNames[1:])
+    
+    def _getPredGroundings(self, predName):
+        '''
+            gets the names of all ground atoms of the given predicate
+        '''
+        # get the string represenation of the first grounding of the predicate
+        domNames = self.predicates[predName]
+        params = []
+        for domName in domNames: 
+            params.append(self.domains[domName][0])
+        gndAtom = "%s(%s)" % (predName, ",".join(params))
+        # get all subsequent groundings (by index) until the predicate name changes
+        groundings = []
+        idx = self.gndAtoms[gndAtom].idx
+        while True:
+            groundings.append(gndAtom)
+            idx += 1
+            if idx >= len(self.gndAtoms):
+                break
+            gndAtom = str(self.gndAtomsByIdx[idx])
+            if parsePredicate(gndAtom)[0] != predName:
+                break
+        return groundings
+    
+    def _getPredGroundingsAsIndices(self, predName):
+        '''
+            get a list of all the indices of all groundings of the given predicate
+        '''
+        # get the index of the first grounding of the predicate and the number of groundings
+        domNames = self.predicates[predName]
+        params = []
+        numGroundings = 1
+        for domName in domNames:
+            params.append(self.domains[domName][0])
+            numGroundings *= len(self.domains[domName])
+        gndAtom = "%s(%s)" % (predName, ",".join(params))
+        idxFirst = self.gndAtoms[gndAtom].idx
+        return range(idxFirst, idxFirst + numGroundings)
+    
+    def _createFormulaGroundings(self, verbose=False):
+        self.gndFormulas = []        
+        self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
+        
+        # generate all groundings
+        if verbose: print "grounding formulas..."
+        for idxFormula, formula in enumerate(self.mln.formulas):
+            if verbose: print "  %s" % strFormula(formula)
+            #vars = formula.getVariables(self)
+            #self._groundFormula(formula, vars, {}, idxFormula)
+            for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
+                for idxGA in referencedGndAtoms:
+                    self.gndAtomOccurrencesInGFs[idxGA].append(gndFormula)
+                gndFormula.idxFormula = idxFormula
+                self.gndFormulas.append(gndFormula)
+                
+        # materialize all formula weights
+        max_weight = 0
+        for f in self.formulas:
+            if f.weight is not None:
+                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (AMLN learning?)
+                    f.weight = f.complexWeight
+                w = str(f.weight)
+                f.complexWeight = w
+                while "$" in w:
+                    try: 
+                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
+                    except:
+                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
+                        raise
+                    if numReplacements == 0:
+                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
+                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
+                try:
+                    f.weight = eval(w)
+                except:
+                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
+                    raise
+                max_weight = max(abs(f.weight), max_weight)
+                
+        # set weights of hard formulas
+        hard_weight = 20 + max_weight
+        if verbose: print "setting hard weights to %f" % hard_weight
+        for f in self.hard_formulas:
+            #if verbose: print "  ", strFormula(f)
+            f.weight = hard_weight
+        if verbose:
+            pass
+            #self.printGroundFormulas()
+        
+        # for backward compatibility with older code, transfer the members to the MLN
+        self.mln.gndFormulas = self.gndFormulas
+        self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
+        
+    def _setEvidence(self, idxGndAtom, value):
+        self.evidence[idxGndAtom] = value
+
+    def _setTemporaryEvidence(self, idxGndAtom, value):
+        self.evidenceBackup[idxGndAtom] = self._getEvidence(idxGndAtom, closedWorld=False)
+        self._setEvidence(idxGndAtom, value)        
+
+    def _getEvidence(self, idxGndAtom, closedWorld=True):
+        '''
+            gets the evidence truth value for the given ground atom or None if no evidence was given
+            if closedWorld is True, False instead of None is returned
+        '''
+        v = self.evidence[idxGndAtom]
+        if closedWorld and v == None:
+            return False
+        return v
+
+    def _clearEvidence(self):
+        self.evidence = [None for i in range(len(self.gndAtoms))]
+
+    def getEvidenceDatabase(self):
+        '''
+            returns, from the current evidence list, a dictionary that maps ground atom names to truth values
+        '''
+        d = {}
+        for idxGA, tv in enumerate(self.evidence):
+            if tv != None:
+                d[str(self.gndAtomsByIdx[idxGA])] = tv
+        return d
+    
+    def printEvidence(self):
+        for idxGA, value in enumerate(self.evidence):
+            print "%s = %s" % (str(self.gndAtomsByIdx[idxGA]), str(value))
+
+    def _getEvidenceTruthDegreeCW(self, gndAtom, worldValues): 
+        ''' 
+            gets (soft or hard) evidence as a degree of belief from 0 to 1, making the closed world assumption,
+            soft evidence has precedence over hard evidence 
+        '''
+        se = self._getSoftEvidence(gndAtom)
+        if se is not None:
+            return se if (True == worldValues[gndAtom.idx] or None == worldValues[gndAtom.idx]) else 1.0 - se # TODO allSoft currently unsupported
+        return 1.0 if worldValues[gndAtom.idx] else 0.0
+    
+    def _getEvidenceDegree(self, gndAtom):
+        ''' 
+            gets (soft or hard) evidence as a degree of belief from 0 to 1 or None if no evidence is given,
+            soft evidence takes precedence over hard evidence 
+        '''
+        se = self._getSoftEvidence(gndAtom)
+        if se is not None:
+            return se
+        he = self._getEvidence(gndAtom.idx, False)
+        if he is None:
+            return None
+        return 1.0 if he == True else 0.0
+        
+
+    def _getSoftEvidence(self, gndAtom):
+        '''
+            gets the soft evidence value (probability) for a given ground atom (or complex formula)
+            returns None if there is no such value
+        '''
+        s = strFormula(gndAtom)
+        for se in self.softEvidence: # TODO optimize
+            if se["expr"] == s:
+                #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
+                return se["p"] 
+        return None
+    
+    def _setSoftEvidence(self, gndAtom, value):
+        s = strFormula(gndAtom)
+        for se in self.softEvidence:
+            if se["expr"] == s:
+                se["p"] = value
+                return
+            
+    def getTruthDegreeGivenSoftEvidence(self, gf, worldValues):
+        cnf = gf.toCNF()
+        prod = 1.0
+        if isinstance(cnf, FOL.Conjunction):
+            for disj in cnf.children:
+                prod *= self._noisyOr(worldValues, disj) 
+        else:
+            prod *= self._noisyOr(worldValues, cnf)  
+        return prod
+    
+    def _noisyOr(mln, worldValues, disj):
+        if isinstance(disj, FOL.GroundLit):
+            lits = [disj]
+        elif isinstance(disj, FOL.TrueFalse):
+            return 1.0 if disj.isTrue(worldValues) else 0.0
+        else:
+            lits = disj.children
+        prod = 1.0
+        for lit in lits:
+            p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)     
+            factor = p if not lit.negated else 1.0 - p
+            prod *= 1.0 - factor
+        return 1.0 - prod 
+
+    def _removeTemporaryEvidence(self):
+        for idx, value in self.evidenceBackup.iteritems():
+            self._setEvidence(idx, value)
+        self.evidenceBackup.clear()
+    
+    def _isTrueGndFormulaGivenEvidence(self, gf):
+        return gf.isTrue(self.evidence)
+    
+    def setEvidence(self, evidence):
+        '''
+          sets the evidence, which is to be given as a dictionary that maps ground atom strings to their truth values.
+          Any previous evidence is cleared.
+          The closed-world assumption is applied to any predicates for which it was declared.
+        '''
+        self._clearEvidence()
+        for gndAtom, value in evidence.iteritems():
+            idx = self.gndAtoms[gndAtom].idx            
+            self._setEvidence(idx, value)
+            # If the value is true, set evidence for other vars in block (if any)
+            if value == True and idx in self.gndBlockLookup:
+                block = self.gndBlocks[self.gndBlockLookup[idx]]
+                for i in block:
+                    if i != idx:
+                        self._setEvidence(i, False)
+        # handle closed-world predicates: Set all their instances that aren't yet known to false
+        for pred in self.closedWorldPreds:
+            for idxGA in self._getPredGroundingsAsIndices(pred):
+                if self._getEvidence(idxGA, False) == None:
+                    self._setEvidence(idxGA, False)
+                    
     # creates an array self.pllBlocks that contains tuples (idxGA, block);
     # one of the two tuple items is always None depending on whether the ground atom is in a block or not;
     def _getPllBlocks(self):
@@ -1390,88 +1467,96 @@ class MLN(object):
                     self.atom2BlockIdx[idxGA] = idxBlock
             else:
                 self.atom2BlockIdx[idxGA] = idxBlock
-                
-    # learn the weights of the mln given the training data previously loaded with combineDB
-    #   mode: the measure that is used
-    #           'PLL'    pseudo-log-likelihood based on ground atom probabilities
-    #           'LL'     log-likelihood (warning: *very* slow and resource-heavy in all but the smallest domains)
-    #           'BPLL'   pseudo-log-likelihood based on block probabilities
-    #           'LL_fac' log-likelihood; factors between 0 and 1 are learned instead of regular weights
-    #   initialWts: whether to use the MLN's current weights as the starting point for the optimization
-    def learnwts(self, mode=ParameterLearningMeasures.BPLL, initialWts=False, **params):
         
-        modeName = ParameterLearningMeasures.byShortName(mode)
-        if modeName in dir(learning) and True: # disable this case to use the old code
-            learner = eval("learning.%s(self, **params)" % modeName)
-            wt = learner.run(initialWts, **params)
-        else: 
-            learner = learning.Learner(self) # the Learner class contains the old code and the functions marked with "moved to <somewhere>" are subject to removal
-            wt = learner.run(mode, initialWts, **params)
-                
-        self.setWeights(wt)
+    def __createPossibleWorlds(self, values, idx, code, bit):
+        if idx == len(self.gndAtoms):
+            if code in self.worldCode2Index:
+                raise Exception("Too many possible worlds") # this actually never happens because Python can handle "infinitely" long ints
+            self.worldCode2Index[code] = len(self.worlds)
+            self.worlds.append({"values": values})
+            if len(self.worlds) % 1000 == 0:
+                #print "%d\r" % len(self.worlds)
+                pass
+            return
+        # values that can be set for the truth value of the ground atom with index idx
+        possible_settings = [True, False]
+        # check for rigid predicates: for rigid predicates, we consider both values only if the evidence value is
+        # unknown, otherwise we use the evidence value
+        restricted = False
+        if True:
+            gndAtom = self.gndAtomsByIdx[idx]
+            if gndAtom.predName in self.rigidPredicates:
+                v = self._getEvidence(idx, False)
+                if v != None:
+                    possible_settings = [v]
+                    restricted = True
+        # check if setting the truth value for idx is critical for a block (which is the case when idx is the highest index in a block)
+        if not restricted and idx in self.gndBlockLookup and POSSWORLDS_BLOCKING:
+            block = self.gndBlocks[self.gndBlockLookup[idx]]
+            if idx == max(block):
+                # count number of true values already set
+                nTrue, nFalse = 0, 0
+                for i in block:
+                    if i < len(values): # i has already been set
+                        if values[i]:
+                            nTrue += 1
+                if nTrue >= 2: # violation, cannot continue
+                    return
+                if nTrue == 1: # already have a true value, must set current value to false
+                    possible_settings.remove(True)
+                if nTrue == 0: # no true value yet, must set current value to true
+                    possible_settings.remove(False)
+        # recursive descent
+        for x in possible_settings:
+            self.__createPossibleWorlds(values + [x], idx + 1, code + (bit if x else 0), bit << 1)
         
-        #delete worlds from learning
-        if  hasattr(self, "worlds"):
-            del self.worlds
+    def _createPossibleWorlds(self):
+        self.worldCode2Index = {}
+        self.worlds = []
+        self.__createPossibleWorlds([], 0, 0, 1)
         
-        # fit prior prob. constraints if any available
-        if len(self.probreqs) > 0:
-            fittingParams = {
-                "fittingMethod": self.probabilityFittingInferenceMethod,
-                "fittingSteps": self.probabilityFittingMaxSteps,
-                "fittingThreshold": self.probabilityFittingThreshold
-            }
-            fittingParams.update(params)
-            print "fitting with params ", fittingParams 
-            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
-        
-            
-        print "\n// formulas"
-        for formula in self.formulas:
-            print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
-        
-
-    def setWeights(self, wt):
-        if len(wt) != len(self.formulas):
-            raise Exception("length of weight vector != number of formulas")
-        for i, f in enumerate(self.formulas):
-            f.weight = wt[i]
-
-    def write(self, f, mutexInDecls=True):
+    def getWorld(self, worldNo):
         '''
-            writes the MLN to the given file object
-                mutexInDecls: whether to write the definitions for mutual exclusiveness directly to the predicate declaration (instead of extra constraints)
+            gets the possible world with the given one-based world number
         '''
-        if 'learnwts_message' in dir(self):
-            f.write("/*\n%s*/\n\n" % self.learnwts_message)
-        f.write("// domain declarations\n")
-        for d in self.domDecls: f.write("%s\n" % d)
-        f.write("\n// predicate declarations\n")
-        for predname, args in self.predicates.iteritems():
-            excl = self.blocks.get(predname)
-            if not mutexInDecls or excl is None:
-                f.write("%s(%s)\n" % (predname, ", ".join(args)))
-            else:
-                f.write("%s(%s)\n" % (predname, ", ".join(map(lambda x: "%s%s" % (x[0], {True:"!", False:""}[x[1]]), zip(args, excl)))))
-        if not mutexInDecls:
-            f.write("\n// mutual exclusiveness and exhaustiveness\n")
-            for predname, excl in self.blocks.iteritems():
-                f.write("%s(" % (predname))
-                for i in range(len(excl)):
-                    if i > 0: f.write(",")
-                    f.write("a%d" % i)
-                    if excl[i]: f.write("!")
-                f.write(")\n")
-        f.write("\n// formulas\n")
-        for formula in self.formulas:
-            if formula.weight is None:
-                f.write("%s.\n" % strFormula(formula))
-                continue
-            try:
-                weight = "%-10.6f" % float(eval(str(formula.weight)))
-            except:
-                weight = str(formula.weight)
-            f.write("%s  %s\n" % (weight, strFormula(formula)))
+        self._getWorlds()        
+        return self.worlds[worldNo - 1]
+    
+    def _getWorlds(self):
+        '''
+            creates the set of possible worlds and calculates for each world all the necessary values
+        '''
+        if not hasattr(self, "worlds"):
+            self._createPossibleWorlds()
+            if self.parameterType == 'weights':
+                self._calculateWorldValues()
+            elif self.parameterType == 'probs':
+                self._calculateWorldValues_prob()
+    
+    def _calculateWorldValues(self, wts=None):
+        if wts == None:
+            wts = self._weights()
+        total = 0
+        for worldIndex, world in enumerate(self.worlds):
+            weights = []
+            for gndFormula in self.gndFormulas:
+                if self._isTrue(gndFormula, world["values"]):
+                    weights.append(wts[gndFormula.idxFormula])
+            exp_sum = exp(sum(weights))
+            if self.learnWtsMode != 'LL_ISE' or self.allSoft == True or worldIndex != self.idxTrainingDB:
+                total += exp_sum
+            world["sum"] = exp_sum
+            world["weights"] = weights
+        self.partition_function = total        
+    
+    def _calculateWorldExpSum(self, world, wts=None):
+        if wts is None:
+            wts = self._weights()
+        sum = 0
+        for gndFormula in self.gndFormulas:
+            if self._isTrue(gndFormula, world):
+                sum += wts[gndFormula.idxFormula]
+        return math.exp(sum)
 
     def _countNumTrueGroundingsInWorld(self, idxFormula, world):
         numTrue = 0
@@ -1534,29 +1619,11 @@ class MLN(object):
             total += prod
         self.partition_function = total
 
-    # prints the expected number of true groundings of each formula
-    def printExpectedNumberOfGroundings(self):
-        self._getWorlds()
-        counts = [0.0 for i in range(len(self.formulas))]
-        for world in self.worlds:            
-            for gf in self.gndFormulas:
-                if self._isTrue(gf, world["values"]):
-                    counts[gf.idxFormula] += world["sum"] / self.partition_function
-        #print counts
-        for i, formula in enumerate(self.formulas):
-            print "%f %s" % (counts[i], str(formula))
+    def _toCNF(self, allPositive=False):
+        self.gndFormulas, self.formulas = toCNF(self.gndFormulas, self.formulas)
 
-    def printFormulaProbabilities(self):
-        self._getWorlds()
-        sums = [0.0 for i in range(len(self.formulas))]
-        totals = [0.0 for i in range(len(self.formulas))]
-        for world in self.worlds:            
-            for gf in self.gndFormulas:
-                if self._isTrue(gf, world["values"]):
-                    sums[gf.idxFormula] += world["sum"] / self.partition_function
-                totals[gf.idxFormula] += world["sum"] / self.partition_function
-        for i, formula in enumerate(self.formulas):
-            print "%f %s" % (sums[i] / totals[i], str(formula))
+    def _isTrue(self, gndFormula, world_values):
+        return gndFormula.isTrue(world_values)
 
     def printGroundFormulas(self, weight_transform=lambda x: x):
         for gf in self.gndFormulas:
@@ -1571,36 +1638,6 @@ class MLN(object):
     def strGroundAtom(self, idx):
         return str(self.gndAtomsByIdx[idx])
 
-    def printFormulas(self):
-        for f in self.formulas:
-            print "%7.3f  %s" % (f.weight, strFormula(f))
-
-    def setRigidPredicate(self, predName):
-        self.rigidPredicates.append(predName)
-
-    # write a .dot file for use with GraphViz (in order to visualize the current ground Markov network)
-    # must call one of the combine* functions first
-    def writeDotFile(self, filename):
-        if not hasattr(self, "gndFormulas") or len(self.gndFormulas) == 0:
-            raise Exception("Error: cannot create graph because the MLN was not combined with a concrete domain")
-        f = file(filename, "wb")
-        f.write("graph G {\n")
-        graph = {}
-        for gf in self.gndFormulas:
-            idxGndAtoms = gf.idxGroundAtoms()
-            for i in range(len(idxGndAtoms)):
-                for j in range(i + 1, len(idxGndAtoms)):
-                    edge = [idxGndAtoms[i], idxGndAtoms[j]]
-                    edge.sort()
-                    edge = tuple(edge)
-                    if not edge in graph:
-                        f.write("  ga%d -- ga%d\n" % edge)
-                        graph[edge] = True
-        for gndAtom in self.gndAtoms.values():
-            f.write('  ga%d [label="%s"]\n' % (gndAtom.idx, str(gndAtom)))
-        f.write("}\n")
-        f.close()
-    
     def printState(self, world_values, showIndices=False):
         for idxBlock, (idxGA, block) in enumerate(self.pllBlocks):
             if idxGA != None:
@@ -1614,3 +1651,108 @@ class MLN(object):
                         break
                 print "%s=%s" % (self._strBlock(block), str(self.gndAtomsByIdx[trueone]))
 
+    # prints relevant data (including the entire state) for the given world (list of truth values) on a single line
+    # for details see printWorlds
+    def printWorld(self, world, mode=1, format=1):
+        if "weights" in world and world["weights"] == []:
+            world["weights"] = [0.0]
+        literals = []
+        for idx in range(len(self.gndAtoms)):                
+            if idx in self.gndBlockLookup: # process all gnd atoms in blocks in one go and only print the one that's true
+                block = self.gndBlocks[self.gndBlockLookup[idx]]
+                if idx == min(block): # process each block only once
+                    maxlen = 0
+                    gndAtom = None
+                    for i in block:
+                        maxlen = max(maxlen, len(str(self.gndAtomsByIdx[i])))
+                        if world["values"][i]:
+                            gndAtom = self.gndAtomsByIdx[i]
+                    literal = "%-*s" % (maxlen, str(gndAtom))
+                else:
+                    continue
+            else:
+                gndAtom = str(self.gndAtomsByIdx[idx])
+                value = world["values"][idx]
+                literal = {True: " ", False:"!"}[value] + gndAtom
+            literals.append(literal)
+        if mode == 1:
+            prob = world["sum"] / self.partition_function
+            weights = "<- " + " ".join(map(lambda s: "%.1f" % s, world["weights"]))
+            if format == 1: print "%6.2f%%  %s  %e <- %.2f %s" % (100 * prob, " ".join(literals), world["sum"], sum(world["weights"]), weights)
+            elif format == 2: print "%6.2f%%  %s  %s" % (100 * prob, " ".join(literals), str(world["counts"]))
+            #print "Pr=%.2f  %s  %15.0f" % (prob, " ".join(literals), world["sum"])
+        elif mode == 2:
+             print "%6.2f%%  %s  %.2f" % (100 * world["prod"] / self.partition_function, " ".join(literals), world["prod"])
+        elif mode == 3:
+             print " ".join(literals)
+
+    # prints all the possible worlds implicitly defined by the set of constants with which the MLN was combined
+    # Must call combine or combineDB beforehand if the MLN does not define at least one constant for every type/domain
+    # The list contains for each world its 1-based index, its probability, the (conjunction of) literals, the exponentiated
+    # sum of weights, the sum of weights and the individual weights that applied
+    def printWorlds(self, sort=False, mode=1, format=1):
+        self._getWorlds()
+        if sort:
+            worlds = list(self.worlds)
+            worlds.sort(key=lambda x:-x["sum"])
+        else:
+            worlds = self.worlds
+        print
+        k = 1
+        for world in worlds:
+            print "%*d " % (int(math.ceil(math.log(len(self.worlds)) / math.log(10))), k),
+            self.printWorld(world, mode=mode, format=format)
+            k += 1        
+        print "Z = %f" % self.partition_function
+    
+    # prints the worlds where the given formula (condition) is true (otherwise same as printWorlds)
+    def printWorldsFiltered(self, condition, mode=1, format=1):
+        condition = FOL.parseFormula(condition).ground(self, {})
+        self._getWorlds()
+        k = 1
+        for world in self.worlds:
+            if condition.isTrue(world["values"]):
+                print "%*d " % (int(math.ceil(math.log(len(self.worlds)) / math.log(10))), k),
+                self.printWorld(world, mode=mode, format=format)
+                k += 1
+
+    # prints the num worlds with the highest probability
+    def printTopWorlds(self, num=10, mode=1, format=1):
+        self._getWorlds()
+        worlds = list(self.worlds)
+        worlds.sort(key=lambda w:-w["sum"])
+        for i in range(min(num, len(worlds))):
+            self.printWorld(worlds[i], mode=mode, format=format)
+
+    # prints, for the given world, the probability, the literals, the sum of weights, plus for each ground formula the truth value on a separate line
+    def printWorldDetails(self, world):
+        self.printWorld(world)
+        for gf in self.gndFormulas:
+            isTrue = gf.isTrue(world["values"])
+            print "  %-5s  %f  %s" % (str(isTrue), self.formulas[gf.idxFormula].weight, strFormula(gf))
+
+    def printFormulaProbabilities(self):
+        self._getWorlds()
+        sums = [0.0 for i in range(len(self.formulas))]
+        totals = [0.0 for i in range(len(self.formulas))]
+        for world in self.worlds:            
+            for gf in self.gndFormulas:
+                if self._isTrue(gf, world["values"]):
+                    sums[gf.idxFormula] += world["sum"] / self.partition_function
+                totals[gf.idxFormula] += world["sum"] / self.partition_function
+        for i, formula in enumerate(self.formulas):
+            print "%f %s" % (sums[i] / totals[i], str(formula))
+    
+    def printExpectedNumberOfGroundings(self):
+        '''
+            prints the expected number of true groundings of each formula
+        '''
+        self._getWorlds()
+        counts = [0.0 for i in range(len(self.formulas))]
+        for world in self.worlds:            
+            for gf in self.gndFormulas:
+                if self._isTrue(gf, world["values"]):
+                    counts[gf.idxFormula] += world["sum"] / self.partition_function
+        #print counts
+        for i, formula in enumerate(self.formulas):
+            print "%f %s" % (counts[i], str(formula))
