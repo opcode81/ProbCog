@@ -35,6 +35,7 @@ import configMLN as config
 import subprocess
 import shlex
 import tkMessageBox
+from fnmatch import fnmatch
 
 # --- gui class ---
 
@@ -102,11 +103,25 @@ class LearnWeights:
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
         
+        # evidence database selection
         row += 1
         Label(self.frame, text="Training data: ").grid(row=row, column=0, sticky="NE")
-        self.selected_db = FilePickEdit(self.frame, config.learnwts_db_filemask, self.settings.get("db"), 15, self.changedDB, font=config.fixed_width_font)
+        self.selected_db = FilePickEdit(self.frame, config.learnwts_db_filemask, self.settings.get("db"), 15, self.changedDB, font=config.fixed_width_font, allowNone=True)
         self.selected_db.grid(row=row, column=1, sticky="NEWS")
-        self.frame.rowconfigure(row, weight=1)
+        self.frame.rowconfigure(row, weight=1)        
+        
+        row += 1
+        frame = Frame(self.frame)
+        frame.grid(row=row, column=1, sticky="NEW")
+        col = 0
+        Label(frame, text="OR Pattern:").grid(row=0, column=col, sticky="W")
+        # - pattern entry
+        col += 1
+        frame.columnconfigure(col, weight=1)
+        self.pattern = var = StringVar(master)
+        var.set(self.settings.get("pattern", ""))
+        self.entry_pattern = Entry(frame, textvariable = var)
+        self.entry_pattern.grid(row=0, column=col, sticky="NEW")
 
         row += 1
         Label(self.frame, text="Add. Params: ").grid(row=row, column=0, sticky="E")        
@@ -191,7 +206,8 @@ class LearnWeights:
             # update settings
             mln = self.selected_mln.get()
             db = self.selected_db.get()
-            if "" in (db,mln): return
+            if mln == "":
+                raise Exception("No MLN was selected")
             method = self.selected_method.get()
             params = self.params.get()
             self.settings["mln"] = mln
@@ -200,23 +216,40 @@ class LearnWeights:
             self.settings["params%d" % int(self.internalMode)] = params
             self.settings["engine"] = self.selected_engine.get()
             self.settings["method%d" % int(self.internalMode)] = method
+            self.settings["pattern"] = self.entry_pattern.get()            
             if saveGeometry:
                 self.settings["geometry"] = self.master.winfo_geometry()
             #print "dumping config..."
             pickle.dump(self.settings, file("learnweights.config.dat", "w+"))
+
+            # determine training databases(s)
+            if db != "":
+                dbs = [db]
+            else:
+                dbs = []
+                pattern = settings["pattern"]
+                if pattern == "":
+                    raise Exception("No training data given; A training database must be selected or a pattern must be specified")
+                dir, mask = os.path.split(os.path.abspath(pattern))
+                for fname in os.listdir(dir):
+                    if fnmatch(fname, mask):
+                        dbs.append(os.path.join(dir, fname))
+                if len(dbs) == 0:
+                    raise Exception("The mask '%s' matches no files" % mask)
+            print "training databases:", ",".join(dbs)
             
             # hide gui
             self.master.withdraw()
             
             if self.settings["engine"] == "internal": # internal engine
-                # load MLN and training database
-                mln = MLN.MLN(self.settings["mln"])    
-                mln.combineDB(self.settings["db"], verbose=True)
                 # arguments
                 args = {"initialWts":False}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
                 # learn weights
-                mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
+                mln = MLN.MLN(self.settings["mln"])    
+                #mln.combineDB(self.settings["db"], verbose=True)
+                #mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
+                mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method))
                 # determine output filename
                 fname = self.settings["output_filename"]
                 mln.write(file(fname, "w"))
