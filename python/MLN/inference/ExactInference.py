@@ -213,10 +213,10 @@ class EnumerationAsk(Inference):
             denominator += expsum
             k += 1
             #print "%d %s\r" % (k, map(str, self.summedGndAtoms)),
-            if k % 500 == 0:
+            if verbose and k % 500 == 0:
                 print "%d of %f worlds enumerated\r" % (k, self.totalWorlds),
                 sys.stdout.flush()
-        print "%d worlds enumerated" % k
+        if verbose: print "%d worlds enumerated" % k
         # normalize answers
         return map(lambda x: x / denominator, numerators)
     
