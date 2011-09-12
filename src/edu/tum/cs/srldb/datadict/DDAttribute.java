@@ -2,9 +2,20 @@ package edu.tum.cs.srldb.datadict;
 
 import java.io.Serializable;
 
+import weka.clusterers.Clusterer;
+
+import edu.tum.cs.clustering.BasicClusterer;
+import edu.tum.cs.clustering.ClusterNamer;
+import edu.tum.cs.clustering.EMClusterer;
+import edu.tum.cs.clustering.SimpleClusterer;
+import edu.tum.cs.srldb.Database;
+import edu.tum.cs.srldb.Item;
+import edu.tum.cs.srldb.Database.AttributeClustering;
+import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.DiscardedDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
+import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
 public class DDAttribute implements Cloneable, Serializable {
@@ -14,8 +25,7 @@ public class DDAttribute implements Cloneable, Serializable {
 	/**
 	 * whether this attribute is scheduled for clustering
 	 */
-	protected boolean doClustering;
-	protected Integer numClusters;
+	protected ClusteringTask clusteringTask;
 	/**
 	 * whether this attribute is actually discarded/unused
 	 */
@@ -25,11 +35,56 @@ public class DDAttribute implements Cloneable, Serializable {
 	 */
 	protected DDItem owner;
 	
+	protected class ClusteringTask {
+		public Integer numClusters = null;
+		public ClusterNamer<Clusterer> namer = null;
+		
+		public String toString() {
+			return String.format("%s", numClusters == null ? "auto" : numClusters.toString());
+		}
+		
+		public AttributeClustering perform(Iterable<Item> items) throws Exception {
+			DDAttribute attrib = DDAttribute.this;
+			Domain<?> domain = getDomain();
+			AttributeClustering ac;
+			// if the domain was specified by a user as an ordered list of strings, use K-Means
+			// with the corresponding number of clusters, naming the clusters using the strings 
+			// (using the strings in ascending order of cluster centroid)
+			if(domain instanceof OrderedStringDomain) {
+				SimpleClusterer c = new SimpleClusterer();
+				((SimpleClusterer)c).setNumClusters(domain.getValues().length);
+				ac = Database.clusterAttribute(attrib, items, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
+			}
+			// if the domain was generated automatically (no user input), either use EM 
+			// clustering to determine a suitable number of clusters or, if the number is given,
+			// K-means, and use default names (attribute name followed by index)
+			else if(domain instanceof AutomaticDomain) {
+				BasicClusterer<?> c;
+				if(numClusters == null) {
+					c = new EMClusterer();
+					System.out.println("  applying EM clustering to " + attrib);
+				}
+				else {
+					c = new SimpleClusterer();
+					((SimpleClusterer)c).setNumClusters(numClusters);
+					System.out.printf("  applying %d-means clustering to " + attrib, numClusters);
+				}
+				ClusterNamer<Clusterer> namer = this.namer;
+				if(namer == null)
+					namer = new ClusterNamer.SimplePrefix(attrib.getName());
+				ac = Database.clusterAttribute(attrib, items, c, namer);					
+			}
+			else
+				throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");
+			return ac;
+		}
+	}	
+	
+	
 	protected DDAttribute(String name) {
 		this.name = name;
 		this.domain = null;
-		this.doClustering = false;
-		this.numClusters = null;
+		clusteringTask = null;
 		this.discarded = false;
 		this.owner = null;
 	}
@@ -41,20 +96,38 @@ public class DDAttribute implements Cloneable, Serializable {
 	
 	public DDAttribute(String name, Domain domain, boolean doClustering) {
 		this(name, domain);
-		this.doClustering = doClustering;
+		setClustering(doClustering);
 	}
 	
 	/**
 	 * @param doClustering whether this attribute should be scheduled for clustering, 
 	 * replacing all its values in instances with the respective clustering result
 	 */
+	public void setClustering(boolean doClustering, ClusterNamer<Clusterer> namer) {
+		if(doClustering) {
+			clusteringTask = new ClusteringTask();
+			clusteringTask.namer = namer;
+		}
+		else
+			clusteringTask = null;		
+	}
+	
 	public void setClustering(boolean doClustering) {
-		this.doClustering = doClustering;
+		setClustering(doClustering, null);
+	}
+	
+	public void setClustering(Integer numClusters, ClusterNamer<Clusterer> namer) {
+		clusteringTask = new ClusteringTask();
+		clusteringTask.numClusters = numClusters;
+		clusteringTask.namer = namer;
 	}
 	
 	public void setClustering(Integer numClusters) {
-		this.doClustering = true;
-		this.numClusters = numClusters;
+		setClustering(numClusters, null);
+	}
+
+	public AttributeClustering doClustering(Iterable<Item> items) throws Exception {
+		return clusteringTask.perform(items);
 	}
 	
 	public String getName() {
@@ -66,11 +139,7 @@ public class DDAttribute implements Cloneable, Serializable {
 	}
 	
 	public boolean requiresClustering() {
-		return doClustering;
-	}
-	
-	public Integer getNumClusters() {
-		return numClusters;
+		return clusteringTask != null;
 	}
 	
 	public Domain getDomain() {
@@ -124,6 +193,6 @@ public class DDAttribute implements Cloneable, Serializable {
 	}
 	
 	public String toString() {
-		return String.format("DDAttribute:%s[domain=%s/size=%d, discarded=%s, clustering=%s/%s]", name, domain.getClass().getSimpleName(), domain.getValues().length, Boolean.toString(discarded), Boolean.toString(doClustering), numClusters == null ? "auto" : numClusters.toString());
+		return String.format("DDAttribute:%s[domain=%s/size=%d, discarded=%s, clustering=%s]", name, domain.getClass().getSimpleName(), domain.getValues().length, Boolean.toString(discarded), clusteringTask == null ? "none" : clusteringTask.toString());
 	}
 }

@@ -407,35 +407,8 @@ public class Database implements Cloneable, Serializable {
 				if(ac != null) {
 					applyClustering(attrib, items, ac);
 					continue;
-				}
-				Domain<?> domain = attrib.getDomain();
-				// if the domain was specified by a user as an ordered list of strings, use K-Means
-				// with the corresponding number of clusters, naming the clusters using the strings 
-				// (using the strings in ascending order of cluster centroid)
-				if(domain instanceof OrderedStringDomain) {
-					SimpleClusterer c = new SimpleClusterer();
-					((SimpleClusterer)c).setNumClusters(domain.getValues().length);
-					ac = clusterAttribute(attrib, items, c, new ClusterNamer.Fixed(((OrderedStringDomain)domain).getValues()));
-				}
-				// if the domain was generated automatically (no user input), either use EM 
-				// clustering to determine a suitable number of clusters or, if the number is given,
-				// K-means, and use default names (attribute name followed by index)
-				else if(domain instanceof AutomaticDomain) {
-					BasicClusterer<?> c;
-					Integer numClusters = attrib.getNumClusters();
-					if(numClusters == null) {
-						c = new EMClusterer();
-						System.out.println("  applying EM clustering to " + attrib);
-					}
-					else {
-						c = new SimpleClusterer();
-						((SimpleClusterer)c).setNumClusters(numClusters);
-						System.out.printf("  applying %d-means clustering to " + attrib, numClusters);
-					}
-					ac = clusterAttribute(attrib, items, c, new ClusterNamer.SimplePrefix(attrib.getName()));					
-				}
-				else
-					throw new DDException("Don't know how to perform clustering for target domain " + " (" + domain.getClass() + ")");
+				}				
+				ac = attrib.doClustering(items);				
 				System.out.println("    " + ac.newDomain);
 				clusterers.put(attrib, ac);
 			}
