@@ -1,8 +1,10 @@
 package edu.tum.cs.clustering;
-import weka.clusterers.*;
-import weka.core.*;
-import java.util.*;
-import java.math.*;
+import java.util.Arrays;
+
+import umontreal.iro.lecuyer.charts.SSJCategorySeriesCollection;
+import weka.clusterers.Clusterer;
+import weka.clusterers.SimpleKMeans;
+import weka.core.Instances;
 
 /**
  * an interface for use with DomainLearner that contains a function that, when given
@@ -128,5 +130,52 @@ public interface ClusterNamer<Cl extends Clusterer> {
 			return ret;
 		}
 	}
+	
+	/**
+	 * variant of Intervals that produces names that are compatible with SRL databases 
+	 * @author jain
+	 */
+	public static class IntervalsPlain implements ClusterNamer<SimpleKMeans> {
+		
+		protected static String strFloat(double f) {
+			String s = String.format("%.2f", f);
+			return s.replace('-', 'm').replace(",", "p");			
+		}
+		
+		public String[] getNames(SimpleKMeans clusterer) {
+			int numClusters = clusterer.getNumClusters();
+			String[] ret = new String[numClusters];
+			double[] centroids = clusterer.getClusterCentroids().attributeToDoubleArray(0);
+			double[] stdDevs = clusterer.getClusterStandardDevs().attributeToDoubleArray(0);
+			double[] sortedCentroids = centroids.clone();
+			Arrays.sort(sortedCentroids);
+			int[] sortOrder = new int[numClusters];
+			for(int i = 0; i < numClusters; i++) 
+				for(int j = 0; j < numClusters; j++)
+					if(centroids[j] == sortedCentroids[i])
+						sortOrder[i] = j;
+			boolean lastNoInterv = false;
+			for(int i = 0; i < numClusters; i++) {
+				int idx = sortOrder[i];
+				if(stdDevs[idx] == 0.0) { // no deviation -> no range
+					ret[idx] = String.format("C_%s", strFloat(centroids[idx]));
+					continue;
+				}
+				if(i == 0) { // no left neighbour
+					ret[idx] = String.format("C_lt_%s_%s", strFloat(Intervals.getIntersection(centroids[idx], stdDevs[idx], centroids[sortOrder[1]], stdDevs[sortOrder[1]])), strFloat(centroids[idx]));
+					continue;
+				}
+				if(i == numClusters-1) { // no right neighbour
+					ret[idx] = String.format("C_gt_%s_%s", strFloat(Intervals.getIntersection(centroids[idx], stdDevs[idx], centroids[sortOrder[i-1]], stdDevs[sortOrder[i-1]])),  strFloat(centroids[idx]));
+					continue;					
+				}
+				double left = Intervals.getIntersection(centroids[idx], stdDevs[idx], centroids[sortOrder[i-1]], stdDevs[sortOrder[i-1]]);
+				double right = Intervals.getIntersection(centroids[idx], stdDevs[idx], centroids[sortOrder[i+1]], stdDevs[sortOrder[i+1]]);
+				ret[idx] = String.format("C_%s_to_%s_%s", strFloat(left), strFloat(right), strFloat(centroids[idx]));
+			}
+			return ret;
+		}
+	}
+
 }
 
