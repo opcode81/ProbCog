@@ -41,6 +41,9 @@ class BPLL(PLL):
         self.blockdiffs[key] = cur + diff        
 
     def _computeBlockDiffs(self):
+        '''
+        computes the differences for the gradient computation
+        '''
         self.blockdiffs = {}
         for idxPllBlock, (idxGA, block) in enumerate(self.pllBlocks):
             for gndFormula in self.blockRelevantGFs[idxPllBlock]:
@@ -90,7 +93,11 @@ class BPLL(PLL):
                     if diff != 0:
                         self._addToBlockDiff(gndFormula.idxFormula, idxPllBlock, diff)
 
-    def _getBlockProbMB(self, idxPllBlock, wt, relevantGroundFormulas=None):
+    def _getBlockProbMB(self, idxPllBlock, wt):
+        if self.blockRelevantGFs is not None:
+            relevantGroundFormulas = self.blockRelevantGFs[idxPllBlock]
+        else:
+            relevantGroundFormulas = None
         idxGA, block = self.pllBlocks[idxPllBlock]
         if idxGA != None:
             return self._getAtomProbMB(idxGA, wt, relevantGroundFormulas)
@@ -132,7 +139,7 @@ class BPLL(PLL):
     def _calculateBlockProbsMB(self, wt):
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
             #print "recomputing block probabilities...",
-            self.blockProbsMB = [self._getBlockProbMB(i, wt, self.blockRelevantGFs[i]) for i in range(len(self.pllBlocks))]
+            self.blockProbsMB = [self._getBlockProbMB(i, wt) for i in range(len(self.pllBlocks))]
             self.wtsLastBlockProbMBComputation = list(wt)
             #print "done."
 
@@ -144,14 +151,145 @@ class BPLL(PLL):
     def getBPLL(self):
         return self._blockpll(self._weights())
         
-    def _prepareOpt(self):
+    def _prepareOpt(self, computeRelevantGFs=True):
         # get blocks
         print "constructing blocks..."
         self.mln._getPllBlocks()
-        self.pllBlocks = self.mln.pllBlocks        
-        self.mln._getBlockRelevantGroundFormulas()
-        self.blockRelevantGFs = self.mln.blockRelevantGFs
+        self.pllBlocks = self.mln.pllBlocks
+        if computeRelevantGFs:
+            self.mln._getBlockRelevantGroundFormulas()
+            self.blockRelevantGFs = self.mln.blockRelevantGFs
+        else:
+            self.blockRelevantGFs = None
         # counts
         print "computing differences..."
         self._computeBlockDiffs()
         print "  %d differences recorded" % len(self.blockdiffs)
+
+
+class BPLLMemoryEfficient(BPLL):
+    '''
+    memory-efficient version of BPLL that computes f based only on a sufficient statistic
+    '''    
+    
+    def __init__(self, mln, **params):
+        BPLL.__init__(self, mln, **params)
+        self.mbcounts = {}
+
+    def _prepareOpt(self):
+        BPLL._prepareOpt(self, computeRelevantGFs=True)
+        self._computeBlockStats() # compute the sufficient statistic for the computation of f
+        self.blockRelevantGFs=None
+    
+    def _computeBlockStats(self):
+        print "computing block statistics..."
+        for idxVar, (idxGA, block) in enumerate(self.pllBlocks):
+            if idxGA != None:
+                self._computeSingleAtomStats(idxVar, idxGA)
+            else:
+                self._computeSingleBlockStats(idxVar, block)
+        # remove data that is now obsolete
+        self.mln.removeGroundFormulaData()
+        
+    def _addMBCount(self, idxVar, size, idxValue, idxWeight):
+        if idxVar not in self.mbcounts:
+            d = self.mbcounts[idxVar] = [[] for i in xrange(size)]
+        self.mbcounts[idxVar][idxValue].append(idxWeight)
+
+    def _computeSingleBlockStats(self, idxVar, block):
+        world_values = self.mln.evidence
+        size = len(block)
+        # find out which one of the ground atoms in the block is true
+        idxGATrueone = self.mln._getBlockTrueone(block)
+        idxInBlockTrueone = block.index(idxGATrueone)
+
+        # process all (relevant) ground formulas
+        try:
+            relevantGroundFormulas = self.blockRelevantGFs[idxPllBlock]
+            checkRelevance = False
+        except:
+            relevantGroundFormulas = self.mln.gndFormulas
+            checkRelevance = True            
+        for gf in relevantGroundFormulas:
+            
+            # check if one of the ground atoms in the block appears in the ground formula
+            if checkRelevance:
+                isRelevant = False
+                for i in block:
+                    if i in gf.idxGroundAtoms():
+                        isRelevant = True
+                        break
+                if not isRelevant: continue
+            
+            # make each one of the ground atoms in the block is true once
+            idxValue = 0
+            for i in block:
+                # set the current variable in the block to true
+                world_values[idxGATrueone] = False
+                world_values[i] = True
+                # is the formula true?
+                if gf.isTrue(world_values):
+                    self._addMBCount(idxVar, size, idxValue, gf.idxFormula)
+                # restore truth values
+                world_values[i] = False
+                world_values[idxGATrueone] = True
+                idxValue += 1
+
+    def _getBlockProbMB(self, idxPllBlock, wt):
+        idxGA, block = self.pllBlocks[idxPllBlock]
+        if idxGA != None:
+            return self._getMBValue(idxPllBlock, 0, wt)
+        else:
+            idxGATrueone = self.mln._getBlockTrueone(block)
+            idxInBlockTrueone = block.index(idxGATrueone) # TODO: cache this from block computation?
+            return self._getMBValue(idxPllBlock, idxInBlockTrueone, wt)
+    
+    def _getMBValue(self, idxVar, idxValue, wt):
+        l = self.mbcounts[idxVar]
+        sums = []
+        for i, l2 in enumerate(l):
+            v = 0.0
+            for idxWeight in l2:
+                v += wt[idxWeight]
+            sums.append(v)
+        expsums = map(exp, sums)
+        return float(expsums[idxValue] / fsum(expsums))
+    
+    def _computeSingleAtomStats(self, idxVar, idxGndAtom):            
+        wts_inverted = 0
+        wts_regular = 0
+        
+        # determine the set of ground formulas to consider
+        try:
+            relevantGroundFormulas = self.blockRelevantGFs[idxPllBlock]
+            checkRelevance = False
+        except:
+            relevantGroundFormulas = self.mln.gndFormulas
+            checkRelevance = True
+            
+        # check the ground formulas
+        for gf in relevantGroundFormulas:
+            if checkRelevance:
+                if not gf.containsGndAtom(idxGndAtom):
+                    continue
+            
+            # gnd atom maintains regular truth value
+            if self.mln._isTrueGndFormulaGivenEvidence(gf):
+                self._addMBCount(idxVar, 2, 0, gf.idxFormula)
+            #prob1 = self._getTruthDegreeGivenEvidence(gf)            
+            #if prob1 > 0:
+            #    wts_regular += wt[gf.idxFormula] * prob1
+            #    wr.append(wt[gf.idxFormula] * prob1)
+            
+            # flipped truth value
+            #self._setTemporaryEvidence(idxGndAtom, not old_tv)
+            self._setInvertedEvidence(idxGndAtom)
+            if self.mln._isTrueGndFormulaGivenEvidence(gf):
+                self._addMBCount(idxVar, 2, 1, gf.idxFormula)
+            #prob2 = self._getTruthDegreeGivenEvidence(gf)
+            #if prob2 > 0:
+            #    wts_inverted += wt[gf.idxFormula] * prob2
+            #    wi.append(wt[gf.idxFormula] * prob2)
+            
+            # restore truth value
+            self._setInvertedEvidence(idxGndAtom)
