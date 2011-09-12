@@ -36,6 +36,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
 	protected PrologKnowledgeBase prolog;
+	protected boolean cachePrologValues = false;
 	/**
 	 * true iff the database was extended with all the values that can be computed with the Prolog KB, i.e. 
 	 * it is true iff all corresponding variables have been explicitly added to the database
@@ -465,10 +466,12 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		for(int j = 0; j < args.length; j++)
 			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
 		boolean value = prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
-		VariableType var = makeVar(sig.functionName, args, value ? "True" : "False"); 	
-		boolean added = addVariable(var, false, false);
-		if(added && debug) 
-			System.out.println("Prolog: computed " + var);
+		VariableType var = makeVar(sig.functionName, args, value ? "True" : "False");
+		if(cachePrologValues) {
+			boolean added = addVariable(var, false, false);
+			if(added && debug) 
+				System.out.println("Prolog: computed " + var);
+		}
 		return value;
 	}
 	

@@ -16,6 +16,8 @@ import edu.tum.cs.util.FileUtil;
 
 public class Database extends GenericDatabase<Variable, String> {
 
+	protected boolean cachePrologValues = false;
+	
 	public Database(RelationalModel model) throws Exception {
 		super(model);
 	}
