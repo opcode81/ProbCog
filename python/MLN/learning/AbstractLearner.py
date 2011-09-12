@@ -102,11 +102,13 @@ class AbstractLearner(object):
         
         # compute likelihood
         likelihood = self._f(wt)
+        print "  likelihood = %f" % likelihood
         
         return likelihood + prior
         
     
     def __fDummy(self, wt):
+        ''' a dummy target function that is used when f is disabled '''
         if not hasattr(self, 'dummyFValue'):
             self.dummyFCount = 0
         self.dummyFCount += 1
@@ -244,19 +246,9 @@ class MultipleDatabaseLearner(AbstractLearner):
         dbs: list of tuples (domain, evidence) as returned by the database reading method
         '''
         AbstractLearner.__init__(self, mln, **params)
-        # construct ground MRFs
-        self.mrfs = []
-        for i, db in enumerate(dbs):
-            print "grounding MRF for database %d/%d..." % (i+1, len(dbs))            
-            mrf = mln.groundMRF(db)
-            #mrf.printGroundFormulas()
-            self.mrfs.append(mrf)
-        # construct learners
-        self.learners = []
-        constructor = MLN.ParameterLearningMeasures.byShortName(method)
-        for mrf in self.mrfs:
-            learner = eval("MLN.learning.%s(mrf, **params)" % constructor)
-            self.learners.append(learner) 
+        self.dbs = dbs
+        self.constructor = MLN.ParameterLearningMeasures.byShortName(method)
+        self.params = params
     
     def _f(self, wt):
         likelihood = 0
@@ -273,7 +265,10 @@ class MultipleDatabaseLearner(AbstractLearner):
         return grad
 
     def _prepareOpt(self):
-        for learner in self.learners:
+        self.learners = []        
+        for i, db in enumerate(self.dbs):
+            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))            
+            mrf = self.mln.groundMRF(db)
+            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
+            self.learners.append(learner) 
             learner._prepareOpt()
-    
-    
