@@ -15,6 +15,10 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	public RelationalBeliefNetwork rbn;
 	public File logicFile;
 	protected ParameterHandler paramHandler;
+	/**
+	 * whether to allow that some nodes aren't instantiated because no fragment is applicable (simply skip them if this is true)
+	 */
+	protected boolean allowPartialInstantiation;
 	
 	/**
 	 * @param declsFile
@@ -36,6 +40,10 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 		this.paramHandler = new ParameterHandler(this);
 		this.rbn = this;
 		initKB();
+	}
+	
+	public void setAllowPartialInstantiation(boolean allow) {
+		this.allowPartialInstantiation = allow;
 	}
 
 	protected abstract void initKB() throws Exception;

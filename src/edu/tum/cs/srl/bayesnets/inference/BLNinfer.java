@@ -52,6 +52,7 @@ public class BLNinfer implements IParameterHandler {
 	double timeLimit = 10.0, infoIntervalTime = 1.0;
 	boolean timeLimitedInference = false;
 	boolean samplerInitializationBeforeTimingStarts = true;
+	boolean allowPartialInst = false;
 	String outputDistFile = null, referenceDistFile = null;
 	Map<String,Object> params;
 	AbstractBayesianLogicNetwork bln = null;
@@ -181,6 +182,8 @@ public class BLNinfer implements IParameterHandler {
 				params.put("numSamples", steps); 
 				setMaxSteps(steps);
 			}
+			else if(args[i].equals("-allowPartialInst"))
+				allowPartialInst = true;
 			else if(args[i].equals("-maxTrials"))
 				params.put("maxTrials", args[++i]);
 			else if(args[i].equals("-ia"))
@@ -294,6 +297,7 @@ public class BLNinfer implements IParameterHandler {
 		if(gbln == null) {
 			Stopwatch sw = new Stopwatch();
 			sw.start();
+			bln.setAllowPartialInstantiation(allowPartialInst);
 			gbln = bln.ground(db);
 			paramHandler.addSubhandler(gbln);
 			gbln.instantiateGroundNetwork();
@@ -461,27 +465,28 @@ public class BLNinfer implements IParameterHandler {
 					             "     -e <evidence db pattern>  an evidence database file or file mask\n" +
 					             "     -q <comma-sep. queries>   queries (predicate names or partially grounded terms with lower-case vars)\n\n" +
 					             "   options:\n\n" +
-								 "     -maxSteps #      the maximum number of steps to take (default: 1000 for non-time-limited inf.)\n" +
-								 "     -maxTrials #     the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
-								 "     -infoInterval #  the number of steps after which to output a status message\n" +
-								 "     -skipFailedSteps failed steps (> max trials) should just be skipped\n\n" +	
-								 "     -t [secs]        use time-limited inference (default: 10 seconds)\n" +
-								 "     -infoTime #      interval in secs after which to display intermediate results (time-limited inference, default: 1.0)\n" +
-								 "     -ia <name>       inference algorithm selection; valid names:");
+					             "     -allowPartialInst  allow partial ground network instantiations (skip nodes with no applicable fragment)\n" + 
+								 "     -maxSteps #        the maximum number of steps to take (default: 1000 for non-time-limited inf.)\n" +
+								 "     -maxTrials #       the maximum number of trials per step for BN sampling algorithms (default: 5000)\n" +
+								 "     -infoInterval #    the number of steps after which to output a status message\n" +
+								 "     -skipFailedSteps   failed steps (> max trials) should just be skipped\n\n" +	
+								 "     -t [secs]          use time-limited inference (default: 10 seconds)\n" +
+								 "     -infoTime #        interval in secs after which to display intermediate results (time-limited inference, default: 1.0)\n" +
+								 "     -ia <name>         inference algorithm selection; valid names:");
 			Algorithm.printList("                        ");
 			System.out.println(
-								 "     --<key>=<value>  set algorithm-specific parameter\n" +
-						         "     -debug           debug mode with additional outputs\n" + 
-						         "     -s               show ground network in editor\n" +
-						         "     -si              save ground network instance in BIF format (.instance.xml) and evidence (.instance.bndb)\n" +
-						         "     -ni              do not actually run the inference method (only instantiate ground network)" +
-						         "     -rfe             filter evidence in results\n" +
-						         "     -nodetcpt        remove deterministic CPT columns by replacing 0s with low prob. values\n" +
-						         "     -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
-						         "     -O<a|p|pp>       order printed results by atom name (a), probability (p), predicate then probability (pp)\n" +
-						         "     -od <file>       save output distribution to file\n" +
-						         "     -cd <file>       compare results of inference to reference distribution in file\n" + 
-						         "     -py              use Python-based logic engine [deprecated]\n");
+								 "     --<key>=<value>    set algorithm-specific parameter\n" +
+						         "     -debug             debug mode with additional outputs\n" + 
+						         "     -s                 show ground network in editor\n" +
+						         "     -si                save ground network instance in BIF format (.instance.xml) and evidence (.instance.bndb)\n" +
+						         "     -ni                do not actually run the inference method (only instantiate ground network)" +
+						         "     -rfe               filter evidence in results\n" +
+						         "     -nodetcpt          remove deterministic CPT columns by replacing 0s with low prob. values\n" +
+						         "     -cw <predNames>    set predicates as closed-world (comma-separated list of names)\n" +
+						         "     -O<a|p|pp>         order printed results by atom name (a), probability (p), predicate then probability (pp)\n" +
+						         "     -od <file>         save output distribution to file\n" +
+						         "     -cd <file>         compare results of inference to reference distribution in file\n" + 
+						         "     -py                use Python-based logic engine [deprecated]\n");
 			System.exit(1);
 		}
 		catch(Exception e) {

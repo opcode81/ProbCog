@@ -254,8 +254,12 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			}	
 
 			// otherwise, if it's not an evidence function, we have an error case
-			if(!this.bln.rbn.isEvidenceFunction(functionName))			
-				throw new Exception("No relational node was found that could serve as the template for the variable " + varName);
+			if(!this.bln.rbn.isEvidenceFunction(functionName)) {
+				if(bln.allowPartialInstantiation)
+					return null;
+				else
+					throw new Exception("No relational node was found that could serve as the template for the variable " + varName);				
+			}
 			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
 				/*
 				String value = this.db.getVariableValue(varName, true);
