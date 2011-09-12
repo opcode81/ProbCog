@@ -1221,6 +1221,16 @@ class MRF(object):
         # for backward compatibility with older code, transfer the members to the MLN
         self.mln.gndFormulas = self.gndFormulas
         self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
+    
+    def removeGroundFormulaData(self):
+        '''
+        remove data on ground formulas to save space (e.g. because the necessary statistics were already collected and the actual formulas
+        are no longer needed)
+        '''
+        self.gndFormulas = None
+        self.gndAtomOccurrencesInGFs = None
+        if hasattr(self, "blockRelevantGFs"):
+            self.blockRelevantGFs = None
         
     def _setEvidence(self, idxGndAtom, value):
         self.evidence[idxGndAtom] = value
@@ -1383,7 +1393,7 @@ class MRF(object):
     def _getBlockTrueone(self, block):
         idxGATrueone = -1
         for i in block:
-            if self.mln._getEvidence(i):
+            if self._getEvidence(i):
                 if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
                 idxGATrueone = i
                 break
