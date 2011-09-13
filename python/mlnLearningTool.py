@@ -271,7 +271,7 @@ class LearnWeights:
                     raise Exception(error)
                 # run Alchemy's learnwts
                 method_switch = self.alchemy_methods[method]
-                params = [alchemyLearn, method_switch, "-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", self.settings["db"]] + shlex.split(params)
+                params = [alchemyLearn, method_switch, "-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", ",".join(dbs)] + shlex.split(params)
                 command = subprocess.list2cmdline(params)
                 print "\n", command, "\n"
                 self.master.withdraw() # hide gui
