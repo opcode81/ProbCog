@@ -73,9 +73,9 @@ class BPLL(PLL):
                     idxGATrueone = -1
                     for i in block:
                         if self.mln._getEvidence(i):
-                            if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
+                            if idxGATrueone != -1: raise Exception("More than one true ground atom in block '%s'!" % self.mln._strBlock(block))
                             idxGATrueone = i                    
-                    if idxGATrueone == -1: raise Exception("No true gnd atom in block!" % blockname)
+                    if idxGATrueone == -1: raise Exception("No true ground atom in block '%s'!" % self.mln._strBlock(block))
                     idxInBlockTrueone = block.index(idxGATrueone)
                     # check true groundings for each block assigment
                     for i in block:

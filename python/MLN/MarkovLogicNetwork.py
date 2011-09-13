@@ -838,9 +838,6 @@ class MLN(object):
             raise Exception("Unknown predicate '%s'" % predicateName)
         self.closedWorldPreds.append(predicateName)
 
-    def _strBlock(self, block):
-        return "{%s}" % (",".join(map(lambda x: str(self.gndAtomsByIdx[x]), block)))
-
     # returns the weight vector of the MLN as a list       
     def _weights(self):
         return [f.weight for f in self.formulas]
@@ -1399,6 +1396,12 @@ class MRF(object):
                 break
         if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
         return idxGATrueone
+
+    def _getBlockName(self, idxGA):
+        return self.gndBlockLookup[idxGA]
+    
+    def _strBlock(self, block):
+        return "{%s}" % (",".join(map(lambda x: str(self.gndAtomsByIdx[x]), block)))
 
     def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None):
         # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
