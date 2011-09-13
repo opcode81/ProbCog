@@ -115,23 +115,8 @@ class MLN(object):
             (one boolean per argument, True = is functionally determined)
         closedWorldPreds:
             list of predicates that are assumed to be closed-world (for inference)
-        gndAtoms:
-            maps a string representation of a ground atom to a FOL.GroundAtom object
-        gndAtomsByIdx:
-            dict: ground atom index -> FOL.GroundAtom object
-        gndBlocks:
-            dict: block name -> list of ground atom indices
-        gndBlockLookup:
-            dict: ground atom index -> block name
         formulas:
-            list of (ungrounded) formula objects
-        gndAtomOccurrencesInGFs
-            dict: ground atom index -> ground formula
-        gndFormulas:
-            list of grounded formula objects
-        pllBlocks:
-            list of *all* the ground blocks, including trivial blocks consisting of a single ground atom
-            each element is a tuple (ground atom index, list of ground atom indices) where one element is always None
+            list of formula objects
         predicates:
             dict: predicate name -> list of domain names that apply to the predicate's parameters
         worldCode2Index:
@@ -845,7 +830,7 @@ class MLN(object):
     # evaluate this mln with regard to the given DB
     # useful to determine how good the weights of this mln are, assuming that they were learned with the given db
     def evaluate(self, db_filename):
-        raise Exception("This method is currently unsupported")
+        raise Exception("This method is no longer supported")
         '''
         global PMB_METHOD
         self.combineDB(db_filename)        
@@ -941,7 +926,7 @@ class MLN(object):
             domNames = ft._getTemplateVariables(self).values()
             for domName in domNames:
                 self.domains[domName] = fullDomain[domName]
-                print "permanent domain %s: %s" % (domName, fullDomain[domName])
+                #print "permanent domain %s: %s" % (domName, fullDomain[domName])
         # clean up
         fullDomain = None
         
@@ -1045,6 +1030,28 @@ class MLN(object):
     
 
 class MRF(object):
+    '''
+    represents a ground Markov random field
+
+    members:    
+        gndAtoms:
+            maps a string representation of a ground atom to a FOL.GroundAtom object
+        gndAtomsByIdx:
+            dict: ground atom index -> FOL.GroundAtom object
+        gndBlocks:
+            dict: block name -> list of ground atom indices
+        gndBlockLookup:
+            dict: ground atom index -> block name
+        gndAtomOccurrencesInGFs
+            dict: ground atom index -> ground formula
+        gndFormulas:
+            list of grounded formula objects
+        pllBlocks:
+            list of *all* the ground blocks, including trivial blocks consisting of a single ground atom
+            each element is a tuple (ground atom index, list of ground atom indices) where one element is always None
+    
+    '''
+    
     def __init__(self, mln, db, verbose=False):
         self.mln = mln
         self.evidence = {}
