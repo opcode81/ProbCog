@@ -88,6 +88,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("verbose", "setVerbose");
+		paramHandler.add("debug", "setDebugMode");
 		this.bln = bln;
 		db.finalize(); // before we start grounding with the DB, make sure it's really finalized
 		this.db = db;		
@@ -182,9 +183,12 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 */
 	protected BeliefNode instantiateVariable(String functionName, String[] params) throws Exception {
 		// check if the variable was previously instantiated and return the node if so
-		String varName = Signature.formatVarName(functionName, params);
+		String varName = Signature.formatVarName(functionName, params);		
+		
 		if(instantiatedVariables.contains(varName))
 			return groundBN.getNode(varName);
+		
+		//if(debug) System.out.println("instantiating variable " + varName);
 		
 		// consider all the relational nodes that could be used to instantiate the variable		
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
@@ -293,7 +297,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		onAddGroundAtomNode(mainNode, params, relNode.getSignature());
 		
 		// we can now instantiate the variable based on the suitable templates
-		if(!combiningRuleNeeded) {			
+		if(!combiningRuleNeeded) {	
+			if(debug) System.out.println("        instantiating without combining rule"); 
 			instantiateVariableFromSingleTemplate(mainNode, template.first, template.second);			
 		}
 		else { // need to use combining rule
@@ -301,6 +306,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			CombiningRule r = bln.rbn.getCombiningRule(functionName);
 			if(r == null)
 				throw new Exception("More than one group of parents for variable " + varName + " but no combining rule was specified");
+			if(debug) System.out.println("        instantiating with combining rule " + r);
 			instantiateVariableWithCombiningRule(mainNode, suitableTemplates, r);			
 		}
 
@@ -480,22 +486,25 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		cpf.buildZero(domprod, false);
 		
 		// fill the CPF
+		if(debug) System.out.println("        combined domain is " + StringTool.join(", ", domprod));
 		fillCPFCombiningRule(cpf, 1, new int[domprod.length], templateDomprodMap, r);
 		
 		return mainNode;
 	}
 	
-	protected void fillCPFCombiningRule(CPF cpf, int i, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) {
+	protected void fillCPFCombiningRule(CPF cpf, int i, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) throws Exception {		
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		if(i == domprod.length) {
+			int domSize = domprod[0].getDomain().getOrder();
 			if(r.booleanSemantics) {
+				if(domSize != 2)
+					throw new Exception("Cannot apply combining-rule " + r + " with Boolean semantics to non-binary random variable " + domprod[0]);
 				double trueCase = fillCPFCombiningRule_computeColumnEntry(0, addr, templateDomprodMap, r);
 				cpf.put(addr, new ValueDouble(trueCase));
 				addr[0] = 1;
 				cpf.put(addr, new ValueDouble(1.0-trueCase));
 			}
-			else { // normalization semantics
-				int domSize = domprod[0].getDomain().getOrder();
+			else { // normalization semantics				
 				double[] values = new double[domSize];
 				double Z = 0.0;
 				for(int j = 0; j < domSize; j++) {
@@ -608,7 +617,6 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
 		Vector<BeliefNode> vDomProd = connectParents(parentGrounding, srcRelNode, targetNode, src2targetParent, constantSettings);
 		
-		
 		// set decision nodes as constantly true
 		BeliefNode[] srcDomainProd = srcRelNode.node.getCPF().getDomainProduct();
 		for(int i = 1; i < srcDomainProd.length; i++) {
@@ -655,7 +663,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			}
 			
 			targetCPF.build(targetDomainProd, subCPF);
-		}		
+		}
 		cpfIDs.put(targetNode, cpfID);
 		
 		/*
