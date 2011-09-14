@@ -29,7 +29,7 @@ public enum CombiningRule {
 		}		
 	},
 	
-	Average("average", true) {		
+	Average("average", false) {		
 		@Override
 		public double compute(Vector<Double> values) {
 			double sum = 0.0;
