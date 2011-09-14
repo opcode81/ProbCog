@@ -33,7 +33,9 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 
 	@Override
 	public GroundBLN ground(Database db) throws Exception {
-		return new GroundBLN(this, db);
+		GroundBLN gbln = new GroundBLN(this, db);
+		this.paramHandler.addSubhandler(gbln);
+		return gbln;
 	}
 	
 	@Override 
