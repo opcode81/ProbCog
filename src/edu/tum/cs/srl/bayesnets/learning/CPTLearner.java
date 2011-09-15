@@ -19,6 +19,7 @@ import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.ParentGrounder;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.ParentGrounder.ParentGrounding;
 import edu.tum.cs.util.StringTool;
 
 public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
@@ -82,7 +83,7 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		
 		// obtain all groundings of the relevant variables
 		ParentGrounder pg = bn.getParentGrounder(node);
-		Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+		Vector<ParentGrounding> groundings = pg.getGroundings(params, db);
 		if(groundings == null) {
 			if(debug)
 				System.err.println("Variable " + Signature.formatVarName(node.getFunctionName(), params)+ " skipped because parents could not be grounded.");
@@ -168,8 +169,8 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 		// precomputations done... now the actual counting starts
 			
 		// set the domain indices of all relevant nodes (node itself and parents)
-		for(Map<Integer, String[]> paramSets : groundings) { // for each grounding...
-
+		for(ParentGrounding grounding : groundings) { // for each grounding...
+			Map<Integer, String[]> paramSets = grounding.nodeArgs;
 			// check precondition parents			
 			// TODO do we really need this? Preconditions are checked in ParentGrounder?
 			boolean countExample = true;

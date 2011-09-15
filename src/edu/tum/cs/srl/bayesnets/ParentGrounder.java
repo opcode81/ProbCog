@@ -231,15 +231,24 @@ public class ParentGrounder {
 	 * @return vector of mappings of node indices to lists of corresponding actual parameters or null if there is no valid binding for the given actual parameters of the main node
 	 * @throws Exception 
 	 */
-	public Vector<Map<Integer, String[]>> getGroundings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
+	public Vector<ParentGrounding> getGroundings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
 		// generate all the parameter bindings we can
 		HashMap<String, String> paramBindings = generateParameterBindings(actualParameters, db);
 		if(paramBindings == null)
 			return null;
 		// complete the bindings and get the parameter sets for each complete binding
-		Vector<Map<Integer, String[]>> v = new Vector<Map<Integer, String[]>>();
-		getCompleteGroundings(actualParameters, db, paramBindings, 0, v);		
+		Vector<ParentGrounding> v = new Vector<ParentGrounding>();
+		getCompleteGroundings(actualParameters, db, paramBindings, 0, v);
 		return v;
+	}
+	
+	public static class ParentGrounding {
+		public HashMap<Integer, String[]> nodeArgs;
+		public HashMap<String,String> paramBinding;
+		public ParentGrounding(HashMap<Integer, String[]> nodeArgs, HashMap<String,String> paramBinding) {
+			this.nodeArgs = nodeArgs;
+			this.paramBinding = paramBinding;			
+		}
 	}
 	
 	/**
@@ -251,7 +260,7 @@ public class ParentGrounder {
 	 * @param ret
 	 * @throws Exception 
 	 */
-	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<Map<Integer, String[]>> ret) throws Exception {
+	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<ParentGrounding> ret) throws Exception {
 		if(ungroundedParams == null || idx == ungroundedParams.length) {
 			// all variables have been grounded, so now generate a mapping: node index -> list of actual parameters
 			HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();
@@ -266,7 +275,7 @@ public class ParentGrounder {
 				}
 				m.put(parent.index, params);
 			}
-			ret.add(m);
+			ret.add(new ParentGrounding(m, (HashMap<String,String>)paramBindings.clone()));
 		}
 		else { // ground the next variable
 			String param = ungroundedParams[idx];
