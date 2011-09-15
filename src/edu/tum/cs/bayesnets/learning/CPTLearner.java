@@ -111,6 +111,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
         counters = new ExampleCounter[nodes.length];		
         for(int i = 0; i < nodes.length; i++)
         	counters[i] = new ExampleCounter(nodes[i], bn, this.pseudoCount);
+        initialized = true;
 	}
 	
 	/**
