@@ -1,6 +1,7 @@
 package edu.tum.cs.srl.bayesnets;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,7 @@ import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.bayesnets.ParentGrounder.ParentGrounding;
 import edu.tum.cs.srl.mln.MLNWriter;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
@@ -622,7 +624,7 @@ public class RelationalNode extends ExtendedNode {
 		return ret;
 	}
 	
-	public Vector<Map<Integer, String[]>> checkTemplateApplicability(String[] params, Database db) throws Exception {
+	public Vector<ParentGrounding> checkTemplateApplicability(String[] params, Database db) throws Exception {
 		try {
 			RelationalNode relNode = this;
 			
@@ -631,6 +633,7 @@ public class RelationalNode extends ExtendedNode {
 				if(!params[i].equals(this.params[i]))
 					return null;
 			
+			/*
 			// if the node is subject to preconditions (decision node parents), check if they are met
 			boolean preconditionsMet = true;
 			for(DecisionNode decision : relNode.getDecisionParents()) {	
@@ -642,10 +645,11 @@ public class RelationalNode extends ExtendedNode {
 			}
 			if(!preconditionsMet)
 				return null;
+			*/
 			
 			// get groundings of parents
 			ParentGrounder pg = this.bn.getParentGrounder(relNode);
-			Vector<Map<Integer, String[]>> groundings = pg.getGroundings(params, db);
+			Vector<ParentGrounding> groundings = pg.getGroundings(params, db);
 			
 			// if we got no actual groundings, then we can't instantiate (e.g. because all the precondition parents were false)
 			if(groundings == null)
@@ -653,12 +657,24 @@ public class RelationalNode extends ExtendedNode {
 			
 			// if there are precondition parents, 
 			// filter out the inadmissible parent groundings
+			Collection<DecisionNode> decNodes = relNode.getDecisionParents();
+			for(DecisionNode decNode : decNodes) {
+				Iterator<ParentGrounding> iter = groundings.iterator();
+				while(iter.hasNext()) {				
+					ParentGrounding grounding = iter.next();
+					if(!decNode.isTrue(grounding.paramBinding, db, false))
+						iter.remove();
+				}
+			}
+			
+			// if there are precondition parents, 
+			// filter out the inadmissible parent groundings
 			Vector<RelationalNode> preconds = relNode.getPreconditionParents();
 			for(RelationalNode precond : preconds) {
-				Iterator<Map<Integer, String[]>> iter = groundings.iterator();
+				Iterator<ParentGrounding> iter = groundings.iterator();
 				while(iter.hasNext()) {				
-					Map<Integer, String[]> grounding = iter.next();
-					String value = db.getVariableValue(precond.getVariableName(grounding.get(precond.index)), true);
+					ParentGrounding grounding = iter.next();
+					String value = db.getVariableValue(precond.getVariableName(grounding.nodeArgs.get(precond.index)), true);
 					if(!value.equals(BooleanDomain.True)) {
 						iter.remove();
 					}

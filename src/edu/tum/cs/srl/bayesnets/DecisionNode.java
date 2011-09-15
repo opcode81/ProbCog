@@ -85,6 +85,13 @@ public class DecisionNode extends ExtendedNode {
 		HashMap<String, String> varBinding = new HashMap<String, String>();
 		for(int i = 0; i < paramNames.length; i++)
 			varBinding.put(paramNames[i], actualParams[i]);
+		return isTrue(varBinding, db, closedWorld);
+	}
+	
+	/**
+	 * a wrapper for the other implementation of isTrue that uses the possible world implied by the database to determine the truth values of ground atoms
+	 */
+	public boolean isTrue(HashMap<String, String> varBinding, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
 		// construct a dummy collection of world variables that can be used to obtain ground atoms for ground formulas
 		WorldVariables worldVars = new WorldVariables() { 
 			@Override

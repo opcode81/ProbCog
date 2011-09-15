@@ -144,8 +144,12 @@ public class BLNLearner implements IParameterHandler {
 				CPTLearner cptLearner = new CPTLearner(bn, uniformDefault, debug);
 				paramHandler.addSubhandler(cptLearner);
 				//cptLearner.setUniformDefault(true);
-				for(GenericDatabase<?,?> db : dbs)
+				int i = 1; 
+				for(GenericDatabase<?,?> db : dbs) {
+					System.out.printf("database %d/%d\n", i, dbs.size());
 					cptLearner.learnTyped(db, true, true);
+					++i;
+				}
 				if(!noNormalization)
 					cptLearner.finish();
 				// write learnt BLOG/ABL model

@@ -27,6 +27,7 @@ import edu.tum.cs.srl.bayesnets.CombiningRule;
 import edu.tum.cs.srl.bayesnets.ExtendedNode;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
+import edu.tum.cs.srl.bayesnets.ParentGrounder.ParentGrounding;
 import edu.tum.cs.srl.bayesnets.RelationalNode.Aggregator;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
@@ -195,13 +196,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			
 		boolean combiningRuleNeeded = false;
 		
-		Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>>(); 
+		Vector<Pair<RelationalNode, Vector<ParentGrounding>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<ParentGrounding>>>(); 
 		
 		// check potentially applicable templates
 		if(templates != null) {
 			for(RelationalNode relNode : templates) {
 				
-				Vector<Map<Integer, String[]>> groundings = relNode.checkTemplateApplicability(params, db);
+				Vector<ParentGrounding> groundings = relNode.checkTemplateApplicability(params, db);
 				if(groundings == null)
 					continue;
 	
@@ -215,7 +216,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				if(!suitableTemplates.isEmpty())
 					combiningRuleNeeded = true;
 	
-				suitableTemplates.add(new Pair<RelationalNode, Vector<Map<Integer, String[]>>>(relNode, groundings));
+				suitableTemplates.add(new Pair<RelationalNode, Vector<ParentGrounding>>(relNode, groundings));
 			}
 		}
 
@@ -283,7 +284,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	    }
 		
 		// get the first applicable template
-		Pair<RelationalNode, Vector<Map<Integer, String[]>>> template = suitableTemplates.iterator().next();
+		Pair<RelationalNode, Vector<ParentGrounding>> template = suitableTemplates.iterator().next();
 		RelationalNode relNode = template.first;
 		
 		// keep track of instantiated variables		
@@ -320,7 +321,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @return
 	 * @throws Exception
 	 */
-	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<Map<Integer, String[]>> groundings) throws Exception {
+	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<ParentGrounding> groundings) throws Exception {
 		groundNode2TemplateNode.put(mainNode, relNode);
 		// add edges from the parents
 		// - normal case: just CPF application for one set of parents
@@ -329,12 +330,12 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				throw new Exception("Cannot instantiate " + mainNode.getName() + " for " + groundings.size() + " groups of parents.");			
 			if(debug) {
 				System.out.println("        relevant nodes/parents");
-				Map<Integer, String[]> grounding = groundings.firstElement();						
+				Map<Integer, String[]> grounding = groundings.firstElement().nodeArgs;						
 				for(Entry<Integer, String[]> e : grounding.entrySet()) {							
 					System.out.println("          " + bln.rbn.getRelationalNode(e.getKey()).getVariableName(e.getValue()));
 				}
 			}
-			instantiateCPF(groundings.firstElement(), relNode, mainNode);
+			instantiateCPF(groundings.firstElement().nodeArgs, relNode, mainNode);
 		}				
 		// - other case: use combination function
 		else { 
@@ -345,13 +346,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				// create auxiliary nodes, one for each set of parents
 				Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
 				int k = 0; 
-				for(Map<Integer, String[]> grounding : groundings) {
+				for(ParentGrounding grounding : groundings) {
 					// create auxiliary node
 					String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
 					BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain(), mainNode.getType());
 					auxNodes.add(auxNode);
 					// create links from parents to auxiliary node and transfer CPF
-					instantiateCPF(grounding, relNode, auxNode);
+					instantiateCPF(grounding.nodeArgs, relNode, auxNode);
 				}
 				// connect auxiliary nodes to main node
 				for(BeliefNode parent : auxNodes) {
@@ -364,9 +365,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			// we link the grounded parents directly
 			else {
 				// Note: we keep the vector of parents (in domprod) ordered by parent set (i.e. the parents belonging to a set are grouped)				
-				for(Map<Integer, String[]> grounding : groundings) {
+				for(ParentGrounding grounding : groundings) {
 					HashMap<BeliefNode,BeliefNode> src2targetParent = new HashMap<BeliefNode,BeliefNode>();
-					connectParents(grounding, relNode, mainNode, src2targetParent, null);
+					connectParents(grounding.nodeArgs, relNode, mainNode, src2targetParent, null);
 					domprod.addAll(src2targetParent.values());
 				}
 			}
@@ -380,7 +381,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				String cpfid = combFunc.getFunctionSyntax();
 				switch(combFunc) {
 				case FunctionalOr:
-					cpfid += String.format("-%d-%d", groundings.size(), groundings.firstElement().size());					
+					cpfid += String.format("-%d-%d", groundings.size(), groundings.firstElement().nodeArgs.size());					
 					break;
 				case NoisyOr:
 					cpfid += String.format("-%d", groundings.size());
@@ -398,7 +399,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					cpf.buildZero(domprod_arr, false);
 					CPFFiller filler;
 					if(combFunc == Aggregator.FunctionalOr)
-						filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().size()-1);
+						filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().nodeArgs.size()-1);
 					else
 						filler = new CPFFiller_OR(mainNode);
 					filler.fill();
@@ -437,7 +438,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		}
 	}
 	
-	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<Map<Integer, String[]>>>> suitableTemplates, CombiningRule r) throws Exception {
+	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<ParentGrounding>>> suitableTemplates, CombiningRule r) throws Exception {
 		// get the parent set
 		HashMap<BeliefNode, Integer> parentIndices = new HashMap<BeliefNode, Integer>();
 		// * for all the templates (relational nodes) that are involved in the combining rule, we remember
@@ -447,13 +448,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		// * build up the domain product of the CPF we are constructing by going over all suitable
 		//   templates and all applicable groundings thereof
 		int domProdIndex = 1;
-		for(Pair<RelationalNode, Vector<Map<Integer, String[]>>> template : suitableTemplates) {
+		for(Pair<RelationalNode, Vector<ParentGrounding>> template : suitableTemplates) {
 			RelationalNode relNode = template.first;
-			Vector<Map<Integer, String[]>> nodeGroundings = template.second;
+			Vector<ParentGrounding> nodeGroundings = template.second;
 			// for each grounding, instantiate all relevant nodes and maintain the mapping as described above 
-			for(Map<Integer, String[]> nodeGrounding : nodeGroundings) {
+			for(ParentGrounding nodeGrounding : nodeGroundings) {
 				Map<BeliefNode,Integer> relParent2domprodIndex = new HashMap<BeliefNode,Integer>();
-				for(Entry<Integer,String[]> entry : nodeGrounding.entrySet()) {
+				for(Entry<Integer,String[]> entry : nodeGrounding.nodeArgs.entrySet()) {
 					RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
 					if(relParent == relNode)
 						continue;
