@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -199,10 +200,17 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		Vector<Pair<RelationalNode, Vector<ParentGrounding>>> suitableTemplates = new Vector<Pair<RelationalNode, Vector<ParentGrounding>>>(); 
 		
 		// check potentially applicable templates
+		LinkedList<Exception> exceptions = new LinkedList<Exception>();
 		if(templates != null) {
 			for(RelationalNode relNode : templates) {
 				
-				Vector<ParentGrounding> groundings = relNode.checkTemplateApplicability(params, db);
+				Vector<ParentGrounding> groundings = null;
+				try {
+					 groundings = relNode.checkTemplateApplicability(params, db);					
+				}
+				catch(Exception e) { // if an exception occurs, the template is of course inapplicable
+					exceptions.add(e);
+				}
 				if(groundings == null)
 					continue;
 	
@@ -262,8 +270,16 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			if(!this.bln.rbn.isEvidenceFunction(functionName)) {
 				if(bln.allowPartialInstantiation)
 					return null;
-				else
-					throw new Exception("No relational node was found that could serve as the template for the variable " + varName);				
+				else {
+					StringBuffer error = new StringBuffer("No relational node was found that could serve as the template for the variable " + varName);
+					if(!exceptions.isEmpty())
+						error.append("\nThe following errors occurred while checking template applicability:");
+					for(Exception e : exceptions) {
+						error.append('\n');
+						error.append(e.getMessage());
+					}
+					throw new Exception(error.toString());
+				}
 			}
 			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
 				/*
