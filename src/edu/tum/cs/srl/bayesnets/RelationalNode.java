@@ -649,13 +649,13 @@ public class RelationalNode extends ExtendedNode {
 			
 			// get groundings of parents
 			ParentGrounder pg = this.bn.getParentGrounder(relNode);
-			Vector<ParentGrounding> groundings = pg.getGroundings(params, db);
+			Vector<ParentGrounding> groundings = pg.getGroundings(params, db); // this may throw an exception if e.g. variables cannot be bound
 			
 			// if we got no actual groundings, then we can't instantiate (e.g. because all the precondition parents were false)
 			if(groundings == null)
 				return null;
 			
-			// if there are precondition parents, 
+			// if there are decision parents, 
 			// filter out the inadmissible parent groundings
 			Collection<DecisionNode> decNodes = relNode.getDecisionParents();
 			for(DecisionNode decNode : decNodes) {
