@@ -185,7 +185,7 @@ public class BLNprintCPT {
 					
 					if(col > 0) out.print(" & ");
 					
-					String field = isDotsCol ? "\\dots" : table[row][col]; 
+					String field = isDotsCol ? "\\dots" : toLatex(table[row][col]); 
 					out.print(field == null ? "" : field);
 					
 					if(end) break;
@@ -201,5 +201,9 @@ public class BLNprintCPT {
 	public static void printn(String s, int n, PrintStream out) {
 		for(int i = 0; i < n; i++)
 			out.print(s);
+	}
+	
+	public static String toLatex(String s) {
+		return s.replace("_", "\\_").replace("#", "");
 	}
 }
