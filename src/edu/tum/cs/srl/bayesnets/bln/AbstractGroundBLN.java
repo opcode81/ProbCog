@@ -701,7 +701,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		*/
 	}
 	
-	protected Value[] getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings) {
+	/**
+	 * gets the values of the sub-CPF that one obtains if some of the parents have fixed values
+	 * @param cpf the CPF to extract from
+	 * @param constantSettings fixed values for some of the parents
+	 * @return
+	 */
+	public static Value[] getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings) {
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		int[] addr = new int[domProd.length];
 		Vector<Value> v = new Vector<Value>();
@@ -709,7 +715,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		return v.toArray(new Value[0]);
 	}
 	
-	protected void getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings, int i, int[] addr, Vector<Value> ret) {
+	protected static void getSubCPFValues(CPF cpf, HashMap<BeliefNode, Integer> constantSettings, int i, int[] addr, Vector<Value> ret) {
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		if(i == domProd.length) {
 			ret.add(cpf.get(addr));			
