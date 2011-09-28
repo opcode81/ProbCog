@@ -166,7 +166,7 @@ public class BLNprintCPT {
 		}
 		
 		public void writeLatex(PrintStream out) {
-			out.println("\\documentclass{letter}\n\n\\begin{document}");
+			out.println("\\documentclass{letter}\n\\usepackage[a0paper,landscape]{geometry}\n\\pagestyle{empty}\n\\begin{document}");
 			out.print("\\begin{tabular}{|l|");
 			printn("l", table[0].length-1, out);
 			out.print("|}\n\\hline\n");
