@@ -43,7 +43,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	
 	public static Pattern regexFunctionName = Pattern.compile("[\\w]+"); // NOTE: should actually start with lower-case (because of Prolog compatibility), but left this way for backward comp. with older models
 	public static Pattern regexTypeName = regexFunctionName;
-	public static Pattern regexEntity = Pattern.compile("(?:[A-Z][\\w]+|[0-9]+(?:\\.[0-9]+)?)");
+	public static Pattern regexEntity = Pattern.compile("(?:[a-zA-Z][\\w]+|[0-9]+(?:\\.[0-9]+)?)");
 	
 	/**
 	 * constructs a model by obtaining the node data from a fragment
