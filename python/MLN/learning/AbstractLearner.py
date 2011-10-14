@@ -260,7 +260,7 @@ class MultipleDatabaseLearner(AbstractLearner):
         grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
         for i, learner in enumerate(self.learners):
             grad_i = learner._grad(wt)
-            print "  grad %d: %s" % (i, str(grad_i))
+            #print "  grad %d: %s" % (i, str(grad_i))
             grad += grad_i
         return grad
 
