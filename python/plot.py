@@ -24,6 +24,21 @@ class Plot(object):
         self.fapps = []
         self.name = name
         self.latex = LaTeX
+        
+        # LaTeX specific formatting settings
+        # - figure dimensions (pt)
+        lncs_col_width = 600.0 #347.12354 # (in pt) Get this from LaTeX using \showthe\columnwidth
+        self.fig_width_pt = lncs_col_width/2
+        self.aspect_ratio =  (sqrt(5)-1.0)/2.0 # aesthetic ratio
+        self.fig_height_pt = None # None = determined by aspect ratio
+        # - fonts
+        self.font_family = 'serif'
+        self.tick_font_size = 7
+        self.label_font_size = 7
+        # - axes and borders
+        self.tick_extend_into_right_border_chars = 2 # rightmost x-axis tick label may extend into border - this is the number of characters that extend into the border
+        self.left_tick_label_chars = 4 # the number of characters used in the y-axis labels (must make sure there's room for these labels in the border)
+        self.border = 0.05 # fraction of space that is to be taken up by borders around the figure
     
     def apply(self, function, *args, **kwargs):
         self.fapps.append((function, args, kwargs))
@@ -32,21 +47,22 @@ class Plot(object):
         return lambda *x, **y: self.apply(name, *x, **y)
     
     def draw(self):
-        import pylab        
+        import pylab
         
         # make some latex-specific settings for drawing
         if self.latex:
             # set general parameters for the generation of figures for print
-            lncs_col_width = 347.12354 # (in pt) Get this from LaTeX using \showthe\columnwidth
-            fig_width_pt = lncs_col_width/2  
-            inches_per_pt = 1.0/72.27                # Convert pt to inch
-            aspect_ratio = (sqrt(5)-1.0)/2.0         # Aesthetic ratio
-            fig_height_pt = fig_width_pt*aspect_ratio
-            fig_width = fig_width_pt*inches_per_pt   # width in inches
-            fig_height = fig_width*aspect_ratio      # height in inches
+            inches_per_pt = 1.0/72.27
+            aspect_ratio = self.aspect_ratio
+            fig_width_pt = self.fig_width_pt
+            fig_height_pt = self.fig_height_pt
+            if fig_height_pt is None:
+                fig_height_pt = fig_width_pt*aspect_ratio
+            fig_width = fig_width_pt*inches_per_pt # width in inches
+            fig_height = fig_height_pt*inches_per_pt # height in inches
             fig_size = [fig_width,fig_height]
-            tick_font_size = 7
-            label_font_size = 7
+            tick_font_size = self.tick_font_size
+            label_font_size = self.label_font_size
             params = {'backend': 'ps',
                       'axes.labelsize': label_font_size,
                       'text.fontsize': tick_font_size,
@@ -55,30 +71,30 @@ class Plot(object):
                       'ytick.labelsize': tick_font_size,
                       'text.usetex': True,
                       'figure.figsize': fig_size,
-                      'font.family': 'serif'}
+                      'font.family': self.font_family}
             pylab.rcParams.update(params)            
 
             # configure axes position
-            # - variables
-            left_label_chars = 4
-            border = 0.05
-            tick_extend_into_right_border_chars = 2 # rightmost x-axis tick label may extend into border
-            # - compute left and bottom borders
-            yaxis_tick_width = left_label_chars * 0.75 * tick_font_size / fig_width_pt
-            yaxis_label_width = label_font_size / fig_width_pt            
-            left = border+yaxis_tick_width+yaxis_label_width
-            xaxis_label_height = label_font_size * 1.5 / fig_height_pt
-            xaxis_tick_height = tick_font_size * 1.5 / fig_height_pt
-            bottom = border+xaxis_tick_height+xaxis_label_height
+            # - compute borders (normalized to [0;1])
+            border = self.border
+            tick_font_width = 0.75 * tick_font_size
+            yaxis_tick_width = self.left_tick_label_chars * tick_font_width / fig_width_pt # tick labels 
+            yaxis_label_width = float(label_font_size) / fig_width_pt # axis label (font is rotated 90 degrees, so height=size applies)   
+            left = border + yaxis_tick_width + yaxis_label_width
+            xaxis_label_height = label_font_size * 1.3 / fig_height_pt
+            xaxis_tick_height = tick_font_size * 1.3 / fig_height_pt
+            bottom = border + xaxis_tick_height + xaxis_label_height
+            right = border + self.tick_extend_into_right_border_chars * tick_font_width / fig_width_pt
+            top = border + tick_font_size * 0.5 / fig_height_pt # (half a character always extends into the top border)
             # - compute actual graph dimensions (relative to total dimensions of figure)
-            width = 1.0 - border - left - tick_extend_into_right_border_chars * 0.75 * tick_font_size / fig_width_pt
-            height = 1.0 - border - bottom        
+            width = 1.0 - left - right
+            height = 1.0 - top - bottom        
 
         # apply the plot
         pylab.figure(1)
         pylab.clf()
         if self.latex:
-            pylab.axes([left,bottom,0.90-left,0.95-bottom])            
+            pylab.axes([left,bottom,width,height])            
         for f in self.fapps:
             function = eval("pylab.%s" % f[0])
             function(*f[1], **f[2])
@@ -88,3 +104,15 @@ class Plot(object):
             pylab.savefig(filename)
         else:
             pylab.show()
+    
+    def plotFunction(self, f, x_start, x_end, steps, **kwargs):
+        from pylab import np
+        x = np.linspace(x_start, x_end, steps)
+        self.plot(x, f(x), **kwargs)
+    
+    
+# example plots
+if __name__ == '__main__':
+    plot = Plot("test", LaTeX=False)
+    plot.plotFunction(lambda x: x*x, -5, 5, 50)
+    plot.draw()
