@@ -78,11 +78,11 @@ class Plot(object):
             # - compute borders (normalized to [0;1])
             border = self.border
             tick_font_width = 0.75 * tick_font_size
-            yaxis_tick_width = self.left_tick_label_chars * tick_font_width / fig_width_pt # tick labels 
-            yaxis_label_width = float(label_font_size) / fig_width_pt # axis label (font is rotated 90 degrees, so height=size applies)   
+            yaxis_tick_width = self.left_tick_label_chars * tick_font_width / fig_width_pt # tick labels
+            yaxis_label_width = float(label_font_size) / fig_width_pt # axis label (font is rotated 90 degrees, so height=size applies)
             left = border + yaxis_tick_width + yaxis_label_width
-            xaxis_label_height = label_font_size * 1.3 / fig_height_pt
-            xaxis_tick_height = tick_font_size * 1.3 / fig_height_pt
+            xaxis_label_height = label_font_size * 1.4 / fig_height_pt
+            xaxis_tick_height = tick_font_size * 1.4 / fig_height_pt
             bottom = border + xaxis_tick_height + xaxis_label_height
             right = border + self.tick_extend_into_right_border_chars * tick_font_width / fig_width_pt
             top = border + tick_font_size * 0.5 / fig_height_pt # (half a character always extends into the top border)
@@ -95,9 +95,9 @@ class Plot(object):
         pylab.clf()
         if self.latex:
             pylab.axes([left,bottom,width,height])            
-        for f in self.fapps:
-            function = eval("pylab.%s" % f[0])
-            function(*f[1], **f[2])
+        for fname, args, kwargs in self.fapps:
+            function = eval("pylab.%s" % fname)
+            function(*args, **kwargs)
         if self.latex:
             filename = "%s.pdf" % self.name
             print "saving %s" % filename
