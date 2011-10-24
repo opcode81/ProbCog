@@ -452,8 +452,11 @@ public class BLNinfer implements IParameterHandler {
 			// report any unhandled parameters
 			ParameterHandler handler = infer.getParameterHandler();
 			Collection<String> unhandledParams = handler.getUnhandledParams();
-			if(!unhandledParams.isEmpty())
-				System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: " + handler.getHandledParameters().toString());
+			if(!unhandledParams.isEmpty()) {
+				System.err.println("Warning: Some parameters could not be handled: " + unhandledParams.toString() + "; supported parameters: ");
+				//handler.getHandledParameters().toString()
+				handler.printHelp(System.err);
+			}
 		}
 		catch(IllegalArgumentException e) {
 			System.err.println(e);

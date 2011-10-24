@@ -3,11 +3,13 @@
  */
 package edu.tum.cs.inference;
 
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 
@@ -128,6 +130,18 @@ public class ParameterHandler {
 			ret.add(param);
 		for(ParameterHandler h : subhandlers)
 			h.getHandledParameters(ret);
+	}
+	
+	public void printHelp(PrintStream out) {
+		if(!mappings.isEmpty()) {
+			out.println("handled by " + owner.getClass().getSimpleName() + ":");
+			for(Entry<String,ParameterMapping> e : this.mappings.entrySet()) {
+				Class<?> paramType = e.getValue().setterMethod.getParameterTypes()[0];
+				System.out.printf("  --%s=%s\n", e.getKey(), paramType.getSimpleName());
+			}
+		}
+		for(ParameterHandler h : subhandlers)
+			h.printHelp(out);
 	}
 	
 	protected class ParameterMapping {
