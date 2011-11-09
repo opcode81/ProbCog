@@ -147,8 +147,7 @@ class MLN(object):
         self.blocks = {}
         self.domDecls = []        
         self.probreqs = []
-        self.posteriorProbReqs = []
-        self.softEvidence = self.posteriorProbReqs # !!!! should get rid of this --- we treat soft evidence as constraints on posterior probabilities
+        self.posteriorProbReqs = []        
         # TODO soft evidence is not safe across multiple instantiations of an MLN
         self.defaultInferenceMethod = defaultInferenceMethod
         self.probabilityFittingInferenceMethod = InferenceMethods.Exact
@@ -517,7 +516,7 @@ class MLN(object):
                 db: database filename or tuple
                 returns the MRF
         '''
-        self.mrf = MRF(self, db)
+        self.mrf = MRF(self, db, verbose=verbose)
         return self.mrf
         
     def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
@@ -685,7 +684,7 @@ class MLN(object):
             for idxFormula in group:
                 self.formulas[idxFormula].weight -= minWeight
 
-    def _readDBFile(self, dbfile, includeNonExplicitDomains=True):
+    def _readDBFile(self, dbfile, includeNonExplicitDomains=True, mrf=None):
         '''
             reads a database file containing literals and/or domains
             returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
@@ -705,11 +704,12 @@ class MLN(object):
                 continue
             # soft evidence
             if l[0] in "0123456789":
+                if mrf is None: raise Exception("Cannot read soft evidence; MRF not given")
                 s = l.find(" ")
                 gndAtom = l[s + 1:].replace(" ", "")
                 d = {"expr": gndAtom, "p": float(l[:s])}
-                if self._getSoftEvidence(gndAtom) == None:
-                    self.softEvidence.append(d)
+                if mrf._getSoftEvidence(gndAtom) == None:
+                    mrf.softEvidence.append(d)
                 else:
                     raise Exception("Duplicate soft evidence for '%s'" % gndAtom)
                 predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
@@ -1056,9 +1056,10 @@ class MRF(object):
         self.mln = mln
         self.evidence = {}
         self.evidenceBackup = {}
+        self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
         
         if type(db) == str:                
-            domain, evidence = self.mln._readDBFile(db)
+            domain, evidence = self.mln._readDBFile(db, mrf=self)
         elif type(db) == tuple:
             domain, evidence = db
         else:
@@ -1076,6 +1077,8 @@ class MRF(object):
             
         # ground
         self._generateGroundAtoms()
+        if not self.mln.materializedTemplates:
+            self.mln._materializeFormulaTemplates()
         self._createFormulaGroundings(verbose=verbose)
         
         # set evidence
@@ -1214,13 +1217,14 @@ class MRF(object):
                 
         # set weights of hard formulas
         hard_weight = 20 + max_weight
-        if verbose: print "setting hard weights to %f" % hard_weight
+        if verbose: print "setting %d hard weights to %f" % (len(self.hard_formulas), hard_weight)
         for f in self.hard_formulas:
-            #if verbose: print "  ", strFormula(f)
+            if verbose: print "  ", strFormula(f)
             f.weight = hard_weight
         if verbose:
             pass
-            #self.printGroundFormulas()
+            #self.printGroundFormulas()        
+            #self.mln.printFormulas()
         
         # for backward compatibility with older code, transfer the members to the MLN
         self.mln.gndFormulas = self.gndFormulas
@@ -1640,14 +1644,19 @@ class MRF(object):
         self.partition_function = total
 
     def _toCNF(self, allPositive=False):
-        self.gndFormulas, self.formulas = toCNF(self.gndFormulas, self.formulas)
+        '''
+            converts all ground formulas to CNF and also makes changes to the
+            MLN's set of formulas, such that the correspondence between groundings
+            and formulas still holds
+        '''
+        self.gndFormulas, self.mln.formulas = toCNF(self.gndFormulas, self.mln.formulas)
 
     def _isTrue(self, gndFormula, world_values):
         return gndFormula.isTrue(world_values)
 
     def printGroundFormulas(self, weight_transform=lambda x: x):
         for gf in self.gndFormulas:
-            print "%7.3f  %s" % (weight_transform(self.formulas[gf.idxFormula].weight), strFormula(gf))
+            print "%7.3f  %s" % (weight_transform(self.mln.formulas[gf.idxFormula].weight), strFormula(gf))
 
     def printGroundAtoms(self):
         l = self.gndAtoms.keys()
@@ -1749,7 +1758,7 @@ class MRF(object):
         self.printWorld(world)
         for gf in self.gndFormulas:
             isTrue = gf.isTrue(world["values"])
-            print "  %-5s  %f  %s" % (str(isTrue), self.formulas[gf.idxFormula].weight, strFormula(gf))
+            print "  %-5s  %f  %s" % (str(isTrue), self.mln.formulas[gf.idxFormula].weight, strFormula(gf))
 
     def printFormulaProbabilities(self):
         self._getWorlds()
