@@ -180,7 +180,8 @@ class MLNInfer(object):
             if self.settings["convertAlchemy"]:
                 print "\n--- temporary MLN ---\n"
                 mlnObject = MLN.MLN(input_files)
-                infile = mln[:mln.rfind(".")]+".alchemy.mln"
+                infile = input_files[0]
+                infile = infile[:infile.rfind(".")]+".alchemy.mln"
                 f = file(infile, "w")
                 mlnObject.write(f)
                 f.close()
