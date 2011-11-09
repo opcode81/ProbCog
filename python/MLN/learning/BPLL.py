@@ -105,7 +105,7 @@ class BPLL(PLL):
             return self._getAtomProbMB(idxGA, wt, relevantGroundFormulas)
         else:
             # find out which one of the ground atoms in the block is true
-            idxGATrueone = self._getBlockTrueone(block)
+            idxGATrueone = self.mln._getBlockTrueone(block)
             idxInBlockTrueone = block.index(idxGATrueone)
             # get the exponentiated sum of weights for each possible assignment
             if relevantGroundFormulas == None:
@@ -114,7 +114,7 @@ class BPLL(PLL):
                 except:
                     relevantGroundFormulas = None
             # TODO: (potentially) numerically instable, therefore using mpmath
-            expsums = self.mln._getBlockExpsums(block, wt, self.evidence, idxGATrueone, relevantGroundFormulas)
+            expsums = self.mln._getBlockExpsums(block, wt, self.mln.evidence, idxGATrueone, relevantGroundFormulas)
             #mpexpsums = map(lambda x: mpmath.mpf(x), expsums)
             #sums = self._getBlockSums(block, wt, self.evidence, idxGATrueone, relevantGroundFormulas)
             #print sums
@@ -212,19 +212,24 @@ class BPLLMemoryEfficient(BPLL):
         computes the statistics upon which the optimization is based:
         differences for the gradient computation, counts for probability given Markov blanket
         '''
+        debug = True
         print "computing statistics..."
         self.blockdiffs = {}
         for idxGndFormula, gndFormula in enumerate(self.mln.gndFormulas):
             print "  ground formula %d/%d\r" % (idxGndFormula, len(self.mln.gndFormulas)),
+            print
             
             idxBlocks = set()
             for idxGA in gndFormula.idxGroundAtoms():
+                print self.mln.gndAtomsByIdx[idxGA]
                 idxBlocks.add(self.mln.atom2BlockIdx[idxGA])
                         
             for idxVar in idxBlocks:
+                
                 (idxGA, block) = self.mln.pllBlocks[idxVar]
             
                 if idxGA is not None: # ground atom is the variable as it's not in a block
+                    
                     cnt1, cnt2 = 0, 0
                     #if not (idxGA in gndFormula.idxGroundAtoms()): continue
                     
@@ -247,6 +252,7 @@ class BPLLMemoryEfficient(BPLL):
                         self._addToBlockDiff(gndFormula.idxFormula, idxVar, diff)
                         
                 else: # the block is the variable (idxGA is None)
+
                     cnt1, cnt2 = 0, 0
                     size = len(block)
                     
