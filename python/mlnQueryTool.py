@@ -117,15 +117,16 @@ class MLNInfer(object):
                         q = ""
                 if q != "": raise Exception("Unbalanced parentheses in queries!")
                 # create MLN
-                mln = MLN.MLN(input_files, verbose=True, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
+                verbose = True
+                mln = MLN.MLN(input_files, verbose=verbose, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
                 # set closed-world predicates
                 for pred in cwPreds:
                     mln.setClosedWorldPred(pred)
                 # load evidence db
                 #mln.combineDB(db, verbose=True)
-                mrf = mln.groundMRF(db)
+                mrf = mln.groundMRF(db, verbose=verbose)
                 # collect inference arguments
-                args = {"details":True, "verbose":True, "shortOutput":True, "debugLevel":1}
+                args = {"details":True, "verbose":verbose, "shortOutput":True, "debugLevel":1}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
                 if args.get("debug", False) and args["debugLevel"] > 1:
                     print "\nground formulas:"
