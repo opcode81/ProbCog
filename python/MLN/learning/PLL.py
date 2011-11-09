@@ -183,7 +183,7 @@ class PLL(AbstractLearner):
             print "done."
 
     def _f(self, wt):
-        self._calculateAtomProbsMB(self._reconstructFullWeightVectorWithFixedWeights(wt))
+        self._calculateAtomProbsMB(wt)
         #print self.atomProbsMB
         probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
         pll = fsum(map(log, probs))
@@ -346,7 +346,7 @@ class DPLL(PLL):
         return predName in self.params["queryPreds"]
 
     def _f(self, wt):
-        self._calculateAtomProbsMB(self._reconstructFullWeightVectorWithFixedWeights(wt))
+        self._calculateAtomProbsMB(wt)
         probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
         pll = 0
         for i, prob in enumerate(probs):
