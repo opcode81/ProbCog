@@ -1837,7 +1837,6 @@ class MRF(object):
             nodes.append(graphml.Node(G, label=str(ga), shape="ellipse", color=graphml.randomVariableColor))
         links = {}
         for gf in self.gndFormulas:
-            print gf
             idxGAs = sorted(gf.idxGroundAtoms())
             for idx, i in enumerate(idxGAs):
                 for j in idxGAs[idx+1:]:
