@@ -25,17 +25,32 @@
 
 from Inference import Inference
 from MLN.methods import *
+import FOL
 
 class IPFPM(Inference):
     ''' the iterative proportional fitting procedure applied at the model level (IPFP-M) '''
     
-    def __init__(self, mln):
-        if len(mln.posteriorProbReqs) == 0:
+    def __init__(self, mrf):
+        # check if there's any soft evidence to actually work on
+        if len(mrf.softEvidence) == 0:
             raise Exception("Application of IPFP-M inappropriate! IPFP-M is a wrapper method for other inference algorithms that allows to fit probability constraints. An application is not sensical if the model contains no such constraints.")
-        Inference.__init__(self, mln)
+        Inference.__init__(self, mrf)
     
     def _infer(self, verbose=True, details=False, fittingMethod=InferenceMethods.Exact, fittingThreshold=1e-3, fittingSteps=100, fittingParams=None, maxThreshold=None, greedy=False, **args):
+        # add formulas to the model whose weights we can then fit
+        if verbose: print "extending model with %d formulas whose weights will be fit..." % len(self.mrf.softEvidence)
+        for req in self.mrf.softEvidence:            
+            formula = FOL.parseFormula(req["expr"])
+            idxFormula = self.mrf._addFormula(formula, 0.0)                        
+            gndFormula = formula.ground(self.mrf, {})
+            self.mrf._addGroundFormula(gndFormula, idxFormula)
+            req["gndExpr"] = req["expr"]
+            req["gndFormula"] = gndFormula
+            req["idxFormula"] = idxFormula     
+
+        # do fitting
         if fittingParams is None: fittingParams = {}
         fittingParams.update(args)
-        results, self.data = self.mln._fitProbabilityConstraints(self.mln.posteriorProbReqs, fittingMethod=fittingMethod, fittingThreshold=fittingThreshold, fittingSteps=fittingSteps, given=self.given, queries=self.queries, verbose=details, fittingParams=fittingParams, maxThreshold=maxThreshold, greedy=greedy)
+        results, self.data = self.mrf._fitProbabilityConstraints(self.mrf.softEvidence, fittingMethod=fittingMethod, fittingThreshold=fittingThreshold, fittingSteps=fittingSteps, given=self.given, queries=self.queries, verbose=details, fittingParams=fittingParams, maxThreshold=maxThreshold, greedy=greedy)
+        
         return results

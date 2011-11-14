@@ -148,7 +148,6 @@ class MLN(object):
         self.domDecls = []        
         self.probreqs = []
         self.posteriorProbReqs = []        
-        # TODO soft evidence is not safe across multiple instantiations of an MLN
         self.defaultInferenceMethod = defaultInferenceMethod
         self.probabilityFittingInferenceMethod = InferenceMethods.Exact
         self.probabilityFittingThreshold = 0.002 # maximum difference between desired and computed probability
@@ -404,9 +403,7 @@ class MLN(object):
             # recursive descent to ground further variables
             self._groundFormula(formula, dict(variables), assignment, idxFormula)
 
-    def domSize(self, domName):
-        return len(self.domains[domName])
-    
+   
     def _substVar(self, matchobj):
         varName = matchobj.group(0)
         if varName not in self.vars:
@@ -450,9 +447,8 @@ class MLN(object):
         
     def groundMRF(self, db, verbose=False):
         '''
-            creates a ground Markov random field for the given database
-                db: database filename or tuple
-                returns the MRF
+            creates and returns a ground Markov random field for the given database
+                db: database filename or tuple                
         '''
         self.mrf = MRF(self, db, verbose=verbose)
         return self.mrf
@@ -503,6 +499,8 @@ class MLN(object):
             reads a database file containing literals and/or domains
             returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
             and evidence is a dictionary mapping ground atom strings to truth values
+            
+            mrf: the Markov random field to write soft evidence to
         '''
         domains = {}
         # read file
@@ -636,9 +634,11 @@ class MLN(object):
         if predicateName not in self.predicates:
             raise Exception("Unknown predicate '%s'" % predicateName)
         self.closedWorldPreds.append(predicateName)
-
-    # returns the weight vector of the MLN as a list       
+    
     def _weights(self):
+        '''
+            returns the weight vector of the MLN as a list
+        '''
         return [f.weight for f in self.formulas]
 
     # evaluate this mln with regard to the given DB
@@ -819,30 +819,6 @@ class MLN(object):
     def setRigidPredicate(self, predName):
         self.rigidPredicates.append(predName)
 
-    # write a .dot file for use with GraphViz (in order to visualize the current ground Markov network)
-    # must call one of the combine* functions first
-    def writeDotFile(self, filename):
-        if not hasattr(self, "gndFormulas") or len(self.gndFormulas) == 0:
-            raise Exception("Error: cannot create graph because the MLN was not combined with a concrete domain")
-        f = file(filename, "wb")
-        f.write("graph G {\n")
-        graph = {}
-        for gf in self.gndFormulas:
-            idxGndAtoms = gf.idxGroundAtoms()
-            for i in range(len(idxGndAtoms)):
-                for j in range(i + 1, len(idxGndAtoms)):
-                    edge = [idxGndAtoms[i], idxGndAtoms[j]]
-                    edge.sort()
-                    edge = tuple(edge)
-                    if not edge in graph:
-                        f.write("  ga%d -- ga%d\n" % edge)
-                        graph[edge] = True
-        for gndAtom in self.gndAtoms.values():
-            f.write('  ga%d [label="%s"]\n' % (gndAtom.idx, str(gndAtom)))
-        f.write("}\n")
-        f.close()
-    
-
 class MRF(object):
     '''
     represents a ground Markov random field
@@ -871,6 +847,7 @@ class MRF(object):
         self.evidence = {}
         self.evidenceBackup = {}
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
+        self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
         
         if type(db) == str:                
             domain, evidence = self.mln._readDBFile(db, mrf=self)
@@ -995,21 +972,18 @@ class MRF(object):
         
         # generate all groundings
         if verbose: print "grounding formulas..."
-        for idxFormula, formula in enumerate(self.mln.formulas):
+        for idxFormula, formula in enumerate(self.formulas):
             if verbose: print "  %s" % strFormula(formula)
             #vars = formula.getVariables(self)
             #self._groundFormula(formula, vars, {}, idxFormula)
             for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
-                for idxGA in referencedGndAtoms:
-                    self.gndAtomOccurrencesInGFs[idxGA].append(gndFormula)
-                gndFormula.idxFormula = idxFormula
-                self.gndFormulas.append(gndFormula)
+                self._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
                 
         # materialize all formula weights
         max_weight = 0
         for f in self.formulas:
             if f.weight is not None:
-                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (AMLN learning?)
+                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (old AMLN learning?)
                     f.weight = f.complexWeight
                 w = str(f.weight)
                 f.complexWeight = w
@@ -1044,6 +1018,20 @@ class MRF(object):
         self.mln.gndFormulas = self.gndFormulas
         self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
     
+    def _addGroundFormula(self, gndFormula, idxFormula, idxGndAtoms = None):
+        '''
+            adds a ground formula to the model
+            
+            idxGndAtoms: indices of the ground atoms that are referenced by the formula (precomputed); If not given (None), will be determined automatically
+        '''
+        gndFormula.idxFormula = idxFormula
+        self.gndFormulas.append(gndFormula)
+        # update ground atom references
+        if idxGndAtoms is None:
+            idxGndAtoms = gndFormula.idxGroundAtoms()
+        for idxGA in idxGndAtoms:
+            self.gndAtomOccurrencesInGFs[idxGA].append(gndFormula)        
+    
     def removeGroundFormulaData(self):
         '''
         remove data on ground formulas to save space (e.g. because the necessary statistics were already collected and the actual formulas
@@ -1053,6 +1041,12 @@ class MRF(object):
         self.gndAtomOccurrencesInGFs = None
         if hasattr(self, "blockRelevantGFs"):
             self.blockRelevantGFs = None
+    
+    def _addFormula(self, formula, weight):
+        idxFormula = len(self.formulas)
+        formula.weight = weight
+        self.formulas.append(formula)
+        return idxFormula
         
     def _setEvidence(self, idxGndAtom, value):
         self.evidence[idxGndAtom] = value
@@ -1463,14 +1457,14 @@ class MRF(object):
             MLN's set of formulas, such that the correspondence between groundings
             and formulas still holds
         '''
-        self.gndFormulas, self.mln.formulas = toCNF(self.gndFormulas, self.mln.formulas)
+        self.gndFormulas, self.formulas = toCNF(self.gndFormulas, self.formulas)
 
     def _isTrue(self, gndFormula, world_values):
         return gndFormula.isTrue(world_values)
 
     def printGroundFormulas(self, weight_transform=lambda x: x):
         for gf in self.gndFormulas:
-            print "%7.3f  %s" % (weight_transform(self.mln.formulas[gf.idxFormula].weight), strFormula(gf))
+            print "%7.3f  %s" % (weight_transform(self.formulas[gf.idxFormula].weight), strFormula(gf))
 
     def printGroundAtoms(self):
         l = self.gndAtoms.keys()
@@ -1572,7 +1566,7 @@ class MRF(object):
         self.printWorld(world)
         for gf in self.gndFormulas:
             isTrue = gf.isTrue(world["values"])
-            print "  %-5s  %f  %s" % (str(isTrue), self.mln.formulas[gf.idxFormula].weight, strFormula(gf))
+            print "  %-5s  %f  %s" % (str(isTrue), self.formulas[gf.idxFormula].weight, strFormula(gf))
 
     def printFormulaProbabilities(self):
         self._getWorlds()
@@ -1637,25 +1631,33 @@ class MRF(object):
         if verbose: 
             print "applying probability fitting...(max. deviation threshold:", fittingThreshold, ")"
         t_start = time.time()
+        
         # determine relevant formulas
         for req in probConstraints:
-            gotit = False
-            for idxFormula, formula in enumerate(self.mln.formulas):
-                print strFormula(formula), req["expr"]
-                if strFormula(formula).replace(" ", "") == req["expr"]:
-                    # instantiate a ground formula
-                    vars = formula.getVariables(self)
-                    groundVars = {}
-                    for varName, domName in vars.iteritems():
-                        groundVars[varName] = self.domains[domName][0]
-                    gndFormula = formula.ground(self, groundVars)
-                    gotit = True
-                    req["gndExpr"] = str(gndFormula)
-                    req["gndFormula"] = gndFormula
+            # if we don't yet have a ground formula to fit, create one
+            if not "gndFormula" in req:
+                # if we don't yet have a formula to use, search for one that matches the expression to fit
+                if not "idxFormula" in req:
+                    idxFormula = None                
+                    for idxF, formula in enumerate(self.formulas):
+                        #print strFormula(formula), req["expr"]
+                        if strFormula(formula).replace(" ", "") == req["expr"]:
+                            idxFormula = idxF
+                            break
+                    if idxFormula is None:
+                        raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
                     req["idxFormula"] = idxFormula
-                    break
-            if not gotit:
-                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
+                # instantiate a ground formula
+                formula = self.formulas[req["idxFormula"]]
+                vars = formula.getVariables(self)
+                groundVars = {}
+                for varName, domName in vars.iteritems(): # instantiate vars arbitrarily (just use first element of domain)
+                    groundVars[varName] = self.domains[domName][0]
+                gndFormula = formula.ground(self, groundVars)
+                gotit = True
+                req["gndExpr"] = str(gndFormula)
+                req["gndFormula"] = gndFormula
+                
         # iterative fitting algorithm        
         step = 1 # fitting round
         fittingStep = 1 # actual IPFP iteration
@@ -1771,7 +1773,7 @@ class MRF(object):
         verbose = args.get("details", False)
         self.mcsat = MCSAT(self, verbose=verbose) # can be used for later data retrieval
         self.mln.mcsat = self.mcsat # only for backwards compatibility
-        return self._infer(self.mcsat, what, given, verbose, **args)        
+        return self._infer(self.mcsat, what, given, verbose, **args) 
 
     def inferIPFPM(self, what, given=None, verbose=True, **args):
         '''
@@ -1795,3 +1797,34 @@ class MRF(object):
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
         # run actual inference method
         return inferObj.infer(what, given, verbose=verbose, **args)
+    
+    def _weights(self):
+        ''' returns the weight vector as a list '''
+        return [f.weight for f in self.formulas]
+
+    def domSize(self, domName):
+        return len(self.domains[domName])
+    
+    def writeDotFile(self, filename):
+        '''
+        write a .dot file for use with GraphViz (in order to visualize the current ground Markov network)
+        '''
+        if not hasattr(self, "gndFormulas") or len(self.gndFormulas) == 0:
+            raise Exception("Error: cannot create graph because the MLN was not combined with a concrete domain")
+        f = file(filename, "wb")
+        f.write("graph G {\n")
+        graph = {}
+        for gf in self.gndFormulas:
+            idxGndAtoms = gf.idxGroundAtoms()
+            for i in range(len(idxGndAtoms)):
+                for j in range(i + 1, len(idxGndAtoms)):
+                    edge = [idxGndAtoms[i], idxGndAtoms[j]]
+                    edge.sort()
+                    edge = tuple(edge)
+                    if not edge in graph:
+                        f.write("  ga%d -- ga%d\n" % edge)
+                        graph[edge] = True
+        for gndAtom in self.gndAtoms.values():
+            f.write('  ga%d [label="%s"]\n' % (gndAtom.idx, str(gndAtom)))
+        f.write("}\n")
+        f.close()
