@@ -127,7 +127,7 @@ class Inference(object):
         self._readQueries(queries)
         self.additionalQueryInfo = [""] * len(self.queries)
         # perform actual inference (polymorphic)
-        print type(self)
+        if verbose: print type(self)
         self.results = self._infer(verbose=verbose, details=details, **args)
         self.totalInferenceTime = self._getElapsedTime()
         # output

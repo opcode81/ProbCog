@@ -150,7 +150,7 @@ class MLNInfer(object):
                 if "printGroundAtoms" in args:
                     mrf.printGroundAtoms()
                 # invoke inference
-                results = mln.infer(queries, **args)
+                results = mrf.infer(queries, **args)
                 # close output file and open if requested
                 if outFile != None:
                     outFile.close()
