@@ -1828,3 +1828,24 @@ class MRF(object):
             f.write('  ga%d [label="%s"]\n' % (gndAtom.idx, str(gndAtom)))
         f.write("}\n")
         f.close()
+    
+    def writeGraphML(self, filename):
+        import graphml
+        G = graphml.Graph()
+        nodes = []
+        for ga in self.gndAtoms:
+            nodes.append(graphml.Node(G, label=str(ga), shape="ellipse", color=graphml.randomVariableColor))
+        links = {}
+        for gf in self.gndFormulas:
+            print gf
+            idxGAs = sorted(gf.idxGroundAtoms())
+            for idx, i in enumerate(idxGAs):
+                for j in idxGAs[idx+1:]:
+                    t = (i,j)
+                    if not t in links:
+                        print "%s -- %s" % (nodes[i], nodes[j])
+                        graphml.UndirectedEdge(G, nodes[i], nodes[j])
+                        links[t] = True
+        with open(filename, "w") as f:
+            G.write(f)
+        
