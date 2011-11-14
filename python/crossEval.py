@@ -62,7 +62,7 @@ class MLNCrossEval(object):
 		self.folds[-1]+=self.dbs[i*dbsPerFold:]	
 			
 		for i in xrange(len(self.folds)):
-			self._learn(i)			
+			self._learn(i)
 			self._test(i)
 	
 	def _learn(self, i):
@@ -80,7 +80,7 @@ class MLNCrossEval(object):
 		alchemy_path = os.path.join(os.getenv("ALCHEMY_HOME"), "bin")
 		testSet = self.folds[i]
 		for test_db in testSet:
-			infer = os.path.join(alchemy_path, "infer")
+			infer = os.path.join(alchemy_path, "infer") # TODO could use MLNInfer class for this
 			results_file = self.location+"crossresults/crosseval-%d-%s.results" % (i, test_db)
 			tempDB = self.transformForTesting(test_db)
 			cmd = "%s %s -i %s -e %s -r %s" % (infer, self.infer_params, self.location+"crossmlns/wts.crosseval%d.mln" % i,tempDB,results_file)

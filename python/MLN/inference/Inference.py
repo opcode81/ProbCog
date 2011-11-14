@@ -31,8 +31,9 @@ from MLN.util import *
 
 
 class Inference(object):
-    def __init__(self, mln):
-        self.mln = mln
+    def __init__(self, mrf):
+        self.mrf = mrf 
+        self.mln = mrf # for backward compatibility (virtually all code uses this)
         self.t_start = time.time()
     
     def _readQueries(self, queries):
