@@ -53,7 +53,6 @@ class ExactInference(Inference):
             given = FOL.parseFormula(given)
             given = given.ground(self.mln, {})
         # start summing
-        print "given = ", given
         if verbose and details: print "summing..."
         numerators = [0.0 for i in range(len(what))]
         denominator = 0
