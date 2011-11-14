@@ -332,6 +332,11 @@ class MLN(object):
         self.formulas = formulatemplates
         self.templateIdx2GroupIdx = templateIdx2GroupIdx
         self.fixedWeightTemplateIndices = fixedWeightTemplateIndices
+        
+    def __getattr__(self, attr):
+        # forward inference calls to the MRF (for backward compatibility)
+        if attr[:5] == "infer":
+            return self.mrf.__getattribute__(attr) 
     
     def _materializeFormulaTemplates(self, verbose=True):
         if self.materializedTemplates:
@@ -408,73 +413,6 @@ class MLN(object):
             raise Exception("Unknown variable '%s'" % varName)
         return self.vars[varName]
 
-    # infer a probability P(F1 | F2) where F1 and F2 are formulas - using the default inference method specified for this MLN
-    #   what: a formula, e.g. "foo(A,B)", or a list of formulas
-    #   given: either
-    #            * another formula, e.g. "bar(A,B) ^ !baz(A,B)"
-    #              Note: it can be an arbitrary formula only for exact inference, otherwise it must be a conjunction
-    #              This will overwrite any evidence previously set in the MLN
-    #            * None if the evidence currently set in the MLN is to be used
-    #   verbose: whether to print the results
-    #   args: any additional arguments to pass on to the actual inference method
-    def infer(self, what, given=None, verbose=True, **args):
-        # call actual inference method
-        if self.defaultInferenceMethod == InferenceMethods.Exact:
-            return self.inferExact(what, given, verbose, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.GibbsSampling:
-            return self.inferGibbs(what, given, verbose, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.MCSAT:
-            return self.inferMCSAT(what, given, verbose, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.IPFPM_exact:
-            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.Exact, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.IPFPM_MCSAT:
-            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.MCSAT, **args)
-        elif self.defaultInferenceMethod == InferenceMethods.EnumerationAsk:
-            return self._infer(EnumerationAsk(self), what, given, verbose=verbose, **args)
-        #elif self.defaultInferenceMethod == InferenceMethods.ExactLinear:
-        #    return self.inferExactLinear(what, given, **args)
-        else:
-            raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
-
-    def inferExact(self, what, given=None, verbose=True, **args):
-        return self._infer(ExactInference(self.mrf), what, given, verbose, **args)
-
-    def inferExactLinear(self, what, given=None, verbose=True, **args):
-        return self._infer(ExactInferenceLinear(self.mrf), what, given, verbose, **args)
-
-    def inferEnumerationAsk(self, what, given=None, verbose=True, **args):
-        return self._infer(EnumerationAsk(self.mrf), what, given, verbose, **args)
-
-    def inferGibbs(self, what, given=None, verbose=True, **args):
-        return self._infer(GibbsSampler(self.mrf), what, given, verbose=verbose, **args)
-
-    def inferMCSAT(self, what, given=None, verbose=True, **args):
-        verbose = args.get("details", False)
-        self.mcsat = MCSAT(self.mrf, verbose=verbose) # can be used for later data retrieval
-        return self._infer(self.mcsat, what, given, verbose, **args)        
-
-    def inferIPFPM(self, what, given=None, verbose=True, **args):
-        '''
-            inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
-        '''
-        self.ipfpm = IPFPM(self.mrf) # can be used for later data retrieval
-        return self._infer(self.ipfpm, what, given, verbose, **args)
-    
-    def _infer(self, inferObj, what, given=None, verbose=True, doProbabilityFitting=True, **args):
-        # if there are prior probability constraints, apply them first
-        if len(self.probreqs) > 0 and doProbabilityFitting:
-            fittingParams = {
-                "fittingMethod": self.probabilityFittingInferenceMethod,
-                "fittingSteps": self.probabilityFittingMaxSteps,
-                "fittingThreshold": self.probabilityFittingThreshold,
-                "probabilityFittingResultFileName": None
-                #fittingMCSATSteps
-            }
-            fittingParams.update(args)
-            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
-        # run actual inference method
-        return inferObj.infer(what, given, verbose=verbose, **args)
-
     def combine(self, domain, verbose=False, groundFormulas=True, evidence=None):
         '''
             combines the existing domain (if any) with the given one
@@ -519,130 +457,6 @@ class MLN(object):
         self.mrf = MRF(self, db, verbose=verbose)
         return self.mrf
         
-    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
-        '''
-            applies the given probability constraints (if any), dynamically modifying weights, i.e. applies iterative proportional fitting
-            probConstraints: list of constraints
-            inferenceMethod: one of the inference methods defined in InferenceMethods
-            inferenceParams: parameters to pass on to the inference method
-            given: if not None, fit parameters of posterior (given the evidence) rather than prior
-            queries: queries to compute along the way, results for which will be returned
-            threshold:
-                when maximum absolute difference between desired and actual probability drops below this value, then stop (convergence)
-            maxThreshold:
-                if not None, then convergence is relaxed, and we stop when the *mean* absolute difference between desired and
-                actual probability drops below "threshold" *and* the maximum is below "maxThreshold"
-        '''
-        inferenceMethod = fittingMethod
-        threshold = fittingThreshold
-        maxSteps = fittingSteps
-        if fittingParams is None:
-            fittingParams = {}
-        inferenceParams = fittingParams
-        inferenceParams["doProbabilityFitting"] = False
-        if given == None:
-            given = ""
-        if queries is None:
-            queries = []
-        if inferenceParams is None:
-            inferenceParams = {}
-        if len(probConstraints) == 0:
-            if len(queries) > 0:
-                pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
-            return 
-        if verbose: 
-            print "applying probability fitting...(max. deviation threshold:", fittingThreshold, ")"
-        t_start = time.time()
-        # determine relevant formulas
-        for req in probConstraints:
-            gotit = False
-            for idxFormula, formula in enumerate(self.formulas):
-                print strFormula(formula), req["expr"]
-                if strFormula(formula).replace(" ", "") == req["expr"]:
-                    # instantiate a ground formula
-                    vars = formula.getVariables(self)
-                    groundVars = {}
-                    for varName, domName in vars.iteritems():
-                        groundVars[varName] = self.domains[domName][0]
-                    gndFormula = formula.ground(self, groundVars)
-                    gotit = True
-                    req["gndExpr"] = str(gndFormula)
-                    req["gndFormula"] = gndFormula
-                    req["idxFormula"] = idxFormula
-                    break
-            if not gotit:
-                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
-        # iterative fitting algorithm        
-        step = 1 # fitting round
-        fittingStep = 1 # actual IPFP iteration
-        #print "probConstraints", probConstraints, "queries", queries
-        what = [r["gndFormula"] for r in probConstraints] + queries
-        done = False
-        while step <= maxSteps and not done:          
-            # calculate probabilities of the constrained formulas (ground formula)                
-            if inferenceMethod == InferenceMethods.Exact:
-                if not hasattr(self, "worlds"):
-                    self._getWorlds()
-                else:
-                    self._calculateWorldValues()
-                results = self.inferExact(what, given=given, verbose=False, **inferenceParams)
-            elif inferenceMethod == InferenceMethods.EnumerationAsk:
-                results = self.inferEnumerationAsk(what, given=given, verbose=False, **inferenceParams)
-            #elif inferenceMethod == InferenceMethods.ExactLazy:
-            #    results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
-            elif inferenceMethod == InferenceMethods.MCSAT:
-                results = self.inferMCSAT(what, given=given, verbose=False, maxSteps = fittingMCSATSteps, **inferenceParams)
-            else:
-                raise Exception("Requested inference method (%s) not supported by probability constraint fitting" % InferenceMethods.getName(inferenceMethod))
-            if type(results) != list:
-                results = [results]
-            # compute deviations
-            diffs = [abs(r["p"] - results[i]) for (i, r) in enumerate(probConstraints)]
-            maxdiff = max(diffs)
-            meandiff = sum(diffs) / len(diffs)
-            # are we done?
-            done = maxdiff <= threshold
-            if not done and maxThreshold is not None: # relaxed convergence criterion
-                done = (meandiff <= threshold) and (maxdiff <= maxThreshold)
-            if done:
-                if verbose: print "  [done] dev max: %f mean: %f" % (maxdiff, meandiff)
-                break
-            # select constraint to fit
-            if greedy:
-                idxConstraint = diffs.index(maxdiff)
-                strStep = "%d;%d" % (step, fittingStep)
-            else:
-                idxConstraint = (fittingStep - 1) % len(probConstraints)
-                strStep = "%d;%d/%d" % (step, idxConstraint + 1, len(probConstraints))                
-            req = probConstraints[idxConstraint]
-            # get the scaling factor and apply it
-            formula = self.formulas[req["idxFormula"]]
-            p = results[idxConstraint]
-            #print "p", p, "results", results, "idxConstraint", idxConstraint
-            pnew = req["p"]
-            precision = 1e-3
-            if p == 0.0: p = precision
-            if p == 1.0: p = 1 - precision
-            f = pnew * (1 - p) / p / (1 - pnew)
-            old_weight = formula.weight
-            formula.weight += float(logx(f)) #make sure to set the weight to a native float and not an mpmath value
-            diff = diffs[idxConstraint]
-            # print status
-            if verbose: print "  [%s] p=%f vs. %f (diff = %f), weight %s: %f -> %f, dev max %f mean %f, elapsed: %.3fs" % (strStep, p, pnew, diff, strFormula(formula), old_weight, formula.weight, maxdiff, meandiff, time.time() - t_start)
-            if fittingStep % len(probConstraints) == 0:
-                step += 1
-            fittingStep += 1
-            
-            
-        #write resulting mln:
-        if probabilityFittingResultFileName != None:
-            mlnFile = file(probabilityFittingResultFileName, "w")
-            self.write(mlnFile)
-            mlnFile.close()
-            print "written MLN with probability constraints to:", probabilityFittingResultFileName
-            
-        return (results[len(probConstraints):], {"steps": min(step, maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "meandiff": meandiff, "time": time.time() - t_start})
-
     def combineOverwrite(self, domain, verbose=False, groundFormulas=True):
         '''
             combines the existing domain (if any) with the given one
@@ -666,11 +480,11 @@ class MLN(object):
         
         self._fitProbabilityConstraints(self.probreqs, self.probabilityFittingInferenceMethod, self.probabilityFittingThreshold, self.probabilityFittingMaxSteps, verbose=True)
 
-        
-
-    # minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
-    # this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
     def minimizeGroupWeights(self):
+        '''
+            minimize the weights of formulas in groups by subtracting from each formula weight the minimum weight in the group
+            this results in weights relative to 0, therefore this equivalence transformation can be thought of as a normalization
+        '''
         wt = self._weights()
         for group in self.formulaGroups:
             if len(group) == 0:
@@ -1785,3 +1599,199 @@ class MRF(object):
         #print counts
         for i, formula in enumerate(self.formulas):
             print "%f %s" % (counts[i], str(formula))
+
+    def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
+        '''
+            applies the given probability constraints (if any), dynamically modifying weights of the underlying MLN by applying iterative proportional fitting
+            
+            NOTE: side-effect: changes the parameters of the MLN
+            
+            probConstraints: list of constraints
+            inferenceMethod: one of the inference methods defined in InferenceMethods
+            inferenceParams: parameters to pass on to the inference method
+            given: if not None, fit parameters of posterior (given the evidence) rather than prior
+            queries: queries to compute along the way, results for which will be returned
+            threshold:
+                when maximum absolute difference between desired and actual probability drops below this value, then stop (convergence)
+            maxThreshold:
+                if not None, then convergence is relaxed, and we stop when the *mean* absolute difference between desired and
+                actual probability drops below "threshold" *and* the maximum is below "maxThreshold"
+        '''
+        inferenceMethod = fittingMethod
+        threshold = fittingThreshold
+        maxSteps = fittingSteps
+        if fittingParams is None:
+            fittingParams = {}
+        inferenceParams = fittingParams
+        inferenceParams["doProbabilityFitting"] = False # avoid recursive fitting calls when calling embedded inference method
+        if given == None:
+            given = ""
+        if queries is None:
+            queries = []
+        if inferenceParams is None:
+            inferenceParams = {}
+        if len(probConstraints) == 0:
+            if len(queries) > 0:
+                pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
+            return 
+        if verbose: 
+            print "applying probability fitting...(max. deviation threshold:", fittingThreshold, ")"
+        t_start = time.time()
+        # determine relevant formulas
+        for req in probConstraints:
+            gotit = False
+            for idxFormula, formula in enumerate(self.mln.formulas):
+                print strFormula(formula), req["expr"]
+                if strFormula(formula).replace(" ", "") == req["expr"]:
+                    # instantiate a ground formula
+                    vars = formula.getVariables(self)
+                    groundVars = {}
+                    for varName, domName in vars.iteritems():
+                        groundVars[varName] = self.domains[domName][0]
+                    gndFormula = formula.ground(self, groundVars)
+                    gotit = True
+                    req["gndExpr"] = str(gndFormula)
+                    req["gndFormula"] = gndFormula
+                    req["idxFormula"] = idxFormula
+                    break
+            if not gotit:
+                raise Exception("Probability constraint on '%s' cannot be applied because the formula is not part of the MLN!" % req["expr"])
+        # iterative fitting algorithm        
+        step = 1 # fitting round
+        fittingStep = 1 # actual IPFP iteration
+        #print "probConstraints", probConstraints, "queries", queries
+        what = [r["gndFormula"] for r in probConstraints] + queries
+        done = False
+        while step <= maxSteps and not done:          
+            # calculate probabilities of the constrained formulas (ground formula)                
+            if inferenceMethod == InferenceMethods.Exact:
+                if not hasattr(self, "worlds"):
+                    self._getWorlds()
+                else:
+                    self._calculateWorldValues()
+                results = self.inferExact(what, given=given, verbose=False, **inferenceParams)
+            elif inferenceMethod == InferenceMethods.EnumerationAsk:
+                results = self.inferEnumerationAsk(what, given=given, verbose=False, **inferenceParams)
+            #elif inferenceMethod == InferenceMethods.ExactLazy:
+            #    results = self.inferExactLazy(what, given=given, verbose=False, **inferenceParams)
+            elif inferenceMethod == InferenceMethods.MCSAT:
+                results = self.inferMCSAT(what, given=given, verbose=False, maxSteps = fittingMCSATSteps, **inferenceParams)
+            else:
+                raise Exception("Requested inference method (%s) not supported by probability constraint fitting" % InferenceMethods.getName(inferenceMethod))
+            if type(results) != list:
+                results = [results]
+            # compute deviations
+            diffs = [abs(r["p"] - results[i]) for (i, r) in enumerate(probConstraints)]
+            maxdiff = max(diffs)
+            meandiff = sum(diffs) / len(diffs)
+            # are we done?
+            done = maxdiff <= threshold
+            if not done and maxThreshold is not None: # relaxed convergence criterion
+                done = (meandiff <= threshold) and (maxdiff <= maxThreshold)
+            if done:
+                if verbose: print "  [done] dev max: %f mean: %f" % (maxdiff, meandiff)
+                break
+            # select constraint to fit
+            if greedy:
+                idxConstraint = diffs.index(maxdiff)
+                strStep = "%d;%d" % (step, fittingStep)
+            else:
+                idxConstraint = (fittingStep - 1) % len(probConstraints)
+                strStep = "%d;%d/%d" % (step, idxConstraint + 1, len(probConstraints))                
+            req = probConstraints[idxConstraint]
+            # get the scaling factor and apply it
+            formula = self.formulas[req["idxFormula"]]
+            p = results[idxConstraint]
+            #print "p", p, "results", results, "idxConstraint", idxConstraint
+            pnew = req["p"]
+            precision = 1e-3
+            if p == 0.0: p = precision
+            if p == 1.0: p = 1 - precision
+            f = pnew * (1 - p) / p / (1 - pnew)
+            old_weight = formula.weight
+            formula.weight += float(logx(f)) #make sure to set the weight to a native float and not an mpmath value
+            diff = diffs[idxConstraint]
+            # print status
+            if verbose: print "  [%s] p=%f vs. %f (diff = %f), weight %s: %f -> %f, dev max %f mean %f, elapsed: %.3fs" % (strStep, p, pnew, diff, strFormula(formula), old_weight, formula.weight, maxdiff, meandiff, time.time() - t_start)
+            if fittingStep % len(probConstraints) == 0:
+                step += 1
+            fittingStep += 1            
+            
+        #write resulting mln:
+        if probabilityFittingResultFileName != None:
+            mlnFile = file(probabilityFittingResultFileName, "w")
+            self.mln.write(mlnFile)
+            mlnFile.close()
+            print "written MLN with probability constraints to:", probabilityFittingResultFileName
+            
+        return (results[len(probConstraints):], {"steps": min(step, maxSteps), "fittingSteps": fittingStep, "maxdiff": maxdiff, "meandiff": meandiff, "time": time.time() - t_start})
+
+    # infer a probability P(F1 | F2) where F1 and F2 are formulas - using the default inference method specified for this MLN
+    #   what: a formula, e.g. "foo(A,B)", or a list of formulas
+    #   given: either
+    #            * another formula, e.g. "bar(A,B) ^ !baz(A,B)"
+    #              Note: it can be an arbitrary formula only for exact inference, otherwise it must be a conjunction
+    #              This will overwrite any evidence previously set in the MLN
+    #            * None if the evidence currently set in the MLN is to be used
+    #   verbose: whether to print the results
+    #   args: any additional arguments to pass on to the actual inference method
+    def infer(self, what, given=None, verbose=True, **args):
+        # call actual inference method
+        defaultMethod = self.mln.defaultInferenceMethod
+        if defaultMethod == InferenceMethods.Exact:
+            return self.inferExact(what, given, verbose, **args)
+        elif defaultMethod == InferenceMethods.GibbsSampling:
+            return self.inferGibbs(what, given, verbose, **args)
+        elif defaultMethod == InferenceMethods.MCSAT:
+            return self.inferMCSAT(what, given, verbose, **args)
+        elif defaultMethod == InferenceMethods.IPFPM_exact:
+            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.Exact, **args)
+        elif defaultMethod == InferenceMethods.IPFPM_MCSAT:
+            return self.inferIPFPM(what, given, inferenceMethod=InferenceMethods.MCSAT, **args)
+        elif defaultMethod == InferenceMethods.EnumerationAsk:
+            return self._infer(EnumerationAsk(self), what, given, verbose=verbose, **args)
+        #elif self.defaultInferenceMethod == InferenceMethods.ExactLinear:
+        #    return self.inferExactLinear(what, given, **args)
+        else:
+            raise Exception("Unknown inference method '%s'. Use a member of InferenceMethods!" % str(self.defaultInferenceMethod))
+
+    def inferExact(self, what, given=None, verbose=True, **args):
+        return self._infer(ExactInference(self), what, given, verbose, **args)
+
+    def inferExactLinear(self, what, given=None, verbose=True, **args):
+        return self._infer(ExactInferenceLinear(self), what, given, verbose, **args)
+
+    def inferEnumerationAsk(self, what, given=None, verbose=True, **args):
+        return self._infer(EnumerationAsk(self), what, given, verbose, **args)
+
+    def inferGibbs(self, what, given=None, verbose=True, **args):
+        return self._infer(GibbsSampler(self), what, given, verbose=verbose, **args)
+
+    def inferMCSAT(self, what, given=None, verbose=True, **args):
+        verbose = args.get("details", False)
+        self.mcsat = MCSAT(self, verbose=verbose) # can be used for later data retrieval
+        self.mln.mcsat = self.mcsat # only for backwards compatibility
+        return self._infer(self.mcsat, what, given, verbose, **args)        
+
+    def inferIPFPM(self, what, given=None, verbose=True, **args):
+        '''
+            inference based on the iterative proportional fitting procedure at the model level (IPFP-M)
+        '''
+        self.ipfpm = IPFPM(self) # can be used for later data retrieval
+        self.mln.ipfpm = self.ipfpm # only for backwards compatibility
+        return self._infer(self.ipfpm, what, given, verbose, **args)
+    
+    def _infer(self, inferObj, what, given=None, verbose=True, doProbabilityFitting=True, **args):
+        # if there are prior probability constraints, apply them first
+        if len(self.probreqs) > 0 and doProbabilityFitting:
+            fittingParams = {
+                "fittingMethod": self.mln.probabilityFittingInferenceMethod,
+                "fittingSteps": self.mln.probabilityFittingMaxSteps,
+                "fittingThreshold": self.mln.probabilityFittingThreshold,
+                "probabilityFittingResultFileName": None
+                #fittingMCSATSteps
+            }
+            fittingParams.update(args)
+            self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+        # run actual inference method
+        return inferObj.infer(what, given, verbose=verbose, **args)
