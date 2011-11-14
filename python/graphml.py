@@ -38,7 +38,7 @@ class Node(object):
     def __init__(self, graph, **kwargs):
         graph.nodes.append(self)
         self.id = graph.nextId()
-        self.shape = "rectangle"
+        self.shape = "rectangle" # "ellipse"
         self.color = "#cccccc"
         self.label = str(self.id)
         self.xpos = 0
@@ -53,24 +53,29 @@ class Node(object):
         out.write('<node id="n%s">' % (self.id))
         out.write('<data key="d2"/>')
         out.write('<data key="d3">')
-        shapeType = self.shape
-        color = self.color
         out.write('<y:ShapeNode>')
         out.write('<y:Geometry height="30.0" width="%s" x="%d" y="%d"/>' % (str(width), self.xpos, self.ypos))
-        out.write('<y:Fill color="%s" transparent="false"/>' % (color))
+        out.write('<y:Fill color="%s" transparent="false"/>' % (self.color))
         out.write('<y:BorderStyle color="#000000" type="line" width="1.0"/>')
         out.write('<y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="56.0078125" x="18.49609375" y="5.6494140625">%s</y:NodeLabel>' % (self.label))
-        out.write('<y:Shape type="%s"/>' % (shapeType))
+        out.write('<y:Shape type="%s"/>' % (self.shape))
         out.write('</y:ShapeNode>')
         out.write('</data>')
         out.write('</node>\n')
+    
+    def __str__(self):
+        return self.label
 
 class Edge(object):
-    def __init__(self, graph, fromNode, toNode):
+    def __init__(self, graph, fromNode, toNode, **kwargs):
         graph.edges.append(self)
         self.id = graph.nextId()
         self.fromNode = fromNode
-        self.toNode = toNode    
+        self.toNode = toNode
+        self.sourceArrow = "none"
+        self.targetArrow = "standard"
+        for key, value in kwargs.iteritems():
+        	self.__setattr__(key, value)
     
     def write(self, out):
         out.write('<edge id="e%d" source="n%d" target="n%d">' % (self.id, self.fromNode.id, self.toNode.id))
@@ -79,11 +84,17 @@ class Edge(object):
         out.write('<y:PolyLineEdge>')
         out.write('<y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>')
         out.write('<y:LineStyle color="#000000" type="line" width="1.0"/>')
-        out.write('<y:Arrows source="none" target="standard"/>')
+        out.write('<y:Arrows source="%s" target="%s"/>' % (self.sourceArrow, self.targetArrow))
         out.write('<y:BendStyle smoothed="false"/>')
         out.write('</y:PolyLineEdge>')
         out.write('</data>')
         out.write('</edge>\n')
+
+class UndirectedEdge(Edge):
+    def __init__(self, graph, fromNode, toNode):
+        Edge.__init__(self, graph, fromNode, toNode, sourceArrow="none", targetArrow="none")
+
+randomVariableColor = "#B1CBDA"
 
 if __name__ == "__main__":
     g = Graph()

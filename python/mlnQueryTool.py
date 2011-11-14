@@ -96,16 +96,24 @@ class MLNInfer(object):
         input_files = mlnFiles
         db = evidenceDB
         query = queries
+        
+        results_suffix = ".results"
+        output_base_filename = output_filename
+        if output_base_filename[-len(results_suffix):] == results_suffix:
+            output_base_filename = output_base_filename[:-len(results_suffix)]
+        
         # determine closed-world preds
         cwPreds = []
         if "cwPreds" in self.settings:            
             cwPreds = filter(lambda x: x != "", map(str.strip, self.settings["cwPreds"].split(",")))
         haveOutFile = False
         results = None
+        
         # engine-specific handling
         if engine == "internal": # internal engine
             try:
                 print "\nStarting %s...\n" % method
+                
                 # read queries
                 queries = []
                 q = ""
@@ -116,15 +124,18 @@ class MLNInfer(object):
                         queries.append(q)
                         q = ""
                 if q != "": raise Exception("Unbalanced parentheses in queries!")
+                
                 # create MLN
                 verbose = True
                 mln = MLN.MLN(input_files, verbose=verbose, defaultInferenceMethod=MLN.InferenceMethods.byName(method))
+                
                 # set closed-world predicates
                 for pred in cwPreds:
                     mln.setClosedWorldPred(pred)
-                # load evidence db
-                #mln.combineDB(db, verbose=True)
+                
+                # create ground MRF
                 mrf = mln.groundMRF(db, verbose=verbose)
+                
                 # collect inference arguments
                 args = {"details":True, "verbose":verbose, "shortOutput":True, "debugLevel":1}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
@@ -144,11 +155,18 @@ class MLNInfer(object):
 
                 args["saveResultsProlog"] = self.settings["saveResultsProlog"] # temporary code by Martin
 
-                args["probabilityFittingResultFileName"] = output_filename + "_fitted.mln"
+                args["probabilityFittingResultFileName"] = output_base_filename + "_fitted.mln"
 
-                # check for print requests
+                # check for print/write requests
                 if "printGroundAtoms" in args:
-                    mrf.printGroundAtoms()
+                    if args["printGroundAtoms"]:
+                        mrf.printGroundAtoms()
+                if "writeGraphML" in args:
+                    if args["writeGraphML"]:
+                        graphml_filename = output_base_filename + ".graphml"
+                        print "writing ground MRF as GraphML to %s..." % graphml_filename
+                        mrf.writeGraphML(graphml_filename)
+                    
                 # invoke inference
                 results = mrf.infer(queries, **args)
                 # close output file and open if requested
