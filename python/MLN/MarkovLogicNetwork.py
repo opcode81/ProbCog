@@ -847,7 +847,6 @@ class MRF(object):
         self.evidence = {}
         self.evidenceBackup = {}
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
-        self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
         
         if type(db) == str:                
             domain, evidence = self.mln._readDBFile(db, mrf=self)
@@ -866,10 +865,13 @@ class MRF(object):
         #print "MLN domains: ", self.mln.domains
         #print "MRF domains: ", self.domains
             
-        # ground
-        self._generateGroundAtoms()
+        # materialize MLN formulas
         if not self.mln.materializedTemplates:
             self.mln._materializeFormulaTemplates()
+        self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
+        
+        # ground
+        self._generateGroundAtoms()
         self._createFormulaGroundings(verbose=verbose)
         
         # set evidence
@@ -1597,9 +1599,7 @@ class MRF(object):
     def _fitProbabilityConstraints(self, probConstraints, fittingMethod=InferenceMethods.Exact, fittingThreshold=1.0e-3, fittingSteps=20, fittingMCSATSteps=5000, fittingParams=None, given=None, queries=None, verbose=True, maxThreshold=None, greedy=False, probabilityFittingResultFileName=None, **args):
         '''
             applies the given probability constraints (if any), dynamically modifying weights of the underlying MLN by applying iterative proportional fitting
-            
-            NOTE: side-effect: changes the parameters of the MLN
-            
+
             probConstraints: list of constraints
             inferenceMethod: one of the inference methods defined in InferenceMethods
             inferenceParams: parameters to pass on to the inference method
