@@ -1845,6 +1845,7 @@ class MRF(object):
                         print "%s -- %s" % (nodes[i], nodes[j])
                         graphml.UndirectedEdge(G, nodes[i], nodes[j])
                         links[t] = True
-        with open(filename, "w") as f:
-            G.write(f)
+        f = open(filename, "w")
+        G.write(f)
+        f.close()
         
