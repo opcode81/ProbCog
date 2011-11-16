@@ -270,8 +270,12 @@ class MLNInfer(object):
                 print "\n"
             # append information on query and mln to results file
             f = file(output_filename, "a")
-            with file(db, "r") as dbfile: db_text = dbfile.read()
-            with file(infile, "r") as infile: mln_text = infile.read()
+            dbfile = file(db, "r")
+            db_text = dbfile.read()
+            dbfile.close()
+            infile = file(infile, "r")
+            mln_text = infile.read()
+            infile.close()
             f.write("\n\n/*\n\n--- command ---\n%s\n\n--- evidence ---\n%s\n\n--- mln ---\n%s\ntime taken: %fs\n\n*/" % (command, db_text.strip(), mln_text.strip(), t_taken))
             f.close()
             # delete temporary mln
