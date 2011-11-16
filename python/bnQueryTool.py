@@ -220,9 +220,11 @@ class BNQuery:
         
     def showBN(self):
         bif = self.selected_bif.get()
-        os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
-        #os.system("bnj %s" % bif)
-
+        if "spawnvp" in dir(os):
+        	os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
+        else:
+            os.system("bnj %s" % bif)
+		
     def start(self):
         # get mln, db, qf and output filename
         bif = self.selected_bif.get()
