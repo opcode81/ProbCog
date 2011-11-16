@@ -33,6 +33,7 @@ import re
 import pickle
 from fnmatch import fnmatch
 import traceback
+import widgets
 from widgets import *
 import configMLN as config
 import MLN
@@ -588,6 +589,7 @@ if __name__ == '__main__':
     parser.add_option("-r", "--results-file", dest="output_filename", help="the results file to save")
     parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
     parser.add_option("--save-results-prolog", action="store_true", dest="saveResultsProlog", default=False, help="save results as prolog file")
+    parser.add_option("--noPMW", action="store_true", dest="noPMW", default=False, help="do not use Python mega widgets even if available")
     (options, args) = parser.parse_args()
 
     # read previously saved settings
@@ -608,6 +610,8 @@ if __name__ == '__main__':
         settings["params"] = (settings.get("params", "") + " ".join(args)).strip()
 
     # create gui
+    if options.noPMW:
+        widgets.havePMW = False
     root = Tk()
     app = MLNQuery(root, ".", settings)
     if options.run:
