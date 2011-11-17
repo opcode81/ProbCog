@@ -34,6 +34,7 @@ class Inference(object):
     def __init__(self, mrf):
         self.mrf = mrf 
         self.mln = mrf # for backward compatibility (virtually all code uses this)
+        self.mrfEvidenceBackup = None
         self.t_start = time.time()
     
     def _readQueries(self, queries):
@@ -67,8 +68,10 @@ class Inference(object):
                 raise Exception("Received query of unsupported type '%s'" % str(type(query)))
         return equeries
     
-    # set evidence in the MLN according to the given conjunction of ground literals
     def _setEvidence(self, conjunction):
+        '''
+            set evidence in the MRF according to the given conjunction of ground literals, keeping a backup to undo the assignment later
+        '''
         if conjunction is not None:
             literals = map(lambda x: x.strip().replace(" ", ""), conjunction.split("^"))
             evidence = {}
@@ -79,7 +82,8 @@ class Inference(object):
                     tv = False
                     gndAtom = gndAtom[1:]
                 evidence[gndAtom] = tv
-            self.mln.setEvidence(evidence)
+            self.mrfEvidenceBackup = self.mrf.evidence
+            self.mrf.setEvidence(evidence)
             
     def _getEvidenceBlockData(self, conjunction):
         # set evidence
@@ -124,19 +128,27 @@ class Inference(object):
             queries: a list of queries - either strings (predicate names or partially/fully grounded atoms) or ground formulas
         '''
         self.given = given
+        
         # read queries
         self._readQueries(queries)
         self.additionalQueryInfo = [""] * len(self.queries)
+        
         # perform actual inference (polymorphic)
         if verbose: print type(self)
         self.results = self._infer(verbose=verbose, details=details, **args)
         self.totalInferenceTime = self._getElapsedTime()
+        
         # output
         if verbose:
             if details: print "\nresults:"
             self.writeResults(sys.stdout, shortOutput=shortOutput)
         if outFile != None:
             self.writeResults(outFile, shortOutput=True, saveResultsProlog=saveResultsProlog)
+        
+        # undo potential side-effects
+        if self.mrfEvidenceBackup is not None:
+            self.mrf.evidence = self.mrfEvidenceBackup
+            
         # return results
         if len(self.queries) > 1:
             return self.results
