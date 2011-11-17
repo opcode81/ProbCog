@@ -186,7 +186,7 @@ class Link(object):
 class ConstantAsObject(Object):
     '''
         represents an object that is actually a constant, for creating links that involve constants,
-        e.g. in jobOf(Professor, PersonX), Professor could be a constant object to which PersonX is related
+        e.g. in isJobOf(Professor, PersonX), Professor could be a constant object to which PersonX is related
         
         Instances of this class are not to be added to worlds explicitly!
     '''
