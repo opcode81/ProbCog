@@ -1794,7 +1794,11 @@ class MRF(object):
                 #fittingMCSATSteps
             }
             fittingParams.update(args)
+            if given is None: # TODO should make this safe by other means... running inference shouldn't have side effects
+                oldEvidence = list(self.evidence) # make a copy, because fitting runs inference, which may overwrite the local evidence
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
+            if given is None:
+                self.evidence = oldEvidence 
         # run actual inference method
         return inferObj.infer(what, given, verbose=verbose, **args)
     
