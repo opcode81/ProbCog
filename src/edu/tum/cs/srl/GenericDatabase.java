@@ -65,14 +65,16 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		entries = new HashMap<String, VariableType>();
 		domains = new HashMap<String, HashSet<String>>();
 		functionalDependencies = new HashMap<RelationKey, HashMap<String, String[]>>();
+		taxonomy = model.getTaxonomy();
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebug");
 		paramHandler.add("debug", "setVerbose");
 		
 		// initialize domains
-		for(Concept c : model.getTaxonomy().getConcepts()) {
-			domains.put(c.name, new HashSet<String>());
-		}
+		if(taxonomy != null)
+			for(Concept c : model.getTaxonomy().getConcepts()) {
+				domains.put(c.name, new HashSet<String>());
+			}
 		
 		// fill domains with guaranteed domain elements		
 		for(Entry<String, ? extends Collection<String>> e : model.getGuaranteedDomainElements().entrySet()) {
@@ -96,8 +98,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 			}
 		}
 
-		// taxonomy-related stuff
-		taxonomy = model.getTaxonomy();
+		// taxonomy-related stuff		
 		if(taxonomy != null) {
 			entity2type = new HashMap<String, String>();
 			multiDomains = new HashMap<String, MultiIterator<String>>();
