@@ -155,6 +155,13 @@ class Inference(object):
         else:
             return self.results[0]
     
+    def getResultsDict(self):
+        '''
+            gets the results previously computed via a call to infer in the form of a dictionary
+            that maps ground formulas to probabilities
+        '''
+        return dict(zip(self.queries, self.results))
+        
     def getTotalInferenceTime(self):
         ''' returns a pair (t,s) where t is the total inference time in seconds and s is a readable string representation thereof '''
         return self.totalInferenceTime

@@ -1796,7 +1796,15 @@ class MRF(object):
             fittingParams.update(args)
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
         # run actual inference method
+        self.inferObj = inferObj
         return inferObj.infer(what, given, verbose=verbose, **args)
+
+    def getResultsDict(self):
+        '''
+            gets the results computed by the last call to an inference method (infer*)
+            in the form of a dictionary that maps ground formulas to probabilities
+        '''
+        return self.inferObj.getResultsDict()
     
     def _weights(self):
         ''' returns the weight vector as a list '''
