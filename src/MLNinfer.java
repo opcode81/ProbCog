@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +36,7 @@ public class MLNinfer {
 			String dbFile = null;
 			String query = null;
 			int maxSteps = 1000;
+			String resultsFile = null;
 			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
 			boolean debug = false;
@@ -47,6 +50,8 @@ public class MLNinfer {
 					query = args[++i];
 				else if(args[i].equals("-e"))
 					dbFile = args[++i];				
+				else if(args[i].equals("-r"))
+					resultsFile = args[++i];				
 				else if(args[i].equals("-cw"))
 					cwPreds = args[++i].split(",");		
 				else if(args[i].equals("-maxSteps"))
@@ -73,9 +78,10 @@ public class MLNinfer {
 			if(mlnFiles == null || dbFile == null || query == null) {
 				System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
 									 "    -maxSteps #      the maximum number of steps to take [default: 1000]\n" +
+									 "    -r <filename>    save results to file\n" + 
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
-									 "    -t2              algorithm: Toulbar2 branch & bound\n" +
+									 "    -t2              algorithm: Toulbar2 branch & bound\n" +									 
 							         "    -debug           debug mode with additional outputs\n" +
 							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
 									 );
@@ -149,8 +155,15 @@ public class MLNinfer {
 	        System.out.printf("\nconstruction time: %.4fs, inference time: %.4fs\n", constructSW.getElapsedTimeSecs(), sw.getElapsedTimeSecs());
 	        System.out.println("results:");
 	        Collections.sort(results);
-	        for(InferenceResult r : results)
-	        	r.print();	        
+	        PrintStream out = null;
+	        if(resultsFile != null)
+	        	out = new PrintStream(new File(resultsFile));
+	        for(InferenceResult r : results) {
+	        	r.print();
+	        	if(out != null)
+	        		out.printf("%s %f\n", r.ga.toString().replace(" ", ""), r.value);
+	        }
+	        if(out != null) out.close();
 	        if(infer instanceof MAPInferenceAlgorithm) {
 	        	MAPInferenceAlgorithm mapi = (MAPInferenceAlgorithm)infer;
 	        	double value = mrf.getWorldValue(mapi.getSolution());
