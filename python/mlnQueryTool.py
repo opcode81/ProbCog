@@ -74,14 +74,15 @@ class MLNInfer(object):
         self.alchemy_methods = {"MC-SAT":"-ms", "Gibbs sampling":"-p", "simulated tempering":"-simtp", "MaxWalkSAT (MPE)":"-a", "belief propagation":"-bp"}
         self.jmlns_methods = {"MaxWalkSAT (MPE)":"-mws", "MC-SAT":"-mcsat", "Toulbar2 B&B (MPE)":"-t2"}
         self.alchemy_versions = config.alchemy_versions
+        self.default_settings = {"numChains":"1", "maxSteps":"", "saveResults":False, "convertAlchemy":False, "openWorld":True} # a minimal set of settings required to run inference
     
-    def run(self, mlnFiles, evidenceDB, method, queries, engine="internal", output_filename=None, params="", **settings):
+    def run(self, mlnFiles, evidenceDB, method, queries, engine="PyMLNs", output_filename=None, params="", **settings):
         '''
             runs an MLN inference method with the given parameters
         
             mlnFiles: list of one or more MLN input files
             evidenceDB: name of the MLN database file from which to read evidence data
-            engine: either "internal", "J-MLNs" or one of the keys in the configured Alchemy versions (see configMLN.py)
+            engine: either "PyMLNs"/"internal", "J-MLNs" or one of the keys in the configured Alchemy versions (see configMLN.py)
             method: name of the inference method
             queries: comma-separated list of queries
             output_filename (compulsory only when using Alchemy): name of the file to which to save results
@@ -89,11 +90,13 @@ class MLNInfer(object):
             params: additional parameters to pass to inference method. For the internal engine, it is a comma-separated
                 list of assignments to parameters (dictionary-type string), for the others it's just a string of command-line
                 options to pass on
-            settings: additional settings that control the inference process (see code)
+            settings: additional settings that control the inference process, which are usually set by the GUI (see code)
                 
-            returns 
+            returns a mapping (dictionary) from ground atoms to probability values.
+                For J-MLNs, results are only returned if settings are saved to a file (settings["saveResults"]=True and output_filename given)
         '''
-        self.settings = settings
+        self.settings = dict(self.default_settings)        
+        self.settings.update(settings)
         input_files = mlnFiles
         db = evidenceDB
         query = queries
@@ -111,7 +114,7 @@ class MLNInfer(object):
         results = None
         
         # engine-specific handling
-        if engine == "internal": # internal engine
+        if engine in ("internal", "PyMLNs"): 
             try:
                 print "\nStarting %s...\n" % method
                 
@@ -153,9 +156,6 @@ class MLNInfer(object):
                     haveOutFile = True
                     outFile = file(output_filename, "w")
                     args["outFile"] = outFile
-
-                args["saveResultsProlog"] = self.settings["saveResultsProlog"] # temporary code by Martin
-
                 args["probabilityFittingResultFileName"] = output_base_filename + "_fitted.mln"
 
                 # check for print/write requests
@@ -168,8 +168,12 @@ class MLNInfer(object):
                         print "writing ground MRF as GraphML to %s..." % graphml_filename
                         mrf.writeGraphML(graphml_filename)
                     
-                # invoke inference
-                results = mrf.infer(queries, **args)
+                # invoke inference and retrieve results
+                mrf.infer(queries, **args)
+                results = {}
+                for gndFormula, p in mrf.getResultsDict().iteritems():
+                    results[str(gndFormula)] = p
+                
                 # close output file and open if requested
                 if outFile != None:
                     outFile.close()
@@ -177,7 +181,9 @@ class MLNInfer(object):
                 cls, e, tb = sys.exc_info()
                 sys.stderr.write("Error: %s\n" % str(e))
                 traceback.print_tb(tb)
+                
         elif engine == "J-MLNs": # engine is J-MLNs (ProbCog's Java implementation)
+            
             # create command to execute
             app = "MLNinfer"
             params = [app, "-i", ",".join(input_files), "-e", db, "-q", query, self.jmlns_methods[method]] + shlex.split(params)
@@ -185,13 +191,22 @@ class MLNInfer(object):
                 params += ["-maxSteps", self.settings["maxSteps"]]
             if len(cwPreds) > 0:
                 params += ["-cw", ",".join(cwPreds)]
+            outFile = None
+            if self.settings["saveResults"]:
+                outFile = output_filename
+                params += ["-r", outFile]
+            
             # execute
+            params = map(str, params)
             print "\nStarting J-MLNs..."
             print "\ncommand:\n%s\n" % " ".join(params)
             t_start = time.time()
             call(params)
             t_taken = time.time() - t_start
-            pass
+            
+            if outFile is not None:
+                results = dict(readAlchemyResults(outFile))
+        
         else: # engine is Alchemy
             haveOutFile = True
             infile = mlnFiles[0]
@@ -243,7 +258,7 @@ class MLNInfer(object):
             if self.settings["maxSteps"] != "":
                 params += [usage["maxSteps"], self.settings["maxSteps"]]
             owPreds = []
-            if self.settings["openWorld"] == 1:
+            if self.settings["openWorld"]:
                 print "\nFinding predicate names..."
                 if mlnObject is None:
                     mlnObject = MLN.MLN(infile)
@@ -256,6 +271,7 @@ class MLNInfer(object):
                 os.remove(output_filename)
                 pass
             # execute
+            params = map(str, params)
             print "\nStarting Alchemy..."
             command = subprocess.list2cmdline(params)
             print "\ncommand:\n%s\n" % " ".join(params)
@@ -265,9 +281,9 @@ class MLNInfer(object):
             # print results file
             if True:
                 print "\n\n--- output ---\n"
-                results = readAlchemyResults(output_filename)
-                for r in results:
-                    print "%.4f  %s" % (r[1], r[0])                    
+                results = dict(readAlchemyResults(output_filename))
+                for atom, prob in results.iteritems():
+                    print "%.4f  %s" % (prob, atom)                    
                 print "\n"
             # append information on query and mln to results file
             f = file(output_filename, "a")
@@ -282,12 +298,14 @@ class MLNInfer(object):
             # delete temporary mln
             if self.settings["convertAlchemy"] and not config_value("keep_alchemy_conversions", True):
                 os.unlink(infile)
-        # open results file
+                
+        # open output file in editor
         if False and haveOutFile and config.query_edit_outfile_when_done: # this is mostly useless
             editor = config.editor
             params = [editor, output_filename]
             print 'starting editor: %s' % subprocess.list2cmdline(params)
             subprocess.Popen(params, shell=False)
+            
         return results
 
 # --- main gui class ---
@@ -312,7 +330,7 @@ class MLNQuery(object):
         Label(self.frame, text="Engine: ").grid(row=row, column=0, sticky="E")
         alchemy_engines = config.alchemy_versions.keys()
         alchemy_engines.sort()
-        engines = ["internal", "J-MLNs"]
+        engines = ["PyMLNs", "J-MLNs"]
         engines.extend(alchemy_engines)
         self.selected_engine = StringVar(master)
         engine = self.settings.get("engine")
@@ -407,7 +425,7 @@ class MLNQuery(object):
         self.open_world = IntVar()
         self.cb_open_world = Checkbutton(self.frame, text="Apply open-world assumption to all predicates", variable=self.open_world)
         self.cb_open_world.grid(row=row, column=1, sticky=W)
-        self.open_world.set(self.settings.get("openWorld", 1))
+        self.open_world.set(self.settings.get("openWorld", True))
 
         # output filename
         row += 1
@@ -472,7 +490,7 @@ class MLNQuery(object):
     def onChangeEngine(self, name = None, index = None, mode = None):
         # enable/disable controls
         engineName = self.selected_engine.get()
-        if engineName == "internal":
+        if engineName in ("internal", "PyMLNs"):
             self.numEngine = 1
             methods = self.inference.pymlns_methods
             #self.entry_output_filename.configure(state=NORMAL)
@@ -588,7 +606,6 @@ if __name__ == '__main__':
     parser.add_option("-e", "--evidence", dest="db", help="the evidence database file")
     parser.add_option("-r", "--results-file", dest="output_filename", help="the results file to save")
     parser.add_option("--run", action="store_true", dest="run", default=False, help="run with last settings (without showing GUI)")
-    parser.add_option("--save-results-prolog", action="store_true", dest="saveResultsProlog", default=False, help="save results as prolog file")
     parser.add_option("--noPMW", action="store_true", dest="noPMW", default=False, help="do not use Python mega widgets even if available")
     (options, args) = parser.parse_args()
 
