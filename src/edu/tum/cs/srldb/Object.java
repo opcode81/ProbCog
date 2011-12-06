@@ -116,6 +116,8 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 	}
 	
 	public void BLOGprintFacts(PrintStream out) throws DDException {
+		if(getAttributes().size() == 0)
+			return;
 		String constant = getConstantName();
 		if(!ABLModel.isValidEntityName(constant))
 			throw new DDException("\"" + constant + "\" is not a valid entity name");
