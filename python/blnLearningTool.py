@@ -149,10 +149,15 @@ class BLNLearn:
         self.cb_learn_domains = Checkbutton(frame, text="learn domains", variable=self.learn_domains)
         self.cb_learn_domains.grid(row=0, column=1, sticky=W)
         self.learn_domains.set(self.settings.get("learnDomains", 1))
-        # - domain learning
+        # - merge domains
+        self.merge_domains = IntVar()
+        self.cb_merge_domains = Checkbutton(frame, text="merge overlapping domains", variable=self.merge_domains)
+        self.cb_merge_domains.grid(row=0, column=2, sticky=W)
+        self.merge_domains.set(self.settings.get("mergeDomains", 0))
+        # - ignore undef preds
         self.ignore_data = IntVar()
         self.cb_ignore_data = Checkbutton(frame, text="ignore data on undefined predicates", variable=self.ignore_data)
-        self.cb_ignore_data.grid(row=0, column=2, sticky=W)
+        self.cb_ignore_data.grid(row=0, column=3, sticky=W)
         self.ignore_data.set(self.settings.get("ignoreData", 0))
 
         # additional parameters
@@ -267,13 +272,10 @@ class BLNLearn:
         self.settings["params"] = params
         self.settings["outputFilename"] = output
         self.settings["netOutputFilename"] = netOutput
-        #self.settings["openWorld"] = self.open_world.get()
-        #self.settings["cwPreds"] = cwPreds
-        #self.settings["maxSteps"] = self.maxSteps.get()
-        #self.settings["numChains"] = self.numChains.get()
         self.settings["geometry"] = self.master.winfo_geometry()
         self.settings["learnDomains"] = self.learn_domains.get()
         self.settings["ignoreData"] = self.ignore_data.get()
+        self.settings["mergeDomains"] = self.merge_domains.get()
        
         # write settings
         pickle.dump(self.settings, file(CONFIG_FILENAME, "w+"))
@@ -285,13 +287,14 @@ class BLNLearn:
         traindb = db
         if pattern != "":
             traindb = pattern
-        params = '-x "%s" -b "%s" -t "%s" -ob "%s" -ox "%s"' % (bif, blog, traindb, output, netOutput)
+        params = ['-x "%s"' % bif, '-b "%s"' % blog, '-t "%s"' % traindb, '-ob "%s"' % output, '-ox "%s"' % netOutput]
         #if cwPreds != "":
         #    params += " -cw %s" % cwPreds
-        if self.settings["learnDomains"]: params += " -d"
-        if self.settings["ignoreData"]: params += " -i"
-        params  += " %s" % self.settings["params"]
-        command = 'learnABL %s' % params
+        if self.settings["learnDomains"]: params.append("-d")
+        if self.settings["ignoreData"]: params.append("-i")
+        if self.settings["mergeDomains"]: params.append("-md")
+        params.append(self.settings["params"])
+        command = 'learnABL %s' % " ".join(params)
 
         # execute 
         print "\nstarting learnABL..."
