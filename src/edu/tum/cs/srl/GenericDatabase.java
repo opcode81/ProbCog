@@ -71,10 +71,13 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		paramHandler.add("debug", "setVerbose");
 		
 		// initialize domains
-		if(taxonomy != null)
+		if(taxonomy != null) {
+			entity2type = new HashMap<String, String>();
+			multiDomains = new HashMap<String, MultiIterator<String>>();
 			for(Concept c : model.getTaxonomy().getConcepts()) {
 				domains.put(c.name, new HashSet<String>());
 			}
+		}
 		
 		// fill domains with guaranteed domain elements		
 		for(Entry<String, ? extends Collection<String>> e : model.getGuaranteedDomainElements().entrySet()) {
@@ -96,12 +99,6 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 					throw new Exception("Error processing rule '" + rule + "'", e);
 				}
 			}
-		}
-
-		// taxonomy-related stuff		
-		if(taxonomy != null) {
-			entity2type = new HashMap<String, String>();
-			multiDomains = new HashMap<String, MultiIterator<String>>();
 		}
 	}
 	
