@@ -1,7 +1,7 @@
 # BLN Query Tool
 #
 # (C) 2008 by Dominik Jain
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -42,7 +42,7 @@ class BNQuery:
     def __init__(self, master, dir, settings):
         self.initialized = False
         master.title("Bayesian Network Query Tool")
-        
+
         self.master = master
         self.settings = settings
         if not "queryByDB" in self.settings: self.settings["queryByDB"] = {}
@@ -66,7 +66,7 @@ class BNQuery:
         # show button
         start_button = Button(frame, text="show", command=self.showBN)
         start_button.grid(row=0, column=1, sticky="NEWS")
-        
+
         # evidence database selection
         row += 1
         Label(self.frame, text="Evidence: ").grid(row=row, column=0, sticky=NE)
@@ -77,17 +77,17 @@ class BNQuery:
         # inference method selection
         row += 1
         self.list_methods_row = row
-        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
+        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
         self.methods = {"Likelihood Weighting":"LikelihoodWeighting", "Gibbs Sampling":"GibbsSampling", "EPIS-BN":"EPIS", "SAT-IS":"SATIS", "SampleSearch":"SampleSearch","BackwardSampleSearch":"BackwardSampleSearch","Backward Sampling":"BackwardSampling", "Enumeration-Ask (exact)": "EnumerationAsk", "SMILE Backward Sampling": "SmileBackwardSampling", "Backward Sampling with Priors": "BackwardSamplingPriors", "Backward Sampling with Children":"BackwardSamplingWithChildren", "Experimental": "Experimental", "Likelihood Weighting with Uncertain Evidence": "LWU", "MC-SAT": "MCSAT", "Pearl's algorithm":"Pearl", "Variable Elimination": "VarElim", "Iterative Join-Graph Propagation": "IJGP", "Belief Propagation": "BeliefPropagation"}
         method_names = sorted(self.methods.keys())
         self.selected_method = StringVar(master)
         stored_method = self.settings.get("method")
         if stored_method is None or stored_method not in method_names:
             stored_method = "Likelihood Weighting" # default value
-        self.selected_method.set(stored_method) 
+        self.selected_method.set(stored_method)
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(method_names))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
-        self.selected_method.trace("w", self.changedMethod)        
+        self.selected_method.trace("w", self.changedMethod)
 
         # queries
         row += 1
@@ -100,7 +100,7 @@ class BNQuery:
         row += 1
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
-        col = 0        
+        col = 0
         # steps
         # - checkbox
         self.use_max_steps = var = IntVar()
@@ -111,9 +111,9 @@ class BNQuery:
         col += 1
         frame.columnconfigure(col, weight=1)
         self.maxSteps = var = StringVar(master)
-        var.set(self.settings.get("maxSteps", ""))
+        var.set(self.settings.get("maxSteps", "1000"))
         self.entry_steps = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")        
+        entry.grid(row=0, column=col, sticky="NEW")
         # - interval entry
         col += 1
         frame.columnconfigure(col, weight=1)
@@ -141,7 +141,7 @@ class BNQuery:
         self.timeInterval = var = StringVar(master)
         var.set(self.settings.get("timeInterval", "1"))
         self.entry_time_interval = entry = Entry(frame, textvariable = var)
-        entry.grid(row=0, column=col, sticky="NEW")    
+        entry.grid(row=0, column=col, sticky="NEW")
 
         # additional parameters
         row += 1
@@ -184,21 +184,21 @@ class BNQuery:
         start_button.grid(row=row, column=1, sticky="NEW")
 
         self.initialized = True
-        
+
         self.setGeometry()
-    
+
     def setGeometry(self):
         g = self.settings.get("geometry")
         if g is None: return
         self.master.geometry(g)
-        
+
     def setAddParams(self):
         self.params.set(self.paramsDict.get(self.selected_method.get(), self.params.get()))
 
     def changedNetwork(self, name):
         self.bif_filename = name
-        self.setOutputFilename()    
-    
+        self.setOutputFilename()
+
     def changedDB(self, name):
         self.db_filename = name
         self.setOutputFilename()
@@ -206,25 +206,25 @@ class BNQuery:
         query = self.settings["queryByDB"].get(name)
         if not query is None and hasattr(self, "query"):
             self.query.set(query)
-            
+
     def changedMethod(self, name, *args):
         #self.setAddParams()
         self.setOutputFilename()
-        
+
     def setOutputFilename(self):
         if not self.initialized or not hasattr(self, "bif_filename") or not hasattr(self, "db_filename") or not hasattr(self, "selected_method"):
             return
         method = self.methods[self.selected_method.get()]
         fn = "%s-%s-%s.dist" % (os.path.splitext(self.bif_filename)[0], os.path.splitext(self.db_filename)[0], method)
         self.output_filename.set(fn)
-        
+
     def showBN(self):
         bif = self.selected_bif.get()
         if "spawnvp" in dir(os):
         	os.spawnvp(os.P_NOWAIT, "bnj", ["bnj", bif])
         else:
             os.system("bnj %s" % bif)
-		
+
     def start(self):
         # get mln, db, qf and output filename
         bif = self.selected_bif.get()
@@ -236,7 +236,7 @@ class BNQuery:
         self.paramsDict[method] = addparams
         outfile = self.output_filename.get()
         refdist = self.selected_refdist.get().strip()
-        
+
         # update settings
         self.settings["bif"] = bif
         self.settings["db"] = db
@@ -246,34 +246,34 @@ class BNQuery:
         self.settings["query"] = self.query.get()
         #self.settings["output_filename"] = output
         #self.settings["openWorld"] = self.open_world.get()
-        
+
         self.settings["useMaxSteps"] = self.use_max_steps.get()
         self.settings["maxSteps"] = self.maxSteps.get()
         self.settings["infoInterval"] = self.infoInterval.get()
         self.settings["useTimeLimit"] = self.use_time_limit.get()
         self.settings["timeLimit"] = self.timeLimit.get()
         self.settings["timeInterval"] = self.timeInterval.get()
-        
+
         #self.settings["numChains"] = self.numChains.get()
         self.settings["geometry"] = self.master.winfo_geometry()
-        
+
         self.settings["output_filename"] = outfile
         self.settings["reference_distribution"] = refdist
         self.settings["saveResults"] = self.save_results.get()
-       
+
         # write query to settings
         self.settings["queryByDB"][db] = self.settings["query"]
 
         # write settings
         pickle.dump(self.settings, file(CONFIG_FILENAME, "w+"))
-        
+
         # hide main window
         self.master.withdraw()
-        
+
         # some information
         print "\n--- query ---\n%s" % self.settings["query"]
         print "\n--- evidence (%s) ---\n%s" % (db, db_text.strip())
-        
+
         # create command to execute
         #params = '-ia %s -n "%s" -e "%s" -q "%s" %s' % (self.methods[method], bif, db, self.settings["query"].replace(" ", ""), self.settings["params"])
         params = ["-ia", self.methods[method], '-n "%s"' % bif, '-e "%s"' % db, '-q "%s"' % self.settings["query"].replace(" ", "")]
@@ -286,12 +286,12 @@ class BNQuery:
         if self.settings["saveResults"] and outfile != "":
             params.append('-od "%s"' % outfile)
         if refdist != "":
-            params.append('-cd "%s"' % refdist)            
+            params.append('-cd "%s"' % refdist)
         if addparams != "":
             params.append(addparams)
         command = 'BNinfer %s' % " ".join(params)
 
-        # execute 
+        # execute
         print "\nstarting BNinfer..."
         print "\ncommand:\n%s\n" % command
         t_start = time.time()
@@ -302,7 +302,7 @@ class BNQuery:
         # restore main window
         self.master.deiconify()
         self.setGeometry()
-        
+
         # reload the files (in case they changed)
         self.selected_db.reloadFile()
         # update lists of files
@@ -328,7 +328,7 @@ if __name__ == '__main__':
             if setting != None:
                 settings[setting] = argv[i+1]
             del argv[i+1]
-            del argv[i]            
+            del argv[i]
             continue
         i += 1
     if len(argv) > 1:
