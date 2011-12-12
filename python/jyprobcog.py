@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 import sys
 import os
 import re
@@ -10,6 +11,7 @@ importjar("bnj_res.jar")
 importjar("log4j-1.2.9.jar")
 importjar("ssj.jar")
 importjar("optimization.jar")
+importjar("yprolog.jar")
 
 from edu.tum.cs.probcog import ModelPool as _ModelPool, BLNModel as _BLNModel, MLNModel as _MLNModel
 from java.util import Vector, HashMap
