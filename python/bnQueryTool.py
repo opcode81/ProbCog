@@ -31,7 +31,7 @@ import pickle
 from fnmatch import fnmatch
 import traceback
 from widgets import *
-import config
+import configGUI as config
 
 CONFIG_FILENAME = "bnquery.config.dat"
 
