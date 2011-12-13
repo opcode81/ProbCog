@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # MLN Parameter Learning Tool
-# 
+#
 # (C) 2006-2007 by Dominik Jain
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -61,7 +61,7 @@ class LearnWeights:
         if change_hook != None:
             stringvar.trace("w", change_hook)
         return stringvar
-    
+
     def __init__(self, master, dir, settings):
         self.master = master
         self.master.title("MLN Parameter Learning Tool")
@@ -71,7 +71,7 @@ class LearnWeights:
         self.frame = Frame(master)
         self.frame.pack(fill=BOTH, expand=1)
         self.frame.columnconfigure(1, weight=1)
-        
+
         # engine selection
         row = 0
         self.alchemy_versions = config.alchemy_versions
@@ -98,18 +98,18 @@ class LearnWeights:
         # method selection
         row += 1
         self.list_methods_row = row
-        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)        
-        self.alchemy_methods = {"generative learning": "-g", "discriminative learning": "-d"}        
+        Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
+        self.alchemy_methods = {"generative learning": "-g", "discriminative learning": "-d"}
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
-        
+
         # evidence database selection
         row += 1
         Label(self.frame, text="Training data: ").grid(row=row, column=0, sticky="NE")
         self.selected_db = FilePickEdit(self.frame, config.learnwts_db_filemask, self.settings.get("db"), 15, self.changedDB, font=config.fixed_width_font, allowNone=True)
         self.selected_db.grid(row=row, column=1, sticky="NEWS")
-        self.frame.rowconfigure(row, weight=1)        
-        
+        self.frame.rowconfigure(row, weight=1)
+
         row += 1
         frame = Frame(self.frame)
         frame.grid(row=row, column=1, sticky="NEW")
@@ -124,7 +124,7 @@ class LearnWeights:
         self.entry_pattern.grid(row=0, column=col, sticky="NEW")
 
         row += 1
-        Label(self.frame, text="Add. Params: ").grid(row=row, column=0, sticky="E")        
+        Label(self.frame, text="Add. Params: ").grid(row=row, column=0, sticky="E")
         self.params = StringVar(master)
         self.params.set(self.settings.get("params", ""))
         Entry(self.frame, textvariable = self.params).grid(row=row, column=1, sticky="WE")
@@ -138,10 +138,10 @@ class LearnWeights:
         row += 1
         learn_button = Button(self.frame, text=" >> Learn << ", command=self.learn)
         learn_button.grid(row=row, column=1, sticky="EW")
-        
+
         self.onChangeEngine()
         self.setGeometry()
-    
+
     def setGeometry(self):
         g = self.settings.get("geometry")
         if g is None: return
@@ -160,10 +160,10 @@ class LearnWeights:
         #self.entry_output_filename.configure(state=state)
         #self.entry_params.configure(state=state)
         #self.cb_open_world.configure(state=state)
-        
+
         # change additional parameters
         self.params.set(self.settings.get("params%d" % int(self.internalMode), ""))
-        
+
         # change supported inference methods
         self.selected_method.set(self.settings.get("method%d" % int(self.internalMode), methods[0])) # default value
         if "list_methods" in dir(self): self.list_methods.grid_forget()
@@ -173,9 +173,9 @@ class LearnWeights:
 
     def isFile(self, f):
         return os.path.exists(os.path.join(self.dir, f))
-    
+
     def setOutputFilename(self):
-        if not hasattr(self, "output_filename") or not hasattr(self, "db_filename") or not hasattr(self, "mln_filename"): 
+        if not hasattr(self, "output_filename") or not hasattr(self, "db_filename") or not hasattr(self, "mln_filename"):
             return
         mln = self.mln_filename
         db = self.db_filename
@@ -193,11 +193,11 @@ class LearnWeights:
     def changedMLN(self, name):
         self.mln_filename = name
         self.setOutputFilename()
-            
+
     def changedDB(self, name):
         self.db_filename = name
         self.setOutputFilename()
-    
+
     def changedMethod(self, name, index, mode):
         self.setOutputFilename()
 
@@ -216,7 +216,7 @@ class LearnWeights:
             self.settings["params%d" % int(self.internalMode)] = params
             self.settings["engine"] = self.selected_engine.get()
             self.settings["method%d" % int(self.internalMode)] = method
-            self.settings["pattern"] = self.entry_pattern.get()            
+            self.settings["pattern"] = self.entry_pattern.get()
             if saveGeometry:
                 self.settings["geometry"] = self.master.winfo_geometry()
             #print "dumping config..."
@@ -237,16 +237,16 @@ class LearnWeights:
                 if len(dbs) == 0:
                     raise Exception("The mask '%s' matches no files" % mask)
             print "training databases:", ",".join(dbs)
-            
+
             # hide gui
             self.master.withdraw()
-            
+
             if self.settings["engine"] == "internal": # internal engine
                 # arguments
                 args = {"initialWts":False}
                 args.update(eval("dict(%s)" % params)) # add additional parameters
                 # learn weights
-                mln = MLN.MLN(self.settings["mln"])    
+                mln = MLN.MLN(self.settings["mln"])
                 #mln.combineDB(self.settings["db"], verbose=True)
                 #mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
                 mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method))
@@ -286,7 +286,7 @@ class LearnWeights:
                         break
                     print l,
                     output_text += l
-    
+
                 # add data reported by learnwts and, from the input mln, domain declarations and rules for mutual exclusiveness and exhaustiveness
                 if True:
                     # read the input file
@@ -294,7 +294,7 @@ class LearnWeights:
                     text = f.read()
                     f.close()
                     comment = re.compile(r'//.*?^|/\*.*\*/', re.DOTALL | re.MULTILINE)
-                    text = re.sub(comment, '', text)        
+                    text = re.sub(comment, '', text)
                     merules  = []
                     domain_decls = []
                     for l in text.split("\n"):
@@ -310,7 +310,7 @@ class LearnWeights:
                     f = file(self.settings["output_filename"], "r")
                     outfile = f.read()
                     f.close()
-                    # rewrite the output file                
+                    # rewrite the output file
                     f = file(self.settings["output_filename"], "w")
                     # - get report with command line and learnwts output
                     if config.learnwts_full_report:
@@ -325,20 +325,21 @@ class LearnWeights:
                     f.write(outfile)
                     if config.learnwts_report_bottom: f.write("\n\n" + report)
                     f.close()
-                
+
             if config.learnwts_edit_outfile_when_done:
                 params = [config.editor, self.settings["output_filename"]]
                 print "starting editor: %s" % subprocess.list2cmdline(params)
                 subprocess.Popen(params, shell=False)
         except:
             cls, e, tb = sys.exc_info()
-            print "Error: %s " % str(e)
+            sys.stderr.write("%s: %s\n" % (str(type(e)), str(e)))
             traceback.print_tb(tb)
+            raise
         finally:
             # restore gui
-            self.master.deiconify() 
+            self.master.deiconify()
             self.setGeometry()
-            
+
             sys.stdout.flush()
 
 # -- main app --
@@ -349,7 +350,7 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("--run", action="store_true", dest="run", default=False, help="run without showing gui")
     parser.add_option("-i", "--mln-filename", dest="mln_filename", help="input MLN filename", metavar="FILE", type="string")
-    parser.add_option("-t", "--db-filename", dest="db", help="training database filename", metavar="FILE", type="string")        
+    parser.add_option("-t", "--db-filename", dest="db", help="training database filename", metavar="FILE", type="string")
     parser.add_option("-o", "--output-file", dest="output_filename", help="output MLN filename", metavar="FILE", type="string")
     (options, args) = parser.parse_args()
 
@@ -357,18 +358,18 @@ if __name__ == '__main__':
     settings = {}
     if os.path.exists("learnweights.config.dat"):
         try:
-            settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file("learnweights.config.dat", "r").readlines())))            
+            settings = pickle.loads("\n".join(map(lambda x: x.strip("\r\n"), file("learnweights.config.dat", "r").readlines())))
         except:
             pass
     # update settings with command-line options
     settings.update(dict(filter(lambda x: x[1] is not None, options.__dict__.iteritems())))
 
     # run learning task/GUI
-    root = Tk()    
+    root = Tk()
     app = LearnWeights(root, ".", settings)
-    #print "options:", options    
+    #print "options:", options
     if options.run:
         app.learn(saveGeometry=False)
     else:
         root.mainloop()
-    
+
