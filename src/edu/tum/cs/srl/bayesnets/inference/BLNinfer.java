@@ -459,7 +459,8 @@ public class BLNinfer implements IParameterHandler {
 			}
 		}
 		catch(IllegalArgumentException e) {
-			System.err.println(e);
+			e.printStackTrace();
+			//System.err.println(e);
 			System.out.println("\n usage: BLNinfer <arguments>\n\n" +
 					             "   required arguments:\n\n" +
 					             "     -b <declarations file>    declarations file (types, domains, signatures, etc.)\n" +
