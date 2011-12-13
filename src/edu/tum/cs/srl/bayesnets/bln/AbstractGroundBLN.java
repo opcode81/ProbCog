@@ -190,7 +190,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		if(instantiatedVariables.contains(varName))
 			return groundBN.getNode(varName);
 		
-		//if(debug) System.out.println("instantiating variable " + varName);
+		if(debug) System.out.println("instantiating variable " + varName);
 		
 		// consider all the relational nodes that could be used to instantiate the variable		
 		Vector<RelationalNode> templates = functionTemplates.get(functionName);
@@ -474,13 +474,15 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					RelationalNode relParent = bln.rbn.getRelationalNode(entry.getKey());
 					if(relParent == relNode)
 						continue;
+					if(relParent.isConstant)
+						continue;
 					BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
 					if(parent == null) { // we could not instantiate the parent
 						// this is OK only if the parent is a precondition
 						if(relParent.isPrecondition)
 							continue;
 						throw new Exception("Could not instantiate " + relParent + " with params [" + StringTool.join(", ", entry.getValue()) + "] as a parent for " + mainNode);
-					}
+					}					
 					Integer index = parentIndices.get(parent);					
 					if(index == null) {
 						index = domProdIndex++;
