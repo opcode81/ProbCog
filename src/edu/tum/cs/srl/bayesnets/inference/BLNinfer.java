@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BNDatabase;
 import edu.tum.cs.bayesnets.inference.ITimeLimitedInference;
@@ -274,7 +275,7 @@ public class BLNinfer implements IParameterHandler {
 		if(removeDeterministicCPTEntries) {
 			final double lowProb = 0.001; 
 			for(BeliefNode node : blog.bn.getNodes()) {
-				CPF cpf = node.getCPF();					
+				CPT cpf = (CPT)node.getCPF();					
 				for(int i = 0; i < cpf.size(); i++)
 					if(cpf.getDouble(i) == 0.0)
 						cpf.put(i, new ValueDouble(lowProb));

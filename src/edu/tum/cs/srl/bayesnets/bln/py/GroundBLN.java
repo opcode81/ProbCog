@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
@@ -82,7 +83,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			domprod[i++] = parent;
 			groundBN.connect(parent, node, false);
 		}
-		node.getCPF().buildZero(domprod, false); // ensure correct ordering in CPF
+		((CPT)node.getCPF()).buildZero(domprod, false); // ensure correct ordering in CPF
 		return node;
 	}
 	

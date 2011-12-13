@@ -6,6 +6,7 @@ import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
@@ -138,7 +139,7 @@ public class GroundBLN extends AbstractGroundBLN {
 				// Note: A value from the cache can only be used if formula simplification is not applied,
 				//		 because the CPF ids are never equal otherwise.
 				// TODO Is this really 100% safe? What about the case where constants appear in the formula, e.g. in "(x=Const)"? The above-mentioned string transform might be safer. 
-				node.getCPF().setValues(values);
+				((CPT)node.getCPF()).setValues(values);
 			}
 			else {
 				fillFormulaCPF(gf, node.getCPF());
@@ -167,7 +168,7 @@ public class GroundBLN extends AbstractGroundBLN {
 			domprod[i++] = parent;
 			groundBN.connect(parent, node, false);
 		}
-		node.getCPF().buildZero(domprod, false); // ensure correct ordering in CPF
+		((CPT)node.getCPF()).buildZero(domprod, false); // ensure correct ordering in CPF
 		return node;
 	}
 	

@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BNDatabase;
@@ -135,7 +136,7 @@ public class BNinfer {
 					for(int i = 0; i < cpf.size(); i++)
 						if(cpf.getDouble(i) == 0.0)
 							cpf.put(i, new ValueDouble(lowProb));
-					cpf.normalizeByDomain();
+					((CPT)cpf).normalizeByDomain();
 				}
 			}
 			

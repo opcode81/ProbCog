@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.Stopwatch;
@@ -45,7 +46,7 @@ public class VariableElimination extends Sampler {
 			for(int i = 0; i < domprod.length; i++)
 				if(evidenceDomainIndices[getNodeIndex(domprod[i])] == -1)
 					domprod2.add(domprod[i]);
-			CPF cpf2 = new CPF(domprod2.toArray(new BeliefNode[domprod2.size()]));
+			CPF cpf2 = new CPT(domprod2.toArray(new BeliefNode[domprod2.size()]));
 			int[] addr = new int[domprod.length];
 			int[] addr2 = new int[domprod2.size()];
 			removeEvidence(cpf, cpf2, 0, addr, 0, addr2);
@@ -101,7 +102,7 @@ public class VariableElimination extends Sampler {
 			for(int i = 0; i < domprod.length; i++)
 				if(domprod[i] != n)
 					domprod2[j++] = domprod[i];
-			CPF cpf2 = new CPF(domprod2);
+			CPF cpf2 = new CPT(domprod2);
 			int[] addr = new int[domprod.length];
 			int[] addr2 = new int[domprod2.length];
 			sumOut(cpf2, n, 0, addr, 0, addr2);
@@ -150,7 +151,7 @@ public class VariableElimination extends Sampler {
 		BeliefNode[] domProd = domain.toArray(new BeliefNode[domain.size()]);
 		CPF cpf;
 		try {
-			cpf = new CPF(domProd);
+			cpf = new CPT(domProd);
 		} catch (OutOfMemoryError e) {
 			e.printStackTrace();
 			double size = 1;

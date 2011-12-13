@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
@@ -258,7 +259,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				}
 				Discrete domain = new Discrete(aOutcomes);
 				BeliefNode mainNode = this.groundBN.addNode(varName, domain);				
-				CPF cpf = new CPF();
+				CPT cpf = new CPT();
 				cpf.build(new BeliefNode[]{mainNode}, dist);
 				mainNode.setCPF(cpf);
 				onAddGroundAtomNode(mainNode, params, sig);
@@ -404,7 +405,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					break;
 				}
 				// build the CPF
-				CPF cpf = mainNode.getCPF();
+				CPT cpf = (CPT)mainNode.getCPF();
 				BeliefNode[] domprod_arr = domprod.toArray(new BeliefNode[domprod.size()]);
 				// - check if we have a cached CPF that we can reuse
 				Value[] values = cpfCache.get(cpfid);
@@ -430,7 +431,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				if(!RelationalBeliefNetwork.isRealDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use SUM aggregator on non-Real node " + relNode.toString());
 				// build the CPF
-				CPF cpf = mainNode.getCPF();
+				CPT cpf = (CPT)mainNode.getCPF();
 				String cpfid = combFunc.getFunctionSyntax() + String.format("-%d", groundings.size());
 				BeliefNode[] domprod_arr = domprod.toArray(new BeliefNode[domprod.size()]);
 				// - check if we have a cached CPF that we can reuse
@@ -495,7 +496,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		}
 		
 		// initialize CPF & connect parents
-		CPF cpf = mainNode.getCPF();
+		CPT cpf = (CPT)mainNode.getCPF();
 		BeliefNode[] domprod = new BeliefNode[1 + parentIndices.size()];
 		domprod[0] = mainNode;
 		for(Entry<BeliefNode, Integer> e : parentIndices.entrySet()) {
@@ -644,7 +645,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		}
 		
 		// get the correct domain product order (which must reflect the order in the source node)
-		CPF targetCPF = targetNode.getCPF();
+		CPT targetCPF = (CPT)targetNode.getCPF();
 		BeliefNode[] targetDomainProd = vDomProd.toArray(new BeliefNode[vDomProd.size()]);
 		int j = 1;
 		HashSet<BeliefNode> handledParents = new HashSet<BeliefNode>();
@@ -668,7 +669,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		// - if the original relational node had exactly the same number of parents as the instance, 
 		//   we can safely transfer its CPT to the instantiated node
 		if(srcDomainProd.length == targetDomainProd.length) {			
-			targetCPF.build(targetDomainProd, srcRelNode.node.getCPF().getValues());
+			targetCPF.build(targetDomainProd, ((CPT)srcRelNode.node.getCPF()).getValues());
 		}
 		// - otherwise we must extract the relevant columns that apply to the constant setting
 		else {

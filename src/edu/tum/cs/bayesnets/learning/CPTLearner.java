@@ -424,7 +424,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	protected void end_learning() {
         // normalize the CPTs
         for(int i = 0; i < nodes.length; i++)
-        	nodes[i].getCPF().normalizeByDomain(uniformDefault);
+        	((CPT)nodes[i].getCPF()).normalizeByDomain(uniformDefault);
 	}
 
 	

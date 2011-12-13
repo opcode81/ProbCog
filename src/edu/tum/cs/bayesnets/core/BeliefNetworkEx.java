@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
 import edu.ksu.cis.bnj.ver3.core.Domain;
@@ -286,7 +287,7 @@ public class BeliefNetworkEx {
 				after[i + 1] = ((BeliefNode) parents[i].getObject());
 			}
 			after[0] = child;
-			CPF beforeCPF = child.getCPF();
+			CPT beforeCPF = (CPT)child.getCPF();
 			child.setCPF(beforeCPF.expand(after));
 		}
 	}
