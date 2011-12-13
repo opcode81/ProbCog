@@ -526,6 +526,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 			for(RelationKey relKey : c)
 				out.println(relKey.toString());
 		out.println();
+		
+		// combining rules
+		for(Entry<String, CombiningRule> e : this.combiningRules.entrySet()) {
+			out.printf("combining-rule %s %s;\n", e.getKey(), e.getValue().stringRepresention);
+		}
 	}
 
 	protected void getCPD(Vector<String> lists, CPF cpf, Discrete[] domains, int[] addr, int i) {
