@@ -92,7 +92,7 @@ public class Atom extends UngroundedFormula {
 		String strGA = sb.toString();
 		GroundAtom ga = vars.get(strGA);
 		if(ga == null)
-			throw new Exception("Could not find ground atom '" + strGA + "' in set of world variables " + vars);
+			throw new Exception("Could not find ground atom '" + strGA + "' in set of world variables.");
 		return ga;
 	}
 
