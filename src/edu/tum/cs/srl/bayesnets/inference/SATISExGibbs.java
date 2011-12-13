@@ -53,7 +53,9 @@ public class SATISExGibbs extends SATISEx {
 		
 		public void onAddedSample(WeightedSample s) throws Exception {
 			for(int i = 0; i < gibbsSteps; i++) {
-				gibbsSampler.gibbsStep(this.evidenceDomainIndices, s);
+				System.out.println(s.weight);
+				double p = gibbsSampler.gibbsStep(this.evidenceDomainIndices, s);
+				s.weight = this.bn.getWorldProbability(s.nodeDomainIndices) / p;				
 				addSample(s);
 				currentStep++;
 			}
