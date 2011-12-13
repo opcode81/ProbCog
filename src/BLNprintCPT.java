@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.CPT;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.bnj.ver3.core.Value;
 import edu.tum.cs.srl.bayesnets.DecisionNode;
@@ -95,27 +96,29 @@ public class BLNprintCPT {
 		Value[] values = AbstractGroundBLN.getSubCPFValues(node.getCPF(), constantSettings);
 		
 		Vector<BeliefNode> included = new Vector<BeliefNode>();
-		CPF cpf = node.getCPF();
+		CPT cpf = (CPT)node.getCPF();
 		BeliefNode[] originalDomProd = cpf.getDomainProduct();		
 		for(BeliefNode n : originalDomProd)
 			if(!excluded.contains(n))
 				included.add(n);		
 		BeliefNode[] domprod = included.toArray(new BeliefNode[included.size()]);
-		cpf = new CPF(domprod);
+		cpf = new CPT(domprod);
 		cpf.setValues(values);
 		
-		Table table = new Table(cpf);
+		Table table = new Table(cpf, this.options);
 		table.writeLatex(out);
 	}
 
-	public class Table {
+	public static class Table {
 		String[][] table;
 		CPF cpf;
 		BeliefNode[] domprod;
 		int numParents;
 		int currentColumn = 1;
+		Options options;
 		
-		public Table(CPF cpf) {
+		public Table(CPF cpf, Options options) {
+			this.options = options;
 			this.cpf = cpf;
 			domprod = cpf.getDomainProduct();
 			Domain dom = domprod[0].getDomain();
