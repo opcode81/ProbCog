@@ -137,7 +137,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         		groundings = form.getAllGroundings(db, vars, simplifyGroundedFormulas);
         	}
         	catch(Exception e) {
-        		throw new Exception("Error grounding formula '" + form + "'", e);
+        		throw new Exception("Error while grounding formula '" + form.toString() + "'", e);
         	}
             for(Formula gf : groundings) {
             	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
