@@ -860,11 +860,17 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	public boolean isBoolean(String functionName) {
-		return getSignature(functionName).isBoolean();
+		Signature sig = getSignature(functionName);
+		if(sig == null)
+			throw new RuntimeException("No signature was defined for '" + functionName + "'");
+		return sig.isBoolean();
 	}
 	
 	public boolean isEvidenceFunction(String functionName) {
-		return getSignature(functionName).isLogical;
+		Signature sig = getSignature(functionName);
+		if(sig == null)
+			throw new RuntimeException("No signature was defined for '" + functionName + "'");
+		return sig.isLogical;
 	}
 
 	public Taxonomy getTaxonomy() {
