@@ -46,7 +46,8 @@ public class GibbsSampling extends Sampler {
 		report(String.format("time taken: %.2fs (%.4fs per sample)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples));
 	}
 	
-	public void gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {
+	public double gibbsStep(int[] evidenceDomainIndices, WeightedSample s) {
+		double p = 1.0;
 		// resample all of the (non-evidence) nodes
 		for(int j = 0; j < nodes.length; j++)  {
 			// skip evidence nodes
@@ -67,8 +68,13 @@ public class GibbsSampling extends Sampler {
 					value *= getCPTProbability(child, s.nodeDomainIndices);
 				}			
 				distribution[d] = value;
-			}
-			s.nodeDomainIndices[j] = sample(distribution, generator);
+			}		
+			double sum = 0;
+			for(int i = 0; i < distribution.length; i++)
+				sum += distribution[i];
+			s.nodeDomainIndices[j] = sample(distribution, sum, generator);
+			p = distribution[s.nodeDomainIndices[j]] / sum;
 		}
+		return p;
 	}
 }
