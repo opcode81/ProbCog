@@ -109,8 +109,11 @@ public class BLNLearner implements IParameterHandler {
 				String regex = new File(dbFile).getName();
 				Pattern p = Pattern.compile( regex );
 				File directory = new File(dbFile).getParentFile();
-				if(directory == null || !directory.exists())
+				if(directory == null)
 					directory = new File(".");
+				else 
+					if(!directory.exists())
+						throw new IllegalArgumentException("The directory '" + directory + "', which was specfied in the pattern, does not exist");
 				if(verbose) System.out.printf("Searching for '%s' in '%s'...\n", regex, directory);
 				for (File file : directory.listFiles()) { 
 					if(p.matcher(file.getName()).matches()) {
