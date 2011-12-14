@@ -118,4 +118,8 @@ public class DecisionNode extends ExtendedNode {
 			return this.formula.toString();
 		}	
 	}
+	
+	public Formula getFormula() {
+		return formula;
+	}
 }
