@@ -55,7 +55,7 @@ class MCMCInference(Inference):
                             if i not in blockExcl:
                                 choosable.append(idxGA)
                         maxidx = len(choosable) - 1
-                        if maxidx == 0:
+                        if maxidx <= 0:
                             raise Exception("Evidence forces all ground atoms in block %s to be false" % mln._strBlock(block))
                         chosen = choosable[random.randint(0, maxidx)]
                         for idxGA in choosable:
