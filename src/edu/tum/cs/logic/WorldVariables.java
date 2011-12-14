@@ -125,6 +125,10 @@ public class WorldVariables implements Iterable<GroundAtom> {
 		public int indexOf(GroundAtom gndAtom) {
 			return gndAtoms.indexOf(gndAtom);
 		}
+		
+		public String toString() {
+			return gndAtoms.toString();
+		}
 	}
 
 	public Iterator<GroundAtom> iterator() {		

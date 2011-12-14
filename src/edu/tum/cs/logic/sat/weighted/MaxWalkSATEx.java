@@ -197,8 +197,9 @@ public class MaxWalkSATEx implements IMaxSAT {
 
     /**
      * Method starts and controls the activities of the algorithm. In this case there will be executed a walkSatMove (greedyMove) with a property of 95% else the SAMove (random Move) will be executed.
+     * @throws Exception 
      */
-    public void run() {
+    public void run() throws Exception {
         // init
         bottlenecks.clear();
         unsatisfiedConstraints.clear();
@@ -294,8 +295,9 @@ public class MaxWalkSATEx implements IMaxSAT {
 
     /**
      * sets the initial state randomly 
+     * @throws Exception 
      */
-    protected void setState() {
+    protected void setState() throws Exception {
         evidenceHandler.setRandomState(state);
     }
 

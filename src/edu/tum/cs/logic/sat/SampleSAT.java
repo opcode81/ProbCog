@@ -304,8 +304,9 @@ public class SampleSAT implements IParameterHandler {
 	
 	/**
 	 * sets a random state for non-evidence atoms
+	 * @throws Exception 
 	 */
-	protected void setRandomState() {
+	protected void setRandomState() throws Exception {
 		evidenceHandler.setRandomState(state);
 	}
 	

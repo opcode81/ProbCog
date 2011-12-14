@@ -82,7 +82,7 @@ public class EvidenceHandler {
 	 * sets a random state for the non-evidence atoms
 	 * @param state
 	 */
-	public void setRandomState(PossibleWorld state) {
+	public void setRandomState(PossibleWorld state) throws Exception {
 		HashSet<Block> handledBlocks = new HashSet<Block>();
 		for(int i = 0; i < vars.size(); i++) {
 			//System.out.println("  setting " + vars.get(i));
@@ -106,6 +106,8 @@ public class EvidenceHandler {
 						if(!excl.contains(gndAtom))
 							possibleTrueOnes.add(gndAtom);
 					}
+					if(possibleTrueOnes.isEmpty())
+						throw new Exception("Invalid Evidence: The block of variables " + block + " contains only false atoms");
 					GroundAtom trueOne = possibleTrueOnes.get(rand.nextInt(possibleTrueOnes.size()));
 					for(GroundAtom gndAtom : block) 
 						state.set(gndAtom, trueOne == gndAtom);					
