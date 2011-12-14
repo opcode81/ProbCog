@@ -34,9 +34,10 @@ public class MaxWalkSATRoom extends MaxWalkSATEx {
 
     /**
      * Sets the initial state of the possible world so that the algorithm starts the search at the same positions the staffmembers are sitting before. (nachher = vorher)
+     * @throws Exception 
      */
     @Override
-    public void setState() {
+    public void setState() throws Exception {
     	// set state randomly
     	super.setState();
         // now reset the workplace after relocation to the same as before
