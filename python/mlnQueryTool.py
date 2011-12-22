@@ -162,6 +162,9 @@ class MLNInfer(object):
                 if "printGroundAtoms" in args:
                     if args["printGroundAtoms"]:
                         mrf.printGroundAtoms()
+                if "printGroundFormulas" in args:
+                    if args["printGroundFormulas"]:
+                        mrf.printGroundFormulas()
                 if "writeGraphML" in args:
                     if args["writeGraphML"]:
                         graphml_filename = output_base_filename + ".graphml"
