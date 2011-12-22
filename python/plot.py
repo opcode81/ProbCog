@@ -1,18 +1,6 @@
-#usage:
-#from plot import Plot
-#import pickle
-#
-#p=Plot()
-#data = pickle.load(file("debug.txt"))
-#colors = ["green", "red", "blue", "cyan"]
-#i = 0
-#for name,points in data.iteritems():
-#    p.plot(points, color=colors[i], label=name)
-#    i += 1
-#p.legend()
-#p.draw()
-
 from math import sqrt
+
+FIGNUM = 1
 
 class Plot(object):
     '''
@@ -20,10 +8,14 @@ class Plot(object):
     and legend() to add your legend
     '''
     
-    def __init__(self, name = "Plot", LaTeX = False):
+    def __init__(self, name = "Plot", LaTeX = False, **kwargs):
+        global FIGNUM
         self.fapps = []
         self.name = name
         self.latex = LaTeX
+        self.fignum = FIGNUM
+        
+        FIGNUM += 1
         
         # LaTeX specific formatting settings
         # - figure dimensions (pt)
@@ -39,6 +31,9 @@ class Plot(object):
         self.tick_extend_into_right_border_chars = 2 # rightmost x-axis tick label may extend into border - this is the number of characters that extend into the border
         self.left_tick_label_chars = 4 # the number of characters used in the y-axis labels (must make sure there's room for these labels in the border)
         self.border = 0.05 # fraction of space that is to be taken up by borders around the figure
+        self.drawn = False
+        
+        self.__dict__.update(kwargs)
     
     def apply(self, function, *args, **kwargs):
         self.fapps.append((function, args, kwargs))
@@ -47,7 +42,11 @@ class Plot(object):
         return lambda *x, **y: self.apply(name, *x, **y)
     
     def draw(self):
+        #import matplotlib.pyplot as pylab
         import pylab
+        
+        pylab.figure(self.fignum)
+        #pylab.clf()
         
         # make some latex-specific settings for drawing
         if self.latex:
@@ -91,8 +90,6 @@ class Plot(object):
             height = 1.0 - top - bottom        
 
         # apply the plot
-        pylab.figure(1)
-        pylab.clf()
         if self.latex:
             pylab.axes([left,bottom,width,height])            
         for fname, args, kwargs in self.fapps:
@@ -103,16 +100,38 @@ class Plot(object):
             print "saving %s" % filename
             pylab.savefig(filename)
         else:
-            pylab.show()
+            pylab.draw()
     
     def plotFunction(self, f, x_start, x_end, steps, **kwargs):
         from pylab import np
         x = np.linspace(x_start, x_end, steps)
         self.plot(x, f(x), **kwargs)
     
+    def show(self):
+        if not self.drawn: self.draw()
+        show()
+    
+def showPlots():
+    import pylab
+    pylab.show()   
     
 # example plots
 if __name__ == '__main__':
+    
+    # drawing multiple plots (non-blocking)
     plot = Plot("test", LaTeX=False)
     plot.plotFunction(lambda x: x*x, -5, 5, 50)
     plot.draw()
+    plot2 = Plot("test2", LaTeX=False)
+    plot2.plotFunction(lambda x: 2*x, -5, 5, 50)
+    plot2.draw()
+    showPlots()
+    
+    # showing multiple plots one after the other
+    plot = Plot("test", LaTeX=False)
+    plot.plotFunction(lambda x: x*x, -5, 5, 50)
+    plot.show()
+    plot2 = Plot("test2", LaTeX=False)
+    plot2.plotFunction(lambda x: 2*x, -5, 5, 50)
+    plot2.show()
+    
