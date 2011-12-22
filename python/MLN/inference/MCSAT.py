@@ -105,7 +105,7 @@ class MCSAT(MCMCInference):
             else: # unit clause
                 yield [c]
     
-    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None, **args):
+    def _infer(self, numChains=1, maxSteps=5000, verbose=True, shortOutput=False, details=True, debug=False, debugLevel=1, initAlgo="SampleSAT", randomSeed=None, infoInterval=None, resultsInterval=None, p=0.5, keepResultsHistory=False, referenceResults=None, saveHistoryFile=None, sampleCallback=None, softEvidence=None, maxSoftEvidenceDeviation=None, handleSoftEvidence=True, **args):
         '''
         p: probability of a greedy (WalkSAT) move
         initAlgo: algorithm to use in order to find an initial state that satisfies all hard constraints ("SampleSAT" or "SAMaxWalkSat")
@@ -120,13 +120,15 @@ class MCSAT(MCMCInference):
         saveHistoryFile: if not None, save history to given filename
         sampleCallback: function that is called for every sample with the sample and step number as parameters
         softEvidence: if None, use soft evidence from MLN, otherwise use given dictionary of soft evidence
+        handleSoftEvidence: if False, ignore all soft evidence in the MCMC sampling (but still compute softe evidence statistics is soft evidence is there)
         '''
         
         print "starting MCSAT with maxSteps=", maxSteps
         if softEvidence is None:
             self.softEvidence = self.mln.softEvidence
         else:
-            self.softEvidence = softEvidence 
+            self.softEvidence = softEvidence
+        self.handleSoftEvidence = handleSoftEvidence
 
         # initialize the KB and gather required info
         self._initKB(verbose)
@@ -288,29 +290,30 @@ class MCSAT(MCMCInference):
                         if self.debug and self.debugLevel >= 3:
                             print "  to satisfy:", strFormula(gf)
         # add soft evidence constraints
-        for se in self.softEvidence:
-            p = se["numTrue"] / self.step
-            
-#            l = self.phistory.get(strFormula(se["formula"]), [])
-#            l.append(p)
-#            self.phistory[strFormula(se["formula"])] = l
-            
-            if se["formula"].isTrue(chain.state):
-                #print "true case"
-                add = False
-                if p < se["p"]:
-                    add = True
-                if add:
-                    M.extend(range(*se["idxClausePositive"]))
-                #print "positive case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClausePositive"])]), p, se["p"])
-            else:
-                #print "false case"
-                add = False
-                if p > se["p"]:
-                    add = True
-                if add:
-                    M.extend(range(*se["idxClauseNegative"]))
-                #print "negative case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClauseNegative"])]), p, se["p"])
+        if self.handleSoftEvidence:
+            for se in self.softEvidence:
+                p = se["numTrue"] / self.step
+                
+                #l = self.phistory.get(strFormula(se["formula"]), [])
+                #l.append(p)
+                #self.phistory[strFormula(se["formula"])] = l
+                
+                if se["formula"].isTrue(chain.state):
+                    #print "true case"
+                    add = False
+                    if p < se["p"]:
+                        add = True
+                    if add:
+                        M.extend(range(*se["idxClausePositive"]))
+                    #print "positive case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClausePositive"])]), p, se["p"])
+                else:
+                    #print "false case"
+                    add = False
+                    if p > se["p"]:
+                        add = True
+                    if add:
+                        M.extend(range(*se["idxClauseNegative"]))
+                    #print "negative case: add=%s, %s, %f should become %f" % (add, map(str, [map(str, self.clauses[i]) for i in range(*se["idxClauseNegative"])]), p, se["p"])
         # (uniformly) sample a state that satisfies them
         t1 = time.time()
         ss = SampleSAT(self.mln, chain.state, M, NLC, self, debug=self.debug and self.debugLevel >= 2, p=self.p)
