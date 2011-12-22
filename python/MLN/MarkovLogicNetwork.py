@@ -843,6 +843,10 @@ class MRF(object):
     '''
 
     def __init__(self, mln, db, verbose=False):
+        '''
+        db: database filename (.db) or a tuple (domain, evidence), where domain is a dictionary mapping domain names to
+            lists of elements and evidence is a dictionary mapping ground atom strings to truth values
+        '''
         self.mln = mln
         self.evidence = {}
         self.evidenceBackup = {}
