@@ -1,6 +1,7 @@
 from math import sqrt
 
-FIGNUM = 1
+figureNo = 1
+LNCS_COLUMN_WIDTH = 347.12354
 
 class Plot(object):
     '''
@@ -9,18 +10,17 @@ class Plot(object):
     '''
     
     def __init__(self, name = "Plot", LaTeX = False, **kwargs):
-        global FIGNUM
+        global figureNo
         self.fapps = []
         self.name = name
         self.latex = LaTeX
-        self.fignum = FIGNUM
-        
-        FIGNUM += 1
+        self.figureNo = figureNo
+        figureNo += 1
         
         # LaTeX specific formatting settings
         # - figure dimensions (pt)
-        lncs_col_width = 600.0 #347.12354 # (in pt) Get this from LaTeX using \showthe\columnwidth
-        self.fig_width_pt = lncs_col_width/2
+        col_width = 600.0 # column width (in pt) - get this from LaTeX using \showthe\columnwidth
+        self.fig_width_pt = col_width/2
         self.aspect_ratio =  (sqrt(5)-1.0)/2.0 # aesthetic ratio
         self.fig_height_pt = None # None = determined by aspect ratio
         # - fonts
@@ -31,7 +31,8 @@ class Plot(object):
         self.tick_extend_into_right_border_chars = 2 # rightmost x-axis tick label may extend into border - this is the number of characters that extend into the border
         self.left_tick_label_chars = 4 # the number of characters used in the y-axis labels (must make sure there's room for these labels in the border)
         self.border = 0.05 # fraction of space that is to be taken up by borders around the figure
-        self.drawn = False
+        self.latex_preamble = None
+		self.drawn = False
         
         self.__dict__.update(kwargs)
     
@@ -44,9 +45,6 @@ class Plot(object):
     def draw(self):
         #import matplotlib.pyplot as pylab
         import pylab
-        
-        pylab.figure(self.fignum)
-        #pylab.clf()
         
         # make some latex-specific settings for drawing
         if self.latex:
@@ -71,6 +69,8 @@ class Plot(object):
                       'text.usetex': True,
                       'figure.figsize': fig_size,
                       'font.family': self.font_family}
+            if self.latex_preamble is not None:
+                params["text.latex.preamble"] = self.latex_preamble
             pylab.rcParams.update(params)            
 
             # configure axes position
@@ -90,6 +90,8 @@ class Plot(object):
             height = 1.0 - top - bottom        
 
         # apply the plot
+        pylab.figure(self.figureNo)
+        pylab.clf()
         if self.latex:
             pylab.axes([left,bottom,width,height])            
         for fname, args, kwargs in self.fapps:
