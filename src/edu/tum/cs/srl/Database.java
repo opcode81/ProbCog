@@ -1,12 +1,7 @@
-/*
- * Created on Jan 31, 2011
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
 package edu.tum.cs.srl;
 
 import java.io.BufferedReader;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.Collection;
 import java.util.regex.Matcher;
@@ -173,5 +168,11 @@ public class Database extends GenericDatabase<Variable, String> {
 	@Override
 	public String getSingleVariableValue(String varName, boolean closedWorld) throws Exception {
 		return getVariableValue(varName, closedWorld);
+	}
+	
+	public void writeMLNDatabase(PrintStream out) throws Exception {
+		for(Variable var : this.getEntries()) {
+			out.println(var.getPredicate());
+		}
 	}
 }
