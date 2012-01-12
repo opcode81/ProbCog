@@ -310,7 +310,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			return f;
 		else {
 			for(File parentFile : this.declsFiles) {
-				f = new File(parentFile, filename).getParentFile().getAbsoluteFile();
+				f = new File(parentFile.getParentFile().getAbsoluteFile(), filename);
 				if(f.exists())
 					return f;
 			}
