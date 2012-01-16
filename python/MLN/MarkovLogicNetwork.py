@@ -698,8 +698,8 @@ class MLN(object):
         self.setWeights(wt)
 
         #delete worlds from learning
-        if  hasattr(self, "worlds"):
-            del self.worlds
+        if hasattr(self.mrf, "worlds"):
+            del self.mrf.worlds
 
         # fit prior prob. constraints if any available
         if len(self.probreqs) > 0:
@@ -752,8 +752,8 @@ class MLN(object):
         self.setWeights(wt)
 
         #delete worlds from learning
-        if  hasattr(self, "worlds"):
-            del self.worlds
+        if hasattr(self.mrf, "worlds"):
+            del self.mrf.worlds
 
         # fit prior prob. constraints if any available
         if len(self.probreqs) > 0:
