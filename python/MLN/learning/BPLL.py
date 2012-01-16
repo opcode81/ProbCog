@@ -168,6 +168,7 @@ class BPLLMemoryEfficient(BPLL):
     
     def __init__(self, mln, **params):
         BPLL.__init__(self, mln, **params)
+        # maps from variable/pllBlock index to a list of lists, where each list is a list of indices of weights
         self.mbcounts = {}
 
     def _prepareOpt(self):
@@ -197,7 +198,13 @@ class BPLLMemoryEfficient(BPLL):
             return self._getMBValue(idxPllBlock, idxInBlockTrueone, wt)
     
     def _getMBValue(self, idxVar, idxValue, wt):
-        l = self.mbcounts[idxVar]
+        l = self.mbcounts.get(idxVar, None)
+        if l is None: # no list was saved, so the truth of all formulas is unaffected by the variable's value
+            # uniform distribution applies (but for the optimization, we could in fact use an arbitrary value)
+            (idxVar, block) = self.mln.pllBlocks[idxVar]
+            numValues = 2 if idxVar is not None else len(block)
+            return 1.0/numValues
+        
         sums = []
         for i, l2 in enumerate(l):
             v = 0.0
@@ -212,18 +219,20 @@ class BPLLMemoryEfficient(BPLL):
         computes the statistics upon which the optimization is based:
         differences for the gradient computation, counts for probability given Markov blanket
         '''
-        debug = True
+        debug = False
         print "computing statistics..."
         self.blockdiffs = {}
         for idxGndFormula, gndFormula in enumerate(self.mln.gndFormulas):
-            print "  ground formula %d/%d\r" % (idxGndFormula, len(self.mln.gndFormulas)),
-            print
+            if debug:
+                print "  ground formula %d/%d\r" % (idxGndFormula, len(self.mln.gndFormulas)),
+                print
             
+            # get the set of block indices that the variables appearing in the formula correspond to
             idxBlocks = set()
             for idxGA in gndFormula.idxGroundAtoms():
-                print self.mln.gndAtomsByIdx[idxGA]
+                if debug: print self.mln.gndAtomsByIdx[idxGA]
                 idxBlocks.add(self.mln.atom2BlockIdx[idxGA])
-                        
+            
             for idxVar in idxBlocks:
                 
                 (idxGA, block) = self.mln.pllBlocks[idxVar]
