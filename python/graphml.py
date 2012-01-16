@@ -1,7 +1,12 @@
 import sys
 import re
 
-#Parse PMML into GraphML files
+# colors
+
+randomVariableColor = "#B1CBDA" # (177,203,218)
+decisionNodeColor = "#45CA46" # (60,202,80)
+
+# classes
 
 class Graph(object):
     def __init__(self):
@@ -93,8 +98,6 @@ class Edge(object):
 class UndirectedEdge(Edge):
     def __init__(self, graph, fromNode, toNode):
         Edge.__init__(self, graph, fromNode, toNode, sourceArrow="none", targetArrow="none")
-
-randomVariableColor = "#B1CBDA"
 
 if __name__ == "__main__":
     g = Graph()
