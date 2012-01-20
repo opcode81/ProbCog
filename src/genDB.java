@@ -15,6 +15,7 @@ public class genDB {
 		try {
 			boolean writeBasicBLND = false, writeBasicMLN = false, writeBLOGDB = false, writeMLNDB = false, writeProxDB = false;
 			boolean printDB = false;
+			int numRuns = 1;
 			int i = 0;
 
 			boolean abort = false;
@@ -49,6 +50,9 @@ public class genDB {
 						writeBasicBLND = true;
 						++tasks;
 					}
+					else if(args[i].equals("-multi")) {
+						numRuns = Integer.parseInt(args[++i]);
+					}
 					else 
 						break;
 				}
@@ -56,20 +60,25 @@ public class genDB {
 					abort = true;
 					System.err.println("\nError: No tasks were specified. Add at least one option.\n");
 				}
-			}
+			}			
 
 			if(abort) {
 				System.out.println("\ngenDB - a database generator");
 				System.out.println("\n  usage: genDB [options] <Jython generator script> <output base filename> [parameters to pass on to generator]\n" +
-						             "           -m   output MLN database (.db)\n" +
-						             "           -b   output BLOG database (.blogdb)\n" +
-						             "           -p   output Proximity database (.proxdb.xml)\n" +
-						             "           -s   print read database structure to stdout\n" + 
-						             "           -bm  output basic MLN model (.basic.mln)\n" +
-						             "           -bb  output basic BLN model declarations (.basic.blnd)\n\n" +
+						             "           -m         output MLN database (.db)\n" +
+						             "           -b         output BLOG database (.blogdb)\n" +
+						             "           -p         output Proximity database (.proxdb.xml)\n" +
+						             "           -s         print read database structure to stdout\n" + 
+						             "           -bm        output basic MLN model (.basic.mln)\n" +
+						             "           -bb        output basic BLN model declarations (.basic.blnd)\n" +
+						             "           -multi N   create N databases with the given parameters (appending numbers to the base filename)\n\n" +
 						             "         The Jython script must create a Database object named 'db' in the global scope.\n");
 				return;
 			}
+			
+			String jythonscript = args[i++];
+			String baseOutfilename = args[i++];
+			int firstScriptArgIndex = i;
 			
 			Properties props = new Properties();
 			//props.put("python.path", "C:\\Progra~2\\jython-2.1\\Lib;datagen");
@@ -85,52 +94,62 @@ public class genDB {
 			props.put("python.path", jythonpath);
 			Properties sysprops = System.getProperties();
 			PythonInterpreter.initialize(sysprops, props, null);
-			PythonInterpreter jython = new PythonInterpreter();
-		
-			jython.exec("import sys");
-			String jythonscript = args[i++];
-			jython.exec("sys.argv.append('" + jythonscript + "')");
-			String outfilename = args[i++];
-			for(; i < args.length; i++) {
-				jython.exec("sys.argv.append('" + args[i] + "')");
-			}
 			
-			jython.execfile(jythonscript);
-			PyObject dbObj = jython.get("db");
-			if(dbObj == null) {
-				System.err.println("\nError: Generator script does not define 'db' object!");
-				return;
-			}
-			Database db = (Database) dbObj.__tojava__(Database.class);
-			db.check();
+			int numDigits = (int)Math.ceil(Math.log10((double)numRuns));
+			String multiOutfileFormat = String.format("%s%%0%dd", baseOutfilename, numDigits);			
 			
-			if(printDB)
-				db.printData();
-			
-			if(writeMLNDB) {
-				File file = new java.io.File(outfilename + ".db");
-				System.out.println("Writing MLN database to " + file);
-				db.writeMLNDatabase(new PrintStream(file));
-			}
-			if(writeBLOGDB) {
-				File file = new java.io.File(outfilename + ".blogdb");
-				System.out.println("Writing BLN database to " + file);
-				db.writeBLOGDatabase(new PrintStream(file));
-			}
-			if(writeProxDB) {
-				File file = new java.io.File(outfilename + ".proxdb.xml");
-				System.out.println("Writing Proximity database to " + file);
-				db.writeProximityDatabase(new PrintStream(file));
-			}
-			if(writeBasicMLN) {
-				File file = new File(outfilename + ".basic.mln");
-				System.out.println("Writing basic MLN declarations to " + file);
-				db.writeBasicMLN(new PrintStream(file));
-			}
-			if(writeBasicBLND) {
-				File file = new File(outfilename + ".basic.blnd");
-				System.out.println("Writing basic BLN declarations to " + file);
-				db.getDataDictionary().writeBasicBLOGModel(new PrintStream(file));
+			for(int run = 1; run <= numRuns; run++) {
+				if(numRuns > 1)
+					System.out.printf("gerating database %d/%d...", run, numRuns);
+				PythonInterpreter jython = new PythonInterpreter();			
+				jython.exec("import sys");				
+				jython.exec("sys.argv = ['" + jythonscript + "']");				
+				for(int j = firstScriptArgIndex; j < args.length; j++) {
+					jython.exec("sys.argv.append('" + args[j] + "')");
+				}
+				
+				jython.execfile(jythonscript);
+				PyObject dbObj = jython.get("db");
+				if(dbObj == null) {
+					throw new Exception("\nGenerator script does not define 'db' object!");
+				}
+				Database db = (Database) dbObj.__tojava__(Database.class);
+				db.check();
+				
+				if(printDB)
+					db.printData();
+				
+				String outfilename;
+				if(numRuns == 1)
+					outfilename = baseOutfilename;
+				else
+					outfilename = String.format(multiOutfileFormat, run); 
+				
+				if(writeMLNDB) {
+					File file = new java.io.File(outfilename + ".db");
+					System.out.println("Writing MLN database to " + file);
+					db.writeMLNDatabase(new PrintStream(file));
+				}
+				if(writeBLOGDB) {
+					File file = new java.io.File(outfilename + ".blogdb");
+					System.out.println("Writing BLN database to " + file);
+					db.writeBLOGDatabase(new PrintStream(file));
+				}
+				if(writeProxDB) {
+					File file = new java.io.File(outfilename + ".proxdb.xml");
+					System.out.println("Writing Proximity database to " + file);
+					db.writeProximityDatabase(new PrintStream(file));
+				}
+				if(writeBasicMLN) {
+					File file = new File(outfilename + ".basic.mln");
+					System.out.println("Writing basic MLN declarations to " + file);
+					db.writeBasicMLN(new PrintStream(file));
+				}
+				if(writeBasicBLND) {
+					File file = new File(outfilename + ".basic.blnd");
+					System.out.println("Writing basic BLN declarations to " + file);
+					db.getDataDictionary().writeBasicBLOGModel(new PrintStream(file));
+				}
 			}
 			
 			System.out.println("done!");
