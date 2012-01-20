@@ -348,7 +348,7 @@ if __name__ == '__main__':
     # read command-line options
     from optparse import OptionParser
     parser = OptionParser()
-    parser.add_option("--run", action="store_true", dest="run", default=False, help="run without showing gui")
+    parser.add_option("--run", action="store_true", dest="run", default=False, help="run last configuration without showing gui")
     parser.add_option("-i", "--mln-filename", dest="mln_filename", help="input MLN filename", metavar="FILE", type="string")
     parser.add_option("-t", "--db-filename", dest="db", help="training database filename", metavar="FILE", type="string")
     parser.add_option("-o", "--output-file", dest="output_filename", help="output MLN filename", metavar="FILE", type="string")

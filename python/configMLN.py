@@ -11,6 +11,8 @@
 
 from configGUI import *
 
+coloring = True
+
 # --- settings for the parameter learning tool ---
 
 learnwts_mln_filemask = "*.mln"
