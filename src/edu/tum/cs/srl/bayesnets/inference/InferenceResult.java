@@ -9,6 +9,8 @@ public class InferenceResult implements Comparable<InferenceResult> {
 	public String[] domainElements;
 	public double[] probabilities;
 	public Object[] additionalInfo = null;
+	/** the index of the query for which this result was computed **/
+	public int queryNo = -1; 
 	
 	public InferenceResult(SampledDistribution dist, int nodeIdx) {
 		BeliefNode node = dist.bn.bn.getNodes()[nodeIdx];
