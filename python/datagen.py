@@ -206,45 +206,7 @@ class ConstantAsObject(Object):
         
         world.addObject("constant", self)
         
-class ObjectGenerator:
-    def __init__(self, objtype, world_or_container, attrgens = None):
-        '''
-            objtype: a string representing the name of the type of the objects that this generator is to generate
-            world_or_container:
-                either the world object (if it has a container for objtype, it is used for generated objects; otherwise the container is added) or
-                directly a container (ObjectContainer instance) in which to store the generated object
-            attrgens: a mapping of attribute names to attribute generator objects (e.g. AttrFixed or AttrDist)
-        '''
-        if isinstance(world_or_container, World):
-            self.container = world_or_container.getContainer(objtype)
-            if self.container is None:
-                self.container = world_or_container.addContainer(objtype)
-        else:
-            self.container = world_or_container
-        if attrgens is None: attrgens = {}
-        self.attrgens = attrgens
-        self.objtype = objtype
-    
-    def setAttrGen(attr, gen):
-        self.attrgens[attr] = gen
-       
-    def generate(self, **kwargs):
-        o = Object(self.objtype, **kwargs)
-        self._createAttributes(o, **kwargs)
-        self._createLinks(o, **kwargs)
-        self.container.add(o)
-        return o
-    
-    def _createAttributes(self, obj, **args):
-        for attrName,gen in self.attrgens.items():
-            self._createAttribute(obj, attrName, gen)
-
-    def _createAttribute(self, obj, attrname, attrgen):
-        obj.setAttr(attrname, attrgen.generate())
-
-    def _createLinks(self, obj, **args):
-        pass
-    
+   
 class ObjectContainer:
     ''' represents a collection of objects '''
     
@@ -274,15 +236,18 @@ class ObjectContainer:
         return iter(self.objects)
 
     def sampleObject(self):
+        ''' samples an object from this container (without removing the sampled object) '''
         return random.choice(self.objects)
 
     def sampleRemoveObject(self):
+        ''' samples an object and removes it from the container '''
         o = self.sampleObject()
         self.removedObjects.append(o)
         self.objects.remove(o)
         return o
 
     def restoreRemovedObjects(self):
+        ''' restores/re-adds objects to the container that were previously removed using calls to sampleRemoveObject '''
         self.objects.extend(self.removedObjects)
         self.removedObjects = []
         
@@ -307,10 +272,15 @@ class ObjectContainer:
         return ObjectContainer(filter(lambda x: x not in container, self.objects))
     
     def filter(self, criterion):
+        ''' filters this container, returning a new container that contains only the objects satisfying the given criterion (a Boolean function) '''
         return ObjectContainer(filter(criterion, self.objects))
 
     def clear(self):
         self.objects = []
+    
+    def clone(self):
+        ''' returns a new container that contains all the objects in this container '''
+        return ObjectContainer(self.objects)
 
 class World:
     def __init__(self):
@@ -599,9 +569,13 @@ def decide(p):
     return Decider(p).decide()
     
    
-# **** OBJECT SELECTION ***
+# **** OBJECT SELECTION FROM CONTAINERS ***
+
+# These classes select objects from an ObjectContainer (with and without replacement)
 
 class Selector:
+    ''' the abstract base class for selectors '''
+    
     def __init__(self, container, removeChosenObject = False):
         if not isinstance(container, ObjectContainer):
             raise Exception("Selector requires the container to be an instance of ObjectContainer, got %s" % str(type(container)))
@@ -651,6 +625,28 @@ class SelOne(Selector):
 
     def canPick(self):
         return len(self.container) > 0
+
+class SelN(SelOne):
+    ''' selects n objects from a container '''
+    
+    def __init__(self, container, n, removeChosenObject = False, allowFewer = False):
+        ''' if allowFewer=True and the container is smaller than n, selects as many objects as the container permits; otherwise picks n '''
+        Selector.__init__(self, container, removeChosenObject)
+        self.n = n
+    
+    def pick(self):
+        ret = []
+        if allowFewer:
+            n = min(self.n, len(self.container))
+        else:
+            n = self.n
+        for i in xrange(n):
+            ret.append(self._pickOne())
+        return ret
+    
+    def canPick(self):
+        ''' returns True iff n objects can be picked '''
+        return len(self.container) >= n
 
 class SelCond(SelOne):
     ''' selects one object if a condition is met '''
@@ -707,7 +703,47 @@ class SelDist(Selector):
         return self.selectors[i].pick()
 
 		
-# legacy stuff
+# deprecated legacy stuff
+
+class ObjectGenerator:
+    def __init__(self, objtype, world_or_container, attrgens = None):
+        '''
+            objtype: a string representing the name of the type of the objects that this generator is to generate
+            world_or_container:
+                either the world object (if it has a container for objtype, it is used for generated objects; otherwise the container is added) or
+                directly a container (ObjectContainer instance) in which to store the generated object
+            attrgens: a mapping of attribute names to attribute generator objects (e.g. AttrFixed or AttrDist)
+        '''
+        if isinstance(world_or_container, World):
+            self.container = world_or_container.getContainer(objtype)
+            if self.container is None:
+                self.container = world_or_container.addContainer(objtype)
+        else:
+            self.container = world_or_container
+        if attrgens is None: attrgens = {}
+        self.attrgens = attrgens
+        self.objtype = objtype
+    
+    def setAttrGen(attr, gen):
+        self.attrgens[attr] = gen
+       
+    def generate(self, **kwargs):
+        o = Object(self.objtype, **kwargs)
+        self._createAttributes(o, **kwargs)
+        self._createLinks(o, **kwargs)
+        self.container.add(o)
+        return o
+    
+    def _createAttributes(self, obj, **args):
+        for attrName,gen in self.attrgens.items():
+            self._createAttribute(obj, attrName, gen)
+
+    def _createAttribute(self, obj, attrname, attrgen):
+        obj.setAttr(attrname, attrgen.generate())
+
+    def _createLinks(self, obj, **args):
+        pass
+
 
 class RelationGenerator:
     def __init__(self, linkName, chooser, decider = None, chosenIsFirstArg = 0):
