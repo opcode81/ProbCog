@@ -23,6 +23,7 @@ public abstract class Sampler implements IParameterHandler {
 	protected int infoInterval = 100;
 	protected ParameterHandler paramHandler;
 	protected Vector<Integer> queryVars;
+	protected Vector<Integer> queryVarQueryIndices;
 	protected AbstractGroundBLN gbln;
 	double inferenceTime, initTime;
 	protected boolean initialized = false;
@@ -44,8 +45,13 @@ public abstract class Sampler implements IParameterHandler {
 	 */
 	public Vector<InferenceResult> getResults(SampledDistribution dist) {		
 		Vector<InferenceResult> results = new Vector<InferenceResult>();
-		for(Integer i : queryVars)
-			results.add(new InferenceResult(dist, i));
+		int j = 0;
+		for(Integer i : queryVars) {
+			InferenceResult result = new InferenceResult(dist, i);
+			result.queryNo = queryVarQueryIndices.get(j); 
+			results.add(result);
+			++j;
+		}
 		return results;
 	}
 	
@@ -138,11 +144,17 @@ public abstract class Sampler implements IParameterHandler {
 		// TODO This should be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
 		BeliefNode[] nodes = gbln.getGroundNetwork().getNodes();
 		queryVars = new Vector<Integer>();
-		for(int i = 0; i < nodes.length; i++)
-			for(Pattern pattern : patterns)				
+		queryVarQueryIndices = new Vector<Integer>();
+		for(int i = 0; i < nodes.length; i++) {
+			int idxQuery = 0;
+			for(Pattern pattern : patterns)	{		
 				if(pattern.matcher(nodes[i].getName()).matches()) {
 					queryVars.add(i);
-					break;
-				}	
+					queryVarQueryIndices.add(idxQuery);
+					break;					
+				}
+				++idxQuery;
+			}
+		}
 	}
 }
