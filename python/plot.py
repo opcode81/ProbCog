@@ -32,7 +32,7 @@ class Plot(object):
         self.left_tick_label_chars = 4 # the number of characters used in the y-axis labels (must make sure there's room for these labels in the border)
         self.border = 0.05 # fraction of space that is to be taken up by borders around the figure
         self.latex_preamble = None
-		self.drawn = False
+        self.drawn = False
         
         self.__dict__.update(kwargs)
     
