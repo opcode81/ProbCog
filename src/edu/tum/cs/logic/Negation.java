@@ -6,6 +6,9 @@ import java.util.Collection;
 import java.util.Vector;
 
 public class Negation extends ComplexFormula {
+	
+	//static int cnfDepth = 0; 
+	
 	public Negation(Formula f) {
         super(new Formula[]{f});
     }
@@ -27,7 +30,12 @@ public class Negation extends ComplexFormula {
 
     @Override
     public Formula toCNF() {
-        Formula f = children[0].toCNF();
+    	/*
+    	try{
+    	Negation.cnfDepth++; System.out.printf(String.format("%%%dc", cnfDepth), ' ');
+    	System.out.println(this);
+    	*/
+        Formula f = children[0].toNNF();
         if (f instanceof ComplexFormula) {
             Vector<Formula> negChildren = new Vector<Formula>();
             for (Formula child : ((ComplexFormula) f).children)
@@ -47,8 +55,21 @@ public class Negation extends ComplexFormula {
             else if(f instanceof GroundAtom) {
             	return new GroundLiteral(false, (GroundAtom)f);
             }
+            else if(f instanceof Atom) {
+            	return new Literal(false, (Atom)f);
+            }
+            else if (f instanceof Literal) {
+                Literal l = (Literal) f;
+                return new Literal(!l.isPositive, l.atom);
+            }
             throw new RuntimeException("CNF conversion of negation of " + children[0].getClass().getSimpleName() + " not handled.");
         }
+        /*
+    	}
+    	finally {
+    		Negation.cnfDepth--;
+    	}
+    	*/
     }
     
     @Override
