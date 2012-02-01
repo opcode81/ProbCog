@@ -34,10 +34,15 @@ public class Disjunction extends ComplexFormula {
 
     @Override
     public Formula toCNF() {
-        //System.out.println(this);
-        Set<Formula> clause = new HashSet<Formula>();
-        Set<String> strClause = new HashSet<String>();
-        Collection<Conjunction> conjunctions = new Vector<Conjunction>();
+    	/*try{
+    	Negation.cnfDepth++; System.out.printf(String.format("%%%dc", Negation.cnfDepth), ' ');
+        System.out.println(this);
+        */
+        if(this.children.length == 1)
+        	return this.children[0].toCNF();
+        HashSet<Formula> clause = new HashSet<Formula>();
+        HashSet<String> strClause = new HashSet<String>();
+        Vector<Conjunction> conjunctions = new Vector<Conjunction>();
         // convert children to CNF and group by disjunction (flattened) and conjunction
         // make sure that the flattened disjunction contains no duplicates
         for (Formula child : children) {
@@ -65,18 +70,29 @@ public class Disjunction extends ComplexFormula {
         if (conjunctions.isEmpty())
             return clause.size() == 1 ? clause.iterator().next() : new Disjunction(clause);
         else {
+        	if(conjunctions.size() == 1 && clause.size() == 0)
+        		return conjunctions.get(0);
             // apply distributivity
             // use the first conjunction to distribute: (C_1 ^ ... ^ C_n) v RD = (C_1 v RD) ^ ... ^  (C_n v RD)
             Iterator<Conjunction> i = conjunctions.iterator();
             Formula[] conjuncts = i.next().children;
             while (i.hasNext())
                 clause.add(i.next());
-            Formula RD = new Disjunction(clause);
+            //Formula RD = new Disjunction(clause);
             Vector<Formula> elems = new Vector<Formula>();
-            for (Formula Ci : conjuncts)
-                elems.add(new Disjunction(Ci, RD));
+            for (Formula Ci : conjuncts) {
+            	HashSet<Formula> newClause = (HashSet<Formula>)clause.clone();
+            	newClause.add(Ci);
+                elems.add(new Disjunction(newClause));
+            }
             return new Conjunction(elems).toCNF();
         }
+        /*
+    	}
+    	finally {
+    		Negation.cnfDepth--;
+    	}
+    	*/
     }
     
     @Override
