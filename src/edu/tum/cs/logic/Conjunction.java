@@ -32,7 +32,13 @@ public class Conjunction extends ComplexFormula {
 
     @Override
     public Formula toCNF() {
-        //System.out.println(this);
+    	/*
+    	try{
+    	Negation.cnfDepth++; System.out.printf(String.format("%%%dc", Negation.cnfDepth), ' ');
+        System.out.println(this);
+        */
+        if(this.children.length == 1)
+        	return this.children[0].toCNF();
         Vector<Formula> clauses = new Vector<Formula>();
         // first convert all children to CNF and eliminate nested conjunctions by collecting all conjuncts centrally
         for (Formula child : this.children) {
@@ -89,7 +95,15 @@ public class Conjunction extends ComplexFormula {
             }
         }
         // return the conjunction of clauses
+        if(clauses.size() == 1)
+        	return clauses.get(0);
         return new Conjunction(clauses);
+        /*
+        }        
+    	finally {
+    		Negation.cnfDepth--;
+    	}
+    	*/
     }
 
     @Override
