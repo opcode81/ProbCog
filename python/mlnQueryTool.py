@@ -561,6 +561,7 @@ class MLNQuery(object):
         self.settings["useEMLN"] = self.use_emln.get()
         self.settings["maxSteps"] = self.maxSteps.get()
         self.settings["numChains"] = self.numChains.get()
+        if "params" in self.settings: del self.settings["params"]
         if saveGeometry:
             self.settings["geometry"] = self.master.winfo_geometry()
         self.settings["saveResults"] = self.save_results.get()
