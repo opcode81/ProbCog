@@ -24,6 +24,7 @@ public class BLNprintCPT {
 	public static class Options {
 		public Integer firstDataCol = null;
 		public Integer lastDataCol = null;
+		public Integer decimals = 2;
 	}
 
 	/**
@@ -40,13 +41,16 @@ public class BLNprintCPT {
 				options.firstDataCol = Integer.parseInt(args[++i]);
 			if(args[i].equals("-lastCol"))
 				options.lastDataCol = Integer.parseInt(args[++i]);			
+			if(args[i].equals("-decimals"))
+				options.decimals = Integer.parseInt(args[++i]);			
 		}
 		
 		if(args.length != i+3) {
 			System.out.println("\nBLNprintCPTs -- format CPTs for printing using LaTeX\n\n");
 			System.out.println("\nusage: BLNprintCPT [options] <bln declarations file> <bln fragment network> <node name>\n\n");
 			System.out.println("  options:   -firstCol N    first data column to print (1-based index)\n" + 
-					           "             -lastCol  N    last data column to print (1-based index), followed by dots\n");
+					           "             -lastCol  N    last data column to print (1-based index), followed by dots\n" + 
+					           "             -decimals N    number of decimals for parameter output (default: 2)\n");
 			return;
 		}
 		
@@ -142,6 +146,8 @@ public class BLNprintCPT {
 		}
 		
 		protected void writeData(int i, int[] addr) {
+			String numberFormat = String.format("%%.%df", options.decimals);
+			
 			Domain dom;
 			if(i == addr.length) {
 				// write parent configuration
@@ -154,7 +160,7 @@ public class BLNprintCPT {
 				for(int j = 0; j < dom.getOrder(); j++) {
 					addr[0] = j;
 					double p = cpf.getDouble(addr);
-					table[row++][currentColumn] = String.format("%.2f", p);
+					table[row++][currentColumn] = String.format(numberFormat, p);
 				}
 				
 				++currentColumn;

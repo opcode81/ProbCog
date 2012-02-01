@@ -22,14 +22,17 @@ public class BNprintCPT {
 			if(args[i].equals("-firstCol"))
 				options.firstDataCol = Integer.parseInt(args[++i]);
 			if(args[i].equals("-lastCol"))
-				options.lastDataCol = Integer.parseInt(args[++i]);			
+				options.lastDataCol = Integer.parseInt(args[++i]);		
+			if(args[i].equals("-decimals"))
+				options.decimals = Integer.parseInt(args[++i]);
 		}
 		
 		if(args.length != i+2) {
 			System.out.println("\nBNprintCPT -- format CPTs for printing using LaTeX\n\n");
 			System.out.println("\nusage: BNprintCPT [options] <Bayesian network file: pmml, xml, etc.> <node name>\n\n");
 			System.out.println("  options:   -firstCol N    first data column to print (1-based index)\n" + 
-					           "             -lastCol  N    last data column to print (1-based index), followed by dots\n");
+			                   "             -lastCol  N    last data column to print (1-based index), followed by dots\n" + 
+	           		           "             -decimals N    number of decimals for parameter output (default: 2)\n");
 			return;
 		}
 		
