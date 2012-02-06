@@ -112,33 +112,34 @@ class LL(AbstractLearner):
         print "  %d counts recorded." % len(self.counts)
 
 
-class CD(LL):
+class CD(AbstractLearner):
     '''
-        contrastive divergence with soft evidence
+        contrastive divergence-style learner
+        maximises the omega-value of the training database world relative to the
+        geometric mean of sampled worlds obtained via MC-SAT
     '''
     
     def __init__(self, mln, **params):
         AbstractLearner.__init__(self, mln, **params)
         
     def _f(self, wt):
-        self._calculateWorldValues(wt)
         self.normSampler.sample(wt)
         
-        ll = log(self.expsums[self.idxTrainingDB])
-        ll -= sum(self.normSampler.globalFormulaCounts) / self.normSampler.numSamples
+        ll = fsum(self.formulaCountsTrainingDB * wt)
+        ll -= fsum(self.normSampler.globalFormulaCounts) / self.normSampler.numSamples
         
         return ll
     
     def _grad(self, wt):
-        self._calculateWorldValues(wt)
         self.normSampler.sample(wt)
         
         #calculate gradient
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)        
-        for ((idxWorld, idxFormula), count) in self.counts.iteritems():
-            if self.idxTrainingDB == idxWorld:                
-                grad[idxFormula] += count                
-        grad -= self.normSampler.globalFormulaCounts / self.normSampler.numSamples
+        sub = self.normSampler.globalFormulaCounts / self.normSampler.numSamples
+        sys.stderr.write("wt: %s\n" % wt)
+        sys.stderr.write("DB: %s\n" % self.formulaCountsTrainingDB)
+        sys.stderr.write("sub: %s\n\n" % sub)
+        grad = self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples
+        sys.stderr.write("grad: %s\n\n" % grad)
        
         # HACK: gradient gets too large, reduce it
         #if numpy.any(numpy.abs(grad) > 1):
@@ -153,12 +154,17 @@ class CD(LL):
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
         self.mln.worlds.append({"values": self.mln.evidence}) # HACK
-        self.idxTrainingDB = 0 
+        self.idxTrainingDB = 0
+        
         # compute counts
         print "computing counts for training database..."
-        self._computeCounts()
-        print "  %d counts recorded." % len(self.counts)
+        self.formulaCountsTrainingDB = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        for i, world in enumerate(self.mln.worlds):            
+            for gf in self.mln.gndFormulas:                
+                if self.mln._isTrue(gf, world["values"]):
+                    self.formulaCountsTrainingDB[gf.idxFormula] += 1.0
         
+        # initialise sampler
         self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
         print self.params
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
@@ -167,7 +173,7 @@ class CD(LL):
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                             doProbabilityFitting=False,
                                             verbose=False, details=False, infoInterval=100, resultsInterval=100),
-                                       discardDuplicateWorlds = False)
+                                       discardDuplicateWorlds=False)
 
 from softeval import truthDegreeGivenSoftEvidence
 
@@ -576,11 +582,13 @@ class SLL_SE(AbstractLearner):
 class CD_SE(SLL_ISE):
     '''
         contrastive divergence with soft evidence
-        TODO add optimizer that works only based on gradient
     '''
     
     def __init__(self, mln, **params):
         SLL_ISE.__init__(self, mln, **params)
+
+    def _f(self, wt):
+        pass # TODO
     
     def _grad(self, wt):        
         self.normSampler.sample(wt)
