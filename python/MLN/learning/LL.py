@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+	# -*- coding: iso-8859-1 -*-
 #
 # Markov Logic Networks
 #
@@ -125,8 +125,8 @@ class CD(AbstractLearner):
     def _f(self, wt):
         self.normSampler.sample(wt)
         
-        ll = fsum(self.formulaCountsTrainingDB * wt)
-        ll -= fsum(self.normSampler.globalFormulaCounts) / self.normSampler.numSamples
+        ll = numpy.sum(self.formulaCountsTrainingDB * wt)
+        ll -= numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples
         
         return ll
     
