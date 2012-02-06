@@ -873,7 +873,7 @@ class MRF(object):
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
 
         if type(db) == str:
-            db = Database(db)
+            db = Database(self.mln, db)
         elif isinstance(db, Database):
             pass
         else:
