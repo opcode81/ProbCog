@@ -494,64 +494,6 @@ class MLN(object):
             for idxFormula in group:
                 self.formulas[idxFormula].weight -= minWeight
 
-    def _readDBFile(self, dbfile, includeNonExplicitDomains=True, mrf=None):
-        '''
-            reads a database file containing literals and/or domains
-            returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
-            and evidence is a dictionary mapping ground atom strings to truth values
-
-            mrf: the Markov random field to write soft evidence to
-        '''
-        domains = {}
-        # read file
-        f = file(dbfile, "r")
-        db = f.read()
-        f.close()
-        db = stripComments(db)
-        # expand domains with db constants and save evidence
-        evidence = {}
-        for l in db.split("\n"):
-            l = l.strip()
-            if l == "":
-                continue
-            # soft evidence
-            if l[0] in "0123456789":
-                if mrf is None: raise Exception("Cannot read soft evidence; MRF not given")
-                s = l.find(" ")
-                gndAtom = l[s + 1:].replace(" ", "")
-                d = {"expr": gndAtom, "p": float(l[:s])}
-                if mrf._getSoftEvidence(gndAtom) == None:
-                    mrf.softEvidence.append(d)
-                else:
-                    raise Exception("Duplicate soft evidence for '%s'" % gndAtom)
-                predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
-                domNames = self.predicates[predName]
-            # domain declaration
-            elif "{" in l:
-                domName, constants = parseDomDecl(l)
-                domNames = [domName for c in constants]
-            # literal
-            else:
-                if l[0] == "?":
-                    raise Exception("Unknown literals not supported (%s)" % l) # this is an Alchemy feature
-                isTrue, predName, constants = parseLiteral(l)
-                domNames = self.predicates[predName]
-                # save evidence
-                evidence["%s(%s)" % (predName, ",".join(constants))] = isTrue
-
-            # expand domains
-            if len(domNames) != len(constants):
-                raise Exception("Ground atom %s in database %s has wrong number of parameters" % (l, dbfile))
-
-            if "{" in l or includeNonExplicitDomains:
-                for i in range(len(constants)):
-                    if domNames[i] not in domains:
-                        domains[domNames[i]] = []
-                    d = domains[domNames[i]]
-                    if constants[i] not in d:
-                        d.append(constants[i])
-        return (domains, evidence)
-
     def combineDB(self, dbfile, verbose=False, groundFormulas=True):
         '''
           DEPRECATED method, use groundMRF instead
@@ -561,13 +503,15 @@ class MLN(object):
           dbfile: name of a database file
           returns the evidence defined in the database (dictionary mapping ground atom strings to truth values)
         '''
-        domain, evidence = self._readDBFile(dbfile)
+        db = Database(self, dbfile)
+        domain, evidence = db.domains, db.evidence
         # combine domains
         self.combine(domain, verbose=verbose, groundFormulas=groundFormulas, evidence=evidence)
         return evidence
 
     def combineDBOverwriteDomains(self, dbfile, verbose=False, groundFormulas=True):
-        domain, evidence = self._readDBFile(dbfile, False)
+        db = Database(self, dbfile)
+        domain, evidence = db.domains, db.evidence
         # combine domains
         self.combineOverwrite(domain, verbose=verbose, groundFormulas=groundFormulas)
 
@@ -610,7 +554,8 @@ class MLN(object):
             in the database file is not allowed.
         '''
         # extend domain
-        domain, evidence = self._readDBFile(dbfile)
+        db = Database(self, dbfile)
+        domain, evidence = db.domains, db.evidence
         for domName, dbd in domain.iteritems():
             if domName not in self.domains:
                 self.domains[domName] = []
@@ -721,13 +666,13 @@ class MLN(object):
         dbs = []
         fullDomain = {}
         for filename in dbFilenames:
-            domain, evidence = self._readDBFile(filename)
-            for domName, values in domain.iteritems():
+            db = Database(self, filename)
+            for domName, values in db.domains.iteritems():
                 if domName not in fullDomain:
                     fullDomain[domName] = values
                 else:
                     fullDomain[domName] = list(set(fullDomain[domName] + values))
-            dbs.append((domain, evidence))
+            dbs.append(db)
 
         # materialize formula templates using full domain
         oldDomains = self.domains
@@ -819,6 +764,82 @@ class MLN(object):
     def setRigidPredicate(self, predName):
         self.rigidPredicates.append(predName)
 
+
+class Database(object):
+    def __init__(self, mln, dbfile):
+        self.mln = mln
+        self.domains = {}
+        self.evidence = {}
+        self.softEvidence = []
+        self.includeNonExplicitDomains = True
+        self.readFile(dbfile)
+    
+    def readFile(self, dbfile):
+        '''
+            reads a database file containing literals and/or domains
+            returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
+            and evidence is a dictionary mapping ground atom strings to truth values
+        '''
+        domains = self.domains
+        # read file
+        f = file(dbfile, "r")
+        db = f.read()
+        f.close()
+        db = stripComments(db)
+        # expand domains with db constants and save evidence
+        evidence = self.evidence
+        for l in db.split("\n"):
+            l = l.strip()
+            if l == "":
+                continue
+            # soft evidence
+            if l[0] in "0123456789":
+                s = l.find(" ")
+                gndAtom = l[s + 1:].replace(" ", "")
+                d = {"expr": gndAtom, "p": float(l[:s])}
+                if self.getSoftEvidence(gndAtom) == None:
+                    self.softEvidence.append(d)
+                else:
+                    raise Exception("Duplicate soft evidence for '%s'" % gndAtom)
+                predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
+                domNames = self.mln.predicates[predName]
+            # domain declaration
+            elif "{" in l:
+                domName, constants = parseDomDecl(l)
+                domNames = [domName for c in constants]
+            # literal
+            else:
+                if l[0] == "?":
+                    raise Exception("Unknown literals not supported (%s)" % l) # this is an Alchemy feature
+                isTrue, predName, constants = parseLiteral(l)
+                domNames = self.mln.predicates[predName]
+                # save evidence
+                evidence["%s(%s)" % (predName, ",".join(constants))] = isTrue
+
+            # expand domains
+            if len(domNames) != len(constants):
+                raise Exception("Ground atom %s in database %s has wrong number of parameters" % (l, dbfile))
+
+            if "{" in l or self.includeNonExplicitDomains:
+                for i in range(len(constants)):
+                    if domNames[i] not in domains:
+                        domains[domNames[i]] = []
+                    d = domains[domNames[i]]
+                    if constants[i] not in d:
+                        d.append(constants[i])
+                        
+    def getSoftEvidence(self, gndAtom):
+        '''
+            gets the soft evidence value (probability) for a given ground atom (or complex formula)
+            returns None if there is no such value
+        '''
+        s = strFormula(gndAtom)
+        for se in self.softEvidence: # TODO optimize
+            if se["expr"] == s:
+                return se["p"]
+        return None
+
+
 class MRF(object):
     '''
     represents a ground Markov random field
@@ -844,8 +865,7 @@ class MRF(object):
 
     def __init__(self, mln, db, verbose=False):
         '''
-        db: database filename (.db) or a tuple (domain, evidence), where domain is a dictionary mapping domain names to
-            lists of elements and evidence is a dictionary mapping ground atom strings to truth values
+        db: database filename (.db) or a Database object
         '''
         self.mln = mln
         self.evidence = {}
@@ -853,13 +873,14 @@ class MRF(object):
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
 
         if type(db) == str:
-            domain, evidence = self.mln._readDBFile(db, mrf=self)
-        elif type(db) == tuple:
-            domain, evidence = db
+            db = Database(db)
+        elif isinstance(db, Database):
+            pass
         else:
             raise Exception("Not a valid database argument (type %s)" % (str(type(db))))
 
         # get combined domain
+        domain = db.domains
         self.domains = {}
         domNames = set(mln.domains.keys() + domain.keys())
         for domName in domNames:
@@ -879,7 +900,8 @@ class MRF(object):
         self._createFormulaGroundings(verbose=verbose)
 
         # set evidence
-        self.setEvidence(evidence)
+        self.setEvidence(db.evidence)
+        self.softEvidence = db.softEvidence
 
     def __getattr__(self, attr):
         # forward attribute access to the MLN (yes, it's a hack)
