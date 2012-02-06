@@ -249,7 +249,7 @@ class LearnWeights:
                 mln = MLN.MLN(self.settings["mln"])
                 #mln.combineDB(self.settings["db"], verbose=True)
                 #mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
-                mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method))
+                mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method), **args)
                 # determine output filename
                 fname = self.settings["output_filename"]
                 mln.write(file(fname, "w"))
