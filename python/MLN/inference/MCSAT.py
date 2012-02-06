@@ -123,7 +123,7 @@ class MCSAT(MCMCInference):
         handleSoftEvidence: if False, ignore all soft evidence in the MCMC sampling (but still compute softe evidence statistics is soft evidence is there)
         '''
         
-        print "starting MCSAT with maxSteps=", maxSteps
+        if verbose: print "starting MC-SAT with maxSteps=%d" % maxSteps
         if softEvidence is None:
             self.softEvidence = self.mln.softEvidence
         else:
@@ -156,7 +156,7 @@ class MCSAT(MCMCInference):
         # read evidence
         if details: print "reading evidence..."
         self._readEvidence(self.given)
-        print "evidence", self.evidence
+        #print "evidence", self.evidence
         if details:
             print "evidence blocks: %d" % len(self.evidenceBlocks)
             print "block exclusions: %d" % len(self.blockExclusions)
