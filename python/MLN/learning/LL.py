@@ -112,6 +112,63 @@ class LL(AbstractLearner):
         print "  %d counts recorded." % len(self.counts)
 
 
+class CD(LL):
+    '''
+        contrastive divergence with soft evidence
+    '''
+    
+    def __init__(self, mln, **params):
+        AbstractLearner.__init__(self, mln, **params)
+        
+    def _f(self, wt):
+        self._calculateWorldValues(wt)
+        self.normSampler.sample(wt)
+        
+        ll = log(self.expsums[self.idxTrainingDB])
+        ll -= sum(self.normSampler.globalFormulaCounts) / self.normSampler.numSamples
+        
+        return ll
+    
+    def _grad(self, wt):
+        self._calculateWorldValues(wt)
+        self.normSampler.sample(wt)
+        
+        #calculate gradient
+        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)        
+        for ((idxWorld, idxFormula), count) in self.counts.iteritems():
+            if self.idxTrainingDB == idxWorld:                
+                grad[idxFormula] += count                
+        grad -= self.normSampler.globalFormulaCounts / self.normSampler.numSamples
+       
+        # HACK: gradient gets too large, reduce it
+        #if numpy.any(numpy.abs(grad) > 1):
+        #    print "gradient values too large:", numpy.max(numpy.abs(grad))
+        #    grad = grad / (numpy.max(numpy.abs(grad)) / 1)
+        #    print "scaling down to:", numpy.max(numpy.abs(grad))        
+        
+        print "CD_SE: _grad:", grad
+        return grad        
+    
+    def _prepareOpt(self):
+        # create just one possible worlds (for our training database)
+        self.mln.worlds = []
+        self.mln.worlds.append({"values": self.mln.evidence}) # HACK
+        self.idxTrainingDB = 0 
+        # compute counts
+        print "computing counts for training database..."
+        self._computeCounts()
+        print "  %d counts recorded." % len(self.counts)
+        
+        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
+        print self.params
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
+        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mln,
+                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+                                            doProbabilityFitting=False,
+                                            verbose=False, details=False, infoInterval=100, resultsInterval=100),
+                                       discardDuplicateWorlds = False)
+
 from softeval import truthDegreeGivenSoftEvidence
 
 
@@ -430,7 +487,7 @@ class MCMCSampler(object):
             #evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
             what = [FOL.TrueFalse(True)]      
             mcsat = self.mrf.inferMCSAT(what, sampleCallback=self._sampleCallback, **self.mcsatParams)
-            print mcsat
+            #print mcsat
             print "sampled %d worlds" % self.numSamples
         else:
             print "using cached values, no sampling (weights did not change)"
@@ -459,8 +516,8 @@ class MCMCSampler(object):
         self.Z += exp_sum
         self.numSamples += 1
         
-        if step % 1000 == 0:
-            print "sampling evidence worlds (MCSAT), step: ", step
+        if self.numSamples % 1000 == 0:
+            print "  MCSAT sample #%d" % self.numSamples
 
 
 class SLL_SE(AbstractLearner):
