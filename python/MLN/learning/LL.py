@@ -114,6 +114,7 @@ class LL(AbstractLearner):
 
 from softeval import truthDegreeGivenSoftEvidence
 
+
 class LL_ISE(SoftEvidenceLearner, LL):
     def __init__(self, mln, **params):
         LL.__init__(self, mln, **params)
@@ -233,7 +234,8 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
     
     def useGrad(self):
         return False   
-    
+
+
 class LL_ISEWW(Abstract_ISEWW):
     def __init__(self, mln, **params):
         Abstract_ISEWW.__init__(self, mln, **params)
@@ -339,30 +341,20 @@ class E_ISEWW(Abstract_ISEWW):
 
 
 class SLL_ISE(LL_ISE):
+    '''
+        Uses soft features to compute counts for a fictitious soft world (assuming independent soft evidence)
+        Uses MCMC sampling to approximate the normalisation constant
+    '''    
+    
     def __init__(self, mln, **params):
         LL_ISE.__init__(self, mln, **params)
     
     def _f(self, wt):
-        
-        wtFull = wt
-
         idxTrainDB = self.idxTrainingDB
-        self._calculateWorldValues(wtFull) #calculate sum for evidence world only
-        print 
-        #sample worlds for Z
-        print "SLL_ISE: sample worlds:"
-        self._sampleWorlds(wtFull)
-        
-        #if evidence world does not occur in the samples, add it here:
-        # in the soft case, it is never included as all normalization worlds are hard
-#        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
-#            #only here: add evidence world to partition function to guarantee that ll <= 0
-#            partition_function =  self.sampled_Z + self.expsums[idxTrainDB] #200000 + self.expsums[idxTrainDB]#
-#            partition_function /= self.mcsatSteps + 1
-#            print "_f: evidence world added to normalization"
-#        else:
-        partition_function =  self.sampled_Z
-        #partition_function /= self.mcsatSteps
+        self._calculateWorldValues(wt) # (calculates sum for evidence world only)
+        self.normSampler.sample(wt)
+
+        partition_function = self.normSampler.Z / self.normSampler.numSamples
             
         #print self.worlds
         print "worlds[idxTrainDB][\"sum\"] / Z", self.expsums[idxTrainDB], partition_function
@@ -373,96 +365,25 @@ class SLL_ISE(LL_ISE):
     
     def _grad(self, wt):
         idxTrainDB = self.idxTrainingDB
-        
-        wtFull = wt
-        print 
-        # sample other worlds:
-        print "GRAD_SLL_ISE: sample worlds:"
-        self._sampleWorlds(wtFull)
+
+        self.normSampler.sample(wt)
         
         #calculate gradient
         grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
         for ((idxWorld, idxFormula), count) in self.counts.iteritems():
             if idxTrainDB == idxWorld:                
-                grad[idxFormula] += count        
+                grad[idxFormula] += count
+        grad = grad - self.normSampler.globalFormulaCounts / self.normSampler.numSamples
 
-        #print "before: ", grad
-        grad = grad - self.formulaCount / self.mcsatSteps #self.sampled_Z
-        #print "after: ", grad
-
-        #HACK: gradient gets too large, reduce it
+        # HACK: gradient gets too large, reduce it
         if numpy.any(numpy.abs(grad) > 1):
             print "gradient values too large:", numpy.max(numpy.abs(grad))
             grad = grad / (numpy.max(numpy.abs(grad)) / 1)
             print "scaling down to:", numpy.max(numpy.abs(grad))
-            
-
         
         return grad
     
-    #calculates self.partition_function and self.weightedFormulaCount in _sll_ise_sampleCallback()
-    def _sampleWorlds(self, wtFull):
-        if  ('wtsLastSLLWorldSampling' in dir(self)):
-            #print self.wtsLastSLLWorldSampling, "self.wtsLastSLLWorldSampling"
-            #print wtFull, "wtFull" 
-            print
-        #weights have changed => calculate new values
-        if  ('wtsLastSLLWorldSampling' not in dir(self)) or numpy.any(self.wtsLastSLLWorldSampling != wtFull):
-            self.wtsLastSLLWorldSampling = wtFull.copy()
-            
-            self.formulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
-            self.worldsSampled = {} #hashmap with the worlds already sampled
-            self.currentWeights = wtFull
-            self.sampled_Z = 0
-            self.debug_number_of_new_worlds_in_Z = 0
-            what = [FOL.TrueFalse(True)]      
-            self.mln.setWeights(wtFull)
-            print "calling MCSAT with weights:", wtFull
-            mcsat = self.mln.inferMCSAT(what, given="", softEvidence={}, sampleCallback=self._sampleCallback, maxSteps=self.mcsatSteps, 
-                                        doProbabilityFitting=False,
-                                        verbose=True, details =True, infoInterval=100, resultsInterval=100)
-            print mcsat
-            print "number of disctinct samples:", len(self.worldsSampled)
-        else:
-            print "use cached values, do not sample (weights did not change)"
-            #use cached values for self.weightedFormulaCount and self.partition_function, do nothing here
-            
-    #sampel is the chainGroup
-    #step is step-number
-    def _sampleCallback(self, sample, step):
-        #print "_sll_ise_sampleCallback:", sample, step
-        
-        sampleWorldFormulaCounts = numpy.zeros(len(self.mln.formulas), numpy.float64)
-        #there is only one chain:
-        sampleWorld = sample.chains[0].state
-        weights = []
-        for gndFormula in self.mln.gndFormulas:
-            if self.mln._isTrue(gndFormula, sampleWorld):
-                sampleWorldFormulaCounts[gndFormula.idxFormula] += 1
-                weights.append(self.currentWeights[gndFormula.idxFormula])
-        exp_sum = exp(fsum(weights))
-        
-        #do not add duplicate worlds:
-        if tuple(sampleWorld) not in self.worldsSampled:
-            self.sampled_Z += exp_sum     
-            self.worldsSampled[tuple(sampleWorld)] = True #add entry in hashmap
-            self.debug_number_of_new_worlds_in_Z += 1
-        #else:
-            #print "discarded duplicate world:", hash(tuple(sampleWorld))
-         
-        self.formulaCount += sampleWorldFormulaCounts
-        
-        
-        
-        if step % 100 == 0:
-            print "sampling worlds (MCSAT), step: ", step, " self.sampled_Z", self.sampled_Z, "new worlds in Z:", self.debug_number_of_new_worlds_in_Z
-            sys.stdout.flush()
-            self.debug_number_of_new_worlds_in_Z = 0
-
-
     def _prepareOpt(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        
         # create just one possible worlds (for our training database)
         self.mln.worlds = []
         self.mln.worlds.append({"values": self.mln.evidence}) # HACK
@@ -471,227 +392,164 @@ class SLL_ISE(LL_ISE):
         print "computing counts..."
         self._computeCounts()
         print "  %d counts recorded." % len(self.counts)
+    
+        # init sampler
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
+        self.normSampler = MCMCSampler(self.mln,
+                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+                                            doProbabilityFitting=False,
+                                            verbose=True, details =True, infoInterval=100, resultsInterval=100),
+                                       discardDuplicateWorlds=True)
+
+
+class MCMCSampler(object):
+    def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False):
+        self.mrf = mrf
+        self.wtsLast = None
+        self.mcsatParams = mcsatParams
         
-class DSLL_WW(SLL_ISE):
+        self.discardDuplicateWorlds = discardDuplicateWorlds        
+
+    def sample(self, wtFull):
+        if (self.wtsLast is None) or numpy.any(self.wtsLast != wtFull): # weights have changed => calculate new values
+            self.wtsLast = wtFull.copy()
+            
+            # reset data
+            self.sampledWorlds = {}
+            self.numSamples = 0
+            self.Z = 0            
+            self.globalFormulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)            
+            self.scaledGlobalFormulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)
+            #self.worldValues = []
+            #self.formulaCounts = []
+            self.currentWeights = wtFull
+            
+            self.mrf.mln.setWeights(wtFull)
+            print "calling MCSAT with weights:", wtFull
+            
+            #evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+            what = [FOL.TrueFalse(True)]      
+            mcsat = self.mrf.inferMCSAT(what, sampleCallback=self._sampleCallback, **self.mcsatParams)
+            print mcsat
+            print "sampled %d worlds" % self.numSamples
+        else:
+            print "using cached values, no sampling (weights did not change)"
+            
+    def _sampleCallback(self, sample, step):
+        world = sample.chains[0].state
+        
+        if self.discardDuplicateWorlds:
+            t = tuple(world)
+            if t in self.sampledWorlds:
+                return
+            self.sampledWorlds[t] = True
+        
+        formulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)                
+        weights = []
+        for gndFormula in self.mrf.mln.gndFormulas:
+            if self.mrf._isTrue(gndFormula, world):
+                formulaCounts[gndFormula.idxFormula] += 1
+                weights.append(self.currentWeights[gndFormula.idxFormula])
+                
+        exp_sum = exp(fsum(weights))        
+        #self.formulaCounts.append(formulaCounts)
+        #self.worldValues.append(exp_sum)
+        self.globalFormulaCounts += formulaCounts
+        self.scaledGlobalFormulaCounts += formulaCounts * exp_sum
+        self.Z += exp_sum
+        self.numSamples += 1
+        
+        if step % 1000 == 0:
+            print "sampling evidence worlds (MCSAT), step: ", step
+
+
+class SLL_SE(AbstractLearner):
+    '''
+        sampling-based maximum likelihood with soft evidence (SMLSE):
+        uses MC-SAT-PC to sample soft evidence worlds
+        uses MC-SAT to sample worlds in order to approximate Z
+    '''
+    
     def __init__(self, mln, **params):
-        SLL_ISE.__init__(self, mln, **params)
+        AbstractLearner.__init__(self, mln, **params)
     
-    def _computeCounts(self):
-        LL._computeCounts(self)
+    def _grad(self, wt):        
+        self.normSampler.sample(wt)
+        self.seSampler.sample(wt)
+        
+        grad = (self.seSampler.scaledGlobalFormulaCounts / self.seSampler.Z) - (self.normSampler.scaledGlobalFormulaCounts / self.normSampler.Z)
 
-    
-    def _grad(self, wt):
-        
-        idxTrainDB = self.idxTrainingDB
-        
-        wtFull = wt
-        print 
-        # sample other worlds:
-        print "GRAD_SLL_ISE: sample worlds:"
-        self._sampleWorlds(wtFull)
-        self._sampleEvidenceWorlds(wtFull)
-        
-        #print "before: ", grad
-        grad = (self.evidenceWorldformulaCount / self.mcsatStepsEvidenceWorld) - (self.formulaCount / self.mcsatSteps)
-        #print "after: ", grad
-
-        #TODO: figure out why the cache-reset is necessary to get non-0 weights
-        #self.wtsLastSLLWorldSampling = []
-        
         #HACK: gradient gets too large, reduce it
         if numpy.any(numpy.abs(grad) > 1):
             print "gradient values too large:", numpy.max(numpy.abs(grad))
             grad = grad / (numpy.max(numpy.abs(grad)) / 1)
             print "scaling down to:", numpy.max(numpy.abs(grad))        
         
-        print "DSLL_ISEWW: _grad:", grad
-        return grad        
-
-
-    def _sampleEvidenceWorlds(self, wtFull):
-        if  ('wtsLastEvidenceWorldSampling' in dir(self)):
-            print self.wtsLastEvidenceWorldSampling, "self.wtsLastEvidenceWorldSampling"
-            print wtFull, "wtFull" 
-            print
-        #weights have changed => calculate new values
-        if  ('wtsLastEvidenceWorldSampling' not in dir(self)) or numpy.any(self.wtsLastEvidenceWorldSampling != wtFull):
-            self.wtsLastEvidenceWorldSampling = wtFull.copy()
-            
-            
-            self.sampledExpSum = 0
-  
-            
-            
-            self.evidenceWorldformulaCount = numpy.zeros(len(self.mln.formulas), numpy.float64)
-            self.currentWeights = wtFull
-            what = [FOL.TrueFalse(True)]      
-            self.mln.setWeights(wtFull)
-            print "calling MCSAT with weights:", wtFull
-            
-            evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-            #print evidenceString
-            #print 
-            #print self.mln.softEvidence   
-            
-            mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, maxSteps=self.mcsatStepsEvidenceWorld, 
-                                        doProbabilityFitting=False,
-                                        verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
-                                        maxSoftEvidenceDeviation=0.05)
-            print mcsat
-            print "sampled for",self.sampleEvidenceSteps,"steps"
-        else:
-            print "use cached values, do not sample (weights did not change)"
-            
-    #sampel is the chainGroup
-    #step is step-number
-    def _sampleEvidenceCallback(self, sample, step):
-        #print "_sll_ise_sampleCallback:", sample, step
+        print "SLL_SE: _grad:", grad
+        return grad    
+   
+    def _f(self, wt):        
+        self.normSampler.sample(wt)
+        self.seSampler.sample(wt)
         
-        sampleWorldFormulaCounts = numpy.zeros(len(self.mln.formulas), numpy.float64)
-        #there is only one chain:
-        sampleWorld = sample.chains[0].state
-        weights = []
-        for gndFormula in self.mln.gndFormulas:
-            if self.mln._isTrue(gndFormula, sampleWorld):
-                sampleWorldFormulaCounts[gndFormula.idxFormula] += 1
-                weights.append(self.currentWeights[gndFormula.idxFormula])
+        numerator = self.seSampler.Z / self.seSampler.numSamples
                 
-        exp_sum = exp(fsum(weights))
-        self.evidenceWorldformulaCount += sampleWorldFormulaCounts
+        partition_function = self.normSampler.Z / self.normSampler.numSamples 
         
-        self.sampledExpSum += exp_sum
-        self.sampleEvidenceSteps = step
-                
- 
-        
-        if step % 1000 == 0:
-            print "sampling evidence worlds (MCSAT), step: ", step
-    
-#    def useF(self):
-#        return False
-
-
-    def _f(self, wt):
-        
-        idxTrainDB = self.idxTrainingDB
-        
-        self._sampleWorlds(wt)
-        self._sampleEvidenceWorlds(wt)
-        
-        self.sampledExpSum /= self.sampleEvidenceSteps
-        
-        #if evidence world does not occur in the samples, add it here:
-        # in the soft case, it is never included as all normalization worlds are hard
-        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
-            #only here: add evidence world to partition function to guarantee that ll <= 0
-            partition_function =  self.sampled_Z + self.sampledExpSum #200000 + self.expsums[idxTrainDB]#
-            #partition_function /= self.mcsatStepsEvidenceWorld + 1
-            print "_f: evidence world added to normalization"
-        else:
-            partition_function =  self.sampled_Z
-            #partition_function /= self.mcsatStepsEvidenceWorld
-        
-        #print self.worlds
-        print "sampledExpSum / Z", self.sampledExpSum, partition_function
-        ll = log(self.sampledExpSum) - log(partition_function)
+        ll = log(numerator) - log(partition_function)
         print "ll =", ll
         print 
         return ll
     
+    def _prepareOpt(self):
+        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
+        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mln,
+                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+                                            doProbabilityFitting=False,
+                                            verbose=True, details =True, infoInterval=100, resultsInterval=100))
+        self.seSampler = MCMCSampler(self.mln,
+                                     dict(given=evidenceString, softEvidence=self.mln.softEvidence, maxSteps=self.mcsatStepsEvidence, 
+                                          doProbabilityFitting=False,
+                                          verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
+                                          maxSoftEvidenceDeviation=0.05))
 
+
+class CD_SE(SLL_ISE):
+    '''
+        contrastive divergence with soft evidence
+        TODO add optimizer that works only based on gradient
+    '''
+    
+    def __init__(self, mln, **params):
+        SLL_ISE.__init__(self, mln, **params)
+    
+    def _grad(self, wt):        
+        self.normSampler.sample(wt)
+        self.seSampler.sample(wt)
+        
+        grad = (self.seSampler.globalFormulaCounts / self.seSampler.numSamples) - (self.normSampler.globalFormulaCounts / self.normSampler.numSamples)
+       
+        #HACK: gradient gets too large, reduce it
+        if numpy.any(numpy.abs(grad) > 1):
+            print "gradient values too large:", numpy.max(numpy.abs(grad))
+            grad = grad / (numpy.max(numpy.abs(grad)) / 1)
+            print "scaling down to:", numpy.max(numpy.abs(grad))        
+        
+        print "CD_SE: _grad:", grad
+        return grad        
     
     def _prepareOpt(self):
-        self.mcsatStepsEvidenceWorld = self.params.get("mcsatStepsEvidenceWorld", 1000)
-        SLL_ISE._prepareOpt(self)
-        
-            
-#class DSLL_ISEWW(SLL_ISE):
-#    def __init__(self, mln):
-#        SLL_ISE.__init__(self, mln)
-#        
-#    def _prepareOpt(self):
-#        LL._prepareOpt(self)
-#    
-#    def _computeCounts(self):
-#        LL._computeCounts(self)
-#    
-#    def _f(self, wt):
-#        
-#        wtFull = wt
-#
-#        idxTrainDB = self.idxTrainingDB
-#
-#        #sample expSum for evidence world
-#        self.sampledExpSum = 0
-#        self.currentWeights = wtFull
-#        what = [FOL.TrueFalse(True)]      
-#        self.mln.setWeights(wtFull)
-#        print "calling MCSAT with weights:", wtFull
-#        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-#        #print "self.mln.getEvidenceDatabase()", self.mln.getEvidenceDatabase()
-#        print evidenceString
-#        print 
-#        print self.mln.softEvidence
-#        mcsat = self.mln.inferMCSAT(what, given=evidenceString, softEvidence=self.mln.softEvidence, sampleCallback=self._sampleEvidenceCallback, 
-#                                    maxSteps=self.mcsatStepsEvidenceWorld, verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
-#                                    maxSoftEvidenceDeviation=0.05)
-#        print mcsat    
-#        #sample callback calculates self.sampledExpSum
-#        print "sampleEvidenceSteps:", self.sampleEvidenceSteps
-#        
-#        print 
-#        #sample worlds for Z
-#        print "DSLL_ISEWW: sample worlds for Z:"
-#        self._sampleWorlds(wtFull)
-#        
-#        self.sampledExpSum /= self.sampleEvidenceSteps
-#        
-#        #if evidence world does not occur in the samples, add it here:
-#        # in the soft case, it is never included as all normalization worlds are hard
-#        if tuple(self.mln.worlds[idxTrainDB]['values']) not in self.worldsSampled:
-#            #only here: add evidence world to partition function to guarantee that ll <= 0
-#            partition_function =  self.sampled_Z + self.sampledExpSum #200000 + self.expsums[idxTrainDB]#
-#            #partition_function /= self.mcsatStepsEvidenceWorld + 1
-#            print "_f: evidence world added to normalization"
-#        else:
-#            partition_function =  self.sampled_Z
-#            #partition_function /= self.mcsatStepsEvidenceWorld
-#        
-#        #print self.worlds
-#        print "sampledExpSum / Z", self.sampledExpSum, partition_function
-#        ll = log(self.sampledExpSum / partition_function)
-#        print "ll =", ll
-#        print 
-#        return ll
-#    
-#    #sampel is the chainGroup
-#    #step is step-number
-#    def _sampleEvidenceCallback(self, sample, step):
-#        #print "_sll_ise_sampleCallback:", sample, step
-#        
-#        #there is only one chain:
-#        sampleWorld = sample.chains[0].state
-#        weights = []
-#        for gndFormula in self.mln.gndFormulas:
-#            if self.mln._isTrue(gndFormula, sampleWorld):
-#                weights.append(self.currentWeights[gndFormula.idxFormula])
-#        exp_sum = exp(fsum(weights))
-#
-#        self.sampledExpSum += exp_sum #/ self.mcsatStepsEvidenceWorld
-#        
-#        self.sampleEvidenceSteps = step
-#        
-#        if step % 1000 == 0:
-#            print "sampling evidence worlds (MCSAT), step: ", step, " sum(weights)", sum(weights)
-#    
-#    def _grad(self, wt):
-#        raise Exception("Mode DSLL_ISEWW: gradient function is not implemented")
-#    
-#    def useGrad(self):
-#        return False
-#    
-#    def _prepareOpt(self):
-#        self.mcsatStepsEvidenceWorld = self.params.get("mcsatStepsEvidenceWorld", 10000)
-#        SLL_ISE._prepareOpt(self)
-        
-        
+        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
+        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mln,
+                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+                                            doProbabilityFitting=False,
+                                            verbose=True, details =True, infoInterval=100, resultsInterval=100))
+        self.seSampler = MCMCSampler(self.mln,
+                                     dict(given=evidenceString, softEvidence=self.mln.softEvidence, maxSteps=self.mcsatStepsEvidence, 
+                                          doProbabilityFitting=False,
+                                          verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
+                                          maxSoftEvidenceDeviation=0.05))
