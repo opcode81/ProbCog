@@ -244,11 +244,18 @@ class MultipleDatabaseLearner(AbstractLearner):
     def __init__(self, mln, method, dbs, verbose=True, **params):
         '''
         dbs: list of tuples (domain, evidence) as returned by the database reading method
-        '''
-        AbstractLearner.__init__(self, mln, **params)
+        '''        
+        AbstractLearner.__init__(self, mln, **params)        
         self.dbs = dbs
         self.constructor = MLN.ParameterLearningMeasures.byShortName(method)
         self.params = params
+        
+        self.learners = []
+        for i, db in enumerate(self.dbs):
+            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
+            mrf = self.mln.groundMRF(db)
+            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
+            self.learners.append(learner)
     
     def _f(self, wt):
         likelihood = 0
@@ -265,10 +272,14 @@ class MultipleDatabaseLearner(AbstractLearner):
         return grad
 
     def _prepareOpt(self):
-        self.learners = []        
-        for i, db in enumerate(self.dbs):
-            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))            
-            mrf = self.mln.groundMRF(db)
-            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
-            self.learners.append(learner) 
+        for learner in self.learners:
             learner._prepareOpt()
+    
+    def _fixFormulaWeights(self):
+        self._fixedWeightFormulas = {}
+        for learner in self.learners:
+            learner._fixFormulaWeights()
+            for i, w in learner._fixedWeightFormulas.iteritems():
+                if i not in self._fixedWeightFormulas:
+                    self._fixedWeightFormulas[i] = 0.0
+                self._fixedWeightFormulas[i] += w / len(self.learners)
