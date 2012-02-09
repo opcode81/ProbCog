@@ -122,20 +122,11 @@ class SLL(AbstractLearner):
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)        
         self.samplerParams = dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                   doProbabilityFitting=False,
-                                  verbose=False, details=False, infoInterval=100, resultsInterval=100)
+                                  verbose=True, details=True, infoInterval=1, resultsInterval=100)
         self.samplerConstructionParams = dict(discardDuplicateWorlds=False, keepTopWorldCounts=False)
         
     def _sample(self, wt, caller):
         self.normSampler.sample(wt)
-        
-        #self.uniDiff = self.totalFormulaCountsUni - self.normSampler.topWorldFormulaCounts * self.numUniformSamples
-        
-        #sys.stderr.write("%s\n" % caller)
-        #sys.stderr.write("wt: %s\n" % str(wt))
-        #sys.stderr.write("DB: %s\n" % str(self.formulaCountsTrainingDB))
-        #sys.stderr.write("sub: %s\n" % str(self.normSampler.globalFormulaCounts / self.normSampler.numSamples))
-        #sys.stderr.write("grad: %s\n" % str(self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples))
-        #sys.stderr.write("f: %s\n\n" % str(numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples))        
         
     def _f(self, wt):
         # although this function corresponds to the gradient, it cannot soundly be applied to
@@ -148,27 +139,11 @@ class SLL(AbstractLearner):
         self._sample(wt, "f")        
         ll = numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples
         
-        # correction for shrinkage
-        #corr = numpy.sum(self.uniDiff * wt) / self.numUniformSamples
-        #ll -= corr
-        
         return ll
     
     def _grad(self, wt):
         self._sample(wt, "grad")
-
         grad = self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples
-        
-        # correction for shrinkage
-        #grad -= self.uniDiff / self.numUniformSamples
-       
-        # HACK: gradient gets too large, reduce it
-        #if numpy.any(numpy.abs(grad) > 1):
-        #    print "gradient values too large:", numpy.max(numpy.abs(grad))
-        #    grad = grad / (numpy.max(numpy.abs(grad)) / 1)
-        #    print "scaling down to:", numpy.max(numpy.abs(grad))        
-        
-        print "grad:", grad
         return grad
     
     def _initSampler(self):
@@ -200,6 +175,9 @@ class SLL_DN(SLL):
     def __init__(self, mrf, **params):
         SLL.__init__(self, mrf, **params)
         self.samplerConstructionParams["computeHessian"] = True
+    
+    def _f(self, wt):
+        raise Exception("Objective function not implemented; use e.g. diagonal Newton to optimize")
     
     def _hessian(self, wt):
         self._sample(wt, "hessian")
@@ -550,6 +528,7 @@ class MCMCSampler(object):
                 return
             self.sampledWorlds[t] = True
         
+        #print "got sample, computing true groundings for %d ground formulas" % len(self.mrf.gndFormulas)
         formulaCounts = self.mrf.countTrueGroundingsInWorld(world)               
         exp_sum = exp(numpy.sum(formulaCounts * self.currentWeights))
         #self.formulaCounts.append(formulaCounts)
@@ -586,6 +565,8 @@ class MCMCSampler(object):
 
 class SLL_SE(AbstractLearner):
     '''
+        NOTE: SLL_SE_DN should usually be preferred to this
+    
         sampling-based maximum likelihood with soft evidence (SMLSE):
         uses MC-SAT-PC to sample soft evidence worlds
         uses MC-SAT to sample worlds in order to approximate Z
@@ -593,10 +574,14 @@ class SLL_SE(AbstractLearner):
     
     def __init__(self, mrf, **params):
         AbstractLearner.__init__(self, mrf, **params)
-    
-    def _grad(self, wt):        
+        
+        
+    def _sample(self, wt):
         self.normSampler.sample(wt)
         self.seSampler.sample(wt)
+    
+    def _grad(self, wt):
+        self._sample()
         
         grad = (self.seSampler.scaledGlobalFormulaCounts / self.seSampler.Z) - (self.normSampler.scaledGlobalFormulaCounts / self.normSampler.Z)
 
@@ -610,8 +595,7 @@ class SLL_SE(AbstractLearner):
         return grad    
    
     def _f(self, wt):        
-        self.normSampler.sample(wt)
-        self.seSampler.sample(wt)
+        self._sample()
         
         numerator = self.seSampler.Z / self.seSampler.numSamples
                 
@@ -637,42 +621,44 @@ class SLL_SE(AbstractLearner):
                                           maxSoftEvidenceDeviation=0.05))
 
 
-class CD_SE(SLL_ISE):
+class SLL_SE_DN(AbstractLearner):
     '''
-        contrastive divergence with soft evidence
+        sample-based log-likelihood with soft evidence via diagonal Newton
     '''
     
     def __init__(self, mrf, **params):
-        SLL_ISE.__init__(self, mrf, **params)
+        AbstractLearner.__init__(self, mrf, **params)
 
     def _f(self, wt):
-        pass # TODO
+        raise Exception("Objective function not implemented; use e.g. diagonal Newton to optimize")
     
-    def _grad(self, wt):        
+    def _sample(self, wt):
         self.normSampler.sample(wt)
         self.seSampler.sample(wt)
-        
+    
+    def _grad(self, wt):
+        self._sample(wt)
         grad = (self.seSampler.globalFormulaCounts / self.seSampler.numSamples) - (self.normSampler.globalFormulaCounts / self.normSampler.numSamples)
-       
-        #HACK: gradient gets too large, reduce it
-        if numpy.any(numpy.abs(grad) > 1):
-            print "gradient values too large:", numpy.max(numpy.abs(grad))
-            grad = grad / (numpy.max(numpy.abs(grad)) / 1)
-            print "scaling down to:", numpy.max(numpy.abs(grad))        
-        
-        print "CD_SE: _grad:", grad
-        return grad        
+        return grad
+
+    def _hessian(self, wt):
+        self._sample(wt)
+        return self.normSampler.getHessian()
+    
+    def getAssociatedOptimizerName(self):
+        return "diagonalNewton"
     
     def _prepareOpt(self):
-        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
+        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 2000)
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
         evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
         self.normSampler = MCMCSampler(self.mrf,
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps,
                                             doProbabilityFitting=False,
-                                            verbose=True, details =True, infoInterval=100, resultsInterval=100))
+                                            verbose=False, details=False, infoInterval=100, resultsInterval=100),
+                                       computeHessian=True)
         self.seSampler = MCMCSampler(self.mrf,
                                      dict(given=evidenceString, softEvidence=self.mrf.softEvidence, maxSteps=self.mcsatStepsEvidence, 
                                           doProbabilityFitting=False,
-                                          verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
+                                          verbose=False, details=False, infoInterval=1000, resultsInterval=1000,
                                           maxSoftEvidenceDeviation=0.05))

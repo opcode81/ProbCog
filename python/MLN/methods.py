@@ -36,8 +36,8 @@ InferenceMethods = Enum(
 
 ParameterLearningMeasures = Enum(
      {"LL": "log-likelihood",
-      "SLL": "sample-based log-likelihood via direct descent",
-      "SLL_DN": "sample-based log-likelihood via diagonal Newton",
+      #"SLL": "sampling-based log-likelihood via direct descent",
+      "SLL_DN": "sampling-based log-likelihood via diagonal Newton",
       "PLL": "pseudo-log-likelihood",
       "DPLL": "[discriminative] pseudo-log-likelihood",
       "BPLL": "pseudo-log-likelihood with blocking",
@@ -50,6 +50,7 @@ ParameterLearningMeasures = Enum(
       "DPLL_ISE": "[soft evidence][discriminative] pseudo-log-likelihood with soft features (indep. soft ev.)",
       "LL_ISEWW": "[soft evidence] log-likelihood with independent soft evidence and weighting of worlds",
       "E_ISEWW": "[soft evidence] error with independent soft evidence and weighting of worlds",
-      "SLL_ISE": "[soft evidence] sampling-based log-likelihood with soft features (independent soft evidence)", 
-      "SLL_SE": "[soft evidence] sampling-based log-likelihood with soft evidence (MC-SAT-PC sampling)" 
+      #"SLL_ISE": "[soft evidence] sampling-based log-likelihood with soft features (independent soft evidence)", 
+      "SLL_SE": "[soft evidence] sampling-based log-likelihood",
+      "SLL_SE_DN": "[soft evidence] sampling-based log-likelihood via diagonal Newton" 
     })
