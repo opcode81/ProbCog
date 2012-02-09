@@ -1210,6 +1210,8 @@ class MRF(object):
     # creates an array self.pllBlocks that contains tuples (idxGA, block);
     # one of the two tuple items is always None depending on whether the ground atom is in a block or not;
     def _getPllBlocks(self):
+        if hasattr(self, "pllBlocks"):
+            return
         handledBlockNames = []
         self.pllBlocks = []
         for idxGA in range(len(self.gndAtoms)):
@@ -1440,16 +1442,24 @@ class MRF(object):
     def countTrueGroundingsForEachWorld(self, appendToWorlds=False):
         all = []
         self._getWorlds()
-        for world in self.worlds:
-            counts = [0 for i in range(len(self.formulas))]
-            for gf in self.gndFormulas:
-                if self._isTrue(gf, world["values"]):
-                    counts[gf.idxFormula] += 1
+        for i, world in enumerate(self.worlds):
+            counts = self.countTrueGroundingsInWorld(world["values"])
             all.append(counts)
-        if appendToWorlds:
-                for (i, world) in enumerate(self.worlds):
-                        self.worlds[i]["counts"] = all[i]
+            if appendToWorlds:
+                world["counts"] = counts
         return all
+
+    def countTrueGroundingsInWorld(self, world):
+        '''
+            computes the number of true groundings of each formula for the given world
+            returns a vector v, where v[i] = number of groundings of the i-th MLN formula
+        '''
+        import numpy
+        formulaCounts = numpy.zeros(len(self.mln.formulas), numpy.float64)                
+        for gndFormula in self.mrf.mln.gndFormulas:
+            if self._isTrue(gndFormula, world):
+                formulaCounts[gndFormula.idxFormula] += 1
+        return formulaCounts
 
     def _calculateWorldValues2(self, wts=None):
         if wts == None:
@@ -1835,6 +1845,21 @@ class MRF(object):
     def _weights(self):
         ''' returns the weight vector as a list '''
         return [f.weight for f in self.formulas]
+    
+    def getRandomWorld(self):
+        ''' uniformly samples from the set of possible worlds (taking blocks into account) '''
+        self._getPllBlocks()
+        state = [None] * len(self.gndAtoms)
+        mln = self.mln
+        for idxBlock, (idxGA, block) in enumerate(self.pllBlocks):
+            if block != None: # block of mutually exclusive atoms
+                chosen = block[random.randint(0, len(block) - 1)]
+                for idxGA in block:
+                    state[idxGA] = (idxGA == chosen)
+            else: # regular ground atom, which can either be true or false
+                chosen = random.randint(0, 1)
+                state[idxGA] = bool(chosen)
+        return state
 
     def domSize(self, domName):
         return len(self.domains[domName])
