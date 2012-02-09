@@ -690,7 +690,12 @@ class MLN(object):
         fullDomain = None
 
         # run learner
-        learner = learning.MultipleDatabaseLearner(self, method, dbs)
+        if len(dbs) == 1:
+            print "grounding MRF..." 
+            mrf = self.groundMRF(dbs[0])
+            learner = eval("learning.%s(mrf, **params)" % method)
+        else:
+            learner = learning.MultipleDatabaseLearner(self, method, dbs)
         wt = learner.run(initialWts, **params)
 
         # set new weights
