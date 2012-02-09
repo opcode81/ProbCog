@@ -33,11 +33,13 @@ except:
 
 from MLN.util import *
 import MLN
+import optimize
 
 class AbstractLearner(object):
     
-    def __init__(self, mln, gaussianPriorSigma=None, **params):
-        self.mln = mln
+    def __init__(self, mrf, gaussianPriorSigma=None, **params):
+        self.mln = mrf # only for backward compatibility of implementations
+        self.mrf = mrf
         self.params = params
         self.gaussianPriorSigma = gaussianPriorSigma
     
@@ -213,6 +215,9 @@ class AbstractLearner(object):
         elif optimizer == "powell":
             wt = fmin_powell(neg_f, self.wt,   args=(), full_output=True)
             print "optimization done with %s..." % optimizer
+        elif optimizer == "directDescent":
+            opt = optimize.DirectDescent(self.wt, neg_grad, gtol)
+            wt = opt.run()
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         #print "allvecs", allvecs
         
