@@ -188,7 +188,14 @@ class AbstractLearner(object):
     def _prepareOpt(self):
         pass
     
-    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = "bfgs", useGrad = True, useF = True, **params):
+    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = None, useGrad = True, useF = True, **params):
+        imposedOptimizer = self.getAssociatedOptimizerName()
+        if imposedOptimizer is not None:
+            if optimizer is not None: raise Exception("Cannot override the optimizer for this method with '%s'" % optimizer)
+            optimizer = imposedOptimizer
+        else:
+            if optimizer is None: optimizer = "bfgs"
+        
         print "starting optimization with %s, useGrad = %s, useF = %s" % (optimizer, useGrad, useF)
         #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
         neg_f = lambda wt: -self.__f(wt)
@@ -218,6 +225,10 @@ class AbstractLearner(object):
         elif optimizer == "directDescent":
             opt = optimize.DirectDescent(self.wt, neg_grad, gtol)
             wt = opt.run()
+        elif optimizer == "diagonalNewton":
+            opt = optimize.DiagonalNewton(self.wt, self)
+            wt = opt.run()
+            
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         #print "allvecs", allvecs
         
@@ -225,8 +236,16 @@ class AbstractLearner(object):
         return True
     
     def useF(self):
-        return True    
+        return True
 
+    def getAssociatedOptimizerName(self):
+        return None
+
+    def _hessian(self, wt):
+        raise Exception("The learner '%s' does not provide a Hessian computation; use another optimizer!" % str(type(self)))
+    
+    def _f(self, wt):
+        raise Exception("The learner '%s' does not provide an objective function computation; use another optimizer!" % str(type(self)))
 
 from softeval import truthDegreeGivenSoftEvidence
 
@@ -276,6 +295,13 @@ class MultipleDatabaseLearner(AbstractLearner):
             grad += grad_i
         return grad
 
+    def _hessian(self, wt):
+        N = len(self.mln.formulas)
+        hessian = numpy.matrix(numpy.zeros((N,N)))
+        for learner in self.learners:
+            hessian += learner._hessian(wt)
+        return hessian
+
     def _prepareOpt(self):
         for learner in self.learners:
             learner._prepareOpt()
@@ -288,3 +314,5 @@ class MultipleDatabaseLearner(AbstractLearner):
                 if i not in self._fixedWeightFormulas:
                     self._fixedWeightFormulas[i] = 0.0
                 self._fixedWeightFormulas[i] += w / len(self.learners)
+
+    

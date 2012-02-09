@@ -1,4 +1,4 @@
-	# -*- coding: iso-8859-1 -*-
+# -*- coding: iso-8859-1 -*-
 #
 # Markov Logic Networks
 #
@@ -119,8 +119,13 @@ class SLL(AbstractLearner):
     
     def __init__(self, mrf, **params):
         AbstractLearner.__init__(self, mrf, **params)
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)        
+        self.samplerParams = dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+                                  doProbabilityFitting=False,
+                                  verbose=False, details=False, infoInterval=100, resultsInterval=100)
+        self.samplerConstructionParams = dict(discardDuplicateWorlds=False, keepTopWorldCounts=False)
         
-    def sample(self, wt, caller):
+    def _sample(self, wt, caller):
         self.normSampler.sample(wt)
         
         #self.uniDiff = self.totalFormulaCountsUni - self.normSampler.topWorldFormulaCounts * self.numUniformSamples
@@ -132,13 +137,15 @@ class SLL(AbstractLearner):
         #sys.stderr.write("grad: %s\n" % str(self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples))
         #sys.stderr.write("f: %s\n\n" % str(numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples))        
         
-    
     def _f(self, wt):
         # although this function corresponds to the gradient, it cannot soundly be applied to
-        # the problem, because the set of samples is drawn only from the set of samples that
-        # have probability mass
+        # the problem, because the set of samples is drawn only from the set of worlds that
+        # have probability mass only
+        # i.e. it would optimize the world's probability relative to the worlds that have
+        # non-zero probability rather than all worlds, which is problematic in the presence of
+        # hard constraints that need to be learned as being hard
         
-        self.sample(wt, "f")        
+        self._sample(wt, "f")        
         ll = numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples
         
         # correction for shrinkage
@@ -148,7 +155,7 @@ class SLL(AbstractLearner):
         return ll
     
     def _grad(self, wt):
-        self.sample(wt, "grad")
+        self._sample(wt, "grad")
 
         grad = self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples
         
@@ -165,13 +172,9 @@ class SLL(AbstractLearner):
         return grad
     
     def _initSampler(self):
-        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
         self.normSampler = MCMCSampler(self.mrf,
-                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
-                                            doProbabilityFitting=False,
-                                            verbose=False, details=False, infoInterval=100, resultsInterval=100),
-                                       discardDuplicateWorlds=False, keepTopWorldCounts=True)
+                                       self.samplerParams,
+                                       **self.samplerConstructionParams)
     
     def _prepareOpt(self):
         # compute counts
@@ -188,6 +191,23 @@ class SLL(AbstractLearner):
         #    world = self.mrf.getRandomWorld()
         #    self.totalFormulaCountsUni += self.mrf.countTrueGroundingsInWorld(world)
             
+
+class SLL_DN(SLL):
+    '''
+        sample-based log-likelihood via diagonal Newton
+    '''
+    
+    def __init__(self, mrf, **params):
+        SLL.__init__(self, mrf, **params)
+        self.samplerConstructionParams["computeHessian"] = True
+    
+    def _hessian(self, wt):
+        self._sample(wt, "hessian")
+        return self.normSampler.getHessian()
+    
+    def getAssociatedOptimizerName(self):
+        return "diagonalNewton"
+        
 
 from softeval import truthDegreeGivenSoftEvidence
 
@@ -480,13 +500,15 @@ class SLL_ISE(LL_ISE):
 
 
 class MCMCSampler(object):
-    def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False, keepTopWorldCounts = False):
+    def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False, keepTopWorldCounts = False, computeHessian = False):
         self.mrf = mrf
+        self.N = len(self.mrf.mln.formulas) 
         self.wtsLast = None
         self.mcsatParams = mcsatParams
         self.keepTopWorldCounts = keepTopWorldCounts
         if keepTopWorldCounts:
             self.topWorldValue = 0.0
+        self.computeHessian = computeHessian
         
         self.discardDuplicateWorlds = discardDuplicateWorlds        
 
@@ -495,14 +517,18 @@ class MCMCSampler(object):
             self.wtsLast = wtFull.copy()
             
             # reset data
+            N = self.N
             self.sampledWorlds = {}
             self.numSamples = 0
             self.Z = 0            
-            self.globalFormulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)            
-            self.scaledGlobalFormulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)
+            self.globalFormulaCounts = numpy.zeros(N, numpy.float64)            
+            self.scaledGlobalFormulaCounts = numpy.zeros(N, numpy.float64)
             #self.worldValues = []
             #self.formulaCounts = []
             self.currentWeights = wtFull
+            if self.computeHessian:
+                self.hessian = None
+                self.hessianProd = numpy.zeros((N,N), numpy.float64)
             
             self.mrf.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
@@ -532,12 +558,31 @@ class MCMCSampler(object):
         self.scaledGlobalFormulaCounts += formulaCounts * exp_sum
         self.Z += exp_sum
         self.numSamples += 1
+        
         if self.keepTopWorldCounts and exp_sum > self.topWorldValue:
-            self.topWorldFormulaCounts = formulaCounts            
+            self.topWorldFormulaCounts = formulaCounts
+        
+        if self.computeHessian:
+            for i in xrange(self.N):
+                self.hessianProd[i][i] += formulaCounts[i]**2
+                for j in xrange(i+1, self.N):
+                    v = formulaCounts[i] * formulaCounts[j]
+                    self.hessianProd[i][j] += v
+                    self.hessianProd[j][i] += v
         
         if self.numSamples % 1000 == 0:
             print "  MCSAT sample #%d" % self.numSamples
-
+    
+    def getHessian(self):
+        if not self.computeHessian: raise Exception("The Hessian matrix was not computed for this learning method")
+        if not self.hessian is None: return self.hessian
+        self.hessian = numpy.zeros((self.N,self.N), numpy.float64)
+        eCounts = self.globalFormulaCounts / self.numSamples
+        for i in xrange(self.N):
+            for j in xrange(self.N):
+                self.hessian[i][j] = eCounts[i] * eCounts[j]
+        self.hessian -= self.hessianProd / self.numSamples
+        return -self.hessian
 
 class SLL_SE(AbstractLearner):
     '''
@@ -579,12 +624,12 @@ class SLL_SE(AbstractLearner):
     
     def _prepareOpt(self):
         self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
-        self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
+        self.mcsatSteps = self.params.get("mcsatSteps", 2000)        
         self.normSampler = MCMCSampler(self.mrf,
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                             doProbabilityFitting=False,
                                             verbose=True, details =True, infoInterval=100, resultsInterval=100))
+        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
         self.seSampler = MCMCSampler(self.mrf,
                                      dict(given=evidenceString, softEvidence=self.mrf.softEvidence, maxSteps=self.mcsatStepsEvidence, 
                                           doProbabilityFitting=False,
