@@ -36,7 +36,8 @@ InferenceMethods = Enum(
 
 ParameterLearningMeasures = Enum(
      {"LL": "log-likelihood",
-      "CD": "contrastive divergence",
+      "SLL": "sample-based log-likelihood via direct descent",
+      "SLL_DN": "sample-based log-likelihood via diagonal Newton",
       "PLL": "pseudo-log-likelihood",
       "DPLL": "[discriminative] pseudo-log-likelihood",
       "BPLL": "pseudo-log-likelihood with blocking",
