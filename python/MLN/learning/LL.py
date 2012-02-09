@@ -30,16 +30,16 @@ from AbstractLearner import *
 
 class LL(AbstractLearner):
     
-    def __init__(self, mln, **params):
-        AbstractLearner.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        AbstractLearner.__init__(self, mrf, **params)
     
     def _computeCounts(self):
         ''' computes the number of true groundings of each formula in each possible world (sufficient statistics) '''
         self.counts = {}
         # for each possible world, count how many true groundings there are for each formula
-        for i, world in enumerate(self.mln.worlds):            
-            for gf in self.mln.gndFormulas:                
-                if self.mln._isTrue(gf, world["values"]):
+        for i, world in enumerate(self.mrf.worlds):            
+            for gf in self.mrf.gndFormulas:                
+                if self.mrf._isTrue(gf, world["values"]):
                     key = (i, gf.idxFormula)
                     cnt = self.counts.get(key, 0)
                     cnt += 1
@@ -49,7 +49,7 @@ class LL(AbstractLearner):
         if hasattr(self, 'wtsLastWorldValueComputation') and self.wtsLastWorldValueComputation == list(wts): # avoid computing the values we already have
             return
 
-        self.expsums = [0 for i in range(len(self.mln.worlds))]
+        self.expsums = [0 for i in range(len(self.mrf.worlds))]
 
         for ((idxWorld, idxFormula), count) in self.counts.iteritems():
             self.expsums[idxWorld] += wts[idxFormula] * count
@@ -70,7 +70,7 @@ class LL(AbstractLearner):
         ''' computes the gradient of the log-likelihood given the weight vector wt '''
         idxTrainDB = self.idxTrainingDB
         self._calculateWorldValues(wt) # TODO move the calculation based on counts to this class
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)
         for ((idxWorld, idxFormula), count) in self.counts.iteritems():
             if idxTrainDB == idxWorld:                
                 grad[idxFormula] += count
@@ -84,7 +84,7 @@ class LL(AbstractLearner):
 
     def _f(self, wt):
         self._calculateWorldValues(wt)
-        #ll = log(self.expsums[self.idxTrainingDB] / (self.partition_function / (len(self.mln.worlds))))
+        #ll = log(self.expsums[self.idxTrainingDB] / (self.partition_function / (len(self.mrf.worlds))))
         ll = log(self.expsums[self.idxTrainingDB] / self.partition_function)
         print "ll =", ll
         return ll
@@ -92,18 +92,18 @@ class LL(AbstractLearner):
     def _getEvidenceWorldIndex(self):
         code = 0
         bit = 1
-        for i in range(len(self.mln.gndAtoms)):
-            if self.mln._getEvidence(i):
+        for i in range(len(self.mrf.gndAtoms)):
+            if self.mrf._getEvidence(i):
                 code += bit
             bit *= 2
-        return self.mln.worldCode2Index[code]
+        return self.mrf.worldCode2Index[code]
         
     def _prepareOpt(self):
         # create possible worlds if neccessary
-        if not 'worlds' in dir(self.mln):
-            print "creating possible worlds (%d ground atoms)..." % len(self.mln.gndAtoms)
-            self.mln._createPossibleWorlds()
-            print "  %d worlds created." % len(self.mln.worlds)
+        if not 'worlds' in dir(self.mrf):
+            print "creating possible worlds (%d ground atoms)..." % len(self.mrf.gndAtoms)
+            self.mrf._createPossibleWorlds()
+            print "  %d worlds created." % len(self.mrf.worlds)
         # get the possible world index of the training database
         self.idxTrainingDB = self._getEvidenceWorldIndex()
         # compute counts
@@ -112,34 +112,48 @@ class LL(AbstractLearner):
         print "  %d counts recorded." % len(self.counts)
 
 
-class CD(AbstractLearner):
+class SLL(AbstractLearner):
     '''
-        contrastive divergence-style learner
-        maximises the omega-value of the training database world relative to the
-        geometric mean of sampled worlds obtained via MC-SAT
+        sample-based log-likelihood
     '''
     
-    def __init__(self, mln, **params):
-        AbstractLearner.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        AbstractLearner.__init__(self, mrf, **params)
         
-    def _f(self, wt):
+    def sample(self, wt, caller):
         self.normSampler.sample(wt)
         
-        ll = numpy.sum(self.formulaCountsTrainingDB * wt)
-        ll -= numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples
+        #self.uniDiff = self.totalFormulaCountsUni - self.normSampler.topWorldFormulaCounts * self.numUniformSamples
+        
+        #sys.stderr.write("%s\n" % caller)
+        #sys.stderr.write("wt: %s\n" % str(wt))
+        #sys.stderr.write("DB: %s\n" % str(self.formulaCountsTrainingDB))
+        #sys.stderr.write("sub: %s\n" % str(self.normSampler.globalFormulaCounts / self.normSampler.numSamples))
+        #sys.stderr.write("grad: %s\n" % str(self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples))
+        #sys.stderr.write("f: %s\n\n" % str(numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples))        
+        
+    
+    def _f(self, wt):
+        # although this function corresponds to the gradient, it cannot soundly be applied to
+        # the problem, because the set of samples is drawn only from the set of samples that
+        # have probability mass
+        
+        self.sample(wt, "f")        
+        ll = numpy.sum(self.formulaCountsTrainingDB * wt) - numpy.sum(self.normSampler.globalFormulaCounts * wt) / self.normSampler.numSamples
+        
+        # correction for shrinkage
+        #corr = numpy.sum(self.uniDiff * wt) / self.numUniformSamples
+        #ll -= corr
         
         return ll
     
     def _grad(self, wt):
-        self.normSampler.sample(wt)
-        
-        #calculate gradient
-        sub = self.normSampler.globalFormulaCounts / self.normSampler.numSamples
-        sys.stderr.write("wt: %s\n" % wt)
-        sys.stderr.write("DB: %s\n" % self.formulaCountsTrainingDB)
-        sys.stderr.write("sub: %s\n\n" % sub)
+        self.sample(wt, "grad")
+
         grad = self.formulaCountsTrainingDB - self.normSampler.globalFormulaCounts / self.normSampler.numSamples
-        sys.stderr.write("grad: %s\n\n" % grad)
+        
+        # correction for shrinkage
+        #grad -= self.uniDiff / self.numUniformSamples
        
         # HACK: gradient gets too large, reduce it
         #if numpy.any(numpy.abs(grad) > 1):
@@ -147,47 +161,47 @@ class CD(AbstractLearner):
         #    grad = grad / (numpy.max(numpy.abs(grad)) / 1)
         #    print "scaling down to:", numpy.max(numpy.abs(grad))        
         
-        print "CD_SE: _grad:", grad
-        return grad        
+        print "grad:", grad
+        return grad
     
-    def _prepareOpt(self):
-        # create just one possible worlds (for our training database)
-        self.mln.worlds = []
-        self.mln.worlds.append({"values": self.mln.evidence}) # HACK
-        self.idxTrainingDB = 0
-        
-        # compute counts
-        print "computing counts for training database..."
-        self.formulaCountsTrainingDB = numpy.zeros(len(self.mln.formulas), numpy.float64)
-        for i, world in enumerate(self.mln.worlds):            
-            for gf in self.mln.gndFormulas:                
-                if self.mln._isTrue(gf, world["values"]):
-                    self.formulaCountsTrainingDB[gf.idxFormula] += 1.0
-        
-        # initialise sampler
-        self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
-        print self.params
+    def _initSampler(self):
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-        self.normSampler = MCMCSampler(self.mln,
+        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mrf,
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                             doProbabilityFitting=False,
                                             verbose=False, details=False, infoInterval=100, resultsInterval=100),
-                                       discardDuplicateWorlds=False)
+                                       discardDuplicateWorlds=False, keepTopWorldCounts=True)
+    
+    def _prepareOpt(self):
+        # compute counts
+        print "computing counts for training database..."
+        self.formulaCountsTrainingDB = self.mrf.countTrueGroundingsInWorld(self.mrf.evidence)
+        
+        # initialise sampler
+        self._initSampler()        
+        
+        # collect some uniform sample data for shrinkage correction
+        #self.numUniformSamples = 5000
+        #self.totalFormulaCountsUni = numpy.zeros(len(self.mrf.formulas))        
+        #for i in xrange(self.numUniformSamples):
+        #    world = self.mrf.getRandomWorld()
+        #    self.totalFormulaCountsUni += self.mrf.countTrueGroundingsInWorld(world)
+            
 
 from softeval import truthDegreeGivenSoftEvidence
 
 
 class LL_ISE(SoftEvidenceLearner, LL):
-    def __init__(self, mln, **params):
-        LL.__init__(self, mln, **params)
-        SoftEvidenceLearner.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        LL.__init__(self, mrf, **params)
+        SoftEvidenceLearner.__init__(self, mrf, **params)
 
     def _prepareOpt(self):
         # HACK set soft evidence variables to true in evidence
         # TODO allsoft currently unsupported
-        for se in self.mln.softEvidence:
-            self.mln._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
+        for se in self.mrf.softEvidence:
+            self.mrf._setEvidence(self.mrf.gndAtoms[se["expr"]].idx, True)
 
         LL._prepareOpt(self)
         
@@ -198,23 +212,23 @@ class LL_ISE(SoftEvidenceLearner, LL):
             # compute regular counts for all "normal" possible worlds
             LL._computeCounts(self)
             # add another world for soft beliefs            
-            baseWorld = self.mln.worlds[self.idxTrainingDB]
-            self.mln.worlds.append({"values": baseWorld["values"]})
-            self.idxTrainingDB = len(self.mln.worlds) - 1
+            baseWorld = self.mrf.worlds[self.idxTrainingDB]
+            self.mrf.worlds.append({"values": baseWorld["values"]})
+            self.idxTrainingDB = len(self.mrf.worlds) - 1
             # and compute soft counts only for that world
             softCountWorldIndices = [self.idxTrainingDB]
         else:
             # compute soft counts for all possible worlds
             self.counts = {}
-            softCountWorldIndices = xrange(len(self.mln.worlds))
+            softCountWorldIndices = xrange(len(self.mrf.worlds))
             
         # compute soft counts      
         for i in softCountWorldIndices:
-            world = self.mln.worlds[i]     
+            world = self.mrf.worlds[i]     
             if i == self.idxTrainingDB:
                 print "TrainingDB: prod, groundformula"       
-            for gf in self.mln.gndFormulas:
-                prod = truthDegreeGivenSoftEvidence(gf, world["values"], self.mln)
+            for gf in self.mrf.gndFormulas:
+                prod = truthDegreeGivenSoftEvidence(gf, world["values"], self.mrf)
                 key = (i, gf.idxFormula)
                 cnt = self.counts.get(key, 0)
                 cnt += prod
@@ -224,37 +238,37 @@ class LL_ISE(SoftEvidenceLearner, LL):
             
             
             
-        print "worlds len: ", len(self.mln.worlds)    
+        print "worlds len: ", len(self.mrf.worlds)    
         #    if i == self.idxTrainingDB:
         #        print "TrainingDB: softCounts, formula"
-        #        for j, f in enumerate(self.mln.formulas):
+        #        for j, f in enumerate(self.mrf.formulas):
         #            print "  %f %s" % (self.counts[(i, j)], strFormula(f))
         #    else:
         #        for j,f in enumerate(self.formulas):
         #            normalizationWorldsMeanCounts[j] += self.counts[(i,j)]
         #            print "xx", self.counts[(i,j)]
         #    
-        #normalizationWorldsMeanCounts = numpy.zeros(len(self.mln.formulas)) 
+        #normalizationWorldsMeanCounts = numpy.zeros(len(self.mrf.formulas)) 
         #normalizationWorldCounter = 0   
-        #for i in xrange(len(self.mln.worlds)):
+        #for i in xrange(len(self.mrf.worlds)):
         #    if allSoft == True or i != self.idxTrainingDB:
         #        normalizationWorldCounter += 1
         #        print "world", i
-        #        for j, f in enumerate(self.mln.formulas):
+        #        for j, f in enumerate(self.mrf.formulas):
         #            if (i, j) in self.counts:
         #                normalizationWorldsMeanCounts[j] += self.counts[(i, j)]
         #                print "  count", self.counts[(i, j)], strFormula(f)
         #    
         #print "normalizationWorldsMeanCounts:"
         #normalizationWorldsMeanCounts /= normalizationWorldCounter
-        #for j, f in enumerate(self.mln.formulas):
-        #    print " %f %s" % (normalizationWorldsMeanCounts[j], strFormula(self.mln.formulas[j]))        
+        #for j, f in enumerate(self.mrf.formulas):
+        #    print " %f %s" % (normalizationWorldsMeanCounts[j], strFormula(self.mrf.formulas[j]))        
     
     
 class Abstract_ISEWW(SoftEvidenceLearner, LL):
-    def __init__(self, mln, **params):
-        LL.__init__(self, mln, **params)
-        SoftEvidenceLearner.__init__(self, mln, **params)     
+    def __init__(self, mrf, **params):
+        LL.__init__(self, mrf, **params)
+        SoftEvidenceLearner.__init__(self, mrf, **params)     
         
     def _calculateWorldProbabilities(self):  
         #calculate only once as they do not change
@@ -262,16 +276,16 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
             self.worldProbabilities = {}
             #TODO: or (opimized) generate only world by flipping the soft evidences
             #discard all world where at least one non-soft evidence is different from the generated
-            for idxWorld, world in enumerate(self.mln.worlds):
+            for idxWorld, world in enumerate(self.mrf.worlds):
                 worldProbability = 1
                 discardWorld = False
-                for gndAtom in self.mln.gndAtoms.values():
-                    if world["values"][gndAtom.idx] != self.mln.worlds[self.idxTrainingDB]["values"][gndAtom.idx]:
+                for gndAtom in self.mrf.gndAtoms.values():
+                    if world["values"][gndAtom.idx] != self.mrf.worlds[self.idxTrainingDB]["values"][gndAtom.idx]:
                         
                         #check if it is soft:
                         isSoft = False
                         s = strFormula(gndAtom)
-                        for se in self.mln.softEvidence:
+                        for se in self.mrf.softEvidence:
                             if se["expr"] == s:
                                 isSoft = True
                                 break
@@ -283,8 +297,8 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
                     print "discarded world", s, idxWorld#, world["values"][gndAtom.idx] , self.worlds[self.idxTrainingDB]["values"][gndAtom.idx]
                     continue
                 
-                for se in self.mln.softEvidence:
-                    evidenceValue = self.mln._getEvidenceTruthDegreeCW(self.mln.gndAtoms[se["expr"]], world["values"]) 
+                for se in self.mrf.softEvidence:
+                    evidenceValue = self.mrf._getEvidenceTruthDegreeCW(self.mrf.gndAtoms[se["expr"]], world["values"]) 
                     
                     worldProbability *= evidenceValue    
                     print "  ", "evidence, gndAtom", evidenceValue, se["expr"]#, self.evidence, world["values"]
@@ -300,8 +314,8 @@ class Abstract_ISEWW(SoftEvidenceLearner, LL):
 
 
 class LL_ISEWW(Abstract_ISEWW):
-    def __init__(self, mln, **params):
-        Abstract_ISEWW.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        Abstract_ISEWW.__init__(self, mrf, **params)
     
     def _f(self, wt):
         self._calculateWorldValues(wt) #only to calculate partition function here:
@@ -310,7 +324,7 @@ class LL_ISEWW(Abstract_ISEWW):
 
         #old code, maximizes most probable world (see notes on paper)
         evidenceWorldSum = 0
-        for idxWorld, world in enumerate(self.mln.worlds):
+        for idxWorld, world in enumerate(self.mrf.worlds):
                 
             if idxWorld in self.worldProbabilities:
                 print "world:", idxWorld, "exp(worldWeights)", self.expsums[idxWorld], "worldProbability", self.worldProbabilities[idxWorld]
@@ -325,8 +339,8 @@ class LL_ISEWW(Abstract_ISEWW):
 
     
 class E_ISEWW(Abstract_ISEWW):    
-    def __init__(self, mln, **params):
-        Abstract_ISEWW.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        Abstract_ISEWW.__init__(self, mrf, **params)
         self.countsByWorld = {}
         self.softCountsEvidenceWorld = {}
         
@@ -340,7 +354,7 @@ class E_ISEWW(Abstract_ISEWW):
 
         #old method (does not work with mixed hard and soft evidence)
         if True:
-            for idxWorld, world in enumerate(self.mln.worlds):
+            for idxWorld, world in enumerate(self.mrf.worlds):
                 if idxWorld in self.worldProbabilities: #lambda_x
                     worldProbability = self.worldProbabilities[idxWorld]
                 else: 
@@ -353,20 +367,20 @@ class E_ISEWW(Abstract_ISEWW):
     #        for idxWorld, worldProbability  in self.worldProbabilities.iteritems(): #lambda_x
     #            worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
     #            error += abs(worldProbGivenWeights - worldProbability)
-    #            #print "world:", self.mln.worlds[idxWorld]
+    #            #print "world:", self.mrf.worlds[idxWorld]
     #            print "worldProbGivenWeights - worldProbability ", worldProbGivenWeights, "-", worldProbability
       
         if False:#new try, doesn't work...
-            for idxWorld, world in enumerate(self.mln.worlds):
+            for idxWorld, world in enumerate(self.mrf.worlds):
                 worldProbGivenWeights = self.expsums[idxWorld] / self.partition_function
                 
                 #compute countDiffSum:
-                #for i, world in enumerate(self.mln.worlds):  
+                #for i, world in enumerate(self.mrf.worlds):  
                 if idxWorld not in self.countsByWorld:
                     print "computing counts for:", idxWorld
                     counts = {} #n         
-                    for gf in self.mln.gndFormulas:                
-                        if self.mln._isTrue(gf, self.mln.worlds[idxWorld]["values"]):
+                    for gf in self.mrf.gndFormulas:                
+                        if self.mrf._isTrue(gf, self.mrf.worlds[idxWorld]["values"]):
                             key = gf.idxFormula
                             cnt = counts.get(key, 0)
                             cnt += 1
@@ -377,8 +391,8 @@ class E_ISEWW(Abstract_ISEWW):
                 if len(self.softCountsEvidenceWorld) == 0:
                     print "computing evidence soft counts"
                     self.softCountsEvidenceWorld = {}
-                    for gf in self.mln.gndFormulas: 
-                        prod = truthDegreeGivenSoftEvidence(gf, self.mln.evidence, self.mln)
+                    for gf in self.mrf.gndFormulas: 
+                        prod = truthDegreeGivenSoftEvidence(gf, self.mrf.evidence, self.mrf)
                         key = gf.idxFormula
                         cnt = self.softCountsEvidenceWorld.get(key, 0)
                         cnt += prod
@@ -409,8 +423,8 @@ class SLL_ISE(LL_ISE):
         Uses MCMC sampling to approximate the normalisation constant
     '''    
     
-    def __init__(self, mln, **params):
-        LL_ISE.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        LL_ISE.__init__(self, mrf, **params)
     
     def _f(self, wt):
         idxTrainDB = self.idxTrainingDB
@@ -432,7 +446,7 @@ class SLL_ISE(LL_ISE):
         self.normSampler.sample(wt)
         
         #calculate gradient
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)
         for ((idxWorld, idxFormula), count) in self.counts.iteritems():
             if idxTrainDB == idxWorld:                
                 grad[idxFormula] += count
@@ -448,8 +462,8 @@ class SLL_ISE(LL_ISE):
     
     def _prepareOpt(self):
         # create just one possible worlds (for our training database)
-        self.mln.worlds = []
-        self.mln.worlds.append({"values": self.mln.evidence}) # HACK
+        self.mrf.worlds = []
+        self.mrf.worlds.append({"values": self.mrf.evidence}) # HACK
         self.idxTrainingDB = 0 
         # compute counts
         print "computing counts..."
@@ -458,7 +472,7 @@ class SLL_ISE(LL_ISE):
     
         # init sampler
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        self.normSampler = MCMCSampler(self.mln,
+        self.normSampler = MCMCSampler(self.mrf,
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                             doProbabilityFitting=False,
                                             verbose=True, details =True, infoInterval=100, resultsInterval=100),
@@ -466,10 +480,13 @@ class SLL_ISE(LL_ISE):
 
 
 class MCMCSampler(object):
-    def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False):
+    def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False, keepTopWorldCounts = False):
         self.mrf = mrf
         self.wtsLast = None
         self.mcsatParams = mcsatParams
+        self.keepTopWorldCounts = keepTopWorldCounts
+        if keepTopWorldCounts:
+            self.topWorldValue = 0.0
         
         self.discardDuplicateWorlds = discardDuplicateWorlds        
 
@@ -490,7 +507,7 @@ class MCMCSampler(object):
             self.mrf.mln.setWeights(wtFull)
             print "calling MCSAT with weights:", wtFull
             
-            #evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
+            #evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
             what = [FOL.TrueFalse(True)]      
             mcsat = self.mrf.inferMCSAT(what, sampleCallback=self._sampleCallback, **self.mcsatParams)
             #print mcsat
@@ -507,20 +524,16 @@ class MCMCSampler(object):
                 return
             self.sampledWorlds[t] = True
         
-        formulaCounts = numpy.zeros(len(self.mrf.mln.formulas), numpy.float64)                
-        weights = []
-        for gndFormula in self.mrf.mln.gndFormulas:
-            if self.mrf._isTrue(gndFormula, world):
-                formulaCounts[gndFormula.idxFormula] += 1
-                weights.append(self.currentWeights[gndFormula.idxFormula])
-                
-        exp_sum = exp(fsum(weights))        
+        formulaCounts = self.mrf.countTrueGroundingsInWorld(world)               
+        exp_sum = exp(numpy.sum(formulaCounts * self.currentWeights))
         #self.formulaCounts.append(formulaCounts)
         #self.worldValues.append(exp_sum)
         self.globalFormulaCounts += formulaCounts
         self.scaledGlobalFormulaCounts += formulaCounts * exp_sum
         self.Z += exp_sum
         self.numSamples += 1
+        if self.keepTopWorldCounts and exp_sum > self.topWorldValue:
+            self.topWorldFormulaCounts = formulaCounts            
         
         if self.numSamples % 1000 == 0:
             print "  MCSAT sample #%d" % self.numSamples
@@ -533,8 +546,8 @@ class SLL_SE(AbstractLearner):
         uses MC-SAT to sample worlds in order to approximate Z
     '''
     
-    def __init__(self, mln, **params):
-        AbstractLearner.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        AbstractLearner.__init__(self, mrf, **params)
     
     def _grad(self, wt):        
         self.normSampler.sample(wt)
@@ -567,13 +580,13 @@ class SLL_SE(AbstractLearner):
     def _prepareOpt(self):
         self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-        self.normSampler = MCMCSampler(self.mln,
+        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mrf,
                                        dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                             doProbabilityFitting=False,
                                             verbose=True, details =True, infoInterval=100, resultsInterval=100))
-        self.seSampler = MCMCSampler(self.mln,
-                                     dict(given=evidenceString, softEvidence=self.mln.softEvidence, maxSteps=self.mcsatStepsEvidence, 
+        self.seSampler = MCMCSampler(self.mrf,
+                                     dict(given=evidenceString, softEvidence=self.mrf.softEvidence, maxSteps=self.mcsatStepsEvidence, 
                                           doProbabilityFitting=False,
                                           verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
                                           maxSoftEvidenceDeviation=0.05))
@@ -584,8 +597,8 @@ class CD_SE(SLL_ISE):
         contrastive divergence with soft evidence
     '''
     
-    def __init__(self, mln, **params):
-        SLL_ISE.__init__(self, mln, **params)
+    def __init__(self, mrf, **params):
+        SLL_ISE.__init__(self, mrf, **params)
 
     def _f(self, wt):
         pass # TODO
@@ -608,13 +621,13 @@ class CD_SE(SLL_ISE):
     def _prepareOpt(self):
         self.mcsatStepsEvidence = self.params.get("mcsatStepsEvidenceWorld", 1000)
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)
-        evidenceString = evidence2conjunction(self.mln.getEvidenceDatabase())
-        self.normSampler = MCMCSampler(self.mln,
-                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
+        evidenceString = evidence2conjunction(self.mrf.getEvidenceDatabase())
+        self.normSampler = MCMCSampler(self.mrf,
+                                       dict(given="", softEvidence={}, maxSteps=self.mcsatSteps,
                                             doProbabilityFitting=False,
                                             verbose=True, details =True, infoInterval=100, resultsInterval=100))
-        self.seSampler = MCMCSampler(self.mln,
-                                     dict(given=evidenceString, softEvidence=self.mln.softEvidence, maxSteps=self.mcsatStepsEvidence, 
+        self.seSampler = MCMCSampler(self.mrf,
+                                     dict(given=evidenceString, softEvidence=self.mrf.softEvidence, maxSteps=self.mcsatStepsEvidence, 
                                           doProbabilityFitting=False,
                                           verbose=True, details =True, infoInterval=1000, resultsInterval=1000,
                                           maxSoftEvidenceDeviation=0.05))
