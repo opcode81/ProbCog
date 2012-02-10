@@ -212,10 +212,6 @@ class AbstractLearner(object):
             wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
             print "optimization done with %s..." % optimizer
             print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
-        elif optimizer == "ncg":
-            wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
-            print "optimization done with %s..." % optimizer
-            print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
         elif optimizer == "fmin":
             wt = fmin(neg_f, self.wt, args=(), full_output=True)
             print "optimization done with %s..." % optimizer
