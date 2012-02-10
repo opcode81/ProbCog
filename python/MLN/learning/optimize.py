@@ -140,25 +140,30 @@ class SciPyOpt(object):
 	
 		if optimizer == "bfgs":
 			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
 			wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, fprime=neg_grad, full_output=True, **params)
 			print "optimization done with %s..." % optimizer
 			print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
-		elif optimizer == "cg":
+		elif optimizer == "cg":			
 			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
 			wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, fprime=neg_grad, args=(), full_output=True, **params)
 			print "optimization done with %s..." % optimizer
 			print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
 		elif optimizer == "ncg":			
 			params = dict(filter(lambda (k,v): k in ["avextol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
 			wt, f_opt, func_calls, grad_calls, warn_flags = fmin_ncg(neg_f, self.wt, fprime=neg_grad, args=(), full_output=True, **params)
 			print "optimization done with %s..." % optimizer
 			print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
 		elif optimizer == "fmin":
 			params = dict(filter(lambda (k,v): k in ["xtol", "ftol", "maxiter"], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
 			wt = fmin(neg_f, self.wt, args=(), full_output=True, **params)
 			print "optimization done with %s..." % optimizer
 		elif optimizer == "powell":
 			params = dict(filter(lambda (k,v): k in ["xtol", "ftol", "maxiter"], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
 			wt = fmin_powell(neg_f, self.wt, args=(), full_output=True, **params)
 			print "optimization done with %s..." % optimizer
 		else:
