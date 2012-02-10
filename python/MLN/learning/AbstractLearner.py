@@ -25,15 +25,13 @@
 
 import sys
 
-try:
-    import numpy
-    from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b, fsolve, fmin_slsqp, fmin, fmin_powell
-except:
-    sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with the MLN module is disabled.\n")
-
 from MLN.util import *
 import MLN
 import optimize
+try:
+    import numpy
+except:
+    pass
 
 class AbstractLearner(object):
     
@@ -89,7 +87,7 @@ class AbstractLearner(object):
             self._fixedWeightFormulas[formula.idxFormula] = w
             print "fixed weight: %f=log(%f) F#%d %s" % (w, (c / Z), formula.idxFormula, str(formula))
             
-    def __f(self, wt):
+    def f(self, wt):
         # compute prior
         prior = 0
         if self.gaussianPriorSigma is not None:
@@ -138,7 +136,7 @@ class AbstractLearner(object):
         
         return self.dummyFValue
         
-    def __grad(self, wt):
+    def grad(self, wt):
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         wt = self._convertToFloatVector(wt)
         
@@ -188,7 +186,7 @@ class AbstractLearner(object):
     def _prepareOpt(self):
         pass
     
-    def _optimize(self, gtol = 1.0000000000000001e-005, optimizer = None, useGrad = True, useF = True, **params):
+    def _optimize(self, optimizer = None, **params):
         imposedOptimizer = self.getAssociatedOptimizerName()
         if imposedOptimizer is not None:
             if optimizer is not None: raise Exception("Cannot override the optimizer for this method with '%s'" % optimizer)
@@ -196,37 +194,19 @@ class AbstractLearner(object):
         else:
             if optimizer is None: optimizer = "bfgs"
         
-        print "starting optimization with %s, useGrad = %s, useF = %s" % (optimizer, useGrad, useF)
+        print "starting optimization with %s..." % (optimizer)
         #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
-        neg_f = lambda wt: -self.__f(wt)
-        neg_grad = lambda wt: -self.__grad(wt)
-        if not useGrad or not self.useGrad(): neg_grad = None
-        if not useF or not self.useF(): neg_f = lambda wt: -self.__fDummy(wt)
         
-        if optimizer == "bfgs":
-            #epsilon=0.05 seems to be a good value for simpleConditional example and DSLL_ISEWW with 1000, 10000 steps
-            wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
-            print "optimization done with %s..." % optimizer
-            print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
-        elif optimizer == "cg":
-            wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, gtol=gtol, fprime=neg_grad, args=(), full_output=True)
-            print "optimization done with %s..." % optimizer
-            print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
-        elif optimizer == "fmin":
-            wt = fmin(neg_f, self.wt, args=(), full_output=True)
-            print "optimization done with %s..." % optimizer
-        elif optimizer == "powell":
-            wt = fmin_powell(neg_f, self.wt,   args=(), full_output=True)
-            print "optimization done with %s..." % optimizer
-        elif optimizer == "directDescent":
-            opt = optimize.DirectDescent(self.wt, neg_grad, gtol)
-            wt = opt.run()
+        if optimizer == "directDescent":
+            opt = optimize.DirectDescent(self.wt, self, **params)        
         elif optimizer == "diagonalNewton":
-            opt = optimize.DiagonalNewton(self.wt, self)
-            wt = opt.run()
-            
+            opt = optimize.DiagonalNewton(self.wt, self, **params)        
+        else:
+            opt = optimize.SciPyOpt(optimizer, self.wt, self, **params)        
+        
+        wt = opt.run()        
         self.wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
-        #print "allvecs", allvecs
+        
         
     def useGrad(self):
         return True
