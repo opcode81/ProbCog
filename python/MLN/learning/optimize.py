@@ -1,29 +1,33 @@
 
-import numpy
 import math
 import sys
+try:
+	import numpy
+	from scipy.optimize import fmin_bfgs, fmin_cg, fmin_ncg, fmin_tnc, fmin_l_bfgs_b, fsolve, fmin_slsqp, fmin, fmin_powell
+except:
+    sys.stderr.write("Warning: Failed to import SciPy/NumPy (http://www.scipy.org)! Parameter learning with PyMLNs is disabled.\n")
 
 
 class DirectDescent(object):
 	''' naive gradient descent '''	
 	
-	def __init__(self, wt, grad, gtol):
-		self.grad = grad
+	def __init__(self, wt, problem, gtol=1e-3, maxSteps=100, **params):
+		self.problem = problem
 		self.wt = wt
-		self.threshold = gtol
-		self.maxSteps = 1000
+		self.gtol = gtol
+		self.maxSteps = maxSteps
 	
 	def run(self):
 		norm = 1
 		alpha = 0.1
 		step = 1
 		while True:
-			grad = -self.grad(self.wt)
+			grad = self.problem.grad(self.wt)
 			norm = numpy.linalg.norm(grad)
 			print "step %d, norm: %f" % (step, norm)
 			print grad
 			print self.wt
-			if norm < self.threshold or step > self.maxSteps:
+			if norm < self.gtol or step > self.maxSteps:
 				break
 			step += 1
 			self.wt += grad * alpha
@@ -117,3 +121,47 @@ class DiagonalNewton(object):
 			step += 1
 		
 		return numpy.asarray(wt.transpose())[0]
+	
+
+class SciPyOpt(object):
+	def __init__(self, optimizer, wt, problem, **optParams):
+		self.wt = wt
+		self.problem = problem		
+		self.optParams = optParams
+		self.optimizer = optimizer
+	
+	def run(self):
+		optimizer = self.optimizer
+		p = self.problem
+		neg_f = lambda wt: -p.f(wt)
+		neg_grad = lambda wt: -p.grad(wt)
+		#if not useGrad or not p.useGrad(): neg_grad = None
+		#if not useF or not p.useF(): neg_f = lambda wt: -p.__fDummy(wt)
+	
+		if optimizer == "bfgs":
+			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			wt, f_opt, grad_opt, Hopt, func_calls, grad_calls, warn_flags = fmin_bfgs(neg_f, self.wt, fprime=neg_grad, full_output=True, **params)
+			print "optimization done with %s..." % optimizer
+			print "f-opt: %.16f\ngradient: %s\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, str(-grad_opt), func_calls, warn_flags)
+		elif optimizer == "cg":
+			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			wt, f_opt, func_calls, grad_calls, warn_flags = fmin_cg(neg_f, self.wt, fprime=neg_grad, args=(), full_output=True, **params)
+			print "optimization done with %s..." % optimizer
+			print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
+		elif optimizer == "ncg":			
+			params = dict(filter(lambda (k,v): k in ["avextol", "epsilon", "maxiter"], self.optParams.iteritems()))
+			wt, f_opt, func_calls, grad_calls, warn_flags = fmin_ncg(neg_f, self.wt, fprime=neg_grad, args=(), full_output=True, **params)
+			print "optimization done with %s..." % optimizer
+			print "f-opt: %.16f\nfunction evaluations: %d\nwarning flags: %d\n" % (-f_opt, func_calls, warn_flags)
+		elif optimizer == "fmin":
+			params = dict(filter(lambda (k,v): k in ["xtol", "ftol", "maxiter"], self.optParams.iteritems()))
+			wt = fmin(neg_f, self.wt, args=(), full_output=True, **params)
+			print "optimization done with %s..." % optimizer
+		elif optimizer == "powell":
+			params = dict(filter(lambda (k,v): k in ["xtol", "ftol", "maxiter"], self.optParams.iteritems()))
+			wt = fmin_powell(neg_f, self.wt, args=(), full_output=True, **params)
+			print "optimization done with %s..." % optimizer
+		else:
+			raise Exception("Unknown optimizer '%s'" % optimizer)
+		
+		return wt
