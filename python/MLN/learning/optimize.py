@@ -1,7 +1,9 @@
 
 import numpy
 
-class DirectDescent(object):	
+class DirectDescent(object):
+	''' naive gradient descent '''	
+	
 	def __init__(self, wt, grad, gtol):
 		self.grad = grad
 		self.wt = wt
@@ -25,7 +27,8 @@ class DirectDescent(object):
 		return self.wt
 
 
-class DiagonalNewton(object):
+class DiagonalNewton(object):	
+	
 	def __init__(self, wt, problem):
 		self.problem = problem
 		self.wt = wt
