@@ -1,6 +1,7 @@
 
 import numpy
 
+
 class DirectDescent(object):
 	''' naive gradient descent '''	
 	
@@ -48,9 +49,10 @@ class DiagonalNewton(object):
 		maxSteps = None
 		
 		while maxSteps is None or step <= maxSteps:
-			wtlist = wt.transpose().tolist()[0]
-			H = p._hessian(numpy.array(wtlist))
-			g = numpy.matrix(p._grad(wt)).transpose()
+			wtarray = numpy.asarray(wt.transpose())
+			
+			H = p._hessian(wtarray)
+			g = numpy.asmatrix(p._grad(wtarray)).transpose()
 			d = numpy.sign(g)
 			dT = d.transpose()
 
@@ -58,7 +60,7 @@ class DiagonalNewton(object):
 			illdefined = False
 			for i in xrange(N):
 				v = H[i][i]
-				if v == 0.0: # HACK
+				if v == 0.0: # HACK: if any variance component is zero, set corresponding gradient component to zero
 					v = 1e-6 
 					g[i] = 0.0
 				invH[i][i] = 1.0 / v
@@ -73,12 +75,13 @@ class DiagonalNewton(object):
 			else: l = prev_l
 			
 			alpha = dT * g
-			alpha /= dT * H * d  + l * dT * d
+			q = dT * H * d
+			alpha /=  q + l * dT * d
 			alpha = float(alpha)
 			
 			print
 			print "H:\n%s" % H
-			print "sgrad: %s" % g.transpose()
+			print "grad: %s" % g.transpose()
 			print "sgrad: %s" % sgrad.transpose()
 			print "delta_p: %f" % delta_predict
 			print "delta_a: %f" % delta_actual
@@ -101,4 +104,4 @@ class DiagonalNewton(object):
 			
 			step += 1
 		
-		return wt.transpose().tolist()[0]
+		return numpy.asarray(wt.transpose())
