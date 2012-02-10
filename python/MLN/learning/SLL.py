@@ -28,7 +28,7 @@
 import sys
 
 from AbstractLearner import *
-
+from LL import *
 
 class MCMCSampler(object):
     def __init__(self, mrf, mcsatParams, discardDuplicateWorlds = False, keepTopWorldCounts = False, computeHessian = False):
@@ -126,7 +126,7 @@ class SLL(AbstractLearner):
         self.mcsatSteps = self.params.get("mcsatSteps", 2000)        
         self.samplerParams = dict(given="", softEvidence={}, maxSteps=self.mcsatSteps, 
                                   doProbabilityFitting=False,
-                                  verbose=True, details=True, infoInterval=1, resultsInterval=100)
+                                  verbose=False, details=False, infoInterval=100, resultsInterval=100)
         self.samplerConstructionParams = dict(discardDuplicateWorlds=False, keepTopWorldCounts=False)
         
     def _sample(self, wt, caller):
