@@ -194,9 +194,6 @@ class AbstractLearner(object):
         else:
             if optimizer is None: optimizer = "bfgs"
         
-        print "starting optimization with %s..." % (optimizer)
-        #print "initial wts = ", self._reconstructFullWeightVectorWithFixedWeights(self.wt)        
-        
         if optimizer == "directDescent":
             opt = optimize.DirectDescent(self.wt, self, **params)        
         elif optimizer == "diagonalNewton":
