@@ -54,7 +54,8 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 				if(l.startsWith("New solution:")) {
 					solution = br.readLine();
 				}
-				//System.out.println(l);
+				if(debug)
+					System.out.println(l);
 			}
 			catch(IOException e) {
 				break;
