@@ -190,6 +190,8 @@ class MLNInfer(object):
             # create command to execute
             app = "MLNinfer"
             params = [app, "-i", ",".join(input_files), "-e", db, "-q", query, self.jmlns_methods[method]] + shlex.split(params)
+            if self.settings["saveResults"]:
+                params += ["-r", output_filename]
             if self.settings["maxSteps"] != "":
                 params += ["-maxSteps", self.settings["maxSteps"]]
             if len(cwPreds) > 0:
@@ -504,7 +506,7 @@ class MLNQuery(object):
             methods = self.inference.jmlns_methods.keys()
             #self.entry_output_filename.configure(state=NORMAL)
             self.cb_open_world.configure(state=DISABLED)
-            self.cb_save_results.configure(state=DISABLED)
+            self.cb_save_results.configure(state=NORMAL)
         else:
             self.numEngine = 0
             methods = self.inference.alchemy_methods.keys()
