@@ -18,6 +18,7 @@ import edu.tum.cs.srl.mln.inference.MCSAT;
 import edu.tum.cs.srl.mln.inference.MaxWalkSAT;
 import edu.tum.cs.srl.mln.inference.Toulbar2MAPInference;
 import edu.tum.cs.util.Stopwatch;
+import edu.tum.cs.util.StringTool;
 
 /**
  * MLN command-line inference tool 
@@ -108,7 +109,7 @@ public class MLNinfer {
 			// load relational model
 			Stopwatch constructSW = new Stopwatch();
 			constructSW.start();
-			System.out.printf("reading model %s...\n", mlnFiles.toString());
+			System.out.printf("reading model %s...\n", StringTool.join(", ", mlnFiles));
 			MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFiles);
 			
 			// instantiate ground model
@@ -130,6 +131,7 @@ public class MLNinfer {
 			constructSW.stop();
 			
 			// run inference
+			System.out.println("starting inference process...");
 			Stopwatch sw = new Stopwatch();
 			sw.start();
 			InferenceAlgorithm infer = null;
