@@ -2,6 +2,8 @@ package edu.tum.cs.srl.bayesnets.bln;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.KnowledgeBase;
+import edu.tum.cs.logic.parser.FormulaParser;
+import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.MLNConverter;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
@@ -43,5 +45,10 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 		kb = new KnowledgeBase();
 		if(logicFile != null)
 			kb.readFile(logicFile.toString());
+	}
+	
+	@Override
+	public void addLogicalConstraint(String s) throws ParseException {
+		kb.addFormula(FormulaParser.parse(s));
 	}
 }

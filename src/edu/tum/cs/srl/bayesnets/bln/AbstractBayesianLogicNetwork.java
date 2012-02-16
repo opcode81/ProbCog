@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
+import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
@@ -64,6 +65,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	public boolean readDeclaration(String line) throws Exception {
 		if(super.readDeclaration(line))
 			return true;
+		
 		// constraints file reference
 		if(line.startsWith("constraints")) {
 			Pattern pat = Pattern.compile("constraints\\s+([^;\\s]+)\\s*;?");
@@ -77,6 +79,24 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 				return true;
 			}
 		}
+		
+		if(line.startsWith("constraint")) {
+			Pattern pat = Pattern.compile("constraint\\s+([^;]+)\\s*;?");
+			Matcher matcher = pat.matcher(line);			
+			if(matcher.matches()) {
+				String s = matcher.group(1);
+				try {
+					this.addLogicalConstraint(s);
+					return true;
+				}
+				catch(ParseException e) {
+					throw new Exception("Could not parse formula: " + s, e);
+				}				
+			}
+		}
+		
 		return false;
 	}
+	
+	protected abstract void addLogicalConstraint(String s) throws Exception;
 }
