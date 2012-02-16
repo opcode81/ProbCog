@@ -1,8 +1,5 @@
 /*
  * Created on Aug 7, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.srl.mln.inference;
 
