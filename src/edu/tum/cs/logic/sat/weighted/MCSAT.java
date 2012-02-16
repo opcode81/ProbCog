@@ -1,35 +1,25 @@
 /*
  * Created on Aug 7, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.logic.sat.weighted;
 
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Vector;
-import java.util.Map.Entry;
-
-import salvo.jesus.util.Collections;
 
 import edu.tum.cs.inference.IParameterHandler;
 import edu.tum.cs.inference.ParameterHandler;
-import edu.tum.cs.logic.Atom;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
-import edu.tum.cs.logic.GroundedFormula;
-import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.SampleSAT;
 import edu.tum.cs.srl.Database;
-import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * MC-SAT inference algorithm (Poon and Domingos 2006) 
+ * Also includes extensions for soft evidence, MC-SAT-PC (Jain and Beetz 2010)
  * @author jain
  */
 public class MCSAT implements IParameterHandler {
@@ -39,7 +29,7 @@ public class MCSAT implements IParameterHandler {
 	protected Database db; 
 	protected Random rand;
 	protected GroundAtomDistribution dist;
-	protected boolean verbose = false, debug = false;
+	protected boolean verbose = true, debug = false;
 	protected int infoInterval = 100;
 	protected ParameterHandler paramHandler;
 	protected SampleSAT sat;
@@ -56,7 +46,7 @@ public class MCSAT implements IParameterHandler {
 		}
 	}
 	
-	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) throws Exception {		
+	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) throws Exception {
 		this.kb = kb;
 		this.vars = vars;
 		this.db = db;
@@ -69,6 +59,42 @@ public class MCSAT implements IParameterHandler {
 		paramHandler.addSubhandler(sat.getParameterHandler());
 		paramHandler.add("infoInterval", "setInfoInterval");
 		paramHandler.add("verbose", "setVerbose");
+		
+		/*
+		0.95 similarPos(Square1,SquareN1)
+		0.95 similarPos(Square2,SquareN2)
+		0.05 similarPos(Square1,SquareN2)
+		0.05 similarPos(Square2,SquareN1)
+		0.05 similarPos(Square3,SquareN1)
+		0.05 similarPos(Square3,SquareN2)
+		0.05 similarPos(Circle,SquareN1)
+		0.05 similarPos(Circle,SquareN2)
+		 */
+		
+		/*
+		System.out.println("setting soft ev");
+		addSoftEvidence(vars.get("similarPos(Square1,SquareN1)"), 0.95);
+		addSoftEvidence(vars.get("similarPos(Square2,SquareN2)"), 0.95);
+		addSoftEvidence(vars.get("similarPos(Square1,SquareN2)"), 0.05);
+		addSoftEvidence(vars.get("similarPos(Square2,SquareN1)"), 0.05);
+		addSoftEvidence(vars.get("similarPos(Square3,SquareN1)"), 0.05);
+		addSoftEvidence(vars.get("similarPos(Square3,SquareN2)"), 0.05);
+		addSoftEvidence(vars.get("similarPos(Circle,SquareN1)"), 0.05);
+		addSoftEvidence(vars.get("similarPos(Circle,SquareN2)"), 0.05);
+		*/
+		
+		/*
+		0.9 similarApp(O1,N1)
+		0.9 similarPos(O1,N1)
+		
+		0.9 similarApp(G2,N2)
+		0.0 similarPos(G2,N2)
+		0.9 similarApp(G3,N2)
+		0.0 similarPos(G3,N2)
+		0.9 similarApp(G4,N2)
+		0.0 similarPos(G4,N2)
+		 */
+
 	}	
 	
 	public WeightedClausalKB getKB() {
@@ -223,9 +249,8 @@ public class MCSAT implements IParameterHandler {
 		return String.format("%s[%s]", this.getClass().getSimpleName(), sat.getAlgorithmName());
 	}
 	
-	public void addSoftEvidence(Atom f, Double p) throws Exception {
-		Formula ga = f.ground(new HashMap<String,String>(), vars, null);
-		Formula nga = new Negation(ga).toCNF();		
+	public void addSoftEvidence(GroundAtom ga, double p) throws Exception {
+		Formula nga = new GroundLiteral(false, ga);		
 		this.softEvidence.add(new SoftEvidence(new WeightedClause(ga, 0.0, false), p));
 		this.softEvidence.add(new SoftEvidence(new WeightedClause(nga, 0.0, false), 1.0-p));
 	}
