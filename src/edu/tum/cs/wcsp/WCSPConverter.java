@@ -53,7 +53,7 @@ public class WCSPConverter implements GroundingCallback {
 	protected int numConstraints = 0;
 	protected boolean initialized = false;
 	protected long sumSoftCosts = 0;
-	protected boolean debug = true;
+	protected boolean debug = false;
 
     /**
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
