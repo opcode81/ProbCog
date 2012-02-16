@@ -60,4 +60,9 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 		System.out.println("loading logic network...");
 		jython.exec("mln = MLN('%s')", logicFile);
 	}
+	
+	@Override
+	protected void addLogicalConstraint(String s) throws UnsupportedOperationException {
+		throw new UnsupportedOperationException();
+	}
 }
