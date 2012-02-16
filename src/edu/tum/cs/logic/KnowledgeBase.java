@@ -60,10 +60,14 @@ public class KnowledgeBase implements Iterable<Formula> {
 			if(line.length() == 0)
 				continue;
 			if(line.endsWith("."))
-				formulas.add(FormulaParser.parse(line.substring(0, line.length()-1)));
+				addFormula(FormulaParser.parse(line.substring(0, line.length()-1)));
 			else
 				System.err.println("Warning: Line without terminating period ignored: " + line);
 		}		
+	}
+	
+	public void addFormula(Formula f) {
+		this.formulas.add(f);
 	}
 	
 	public Vector<Formula> getFormulas() {
