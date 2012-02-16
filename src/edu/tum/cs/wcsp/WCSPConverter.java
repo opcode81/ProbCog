@@ -17,12 +17,14 @@ import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
+import edu.tum.cs.util.StringTool;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
@@ -51,6 +53,7 @@ public class WCSPConverter implements GroundingCallback {
 	protected int numConstraints = 0;
 	protected boolean initialized = false;
 	protected long sumSoftCosts = 0;
+	protected boolean debug = true;
 
     /**
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
@@ -153,63 +156,72 @@ public class WCSPConverter implements GroundingCallback {
     }
 
     /**
-     * this method generates a variable for each groundatom; for blocks only one variable is created
+     * this method generates a variable for each ground atom; for blocks, only one variable is created
      */
     protected void atom2var() {
         vars = new ArrayList<String>();                         // arraylist, which contains new variables
         gnd_varidx = new HashMap<GroundAtom, Integer>();        // Hashmap that maps groundatom to the new variable
         func_dom = new HashMap<String, String>();               // Hashmap that maps variable to domain the variable uses
         vars_gnd = new HashMap<String, HashSet<GroundAtom>>();  // Hashmap that maps a variable to all groundatoms, that are set by this variable
+        HashSet<Block> handledBlocks = new HashSet<Block>();
 
         WorldVariables ww = wld.getVariables();
-        for (int i = 0; i < ww.size(); i++) {
+        for(int i = 0; i < ww.size(); i++) {
+        	GroundAtom ga = ww.get(i);
             // check whether ground atom is in a block
-            if (ww.getBlock(ww.get(i).index) != null)
-                atom2func(ww.get(i));
+        	Block block = ww.getBlock(ga.index);
+            if(block != null) {
+            	if(handledBlocks.contains(block))
+            		continue;
+            	handledBlocks.add(block);
+                
+                // generate the new variable name
+                StringBuffer shortened = new StringBuffer(ga.predicate);
+                int funcArgIdx = mln.getFunctionallyDeterminedArgument(ga.predicate);
+                shortened.append('(');
+                int k = 0;
+                for(int j = 0; j < ga.args.length; j++) {
+                	if(j == funcArgIdx)
+                		continue;
+                    if(k++ > 0)
+                        shortened.append(',');
+                    shortened.append(ga.args[j]);
+                }
+                shortened.append(')');
+                
+                String varName = shortened.toString();                
+                int varIdx = vars.size();
+                //System.out.printf("adding WCSP block variable %s\n", varName);
+                vars.add(varName);                
+                Signature sig = mln.getSignature(ga.predicate);
+                func_dom.put(varName, sig.argTypes[funcArgIdx]);
+                HashSet<GroundAtom> tmp = new HashSet<GroundAtom>();
+                for(GroundAtom gndAtom : block) {
+                	gnd_varidx.put(gndAtom, varIdx);
+                	tmp.add(gndAtom);
+                }                
+                vars_gnd.put(varName, tmp);
+            }
             else { // it's a boolean variable
-                vars.add(ww.get(i).toString());
-                gnd_varidx.put(ww.get(i), vars.indexOf(ww.get(i).toString()));
+            	String varName = ga.toString();
+            	int varIdx = vars.size();
+            	//System.out.printf("adding WCSP variable %s\n", varName);
+                vars.add(varName);                
+                gnd_varidx.put(ga, varIdx);
                 // in this case, the mapping of this variable is set to "boolean" domain
-                func_dom.put(vars.get(vars.indexOf(ww.get(i).toString())), "boolean");
+                func_dom.put(varName, "boolean");
                 // in this case, the HashSet of Groundatoms only contains the selected Worldvariable
                 HashSet<GroundAtom> tmp = new HashSet<GroundAtom>();
-                tmp.add(ww.get(i));
-                vars_gnd.put(vars.get(vars.indexOf(ww.get(i).toString())), tmp);
+                tmp.add(ga);
+                vars_gnd.put(varName, tmp);
             }
         }
-    }
-
-    /**
-     * this method checks whether a variable for a groundatom already exists;
-     * if a block exists, groundatom is added to this blockvariable, 
-     * otherwise a new blockvariable will be created
-     * @param gnd groundatom to check for existing blockvariable
-     */
-    protected void atom2func(GroundAtom gnd) {
-        String shortend = "";
-        int x = 0;
-        // generate the new variable by cutting the last entry of the values of the predicate
-        for (int i = 0; i < gnd.args.length - 1; i++) {
-            if (x++ > 0)
-                shortend = shortend + ",";
-            shortend = shortend + gnd.args[i];
-        }
-        String function = gnd.predicate + "(" + shortend + ")";     // the new variable is a shortend predicate without the last entry
         
-        // if variable already exists, add a mapping for the groundatom and the existing variable
-        // and add the groundatom to hashset of groundatoms which maps to this variable
-        if (vars.contains(function)) { // blockvariable already exists (adding only the mappings to hashsets)
-            gnd_varidx.put(gnd, vars.indexOf(function));        
-            HashSet<GroundAtom> temp = vars_gnd.get(function);
-            temp.add(gnd);
-        } else { // if the variable doesn't exists, add a new variable and the required mappings
-            vars.add(function);
-            gnd_varidx.put(gnd, vars.indexOf(function));
-            Signature sig = mln.getSignature(gnd.predicate);
-            func_dom.put(function, sig.argTypes[mln.getFunctionallyDeterminedArgument(gnd.predicate)]);
-            HashSet<GroundAtom> temp = new HashSet<GroundAtom>();
-            temp.add(gnd);
-            vars_gnd.put(vars.get(vars.indexOf(function)), temp);
+        if(debug) {
+        	System.out.println("WCSP variables:");
+        	for(Entry<String,HashSet<GroundAtom>> e : vars_gnd.entrySet()) {
+        		System.out.printf("%s %s\n", e.getKey(), StringTool.join(", ", e.getValue()));
+        	}
         }
     }
 
@@ -251,6 +263,15 @@ public class WCSPConverter implements GroundingCallback {
                 sfvars_gnd.put(idx, (HashSet<GroundAtom>) gndAtoms.clone());
             }
         }
+        
+        /*
+        if(debug) {
+        	System.out.println("WCSP variables (simplified):");
+        	for(Entry<Integer,HashSet<GroundAtom>> e : sfvars_gnd.entrySet()) {
+        		System.out.printf("%d %s\n", e.getKey(), StringTool.join(", ", e.getValue()));
+        	}
+        }
+        */        	
     }
 
     /**
@@ -411,7 +432,6 @@ public class WCSPConverter implements GroundingCallback {
      * this method sets the truth values of a block of mutually exclusive ground atoms 
      * @param block atoms within the block
      * @param value value indicating the atom to set to true
-     * TODO this method makes evil assumptions about the blocking of variables 
      */
     protected void setBlockState(PossibleWorld w, HashSet<GroundAtom> block, String value) {
     	int detArgIdx = this.mln.getFunctionallyDeterminedArgument(block.iterator().next().predicate);
