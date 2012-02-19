@@ -73,6 +73,17 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 	}
 	
+	@Override
+	protected void onAddAuxiliaryNode(BeliefNode var, boolean isBoolean, String functionName, String[] params) {
+		if(isBoolean) {			
+			coupling.addBooleanVariable(var, functionName, params);
+		}
+		else {
+			// node is non-Boolean, so add one block containing the ground atoms for each possible value
+			coupling.addBlockVariable(var, (Discrete)var.getDomain(), functionName, params);
+		}
+	}
+	
 	public GroundLiteral getGroundLiteral(BeliefNode var, int domIdx) {
 		return coupling.getGroundLiteral(var, domIdx);
 	}
