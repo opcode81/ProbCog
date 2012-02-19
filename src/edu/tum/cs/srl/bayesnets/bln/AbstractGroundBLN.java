@@ -360,6 +360,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			domprod.add(mainNode);
 			// determine if auxiliary nodes need to be used and connect the parents appropriately			
 			if(!relNode.aggregator.isFunctional) {
+				Signature sig = relNode.getSignature();
 				// create auxiliary nodes, one for each set of parents
 				Vector<BeliefNode> auxNodes = new Vector<BeliefNode>();
 				int k = 0; 
@@ -368,6 +369,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					String auxNodeName = String.format("AUX%d_%s", k++, mainNode.getName());
 					BeliefNode auxNode = groundBN.addNode(auxNodeName, mainNode.getDomain(), mainNode.getType());
 					auxNodes.add(auxNode);
+					
+					Pair<String,String[]> p = RelationalNode.parse(auxNodeName);
+					this.onAddAuxiliaryNode(auxNode, sig.isBoolean(), p.first, p.second);
 					// create links from parents to auxiliary node and transfer CPF
 					instantiateCPF(grounding.nodeArgs, relNode, auxNode);
 				}
@@ -576,6 +580,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	protected abstract void groundFormulaicNodes() throws Exception;
 	
 	protected abstract void onAddGroundAtomNode(BeliefNode instance, String[] params, Signature sig);
+	
+	protected void onAddAuxiliaryNode(BeliefNode var, boolean isBoolean, String functionName, String[] params) {}
 
 	public Database getDatabase() {
 		return db;
