@@ -99,17 +99,20 @@ class DiagonalNewton(object):
 
 				# update lambda
 				frac = delta_actual / delta_predict
-				if frac > 0.75 : l /= 2.0 # (lambda may become zero due to precision loss; worry?)
-				elif frac < 0.25: l *= 4.0
+				if frac > 0.75 : l /= 2.0 # (lambda may become zero due to precision loss)
+				elif frac < 0.25:
+					if l != 0.0: l *= 4.0
+					else: l = 1.0e-5
 				
 				if delta_actual >= 0: # accept move					
 					print
+					print "step %d" % step
 					print "H:\n%s" % H
 					print "|g|: %f" % normg
 					print "sgrad: %s" % sgrad.transpose()
 					print "delta_a: %f" % delta_actual
 					print "delta_p: %f" % delta_predict					
-					print "lambda: %f" % l
+					print "lambda: %.18f" % l
 					print "alpha: %f" % alpha			
 					print "old wt: %s" % wt_old.transpose()
 					print "new wt: %s" % wt.transpose()
