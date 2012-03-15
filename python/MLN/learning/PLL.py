@@ -365,6 +365,9 @@ class DPLL(PLL):
                 grad[idxFormula] += v 
         return grad
 
+    def getName(self):
+        return PLL.getName(self) + "[queryPreds:%s]" % ",".join(self.params["queryPreds"])
+
 
 class DPLL_ISE(PLL_ISE):
     ''' discriminative PLL_ISE with independent soft evidence for atLocation '''

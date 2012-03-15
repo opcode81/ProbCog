@@ -220,6 +220,9 @@ class AbstractLearner(object):
     def _f(self, wt):
         raise Exception("The learner '%s' does not provide an objective function computation; use another optimizer!" % str(type(self)))
 
+    def getName(self):
+        return "%s[%s]" % (self.__class__.__name__, "sigma=%f" % self.gaussianPriorSigma if self.gaussianPriorSigma is not None else "no prior")
+
 from softeval import truthDegreeGivenSoftEvidence
 
 class SoftEvidenceLearner(AbstractLearner):
@@ -253,6 +256,9 @@ class MultipleDatabaseLearner(AbstractLearner):
             mrf = self.mln.groundMRF(db)
             learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
             self.learners.append(learner)
+    
+    def getName(self):
+        return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
     
     def _f(self, wt):
         likelihood = 0
