@@ -99,9 +99,46 @@ class LearnWeights:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
-        self.alchemy_methods = {"generative learning": "-g", "discriminative learning": "-d"}
+        self.alchemy_methods = {
+            "pseudo-log-likelihood via BFGS": (["-g"], False, "pll"),
+            "sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], True, "slldn"),
+            "sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], True, "sllcg"),
+            "[discriminative] sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], False, "dslldn"),
+            "[discriminative] sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], False, "dsllcg"),
+        }
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
+        
+        # additional parametrisation
+        row += 1
+        frame = Frame(self.frame)
+        frame.grid(row=row, column=1, sticky="NEW")
+        # option: use prior
+        self.use_prior = IntVar()
+        self.cb_use_prior = Checkbutton(frame, text="use prior with std. dev. ", variable=self.use_prior)
+        self.cb_use_prior.pack(side=LEFT)
+        self.use_prior.set(self.settings.get("usePrior", 0))
+        # std. dev.
+        self.priorStdDev = StringVar(master)
+        self.priorStdDev.set(self.settings.get("priorStdDev", "100"))
+        Entry(frame, textvariable = self.priorStdDev, width=5).pack(side=LEFT)
+        Label(frame, text="(e.g. 100 for generative, 2 for discriminative)").pack(side=LEFT)
+        # add unit clauses
+        self.add_unit_clauses = IntVar()
+        self.cb_add_unit_clauses = Checkbutton(frame, text="add unit clauses", variable=self.add_unit_clauses)
+        self.cb_add_unit_clauses.pack(side=LEFT)
+        self.add_unit_clauses.set(self.settings.get("addUnitClauses", 0))
+        # non-evidence predicates
+        row += 1
+        frame = Frame(self.frame)        
+        frame.grid(row=row, column=1, sticky="NEWS")
+        self.l_nePreds = Label(frame, text="non-evidence predicates:")
+        self.l_nePreds.grid(row=0, column=0, sticky="NE")        
+        self.nePreds = StringVar(master)
+        self.nePreds.set(self.settings.get("nePreds", ""))
+        frame.columnconfigure(1, weight=1)
+        self.entry_nePreds = Entry(frame, textvariable = self.nePreds)
+        self.entry_nePreds.grid(row=0, column=1, sticky="NEW")        
 
         # evidence database selection
         row += 1
@@ -140,6 +177,7 @@ class LearnWeights:
         learn_button.grid(row=row, column=1, sticky="EW")
 
         self.onChangeEngine()
+        self.onChangeMethod()
         self.setGeometry()
 
     def setGeometry(self):
@@ -156,16 +194,19 @@ class LearnWeights:
         else:
             state = NORMAL
             self.internalMode = False
-            methods = self.alchemy_methods.keys()
-        #self.entry_output_filename.configure(state=state)
-        #self.entry_params.configure(state=state)
-        #self.cb_open_world.configure(state=state)
+            methods = sorted(self.alchemy_methods.keys())
+        self.cb_add_unit_clauses.configure(state=state)
 
         # change additional parameters
         self.params.set(self.settings.get("params%d" % int(self.internalMode), ""))
 
         # change supported inference methods
-        self.selected_method.set(self.settings.get("method%d" % int(self.internalMode), methods[0])) # default value
+        selected_method = self.settings.get("method%d" % int(self.internalMode))
+        if selected_method not in methods:
+            if selected_method == "discriminative learning": selected_method = "[discriminative] sampling-based log-likelihood via rescaled conjugate gradient"
+            else: selected_method = "pseudo-log-likelihood via BFGS"
+            
+        self.selected_method.set(selected_method) # default value
         if "list_methods" in dir(self): self.list_methods.grid_forget()
         self.list_methods = apply(OptionMenu, (self.frame, self.selected_method) + tuple(methods))
         self.list_methods.grid(row=self.list_methods_row, column=1, sticky="NWE")
@@ -186,7 +227,7 @@ class LearnWeights:
             method = MLN.ParameterLearningMeasures.getShortName(method).lower()
         else:
             engine = "alch"
-            method = self.selected_method.get()[:1]
+            method = self.alchemy_methods[self.selected_method.get()][2]
         filename = config.learnwts_output_filename(mln, engine, method, db)
         self.output_filename.set(filename)
 
@@ -198,7 +239,14 @@ class LearnWeights:
         self.db_filename = name
         self.setOutputFilename()
 
+    def onChangeMethod(self):
+        method = self.selected_method.get()
+        state = NORMAL if "[discriminative]" in method else DISABLED
+        self.entry_nePreds.configure(state=state)
+        self.l_nePreds.configure(state=state)        
+
     def changedMethod(self, name, index, mode):
+        self.onChangeMethod()
         self.setOutputFilename()
 
     def learn(self, saveGeometry=True):
@@ -217,6 +265,10 @@ class LearnWeights:
             self.settings["engine"] = self.selected_engine.get()
             self.settings["method%d" % int(self.internalMode)] = method
             self.settings["pattern"] = self.entry_pattern.get()
+            self.settings["usePrior"] = int(self.use_prior.get())
+            self.settings["priorStdDev"] = self.priorStdDev.get()
+            self.settings["nePreds"] = self.nePreds.get()
+            self.settings["addUnitClauses"] = int(self.add_unit_clauses.get())
             if saveGeometry:
                 self.settings["geometry"] = self.master.winfo_geometry()
             #print "dumping config..."
@@ -240,15 +292,19 @@ class LearnWeights:
 
             # hide gui
             self.master.withdraw()
+            
+            discriminative = "discriminative" in method
 
             if self.settings["engine"] == "internal": # internal engine
                 # arguments
-                args = {"initialWts":False}
+                args = {"initialWts":False}                
                 args.update(eval("dict(%s)" % params)) # add additional parameters
+                if discriminative:
+                    args["queryPreds"] = self.settings["nePreds"].split(",")
+                if self.settings["usePrior"]:
+                    args["gaussianPriorSigma"] = float(self.settings["priorStdDev"])
                 # learn weights
                 mln = MLN.MLN(self.settings["mln"])
-                #mln.combineDB(self.settings["db"], verbose=True)
-                #mln.learnwts(MLN.ParameterLearningMeasures.byName(method), **args)
                 mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method), **args)
                 # determine output filename
                 fname = self.settings["output_filename"]
@@ -270,11 +326,26 @@ class LearnWeights:
                     tkMessageBox.showwarning("Error", error)
                     raise Exception(error)
                 # run Alchemy's learnwts
-                method_switch = self.alchemy_methods[method]
-                params = [alchemyLearn, method_switch, "-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", ",".join(dbs)] + shlex.split(params)
+                method_switches, discriminativeAsGenerative, shortname = self.alchemy_methods[method]
+                params = [alchemyLearn] + method_switches + ["-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", ",".join(dbs)] + shlex.split(params)
+                if discriminative:
+                    params += ["-ne", self.settings["nePreds"]]
+                elif discriminativeAsGenerative:                    
+                    preds = MLN.getPredicateList(self.settings["mln"])
+                    params += ["-ne", ",".join(preds)]
+                if not self.settings["addUnitClauses"]:
+                    params.append("-noAddUnitClauses")
+                if not self.settings["usePrior"]:
+                    params.append("-noPrior")
+                else:
+                    if self.settings["priorStdDev"] != "":
+                        params += ["-priorStdDev", self.settings["priorStdDev"]]
+                        
                 command = subprocess.list2cmdline(params)
                 print "\n", command, "\n"
+                
                 self.master.withdraw() # hide gui
+                
                 #print "running Alchemy's learnwts..."
                 p = subprocess.Popen(params, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
                 cin, cout = p.stdin, p.stdout
