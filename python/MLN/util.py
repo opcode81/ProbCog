@@ -56,6 +56,20 @@ def stripComments(text):
     comment = re.compile(r'//.*?$|/\*.*?\*/', re.DOTALL | re.MULTILINE)
     return re.sub(comment, '', text)
 
+def getPredicateList(filename):
+    ''' gets the set of predicate names from an MLN file '''
+    content = file(filename, "r").read() + "\n"
+    content = stripComments(content)
+    lines = content.split("\n")
+    predDecl = re.compile(r"(\w+)\([^\)]+\)")
+    preds = set()
+    for line in lines:
+        line = line.strip()
+        m = predDecl.match(line)
+        if m is not None:
+            preds.add(m.group(1))
+    return list(preds)
+
 def avg(*a):
     return sum(map(float, a)) / len(a)
 
