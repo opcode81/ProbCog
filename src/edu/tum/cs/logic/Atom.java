@@ -38,12 +38,17 @@ public class Atom extends UngroundedFormula {
 					type = sig.returnType;
 				String oldtype = ret.put(param, type);
 				if(oldtype != null && !type.equals(oldtype)) {
-					boolean moreSpecific = db.getModel().getTaxonomy().query_isa(type, oldtype);
-					boolean lessSpecific = db.getModel().getTaxonomy().query_isa(oldtype, type);
-					if(!(moreSpecific || lessSpecific))
+					
+					if(db.getModel().getTaxonomy() != null) {
+						boolean moreSpecific = db.getModel().getTaxonomy().query_isa(type, oldtype);
+						boolean lessSpecific = db.getModel().getTaxonomy().query_isa(oldtype, type);
+						if(!(moreSpecific || lessSpecific))
+							throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
+						if(lessSpecific)
+							ret.put(param, oldtype);
+					}
+					else 
 						throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
-					if(lessSpecific)
-						ret.put(param, oldtype);
 				}
 			}
 			++i;
