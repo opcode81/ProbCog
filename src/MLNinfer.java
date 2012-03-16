@@ -170,6 +170,7 @@ public class MLNinfer {
 	        	MAPInferenceAlgorithm mapi = (MAPInferenceAlgorithm)infer;
 	        	double value = mrf.getWorldValue(mapi.getSolution());
 	        	System.out.printf("\nsolution value: %f\n", value);
+	        	System.out.printf("\nsum of unsatisfied formula weights: %f\n", mrf.getSumOfUnsatClauseWeights(mapi.getSolution()));
 	        }
 		}
 		catch(Exception e) {
