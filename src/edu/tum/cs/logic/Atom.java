@@ -6,6 +6,7 @@ import java.util.Map;
 import edu.tum.cs.srl.GenericDatabase;
 import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.Signature;
+import edu.tum.cs.srl.taxonomy.Taxonomy;
 import edu.tum.cs.util.StringTool;
 
 public class Atom extends UngroundedFormula {
@@ -38,17 +39,17 @@ public class Atom extends UngroundedFormula {
 					type = sig.returnType;
 				String oldtype = ret.put(param, type);
 				if(oldtype != null && !type.equals(oldtype)) {
-					
-					if(db.getModel().getTaxonomy() != null) {
-						boolean moreSpecific = db.getModel().getTaxonomy().query_isa(type, oldtype);
-						boolean lessSpecific = db.getModel().getTaxonomy().query_isa(oldtype, type);
+					Taxonomy taxonomy = db.getModel().getTaxonomy();
+					if(taxonomy == null)
+						throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
+					else {
+						boolean moreSpecific = taxonomy.query_isa(type, oldtype);
+						boolean lessSpecific = taxonomy.query_isa(oldtype, type);
 						if(!(moreSpecific || lessSpecific))
-							throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
+							throw new Exception("The variable " + param + " is bound to more than one domain: " + oldtype + " and " + type);
 						if(lessSpecific)
 							ret.put(param, oldtype);
-					}
-					else 
-						throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
+					}	
 				}
 			}
 			++i;
