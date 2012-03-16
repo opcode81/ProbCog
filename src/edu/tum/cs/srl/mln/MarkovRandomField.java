@@ -177,4 +177,12 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
 				s += wf.weight;
 		return s;
 	}
+	
+	public double getSumOfUnsatClauseWeights(IPossibleWorld w) {
+		double s = 0;
+		for(WeightedFormula wf : this)
+			if(!wf.formula.isTrue(w))
+				s += wf.weight;
+		return s;
+	}
 }
