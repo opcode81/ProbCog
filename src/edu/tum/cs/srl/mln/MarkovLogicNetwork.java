@@ -208,7 +208,6 @@ public class MarkovLogicNetwork implements RelationalModel {
                         Integer oldValue = functionalPreds.put(predName, c);
                         if(oldValue != null)
                         	throw new Exception(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predName));
-                        break;
                     }
                 }
                 sig = new Signature(predName, "boolean", argTypes);
