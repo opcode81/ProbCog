@@ -364,6 +364,17 @@ public class CPTLearner extends edu.tum.cs.bayesnets.learning.CPTLearner {
 				continue;
 			}
 			
+			// for auxiliary nodes, init to uniform distribution
+			if(node.isAuxiliary) {
+				CPF cpf = node.node.getCPF();
+				int numRows = cpf.getDomainProduct()[0].getDomain().getOrder();
+				ValueDouble v = new ValueDouble(1.0 / numRows);
+				for(int i = 0; i < cpf.size(); i++) {
+					cpf.put(i, v);				
+				}
+				continue;
+			}
+			
 			numCounted = 0;
 			numNotCounted = 0;
 			// consider all possible bindings for the node's parameters and count
