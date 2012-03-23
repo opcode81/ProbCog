@@ -64,6 +64,9 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		if(solution == null)
 			throw new Exception("No solution was found");
+
+		// set evidence (as in the WCSP, evidence variables are removed)
+		state.setEvidence(mrf.getDb());
 		
 		// set solution state
 		System.out.println("WCSP solution: " + solution);
@@ -72,9 +75,6 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			int domIdx = Integer.parseInt(solutionParts[i]);
 			converter.setGroundAtomState(state, i, domIdx);
 		}
-		
-		// set evidence (as in the WCSP, evidence variables are removed)
-		state.setEvidence(mrf.getDb());
 		
 		// clean up
 		new File("temp.wcsp").delete();
