@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
@@ -19,6 +20,7 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.WorldVariables.Block;
 import edu.tum.cs.logic.sat.weighted.WeightedFormula;
+import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.GroundingCallback;
@@ -41,11 +43,11 @@ public class WCSPConverter implements GroundingCallback {
 	protected ArrayList<String> simplifiedVars;
 	protected HashMap<GroundAtom, Integer> gnd_varidx;
 	protected HashMap<Integer, Integer> gnd_sfvaridx;
-	protected HashMap<String, HashSet<GroundAtom>> vars_gnd;
+	protected HashMap<String, Vector<GroundAtom>> vars_gnd;
     /**
      * maps indices of simplified WCSP variables to sets of ground atoms
      */
-	protected HashMap<Integer, HashSet<GroundAtom>> sfvars_gnd;
+	protected HashMap<Integer, Vector<GroundAtom>> sfvars_gnd;
 	protected HashMap<String, String> func_dom;
 	protected HashMap<Integer, Integer> sfvars_vars;
 	protected StringBuffer sb_result, sb_settings;
@@ -54,6 +56,7 @@ public class WCSPConverter implements GroundingCallback {
 	protected boolean initialized = false;
 	protected long sumSoftCosts = 0;
 	protected boolean debug = false;
+	protected MarkovRandomField mrf;
 
     /**
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
@@ -77,7 +80,7 @@ public class WCSPConverter implements GroundingCallback {
     public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
     	deltaMin = mln.getdeltaMin();
-        sb_result = new StringBuffer();
+        sb_result = new StringBuffer();        
         for(WeightedFormula wf : mrf) {
         	convertFormula(wf, mrf);
         }
@@ -87,9 +90,9 @@ public class WCSPConverter implements GroundingCallback {
      * performs the conversion of the ground MRF to the WCSP file
      * @param wcspFilename
      * @param scenarioSettingsFilename (may be null)
-     * @throws FileNotFoundException
+     * @throws Exception 
      */
-    public void run(String wcspFilename, String scenarioSettingsFilename) throws FileNotFoundException {
+    public void run(String wcspFilename, String scenarioSettingsFilename) throws Exception {
     	if(scenarioSettingsFilename != null) {
 	        // save settings of szenario into a file
 	        sb_settings = saveSzenarioSettings(new StringBuffer());
@@ -162,7 +165,7 @@ public class WCSPConverter implements GroundingCallback {
         vars = new ArrayList<String>();                         // arraylist, which contains new variables
         gnd_varidx = new HashMap<GroundAtom, Integer>();        // Hashmap that maps groundatom to the new variable
         func_dom = new HashMap<String, String>();               // Hashmap that maps variable to domain the variable uses
-        vars_gnd = new HashMap<String, HashSet<GroundAtom>>();  // Hashmap that maps a variable to all groundatoms, that are set by this variable
+        vars_gnd = new HashMap<String, Vector<GroundAtom>>();  // Hashmap that maps a variable to all groundatoms, that are set by this variable
         HashSet<Block> handledBlocks = new HashSet<Block>();
 
         WorldVariables ww = wld.getVariables();
@@ -195,7 +198,7 @@ public class WCSPConverter implements GroundingCallback {
                 vars.add(varName);                
                 Signature sig = mln.getSignature(ga.predicate);
                 func_dom.put(varName, sig.argTypes[funcArgIdx]);
-                HashSet<GroundAtom> tmp = new HashSet<GroundAtom>();
+                Vector<GroundAtom> tmp = new Vector<GroundAtom>();
                 for(GroundAtom gndAtom : block) {
                 	gnd_varidx.put(gndAtom, varIdx);
                 	tmp.add(gndAtom);
@@ -211,7 +214,7 @@ public class WCSPConverter implements GroundingCallback {
                 // in this case, the mapping of this variable is set to "boolean" domain
                 func_dom.put(varName, "boolean");
                 // in this case, the HashSet of Groundatoms only contains the selected Worldvariable
-                HashSet<GroundAtom> tmp = new HashSet<GroundAtom>();
+                Vector<GroundAtom> tmp = new Vector<GroundAtom>();
                 tmp.add(ga);
                 vars_gnd.put(varName, tmp);
             }
@@ -219,7 +222,7 @@ public class WCSPConverter implements GroundingCallback {
         
         if(debug) {
         	System.out.println("WCSP variables:");
-        	for(Entry<String,HashSet<GroundAtom>> e : vars_gnd.entrySet()) {
+        	for(Entry<String,Vector<GroundAtom>> e : vars_gnd.entrySet()) {
         		System.out.printf("%s %s\n", e.getKey(), StringTool.join(", ", e.getValue()));
         	}
         }
@@ -231,19 +234,24 @@ public class WCSPConverter implements GroundingCallback {
      * @param db evidence of the szenario
      * @throws Exception 
      */
-    private void simplyfyVars(ArrayList<String> variables, Database db) throws Exception {      
+    private void simplifyVars(ArrayList<String> variables, Database db) throws Exception {
         sfvars_vars = new HashMap<Integer, Integer>();  // mapping of simplified variables to variables
         simplifiedVars = new ArrayList<String>();       // arraylist of simplified variables
-        gnd_sfvaridx = new HashMap<Integer, Integer>(); // mapping of groundatom to simplified variable
-        sfvars_gnd = new HashMap<Integer, HashSet<GroundAtom>>();   // mapping of simplified variable to groundatom
+        gnd_sfvaridx = new HashMap<Integer, Integer>(); // mapping of ground atom indices to simplified variable indices
+        sfvars_gnd = new HashMap<Integer, Vector<GroundAtom>>();   // mapping of simplified variable to groundatom
+        
+        /*
+        HashSet<GroundAtom> relevantAtoms = new HashSet<GroundAtom>();
+        for(Formula f : mln)
+        */
         
         // check all variables for an evidence-entry
         for (int i = 0; i < variables.size(); i++) {
             HashSet<GroundAtom> givenAtoms = new HashSet<GroundAtom>();
             // check all entries in HashSet of the selected variable for an entry in evidence
-            HashSet<GroundAtom> gndAtoms = vars_gnd.get(variables.get(i)); 
+            Vector<GroundAtom> gndAtoms = vars_gnd.get(variables.get(i));
             for (GroundAtom g : gndAtoms) {
-		           if (db.getVariableValue(g.toString(), false) != null) // evidence- entry exists
+		           if (db.getVariableValue(g.toString(), false) != null) // evidence entry exists
 		                givenAtoms.add(g);
             }
             
@@ -256,11 +264,11 @@ public class WCSPConverter implements GroundingCallback {
                 simplifiedVars.add(variables.get(i));
                 // save mapping of simplified variable and variable
                 sfvars_vars.put(idx, i);
-                // save mapping of groundatoms to the new simplified variable
+                // save mapping of ground atoms to the new simplified variable
                 for (GroundAtom g : vars_gnd.get(variables.get(i)))
                     gnd_sfvaridx.put(g.index, idx);
                 // clone hashset and save it in the mapping of simplified variables to groundatoms 
-                sfvars_gnd.put(idx, (HashSet<GroundAtom>) gndAtoms.clone());
+                sfvars_gnd.put(idx, (Vector<GroundAtom>) gndAtoms.clone());
             }
         }
         
@@ -292,7 +300,9 @@ public class WCSPConverter implements GroundingCallback {
         ArrayList<Integer> referencedVarIndices = new ArrayList<Integer>(gndAtoms.size());
         for (GroundAtom g : gndAtoms) {
             // add simplified variable only if the array doesn't contain this sf_variable already
-        	int idx = gnd_sfvaridx.get(g.index);
+        	Integer idx = gnd_sfvaridx.get(g.index);
+        	if(idx == null)
+        		throw new Exception("Variable index for '" + g + "' is null");
             if (!referencedVarIndices.contains(idx)) 
                 referencedVarIndices.add(idx);
         }
@@ -304,7 +314,7 @@ public class WCSPConverter implements GroundingCallback {
         ArrayList<String> smallerSet;
         long cost = Math.round(wf.weight / deltaMin); 
         long defaultCosts;
-        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing form 0
+        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
         	smallerSet = settingsOther;
             // the default costs (0) are calculated and set in the first line of the constraint
             defaultCosts = 0;
@@ -321,7 +331,7 @@ public class WCSPConverter implements GroundingCallback {
 
         numConstraints++;
         // TODO ideally, we should set the costs of hard constraints to the sumSoftCosts+1
-        if(!wf.isHard)
+        if(!wf.isHard || true)
         	sumSoftCosts += cost;
         
         // write results
@@ -341,8 +351,9 @@ public class WCSPConverter implements GroundingCallback {
     /**
      * writes the header of the WCSP file
      * @param out the stream to write to
+     * @throws Exception 
      */
-    protected void generateHead(PrintStream out) {
+    protected void generateHead(PrintStream out) throws Exception {
         int maxDomSize = 0;        
 
         // get list of domain sizes and maximum domain size
@@ -358,6 +369,41 @@ public class WCSPConverter implements GroundingCallback {
         // the first line of the WCSP-File
         // syntax: name of the WCSP, number of variables, maximum domainsize of the variables, number of constraints, initial TOP
         long top = sumSoftCosts+1;
+        
+        String[][] entries = mrf.getDb().getEntriesAsArray();
+        WorldVariables vars = wld.getVariables();
+        for(String[] entry : entries) {
+        	String varName = entry[0];
+        	boolean isTrue = entry[1].equals(BooleanDomain.True);
+        	
+        	GroundAtom gndAtom = vars.get(varName);
+        	Integer iVar = this.gnd_sfvaridx.get(gndAtom.index);
+        	if(iVar == null)
+        		continue; // variable was removed due to simplification
+        	
+        	Vector<GroundAtom> block = this.sfvars_gnd.get(iVar);
+        	int iValue = -1;
+        	if(block.size()==1) {
+        		iValue = isTrue ? 0 : 1;
+        		this.sb_result.append(String.format("1 %d %d 1\n", iVar, top));
+            	this.sb_result.append(String.format("%d 0\n", iValue));
+        	}
+        	else {
+        		iValue = block.indexOf(gndAtom);        		
+        		if(isTrue) {
+	        		this.sb_result.append(String.format("1 %d %d 1\n", iVar, top));
+	            	this.sb_result.append(String.format("%d 0\n", iValue));
+        		}
+        		else {
+	        		this.sb_result.append(String.format("1 %d 0 1\n", iVar));
+	            	this.sb_result.append(String.format("%d %d\n", iValue, top));
+        		}
+        	}    	
+        	numConstraints++;
+        }       
+        
+        System.out.println("top: " + top);
+        System.out.println("deltaMin: " + deltaMin);
         out.printf("WCSPfromMLN %d %d %d %d\n", simplifiedVars.size(), maxDomSize, numConstraints, top);
         // the second line contains the domain size of each simplified variable of the WCSP
         out.println(strDomSizes.toString());
@@ -417,7 +463,7 @@ public class WCSPConverter implements GroundingCallback {
      * @param domIdx index into the wcsp variable's domain
      */
     public void setGroundAtomState(PossibleWorld w, int wcspVarIdx, int domIdx) {
-    	HashSet<GroundAtom> atoms = sfvars_gnd.get(wcspVarIdx);
+    	Vector<GroundAtom> atoms = sfvars_gnd.get(wcspVarIdx);
     	if(atoms.size() == 1) { // var is boolean
     		w.set(atoms.iterator().next(), domIdx == 0);
     	}
@@ -433,7 +479,7 @@ public class WCSPConverter implements GroundingCallback {
      * @param block atoms within the block
      * @param value value indicating the atom to set to true
      */
-    protected void setBlockState(PossibleWorld w, HashSet<GroundAtom> block, String value) {
+    protected void setBlockState(PossibleWorld w, Vector<GroundAtom> block, String value) {
     	int detArgIdx = this.mln.getFunctionallyDeterminedArgument(block.iterator().next().predicate);
         Iterator<GroundAtom> it = block.iterator();
         GroundAtom g;
@@ -464,10 +510,11 @@ public class WCSPConverter implements GroundingCallback {
     public void convertFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
     	// initialization (necessary to perform here if working through callback)
         if(!initialized) { 
+        	this.mrf = mrf;
             this.wld = new PossibleWorld(mrf.getWorldVariables());
             doms = mrf.getDb().getDomains();
             atom2var();
-            simplyfyVars(vars, mrf.getDb());
+            simplifyVars(vars, mrf.getDb());
             initialized = true;
         }
         
