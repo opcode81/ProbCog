@@ -38,7 +38,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		// perform conversion to WCSP
 		System.out.println("performing WCSP conversion...");
 		WCSPConverter converter = new WCSPConverter(mrf);
-		converter.run("temp.wcsp", null);
+		converter.run("temp.wcsp");
 		
 		// run Toulbar2
 		System.out.println("running Toulbar2... now");
