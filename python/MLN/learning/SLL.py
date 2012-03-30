@@ -81,7 +81,7 @@ class MCMCSampler(object):
                 return
             self.sampledWorlds[t] = True
         
-        #print "got sample, computing true groundings for %d ground formulas" % len(self.mrf.gndFormulas)
+        #print "got sample, computing true groundings for %d ground formulas (%d formulas)" % (len(self.mrf.gndFormulas), self.N)
         formulaCounts = self.mrf.countTrueGroundingsInWorld(world)               
         exp_sum = exp(numpy.sum(formulaCounts * self.currentWeights))
         #self.formulaCounts.append(formulaCounts)
@@ -95,6 +95,7 @@ class MCMCSampler(object):
             self.topWorldFormulaCounts = formulaCounts
         
         if self.computeHessian:
+            #print "computing hessian"
             for i in xrange(self.N):
                 self.hessianProd[i][i] += formulaCounts[i]**2
                 for j in xrange(i+1, self.N):
