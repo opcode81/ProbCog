@@ -265,9 +265,8 @@ class MLNInfer(object):
             owPreds = []
             if self.settings["openWorld"]:
                 print "\nFinding predicate names..."
-                if mlnObject is None:
-                    mlnObject = MLN.MLN(infile)
-                owPreds = filter(lambda x: x not in cwPreds, mlnObject.predicates)
+                preds = MLN.getPredicateList(infile)
+                owPreds = filter(lambda x: x not in cwPreds, preds)
                 params += [usage["openWorld"], ",".join(owPreds)]
             if len(cwPreds) > 0:
                 params += ["-cw", ",".join(cwPreds)]
