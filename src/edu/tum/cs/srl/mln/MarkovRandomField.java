@@ -139,7 +139,8 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         	catch(Exception e) {
         		throw new Exception("Error while grounding formula '" + form.toString() + "'", e);
         	}
-            for(Formula gf : groundings) {
+        	//System.out.printf("%d groundings of formula %s\n", groundings.size(), form.toString());
+            for(Formula gf : groundings) {            	
             	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
                 if(makelist)
                     weightedFormulas.add(wf);
@@ -180,9 +181,14 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
 	
 	public double getSumOfUnsatClauseWeights(IPossibleWorld w) {
 		double s = 0;
-		for(WeightedFormula wf : this)
-			if(!wf.formula.isTrue(w))
+		for(WeightedFormula wf : this) {
+			if(!wf.formula.isTrue(w)) {
 				s += wf.weight;
+				//System.out.println("UNSAT: " + wf);
+			}
+			else 
+				;//System.out.printf("%s\n", wf);
+		}
 		return s;
 	}
 }
