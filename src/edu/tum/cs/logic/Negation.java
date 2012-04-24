@@ -109,7 +109,7 @@ public class Negation extends ComplexFormula {
         Formula f = this.children[0].simplify(evidence);
         // if it's now an instance of TrueFalse, return its opposite
         if(f instanceof TrueFalse) 
-            return TrueFalse.getInstance(!((TrueFalse) f).isTrue());
+            return ((TrueFalse) f).opposite();
         // otherwise, return the negation of the simplified formula
         return new Negation(f);
     }
