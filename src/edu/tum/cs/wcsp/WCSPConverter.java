@@ -57,7 +57,7 @@ public class WCSPConverter implements GroundingCallback {
 	protected boolean initialized = false;
 	protected long sumSoftCosts = 0;
 	protected boolean debug = false;
-	protected MarkovRandomField mrf;
+	protected Database db;
 
     /**
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
@@ -316,7 +316,7 @@ public class WCSPConverter implements GroundingCallback {
         long top = sumSoftCosts+1;
         
         // add unary constraints for evidence variables
-        String[][] entries = mrf.getDb().getEntriesAsArray();
+        String[][] entries = db.getEntriesAsArray();
         WorldVariables worldVars = world.getVariables();
         for(String[] entry : entries) {
         	String varName = entry[0];
@@ -458,7 +458,7 @@ public class WCSPConverter implements GroundingCallback {
     public void convertFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
     	// initialization (necessary to perform here if working through callback)
         if(!initialized) { 
-        	this.mrf = mrf;
+        	this.db = mrf.getDb();
             this.world = new PossibleWorld(mrf.getWorldVariables());
             doms = mrf.getDb().getDomains();
             createVariables();
