@@ -12,7 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.parser.ParseException;
-import edu.tum.cs.srl.Signature;
 
 /**
  * serves a pool of models (base class for specialized server interfaces);

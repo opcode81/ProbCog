@@ -116,7 +116,6 @@ public class BLNModel extends Model {
 			Collection<String> elems = e.getValue();
 			ArrayList<String> tuple = new ArrayList<String>(elems.size()+1);
 			tuple.add(e.getKey());
-			int i = 0;
 			for(String elem : elems) {
 				String c = mapConstantFromProbCog(elem);
 				if(c == null)
