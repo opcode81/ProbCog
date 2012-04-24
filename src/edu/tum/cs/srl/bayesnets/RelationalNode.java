@@ -76,6 +76,7 @@ public class RelationalNode extends ExtendedNode {
 	
 	public static enum Aggregator {
 		FunctionalOr(true, "=OR"),
+		FunctionalAnd(true, "=AND"),
 		NoisyOr(false, "OR"),
 		Average(false, "AVG"),
 		Sum(false, "SUM");
@@ -86,7 +87,7 @@ public class RelationalNode extends ExtendedNode {
 		private Aggregator(boolean isFunctional, String syntax) {		
 			this.isFunctional = isFunctional;
 			this.syntax = syntax;
-		}
+		} 
 		
 		public String toString() {
 			return super.toString() + "(\"" + syntax + "\")";		
