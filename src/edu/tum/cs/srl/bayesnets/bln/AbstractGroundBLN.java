@@ -394,7 +394,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			}
 			// apply combination function
 			Aggregator combFunc = relNode.aggregator;			
-			if(combFunc == Aggregator.FunctionalOr || combFunc == Aggregator.NoisyOr) {
+			if(combFunc == Aggregator.FunctionalOr || combFunc == Aggregator.NoisyOr || combFunc == Aggregator.FunctionalAnd) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
 					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
@@ -402,10 +402,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				String cpfid = combFunc.getFunctionSyntax();
 				switch(combFunc) {
 				case FunctionalOr:
-					cpfid += String.format("-%d-%d", groundings.size(), groundings.firstElement().nodeArgs.size());					
+					cpfid += String.format("-OR(%d-%d)", groundings.size(), groundings.firstElement().nodeArgs.size());					
 					break;
 				case NoisyOr:
-					cpfid += String.format("-%d", groundings.size());
+					cpfid += String.format("-OR(%d)", groundings.size());
+					break;
+				case FunctionalAnd:
+					cpfid += String.format("-AND(%d)", groundings.size());
 					break;
 				}
 				// build the CPF
@@ -418,11 +421,18 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				// - otherwise set and apply the filler
 				else {
 					cpf.buildZero(domprod_arr, false);
-					CPFFiller filler;
-					if(combFunc == Aggregator.FunctionalOr)
+					CPFFiller filler = null;
+					switch(combFunc) {
+					case FunctionalOr:					
 						filler = new CPFFiller_ORGrouped(mainNode, groundings.firstElement().nodeArgs.size()-1);
-					else
+						break;
+					case NoisyOr:
 						filler = new CPFFiller_OR(mainNode);
+						break;
+					case FunctionalAnd:
+						filler = new CPFFiller_AND(mainNode);
+						break;
+					}
 					filler.fill();
 					// store the newly built CPF in the cache	
 					cpfCache.put(cpfid, cpf.getValues());
@@ -783,6 +793,25 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		}
 		
 		protected abstract double getValue(int[] addr);
+	}
+	
+	/**
+	 * CPF filler for simple OR of boolean nodes
+	 * @author jain
+	 */
+	public class CPFFiller_AND extends CPFFiller {
+		public CPFFiller_AND(BeliefNode node) {
+			super(node);
+		}
+
+		@Override
+		protected double getValue(int[] addr) {
+			// AND of boolean nodes: if one of the nodes is true (0), it is true
+			boolean isTrue = true;
+			for(int i = 1; i < addr.length; i++)
+				isTrue = isTrue && addr[i] == 0;
+			return (addr[0] == 0 && isTrue) || (addr[0] == 1 && !isTrue) ? 1.0 : 0.0;
+		}
 	}
 	
 	/**
