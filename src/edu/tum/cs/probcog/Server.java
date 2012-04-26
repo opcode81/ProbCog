@@ -100,8 +100,7 @@ public class Server {
 	 * processes a query by setting the evidence, instantiating the model and running the inference procedure
 	 * @param modelName the model to use
 	 * @param queries a collection of queries, i.e. either predicate/function names, partially grounded predicates/terms (variables in lower-case) or fully grounded predicates/terms
-	 * @param evidence a collection of arrays, where each array contains a predicate/function name followed by some arguments, and, in the case of a (non-boolean) function, the value as the last element
-	 * NOTE: false boolean evidence is currently unsupported  
+	 * @param evidence a collection of arrays, where each array contains a predicate/function name followed by some arguments and finally the value. For a Boolean function, the value can be omitted (True is default).   
 	 * @return a vector of inference results with constants already mapped
 	 * @throws Exception
 	 */
