@@ -56,11 +56,12 @@ public class WCSPConverter implements GroundingCallback {
 	protected PrintStream ps;
 	protected int numConstraints = 0;
 	protected boolean initialized = false;
-	protected long sumSoftCosts = 0;
+	protected long hardCost = -1;
 	protected boolean debug = false;
 	protected Database db;
 
     /**
+     * @deprecated
      * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
      * @param mlnFileLoc MLN file
      * @param dbFileLoc  MLN database file
@@ -72,13 +73,21 @@ public class WCSPConverter implements GroundingCallback {
         sb_result = new StringBuffer();
         Database db = new Database(mln);
         db.readMLNDB(dbFileLoc);
+        // NOTE: this is the reason for deprecation, as we now reassign the costs/weights of hard formulas, which requires prior knowledge of all weights, so we can't do the conversion on the fly without looking at all formulas beforehand 
         mln.ground(db, false, this); // implicitly performs the conversion of formulas to WCSP constraints through the callback
     }
     
     /**
-     * Method calculates the minimum difference among all weights
-     * @return returns the minimum (delta) difference of all weights
+     * @param mrf
+     * @throws Exception 
      */
+    public WCSPConverter(MarkovRandomField mrf) throws Exception {
+        this.mln = mrf.mln;
+    	divisor = getDivisor();
+        sb_result = new StringBuffer();
+        convertFormulas(mrf);
+    }
+    
     protected double getDivisor() {
         // get minimum weight and build sorted tree set of weights
     	TreeSet<Double> weight = new TreeSet<Double>();
@@ -110,19 +119,7 @@ public class WCSPConverter implements GroundingCallback {
         
         return divisor;
     }
-    
-    /**
-     * @param mrf
-     * @throws Exception 
-     */
-    public WCSPConverter(MarkovRandomField mrf) throws Exception {
-        this.mln = mrf.mln;
-    	divisor = getDivisor();
-        sb_result = new StringBuffer();        
-        for(WeightedFormula wf : mrf) {
-        	convertFormula(wf, mrf);
-        }
-    }
+
     
     /**
      * performs the conversion of the ground MRF to the WCSP file
@@ -261,6 +258,26 @@ public class WCSPConverter implements GroundingCallback {
         */        	
     }
 
+    protected void convertFormulas(MarkovRandomField mrf) throws Exception {
+    	long sumSoftCosts = 0;
+    	Vector<WeightedFormula> hardFormulas = new Vector<WeightedFormula>();
+        for(WeightedFormula wf : mrf) {
+        	if(!wf.isHard) {
+	        	long cost = Math.round(wf.weight / divisor);
+	        	sumSoftCosts += cost;
+        	}
+        	else {
+        		hardFormulas.add(wf);
+        	}
+        }
+        
+        hardCost = sumSoftCosts + 1;
+        hardFormulas = null;
+        
+        for(WeightedFormula wf : mrf)
+        	convertFormula(wf, mrf);
+    }
+    
     /**
      * this method generates a WCSP-Constraint for a formula
      * @param f formula (for this formula a WCSP- constraint is generated), the formula is already simplified
@@ -288,7 +305,11 @@ public class WCSPConverter implements GroundingCallback {
         // generate all possibilities for this constraint
         ArrayList<String> settingsZero = new ArrayList<String>();
         ArrayList<String> settingsOther = new ArrayList<String>();
-        long cost = Math.round(wf.weight / divisor);
+        long cost;
+        if(wf.isHard)
+        	cost = hardCost;
+        else
+        	cost = Math.round(wf.weight / divisor);
         convertFormula(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);
         ArrayList<String> smallerSet;         
         long defaultCosts;
@@ -308,9 +329,9 @@ public class WCSPConverter implements GroundingCallback {
         	return;
 
         numConstraints++;
-        // TODO ideally, we should set the costs of hard constraints to the sumSoftCosts+1
-        if(!wf.isHard || true)
-        	sumSoftCosts += cost;
+        // this was moved to convertFormulas
+        //if(!wf.isHard || true)
+        //	sumSoftCosts += cost;
         
         // write results
         String nl = System.getProperty("line.separator");
@@ -349,7 +370,7 @@ public class WCSPConverter implements GroundingCallback {
 
         // the first line of the WCSP-File
         // syntax: name of the WCSP, number of variables, maximum domainsize of the variables, number of constraints, initial TOP
-        long top = sumSoftCosts+1;
+        long top = hardCost;
         
         // add unary constraints for evidence variables
         String[][] entries = db.getEntriesAsArray();
