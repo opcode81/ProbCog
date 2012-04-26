@@ -169,6 +169,14 @@ class SciPyOpt(object):
 			print "starting optimization with %s... %s" % (optimizer, params)
 			wt = fmin_powell(neg_f, self.wt, args=(), full_output=True, **params)
 			print "optimization done with %s..." % optimizer
+		elif optimizer == 'l-bfgs-b':
+			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter", 'bounds'], self.optParams.iteritems()))
+			print "starting optimization with %s... %s" % (optimizer, params)
+			if 'bounds' in params:
+				params['bounds'] = (params['bounds'],) * len(self.wt)
+			wt, f_opt, d = fmin_l_bfgs_b(neg_f, self.wt, fprime=neg_grad, **params)
+			print "optimization done with %s..." % optimizer
+			print "f-opt: %.16f\n" % (-f_opt)
 		else:
 			raise Exception("Unknown optimizer '%s'" % optimizer)
 		
