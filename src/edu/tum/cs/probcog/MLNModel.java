@@ -9,6 +9,7 @@ package edu.tum.cs.probcog;
 import java.util.Map;
 import java.util.Vector;
 
+import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.Variable;
@@ -65,13 +66,13 @@ public class MLNModel extends Model {
 				params = new String[tuple.length-1];
 				for(int i = 0; i < params.length; i++)
 					params[i] = tuple[i+1];
-				value = "True";
+				value = BooleanDomain.True;
 			}
 			else {
 				params = new String[tuple.length-2];
 				for(int i = 0; i < params.length; i++)
 					params[i] = tuple[i+1];
-				value = tuple[tuple.length-1];
+				value = BooleanDomain.getStandardValue(tuple[tuple.length-1]);				
 			}
 			db.addVariable(new Variable(functionName, params, value, mln));
 		}
