@@ -10,12 +10,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.parser.ParseException;
+import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.RelationKey;
 import edu.tum.cs.srl.RelationalModel;
@@ -31,7 +32,8 @@ import edu.tum.cs.util.FileUtil;
 public class MarkovLogicNetwork implements RelationalModel {
 
     protected File mlnFile;
-    protected HashMap<Formula, Double> formula2weight;
+    //protected HashMap<Formula, Double> formula2weight;
+    protected Vector<WeightedFormula> formulas;
     /**
      * maps a predicate name to its signature
      */
@@ -78,7 +80,7 @@ public class MarkovLogicNetwork implements RelationalModel {
         signatures = new HashMap<String, Signature>();
         functionalPreds = new HashMap<String, Integer>();        
         guaranteedDomainElements = new HashMap<String, HashSet<String>>();
-        formula2weight = new HashMap<Formula, Double>();
+        formulas = new Vector<WeightedFormula>();
     }
     
     /**
@@ -91,11 +93,12 @@ public class MarkovLogicNetwork implements RelationalModel {
     
     public void addFormula(Formula f, double weight) throws Exception {
     	f.addConstantsToModel(this);
-    	this.formula2weight.put(f, weight);
+    	this.formulas.add(new WeightedFormula(f, weight, false));
     }
     
     public void addHardFormula(Formula f) throws Exception {
-    	addFormula(f, getHardWeight());
+    	f.addConstantsToModel(this);
+    	this.formulas.add(new WeightedFormula(f, getHardWeight(), true));
     }
     
     public void addFunctionalDependency(String predicateName, Integer index) {
@@ -114,8 +117,8 @@ public class MarkovLogicNetwork implements RelationalModel {
     		addGuaranteedDomainElement(domain, e);
     }
     
-    public Set<Formula> getFormulas() {
-    	return formula2weight.keySet();
+    public Vector<WeightedFormula> getFormulas() {
+    	return formulas;
     }
 
     /**
@@ -269,30 +272,6 @@ public class MarkovLogicNetwork implements RelationalModel {
         return sumAbsWeights + 100000; // TODO this number should be selected with extreme care (especially for MPE inference it is very relevant); we should set it to the sum of abs. weights of soft formulas in the *ground* model + X
     }
 
-    /**
-     * Method calculates the minimum difference among all weights
-     * @return returns the minimum (delta) difference of all weights
-     */
-    public double getdeltaMin() {
-        double deltaMin = Double.MAX_VALUE;
-        TreeSet<Double> weight = new TreeSet<Double>();
-        // add weights in a sorted TreeSet
-        for(double d : formula2weight.values())
-            weight.add(d);
-        if(weight.size() == 1)
-        	return 1.0e-5;
-        // calculate the smallest difference between consecutive weights
-        while(weight.iterator().hasNext()) {
-            Double d = weight.first();
-            weight.remove(d);
-            if (weight.iterator().hasNext()) {
-                if (Math.abs(d - weight.first()) < deltaMin)
-                    deltaMin = Math.abs(d - weight.first());
-            }
-        }
-        return deltaMin;
-    }
-
 	/**
 	 * replace a type by a new type in all function signatures
 	 * @param oldType
@@ -360,9 +339,11 @@ public class MarkovLogicNetwork implements RelationalModel {
 		out.println();
 		
 		out.println("// formulas");
-		for(Formula f : getFormulas()) {
-			double w = formula2weight.get(f);
-			out.printf("%f  %s\n", w, f.toString());
+		for(WeightedFormula wf : getFormulas()) {
+			if(wf.isHard)
+				out.printf("%s.\n", wf.formula.toString());
+			else
+				out.printf("%f  %s\n", wf.weight, wf.formula.toString());
 		}
 	}
 	

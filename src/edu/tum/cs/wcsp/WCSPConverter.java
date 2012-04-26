@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.Vector;
 
@@ -35,7 +36,7 @@ public class WCSPConverter implements GroundingCallback {
 
 	protected MarkovLogicNetwork mln;
 	protected PossibleWorld world;
-	protected Double deltaMin;
+	protected Double divisor;
 	protected HashMap<String, HashSet<String>> doms;
 	protected HashMap<Integer, Integer> gndID_BlockID;
 	/**
@@ -67,11 +68,45 @@ public class WCSPConverter implements GroundingCallback {
      */
     public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws Exception {
         this.mln = new MarkovLogicNetwork(mlnFileLoc);
-    	deltaMin = mln.getdeltaMin();
+    	divisor = getDivisor();
         sb_result = new StringBuffer();
         Database db = new Database(mln);
         db.readMLNDB(dbFileLoc);
         mln.ground(db, false, this); // implicitly performs the conversion of formulas to WCSP constraints through the callback
+    }
+    
+    /**
+     * Method calculates the minimum difference among all weights
+     * @return returns the minimum (delta) difference of all weights
+     */
+    protected double getDivisor() {
+        // get minimum weight and build sorted tree set of weights
+    	TreeSet<Double> weight = new TreeSet<Double>();
+        double minWeight = Double.MAX_VALUE;
+        for(WeightedFormula wf : mln.getFormulas()) {
+            weight.add(wf.weight);
+            if(wf.weight < minWeight)
+            	minWeight = wf.weight;
+        }       
+        
+        // calculate the smallest difference between consecutive weights
+        double deltaMin = Double.MAX_VALUE;
+        Iterator<Double> iter = weight.iterator();        
+        Double w1 = iter.next();
+        while(iter.hasNext()) {
+            Double w2 = iter.next();
+            double diff = w2 - w1;
+            if(diff < deltaMin)
+            	deltaMin = diff;
+            w1 = w2;
+        }
+        
+        double divisor = 1.0;
+        if(minWeight < 1.0)
+        	divisor *= minWeight;
+        if(deltaMin < 1.0)
+        	divisor *= deltaMin;
+        return divisor;
     }
     
     /**
@@ -80,7 +115,7 @@ public class WCSPConverter implements GroundingCallback {
      */
     public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
-    	deltaMin = mln.getdeltaMin();
+    	divisor = getDivisor();
         sb_result = new StringBuffer();        
         for(WeightedFormula wf : mrf) {
         	convertFormula(wf, mrf);
@@ -232,7 +267,6 @@ public class WCSPConverter implements GroundingCallback {
      */
     protected void convertFormula(WeightedFormula wf) throws Exception {
     	Formula f = wf.formula;
-    	double weight = wf.weight;
     	
         // get all groundatoms of the formula
         HashSet<GroundAtom> gndAtoms = new HashSet<GroundAtom>();
@@ -251,10 +285,10 @@ public class WCSPConverter implements GroundingCallback {
         
         // generate all possibilities for this constraint
         ArrayList<String> settingsZero = new ArrayList<String>();
-        ArrayList<String> settingsOther = new ArrayList<String>();        
-        convertFormula(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], weight, settingsZero, settingsOther);
-        ArrayList<String> smallerSet;
-        long cost = Math.round(wf.weight / deltaMin); 
+        ArrayList<String> settingsOther = new ArrayList<String>();
+        long cost = Math.round(wf.weight / divisor);
+        convertFormula(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);
+        ArrayList<String> smallerSet;         
         long defaultCosts;
         if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
         	smallerSet = settingsOther;
@@ -350,7 +384,7 @@ public class WCSPConverter implements GroundingCallback {
         
         System.out.println("# variables: " + vars.size());
         System.out.println("top: " + top);
-        System.out.println("deltaMin: " + deltaMin);
+        System.out.println("deltaMin: " + divisor);
         out.printf("WCSPfromMLN %d %d %d %d\n", vars.size(), maxDomSize, numConstraints, top);
         
         // the second line contains the domain size of each simplified variable of the WCSP
@@ -369,9 +403,9 @@ public class WCSPConverter implements GroundingCallback {
      * @param settingsOther set to save all possibilities with costs different to 0
      * @throws Exception 
      */
-    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, double weight, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
-    	if(weight < 0)
-    		throw new Exception("Weights must be positive");
+    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, double cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
+    	if(cost < 0)
+    		throw new Exception("Costs must be positive");
         // if all groundatoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.size()) {
             StringBuffer zeile = new StringBuffer();
@@ -381,7 +415,7 @@ public class WCSPConverter implements GroundingCallback {
             
             // calculate weight according to WCSP-Syntax
             if (!f.isTrue(w)) { // if formula is false, costs correspond to the weight
-                zeile.append(Math.round(weight / deltaMin));
+                zeile.append(cost);
                 settingsOther.add(zeile.toString());  
             } else { // if formula is true, there are no costs
                 zeile.append("0");
@@ -399,7 +433,7 @@ public class WCSPConverter implements GroundingCallback {
     		for(int j = 0; j < domSize; j++) {
     			g[i] = j;
     			setGroundAtomState(w, wcspVarIdx, j);
-    			convertFormula(f, wcspVarIndices, i + 1, w, g, weight, settingsZero, settingsOther);
+    			convertFormula(f, wcspVarIndices, i + 1, w, g, cost, settingsZero, settingsOther);
     		}
         }
     }
