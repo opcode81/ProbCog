@@ -127,25 +127,23 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      */
     protected void groundFormulas(boolean makelist, GroundingCallback gc) throws Exception {
         weightedFormulas = new Vector<WeightedFormula>();
-        for(Formula form : mln.getFormulas()) {
-        	Double weight = mln.formula2weight.get(form);
-        	if(weight == null)
-        		throw new Exception(String.format("MLN does not assign a weight to '%s'; mapped formulas are %s.", form.toString(), mln.formula2weight.keySet().toString()));
-        	boolean isHard = weight.equals(mln.getHardWeight());
+        for(WeightedFormula wf : mln.getFormulas()) {
+        	double weight = wf.weight;
+        	boolean isHard = wf.isHard;
         	Vector<Formula> groundings;
         	try {
-        		groundings = form.getAllGroundings(db, vars, simplifyGroundedFormulas);
+        		groundings = wf.formula.getAllGroundings(db, vars, simplifyGroundedFormulas);
         	}
         	catch(Exception e) {
-        		throw new Exception("Error while grounding formula '" + form.toString() + "'", e);
+        		throw new Exception("Error while grounding formula '" + wf.formula.toString() + "'", e);
         	}
         	//System.out.printf("%d groundings of formula %s\n", groundings.size(), form.toString());
             for(Formula gf : groundings) {            	
-            	WeightedFormula wf = new WeightedFormula(gf, weight, isHard);
+            	WeightedFormula gwf = new WeightedFormula(gf, weight, isHard);
                 if(makelist)
-                    weightedFormulas.add(wf);
+                    weightedFormulas.add(gwf);
                 if(gc != null)
-                    gc.onGroundedFormula(wf, this);
+                    gc.onGroundedFormula(gwf, this);
             }
         }
     }
