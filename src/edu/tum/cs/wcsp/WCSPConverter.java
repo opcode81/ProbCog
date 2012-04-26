@@ -84,9 +84,10 @@ public class WCSPConverter implements GroundingCallback {
     	TreeSet<Double> weight = new TreeSet<Double>();
         double minWeight = Double.MAX_VALUE;
         for(WeightedFormula wf : mln.getFormulas()) {
-            weight.add(wf.weight);
-            if(wf.weight < minWeight)
-            	minWeight = wf.weight;
+        	double w = Math.abs(wf.weight);
+            weight.add(w);
+            if(w < minWeight)
+            	minWeight = w;
         }       
         
         // calculate the smallest difference between consecutive weights
