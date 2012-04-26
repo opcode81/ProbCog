@@ -86,7 +86,7 @@ public class WCSPConverter implements GroundingCallback {
         for(WeightedFormula wf : mln.getFormulas()) {
         	double w = Math.abs(wf.weight);
             weight.add(w);
-            if(w < minWeight)
+            if(w < minWeight && w != 0)
             	minWeight = w;
         }       
         
@@ -107,6 +107,7 @@ public class WCSPConverter implements GroundingCallback {
         	divisor *= minWeight;
         if(deltaMin < 1.0)
         	divisor *= deltaMin;
+        
         return divisor;
     }
     
@@ -404,7 +405,7 @@ public class WCSPConverter implements GroundingCallback {
      * @param settingsOther set to save all possibilities with costs different to 0
      * @throws Exception 
      */
-    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, double cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
+    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, long cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
     	if(cost < 0)
     		throw new Exception("Costs must be positive");
         // if all groundatoms were handled, the costs for this setting can be evaluated
