@@ -4,13 +4,14 @@
  */
 package edu.tum.cs.wcsp;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
@@ -23,7 +24,6 @@ import edu.tum.cs.logic.sat.weighted.WeightedFormula;
 import edu.tum.cs.srl.BooleanDomain;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
-import edu.tum.cs.srl.mln.GroundingCallback;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.util.StringTool;
@@ -32,9 +32,10 @@ import edu.tum.cs.util.StringTool;
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
  * @author wylezich, jain
  */
-public class WCSPConverter implements GroundingCallback {
+public class WCSPConverter {
 
 	protected MarkovLogicNetwork mln;
+	protected MarkovRandomField mrf;
 	protected PossibleWorld world;
 	protected Double divisor;
 	protected HashMap<String, HashSet<String>> doms;
@@ -52,40 +53,20 @@ public class WCSPConverter implements GroundingCallback {
      */
 	protected HashMap<Integer, Vector<GroundAtom>> varIdx2groundAtoms;
 	protected HashMap<String, String> func_dom;
-	protected StringBuffer sb_result, sb_settings;
 	protected PrintStream ps;
-	protected int numConstraints = 0;
 	protected boolean initialized = false;
 	protected long hardCost = -1;
 	protected boolean debug = false;
 	protected Database db;
+	protected PrintStream out;
 
-    /**
-     * @deprecated
-     * Note: This constructor is more memory-efficient as does not require the whole set of ground formulas to be materialized in an MRF
-     * @param mlnFileLoc MLN file
-     * @param dbFileLoc  MLN database file
-     * @throws Exception 
-     */
-    public WCSPConverter(String mlnFileLoc, String dbFileLoc) throws Exception {
-        this.mln = new MarkovLogicNetwork(mlnFileLoc);
-    	divisor = getDivisor();
-        sb_result = new StringBuffer();
-        Database db = new Database(mln);
-        db.readMLNDB(dbFileLoc);
-        // NOTE: this is the reason for deprecation, as we now reassign the costs/weights of hard formulas, which requires prior knowledge of all weights, so we can't do the conversion on the fly without looking at all formulas beforehand 
-        mln.ground(db, false, this); // implicitly performs the conversion of formulas to WCSP constraints through the callback
-    }
-    
     /**
      * @param mrf
      * @throws Exception 
      */
     public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
-    	divisor = getDivisor();
-        sb_result = new StringBuffer();
-        convertFormulas(mrf);
+        this.mrf = mrf;                        
     }
     
     protected double getDivisor() {
@@ -127,13 +108,13 @@ public class WCSPConverter implements GroundingCallback {
      * @throws Exception 
      */
     public void run(String wcspFilename) throws Exception {
-        // save generated WCSP-File in a file
-    	//System.out.println("writing output to " + wcspFilename);
-        ps = new PrintStream(wcspFilename);
-        generateHead(ps);
-        ps.print(sb_result);
-        ps.flush();
-        ps.close();
+    	initialize();
+        out = new PrintStream(wcspFilename);
+        generateHead();
+        generateEvidenceConstraints();
+        generateConstraints();
+        out.flush();
+        out.close();
     }
 
     /**
@@ -258,19 +239,15 @@ public class WCSPConverter implements GroundingCallback {
         */        	
     }
 
-    protected void convertFormulas(MarkovRandomField mrf) throws Exception {
+    protected void generateConstraints() throws Exception {
     	long sumSoftCosts = 0;
-    	Vector<WeightedFormula> hardFormulas = new Vector<WeightedFormula>();
         for(WeightedFormula wf : mrf) {
         	if(!wf.isHard) {
-	        	long cost = Math.round(wf.weight / divisor);
+	        	long cost = Math.abs(Math.round(wf.weight / divisor));
                 long newSum = sumSoftCosts + cost;
                 if (newSum < sumSoftCosts)
                     throw new Exception("Numeric overflow in sumSoftCosts");
 	        	sumSoftCosts = newSum;
-        	}
-        	else {
-        		hardFormulas.add(wf);
         	}
         }
         
@@ -278,10 +255,8 @@ public class WCSPConverter implements GroundingCallback {
         if (hardCost <= sumSoftCosts)
             throw new Exception("Numeric overflow in sumSoftCosts");
         
-        hardFormulas = null;
-        
         for(WeightedFormula wf : mrf)
-        	convertFormula(wf, mrf);
+        	generateConstraint(wf);
     }
     
     /**
@@ -290,10 +265,16 @@ public class WCSPConverter implements GroundingCallback {
      * @param weight the weight of the formula to calculate the costs
      * @throws Exception 
      */
-    protected void convertFormula(WeightedFormula wf) throws Exception {
+    protected void generateConstraint(WeightedFormula wf) throws Exception {
+        // if the weight is negative, negate the formula and its weight
     	Formula f = wf.formula;
+    	double weight = wf.weight;
+        if(weight < 0) {
+        	f = new Negation(f);
+        	weight *= -1;
+        }    	
     	
-        // get all groundatoms of the formula
+        // get all ground atoms of the formula
         HashSet<GroundAtom> gndAtoms = new HashSet<GroundAtom>();
         f.getGroundAtoms(gndAtoms);
 
@@ -315,8 +296,8 @@ public class WCSPConverter implements GroundingCallback {
         if(wf.isHard)
         	cost = hardCost;
         else
-        	cost = Math.round(wf.weight / divisor);
-        convertFormula(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);
+        	cost = Math.round(weight / divisor);
+        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);
         ArrayList<String> smallerSet;         
         long defaultCosts;
         if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
@@ -333,24 +314,18 @@ public class WCSPConverter implements GroundingCallback {
         // if the smaller set contains no lines, this constraint is either unsatisfiable or a tautology, so it need not be considered at all
         if(smallerSet.size() == 0)
         	return;
-
-        numConstraints++;
-        // this was moved to convertFormulas
-        //if(!wf.isHard || true)
-        //	sumSoftCosts += cost;
         
         // write results
-        String nl = System.getProperty("line.separator");
         // first line of the constraint: arity of the constraint followed by indices of the variables, default costs, and number of constraint lines
-        sb_result.append(referencedVarIndices.size() + " ");
+        out.print(referencedVarIndices.size() + " ");
         for(Integer in : referencedVarIndices) {
-            sb_result.append(in + " ");
+            out.print(in + " ");
         }        
-        sb_result.append(defaultCosts + " " + smallerSet.size());        
-        sb_result.append(nl);
+        out.print(defaultCosts + " " + smallerSet.size());        
+        out.println();
         // all lines differing from default costs are appended to the string buffer
-        for (String s : smallerSet)
-            sb_result.append(s + nl);
+        for(String s : smallerSet)
+            out.println(s);
     }
 
     /**
@@ -358,7 +333,7 @@ public class WCSPConverter implements GroundingCallback {
      * @param out the stream to write to
      * @throws Exception 
      */
-    protected void generateHead(PrintStream out) throws Exception {
+    protected void generateHead() throws Exception {
     	if(!initialized)
     		throw new Exception("Not initialized");
     	
@@ -374,10 +349,22 @@ public class WCSPConverter implements GroundingCallback {
                 maxDomSize = domSize;
         }
 
-        // the first line of the WCSP-File
-        // syntax: name of the WCSP, number of variables, maximum domainsize of the variables, number of constraints, initial TOP
         long top = hardCost;
+        System.out.println("# variables: " + vars.size());
+        System.out.println("top: " + top);
+        System.out.println("divisor: " + divisor);       
+
+        // the first line of the WCSP-File
+        // syntax: name of the WCSP, number of variables, maximum domain size of the variables, number of constraints, initial TOP
+        int numConstraints = mrf.getNumFormulas() + world.getVariables().size(); // upper bound seems to be OK for toulbar2
+        out.printf("WCSPfromMLN %d %d %d %d\n", vars.size(), maxDomSize, numConstraints, top);
         
+        // the second line contains the domain size of each simplified variable of the WCSP
+        out.println(strDomSizes.toString());
+    }
+    
+    protected void generateEvidenceConstraints() throws Exception {
+    	long top = hardCost;
         // add unary constraints for evidence variables
         String[][] entries = db.getEntriesAsArray();
         WorldVariables worldVars = world.getVariables();
@@ -394,30 +381,21 @@ public class WCSPConverter implements GroundingCallback {
         	int iValue = -1;
         	if(block.size()==1) {
         		iValue = isTrue ? 0 : 1;
-        		this.sb_result.append(String.format("1 %d %d 1\n", iVar, top));
-            	this.sb_result.append(String.format("%d 0\n", iValue));
+        		out.printf("1 %d %d 1\n", iVar, top);
+            	out.printf("%d 0\n", iValue);
         	}
         	else {
         		iValue = block.indexOf(gndAtom);        		
         		if(isTrue) {
-	        		this.sb_result.append(String.format("1 %d %d 1\n", iVar, top));
-	            	this.sb_result.append(String.format("%d 0\n", iValue));
+	        		out.printf("1 %d %d 1\n", iVar, top);
+	            	out.printf("%d 0\n", iValue);
         		}
         		else {
-	        		this.sb_result.append(String.format("1 %d 0 1\n", iVar));
-	            	this.sb_result.append(String.format("%d %d\n", iValue, top));
+	        		out.printf("1 %d 0 1\n", iVar);
+	            	out.printf("%d %d\n", iValue, top);
         		}
         	}    	
-        	numConstraints++;
-        }       
-        
-        System.out.println("# variables: " + vars.size());
-        System.out.println("top: " + top);
-        System.out.println("deltaMin: " + divisor);
-        out.printf("WCSPfromMLN %d %d %d %d\n", vars.size(), maxDomSize, numConstraints, top);
-        
-        // the second line contains the domain size of each simplified variable of the WCSP
-        out.println(strDomSizes.toString());
+        }        
     }
 
     /**
@@ -432,7 +410,7 @@ public class WCSPConverter implements GroundingCallback {
      * @param settingsOther set to save all possibilities with costs different to 0
      * @throws Exception 
      */
-    protected void convertFormula(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, long cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
+    protected void gatherConstraintLines(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, long cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
     	if(cost < 0)
     		throw new Exception("Costs must be positive");
         // if all groundatoms were handled, the costs for this setting can be evaluated
@@ -462,7 +440,7 @@ public class WCSPConverter implements GroundingCallback {
     		for(int j = 0; j < domSize; j++) {
     			g[i] = j;
     			setGroundAtomState(w, wcspVarIdx, j);
-    			convertFormula(f, wcspVarIndices, i + 1, w, g, cost, settingsZero, settingsOther);
+    			gatherConstraintLines(f, wcspVarIndices, i + 1, w, g, cost, settingsZero, settingsOther);
     		}
         }
     }
@@ -506,36 +484,13 @@ public class WCSPConverter implements GroundingCallback {
             w.set(it.next().index, false);
     }
 
-    /**
-     * this method is the callback-method of the ground_and_simplify method;
-     * it generates a WCSP-Constraint for the given formula
-     * @param f a ground formula
-     * @param weight the weight of the formula
-     * @param db evidence of the scenario
-     * @throws Exception 
-     */
-    public void onGroundedFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
-    	convertFormula(wf, mrf);
+    public void initialize() throws Exception {
+    	this.db = mrf.getDb();
+        this.world = new PossibleWorld(mrf.getWorldVariables());
+        doms = mrf.getDb().getDomains();
+        createVariables();
+        simplifyVars(mrf.getDb());
+        divisor = getDivisor();
+        initialized = true;
     }
-    
-    public void convertFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception {
-    	// initialization (necessary to perform here if working through callback)
-        if(!initialized) { 
-        	this.db = mrf.getDb();
-            this.world = new PossibleWorld(mrf.getWorldVariables());
-            doms = mrf.getDb().getDomains();
-            createVariables();
-            simplifyVars(mrf.getDb());
-            initialized = true;
-        }
-        
-        // if the weight is negative, negate the formula and its weight
-        if(wf.weight < 0) {
-        	wf.formula = new Negation(wf.formula);
-        	wf.weight *= -1;
-        }
-        
-        // perform actual conversions
-        convertFormula(wf);
-    }   
 }
