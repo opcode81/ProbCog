@@ -189,4 +189,8 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
 		}
 		return s;
 	}
+	
+	public int getNumFormulas() {
+		return this.weightedFormulas.size();
+	}
 }

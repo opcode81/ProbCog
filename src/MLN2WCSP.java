@@ -1,4 +1,7 @@
 
+import edu.tum.cs.srl.Database;
+import edu.tum.cs.srl.mln.MarkovLogicNetwork;
+import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.wcsp.WCSPConverter;
 
 /*
@@ -17,7 +20,11 @@ public class MLN2WCSP {
 			return;			
 		}
 		
-		WCSPConverter converter = new WCSPConverter(args[0], args[1]);
+		MarkovLogicNetwork mln = new MarkovLogicNetwork(args[0]);
+		Database db = new Database(mln);
+		db.readMLNDB(args[1]);
+		MarkovRandomField mrf = mln.ground(db);
+		WCSPConverter converter = new WCSPConverter(mrf);
 		converter.run(args[2]);		
 	}
 }
