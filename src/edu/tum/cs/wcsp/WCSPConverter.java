@@ -264,7 +264,10 @@ public class WCSPConverter implements GroundingCallback {
         for(WeightedFormula wf : mrf) {
         	if(!wf.isHard) {
 	        	long cost = Math.round(wf.weight / divisor);
-	        	sumSoftCosts += cost;
+                long newSum = sumSoftCosts + cost;
+                if (newSum < sumSoftCosts)
+                    throw new Exception("Numeric overflow in sumSoftCosts");
+	        	sumSoftCosts = newSum;
         	}
         	else {
         		hardFormulas.add(wf);
@@ -272,6 +275,9 @@ public class WCSPConverter implements GroundingCallback {
         }
         
         hardCost = sumSoftCosts + 1;
+        if (hardCost <= sumSoftCosts)
+            throw new Exception("Numeric overflow in sumSoftCosts");
+        
         hardFormulas = null;
         
         for(WeightedFormula wf : mrf)
