@@ -240,21 +240,6 @@ public class WCSPConverter {
     }
 
     protected void generateConstraints() throws Exception {
-    	long sumSoftCosts = 0;
-        for(WeightedFormula wf : mrf) {
-        	if(!wf.isHard) {
-	        	long cost = Math.abs(Math.round(wf.weight / divisor));
-                long newSum = sumSoftCosts + cost;
-                if (newSum < sumSoftCosts)
-                    throw new Exception("Numeric overflow in sumSoftCosts");
-	        	sumSoftCosts = newSum;
-        	}
-        }
-        
-        hardCost = sumSoftCosts + 1;
-        if (hardCost <= sumSoftCosts)
-            throw new Exception("Numeric overflow in sumSoftCosts");
-        
         for(WeightedFormula wf : mrf)
         	generateConstraint(wf);
     }
@@ -491,6 +476,22 @@ public class WCSPConverter {
         createVariables();
         simplifyVars(mrf.getDb());
         divisor = getDivisor();
+        
+    	long sumSoftCosts = 0;
+        for(WeightedFormula wf : mrf) {
+        	if(!wf.isHard) {
+	        	long cost = Math.abs(Math.round(wf.weight / divisor));
+                long newSum = sumSoftCosts + cost;
+                if (newSum < sumSoftCosts)
+                    throw new Exception("Numeric overflow in sumSoftCosts");
+	        	sumSoftCosts = newSum;
+        	}
+        }
+        
+        hardCost = sumSoftCosts + 1;
+        if (hardCost <= sumSoftCosts)
+            throw new Exception("Numeric overflow in sumSoftCosts");
+        
         initialized = true;
     }
 }
