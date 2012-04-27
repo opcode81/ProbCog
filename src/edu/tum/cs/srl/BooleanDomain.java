@@ -4,9 +4,9 @@
 package edu.tum.cs.srl;
 
 public class BooleanDomain {
-	public static String True = "True";
-	public static String False = "False";
-	public static String typeName = "Boolean";
+	public static final String True = "True";
+	public static final String False = "False";
+	public static final String typeName = "Boolean";
 	
 	public static boolean isBooleanType(String typeName) {
 		return BooleanDomain.typeName.equalsIgnoreCase(typeName); 

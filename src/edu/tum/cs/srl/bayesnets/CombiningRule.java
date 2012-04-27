@@ -1,13 +1,13 @@
 /*
  * Created on Oct 6, 2010
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.srl.bayesnets;
 
 import java.util.Vector;
 
+/**
+ * @author jain
+ */
 public enum CombiningRule {
 	NoisyOr("noisy-or", true) {		
 		@Override
