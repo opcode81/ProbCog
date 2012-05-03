@@ -337,7 +337,7 @@ class MLN(object):
         if attr[:5] == "infer":
             return self.mrf.__getattribute__(attr)
 
-    def _materializeFormulaTemplates(self, verbose=True):
+    def _materializeFormulaTemplates(self, verbose=False):
         if self.materializedTemplates:
             raise Exception("This MLN's formula templates were previously materialized")
 
@@ -898,7 +898,7 @@ class MRF(object):
 
         # materialize MLN formulas
         if not self.mln.materializedTemplates:
-            self.mln._materializeFormulaTemplates()
+            self.mln._materializeFormulaTemplates(verbose)
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
         # ground
@@ -1812,7 +1812,6 @@ class MRF(object):
         return self._infer(GibbsSampler(self), what, given, verbose=verbose, **args)
 
     def inferMCSAT(self, what, given=None, verbose=True, **args):
-        verbose = args.get("details", False)
         self.mcsat = MCSAT(self, verbose=verbose) # can be used for later data retrieval
         self.mln.mcsat = self.mcsat # only for backwards compatibility
         return self._infer(self.mcsat, what, given, verbose, **args)
