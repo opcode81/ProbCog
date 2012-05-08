@@ -36,6 +36,11 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	protected HashMap<String, HashSet<String>> domains;
 	public RelationalModel model;
 	protected PrologKnowledgeBase prolog;
+	/**
+	 * whether any Prolog value that is computed is always cached by saving it to the database.
+	 * The default value is false, because especially during learning, caching all Prolog values
+	 * may require excessive amounts of memory.
+	 */
 	protected boolean cachePrologValues = false;
 	/**
 	 * true iff the database was extended with all the values that can be computed with the Prolog KB, i.e. 
@@ -425,14 +430,15 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * @throws Exception
 	 */
 	protected void extendWithPrologValues() throws Exception {
-		// TODO This does quite a bit of unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query
+		// TODO This does quite a bit of perhaps unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query
+		if(debug) System.out.println("extending database with Prolog values...");
 		if(prolog != null && !prologDatabaseExtended) {			
 			prologDatabaseExtended = true;
 			for(Signature sig : this.model.getSignatures()) {
 				if(sig.isLogical) {
 					Collection<String[]> bindings = ParameterGrounder.generateGroundings(sig, this);
 					for(String[] b : bindings) 
-						getPrologValue(sig, b);
+						getPrologValue(sig, b, true);
 				}
 			}			
 		}		
@@ -459,13 +465,13 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * @return
 	 * @throws Exception 
 	 */
-	protected boolean getPrologValue(Signature sig, String[] args) throws Exception {
+	protected boolean getPrologValue(Signature sig, String[] args, boolean forceAddToDatabase) throws Exception {
 		String[] prologArgs = new String[args.length];
 		for(int j = 0; j < args.length; j++)
 			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
 		boolean value = prolog.ask(Signature.formatVarName(sig.functionName, prologArgs));
 		VariableType var = makeVar(sig.functionName, args, value ? "True" : "False");
-		if(cachePrologValues) {
+		if(cachePrologValues || forceAddToDatabase) {
 			boolean added = addVariable(var, false, false);
 			if(added && debug) 
 				System.out.println("Prolog: computed " + var);

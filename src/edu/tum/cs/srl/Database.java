@@ -11,8 +11,6 @@ import edu.tum.cs.util.FileUtil;
 
 public class Database extends GenericDatabase<Variable, String> {
 
-	protected boolean cachePrologValues = false;
-	
 	public Database(RelationalModel model) throws Exception {
 		super(model);
 	}
@@ -37,7 +35,7 @@ public class Database extends GenericDatabase<Variable, String> {
 				return BooleanDomain.False;
 			else {
 				String[] args = varName.substring(braceIndex+1, varName.length()-1).split("\\s*,\\s*");
-				return getPrologValue(sig, args) ? BooleanDomain.True : BooleanDomain.False;
+				return getPrologValue(sig, args, false) ? BooleanDomain.True : BooleanDomain.False;
 			}
 		}
 		
