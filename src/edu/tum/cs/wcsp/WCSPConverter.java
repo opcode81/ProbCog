@@ -4,7 +4,6 @@
  */
 package edu.tum.cs.wcsp;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,8 +13,12 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import edu.tum.cs.logic.ComplexFormula;
+import edu.tum.cs.logic.Conjunction;
+import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
+import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
@@ -257,7 +260,9 @@ public class WCSPConverter {
         if(weight < 0) {
         	f = new Negation(f);
         	weight *= -1;
-        }    	
+        } 
+        // convert to negation normal form so we get many flat conjunctions or disjunctions, which can be efficiently converted
+        f = f.toNNF(); 
     	
         // get all ground atoms of the formula
         HashSet<GroundAtom> gndAtoms = new HashSet<GroundAtom>();
@@ -273,31 +278,53 @@ public class WCSPConverter {
             if (!referencedVarIndices.contains(idx)) 
                 referencedVarIndices.add(idx);
         }
-        
-        // generate all possibilities for this constraint
-        ArrayList<String> settingsZero = new ArrayList<String>();
-        ArrayList<String> settingsOther = new ArrayList<String>();
+
+        // get cost value for this constraint
         long cost;
         if(wf.isHard)
         	cost = hardCost;
         else
         	cost = Math.round(weight / divisor);
-        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);
-        ArrayList<String> smallerSet;         
-        long defaultCosts;
-        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
-        	smallerSet = settingsOther;
-            // the default costs (0) are calculated and set in the first line of the constraint
-            defaultCosts = 0;
-        } 
-        else { // there are fewer settings that result in 0 costs than settings with the other value
-        	smallerSet = settingsZero;
-            // the default costs correspond to the formula's weight
-            defaultCosts = cost;
+        
+        ArrayList<String> relevantSettings = null;
+        long defaultCosts = -1;
+        
+        // try the simplified conversion method 
+        boolean generateAllPossibilities = true;
+        boolean isConjunction = f instanceof Conjunction; 
+        if(isConjunction || f instanceof Disjunction) {
+        	generateAllPossibilities = false;
+        	try {
+        		relevantSettings = new ArrayList<String>();
+        		this.gatherConstraintLinesSimplified((ComplexFormula)f, referencedVarIndices, cost, relevantSettings, isConjunction);
+        		defaultCosts = isConjunction ? cost : 0;
+        	}
+        	catch(SimplifiedConversionNotSupportedException e) {
+        		generateAllPossibilities = true;
+        	}
+        }
+        
+        // if necessary, use the complex conversion method which looks at all possible settings
+        if(generateAllPossibilities) {        
+	        // generate all possibilities for this constraint
+	        ArrayList<String> settingsZero = new ArrayList<String>();
+	        ArrayList<String> settingsOther = new ArrayList<String>();
+	        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);                 
+	        
+	        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
+	        	relevantSettings = settingsOther;
+	            // the default costs (0) are calculated and set in the first line of the constraint
+	            defaultCosts = 0;
+	        } 
+	        else { // there are fewer settings that result in 0 costs than settings with the other value
+	        	relevantSettings = settingsZero;
+	            // the default costs correspond to the formula's weight
+	            defaultCosts = cost;
+	        }
         }
         
         // if the smaller set contains no lines, this constraint is either unsatisfiable or a tautology, so it need not be considered at all
-        if(smallerSet.size() == 0)
+        if(relevantSettings.size() == 0)
         	return;
         
         // write results
@@ -306,10 +333,10 @@ public class WCSPConverter {
         for(Integer in : referencedVarIndices) {
             out.print(in + " ");
         }        
-        out.print(defaultCosts + " " + smallerSet.size());        
+        out.print(defaultCosts + " " + relevantSettings.size());        
         out.println();
         // all lines differing from default costs are appended to the string buffer
-        for(String s : smallerSet)
+        for(String s : relevantSettings)
             out.println(s);
     }
 
@@ -384,21 +411,21 @@ public class WCSPConverter {
     }
 
     /**
-     * recursive method to generate all possibilities for a formula
-     * @param f formula (for this formula all possiblilities are generated)
-     * @param wcspVarIndices set of all groundatoms of the formula
+     * recursive method to generate all the constraint lines for a formula
+     * @param f formula (for this formula all possibilities are generated)
+     * @param wcspVarIndices set of all ground atoms of the formula
      * @param i counter to terminate the recursion
-     * @param w possible world to evaluate costs for a setting of groundatoms
-     * @param g array to save the current allocation of the variable
-     * @param weight weight of the formula to calculate costs
+     * @param w possible world to evaluate costs for a setting of ground atoms
+     * @param g current variable assignment
+     * @param cost cost associated with the formula
      * @param settingsZero set to save all possibilities with costs of 0
-     * @param settingsOther set to save all possibilities with costs different to 0
+     * @param settingsOther set to save all possibilities with costs different from 0
      * @throws Exception 
      */
     protected void gatherConstraintLines(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, long cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
     	if(cost < 0)
     		throw new Exception("Costs must be positive");
-        // if all groundatoms were handled, the costs for this setting can be evaluated
+        // if all ground atoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.size()) {
             StringBuffer zeile = new StringBuffer();
             // print the allocation of variables
@@ -430,6 +457,43 @@ public class WCSPConverter {
         }
     }
     
+    protected void gatherConstraintLinesSimplified(ComplexFormula f, ArrayList<Integer> wcspVarIndices, long cost, ArrayList<String> settings, boolean isConjunction) throws Exception {
+        // gather assignment
+    	HashMap<Integer,Integer> assignment = new HashMap<Integer,Integer>();
+        for(Formula child : f.children) {
+        	boolean isTrue;
+        	GroundAtom gndAtom;
+        	if(child instanceof GroundLiteral) {
+        		GroundLiteral lit = (GroundLiteral) child;        		
+        		gndAtom = lit.gndAtom;
+        		isTrue = lit.isPositive;
+        	}       	
+        	else if(child instanceof GroundAtom) {
+        		gndAtom = (GroundAtom) child;
+        		isTrue = true;
+        	}
+        	else
+        		throw new SimplifiedConversionNotSupportedException();
+        	if(!isConjunction) // for disjunction, consider case where formula is false
+        		isTrue = !isTrue; 
+        	int wcspVarIdx = this.gndAtomIdx2varIdx.get(gndAtom.index);
+        	assignment.put(wcspVarIdx, getVariableSettingFromGroundAtomSetting(wcspVarIdx, gndAtom, isTrue));        	
+        }
+        
+        StringBuffer zeile = new StringBuffer();
+        for(Integer wcspVarIdx : wcspVarIndices) {
+        	Integer value = assignment.get(wcspVarIdx);
+        	zeile.append(value + " ");        	
+        }
+
+        // if the formula is true, we have no costs
+        // if the formula is false, costs apply
+        if(isConjunction) // for conjunction, we considered the true case
+        	zeile.append("0");        	
+        else // for disjunction, we considered the false case
+        	zeile.append(cost);
+    }
+    
     /**
      * sets the state of the ground atoms in w that correspond to the given wcsp variable
      * @param w
@@ -447,6 +511,25 @@ public class WCSPConverter {
     	}
     	//System.out.printf("%s = %s\n", this.simplifiedVars.get(wcspVarIdx), dom[domIdx].toString());
     }
+    
+    protected int getVariableSettingFromGroundAtomSetting(int wcspVarIdx, GroundAtom gndAtom, boolean isTrue) throws SimplifiedConversionNotSupportedException {
+    	Vector<GroundAtom> atoms = varIdx2groundAtoms.get(wcspVarIdx);
+    	if(atoms.size() == 1) {
+    		return isTrue ? 0 : 1;
+    	}
+    	else {
+    		if(!isTrue)
+    			throw new SimplifiedConversionNotSupportedException();
+    		int idx = atoms.indexOf(gndAtom);
+    		if(idx == -1)
+    			throw new IllegalArgumentException("Ground atom does not appear in list");
+    		return idx;
+    	}
+    }
+    
+    protected class SimplifiedConversionNotSupportedException extends Exception {
+		private static final long serialVersionUID = 1L;
+	}
     
     /**
      * this method sets the truth values of a block of mutually exclusive ground atoms 
