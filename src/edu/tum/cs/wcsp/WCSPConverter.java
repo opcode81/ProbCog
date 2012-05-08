@@ -498,6 +498,7 @@ public class WCSPConverter {
         	zeile.append("0");        	
         else // for disjunction, we considered the false case
         	zeile.append(cost);
+        settings.add(zeile.toString());
     }
     
     /**
