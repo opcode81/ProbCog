@@ -4,6 +4,7 @@
  */
 package edu.tum.cs.wcsp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ public class WCSPConverter {
 	protected HashMap<String, String> func_dom;
 	protected PrintStream ps;
 	protected boolean initialized = false;
+	int numConstraints = 0;
 	protected long hardCost = -1;
 	protected boolean debug = false;
 	protected Database db;
@@ -112,12 +114,17 @@ public class WCSPConverter {
      */
     public void run(String wcspFilename) throws Exception {
     	initialize();
-        out = new PrintStream(wcspFilename);
-        generateHead();
+        //out = new PrintStream(wcspFilename);
+    	ByteArrayOutputStream byteStream = new ByteArrayOutputStream(); 
+    	out = new PrintStream(byteStream);        
         generateEvidenceConstraints();
-        generateConstraints();
+        generateConstraints();        
         out.flush();
         out.close();
+        
+        PrintStream outFile = new PrintStream(wcspFilename);
+        outFile.print(generateHead());
+        outFile.print(byteStream.toString());
     }
 
     /**
@@ -338,6 +345,8 @@ public class WCSPConverter {
         // all lines differing from default costs are appended to the string buffer
         for(String s : relevantSettings)
             out.println(s);
+        
+        numConstraints++;
     }
 
     /**
@@ -345,7 +354,7 @@ public class WCSPConverter {
      * @param out the stream to write to
      * @throws Exception 
      */
-    protected void generateHead() throws Exception {
+    protected String generateHead() throws Exception {
     	if(!initialized)
     		throw new Exception("Not initialized");
     	
@@ -368,11 +377,7 @@ public class WCSPConverter {
 
         // the first line of the WCSP-File
         // syntax: name of the WCSP, number of variables, maximum domain size of the variables, number of constraints, initial TOP
-        int numConstraints = mrf.getNumFormulas() + world.getVariables().size(); // upper bound seems to be OK for toulbar2
-        out.printf("WCSPfromMLN %d %d %d %d\n", vars.size(), maxDomSize, numConstraints, top);
-        
-        // the second line contains the domain size of each simplified variable of the WCSP
-        out.println(strDomSizes.toString());
+        return String.format("WCSPfromMLN %d %d %d %d\n%s\n", vars.size(), maxDomSize, numConstraints, top, strDomSizes.toString());
     }
     
     protected void generateEvidenceConstraints() throws Exception {
@@ -406,7 +411,8 @@ public class WCSPConverter {
 	        		out.printf("1 %d 0 1\n", iVar);
 	            	out.printf("%d %d\n", iValue, top);
         		}
-        	}    	
+        	}   
+        	numConstraints++;
         }        
     }
 
