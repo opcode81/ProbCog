@@ -304,6 +304,7 @@ class MLN(object):
                                 formula.weight = weight
                             else:
                                 formula.weight = None # not set until instantiation when other weights are known
+                            formula.isHard = isHard
                             idxTemplate = len(formulatemplates)
                             formulatemplates.append(formula)
                             if inGroup:
@@ -364,6 +365,7 @@ class MLN(object):
             # add them to the list of formulas and set index
             for f in fl:
                 f.weight = tf.weight
+                f.isHard = tf.isHard
                 if f.weight is None:
                     self.hard_formulas.append(f)
                 idxFormula = len(self.formulas)
@@ -437,7 +439,7 @@ class MLN(object):
 
     def ground(self, verbose=False):
         '''
-            DEPRECATED
+            DEPRECATED, use groundMRF instead
         '''
         self._generateGroundAtoms()
         if verbose: print "ground atoms: %d" % len(self.gndAtoms)
@@ -448,7 +450,7 @@ class MLN(object):
     def groundMRF(self, db, verbose=False):
         '''
             creates and returns a ground Markov random field for the given database
-                db: database filename or tuple
+                db: database filename (string) or Database object
         '''
         self.mrf = MRF(self, db, verbose=verbose)
         return self.mrf
@@ -754,14 +756,14 @@ class MLN(object):
                 f.write(")\n")
         f.write("\n// formulas\n")
         for formula in self.formulas:
-            if formula.weight is None:
+            if formula.isHard:
                 f.write("%s.\n" % strFormula(formula))
-                continue
-            try:
-                weight = "%-10.6f" % float(eval(str(formula.weight)))
-            except:
-                weight = str(formula.weight)
-            f.write("%s  %s\n" % (weight, strFormula(formula)))
+            else:
+                try:
+                    weight = "%-10.6f" % float(eval(str(formula.weight)))
+                except:
+                    weight = str(formula.weight)
+                f.write("%s  %s\n" % (weight, strFormula(formula)))
 
     def printFormulas(self):
         for f in self.formulas:
