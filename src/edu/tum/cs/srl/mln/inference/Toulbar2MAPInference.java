@@ -26,7 +26,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	protected PossibleWorld state;
 	protected WCSPConverter converter = null;
 	protected String wcspFilename = "temp.wcsp";
-	protected String toulbar2Args;
+	protected String toulbar2Args = "";
 
 	public Toulbar2MAPInference(MarkovRandomField mrf) throws Exception {
 		super(mrf);
