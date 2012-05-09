@@ -57,6 +57,7 @@ public class WCSPConverter {
      */
 	protected HashMap<Integer, Vector<GroundAtom>> varIdx2groundAtoms;
 	protected HashMap<String, String> func_dom;
+	protected HashMap<Formula, Long> wcspConstraints = new HashMap<Formula, Long>();
 	protected PrintStream ps;
 	protected boolean initialized = false;
 	int numConstraints = 0;
@@ -64,7 +65,8 @@ public class WCSPConverter {
 	protected boolean debug = false;
 	protected Database db;
 	protected PrintStream out;
-
+	protected boolean cacheConstraints = false;
+	
     /**
      * @param mrf
      * @throws Exception 
@@ -72,6 +74,10 @@ public class WCSPConverter {
     public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
         this.mrf = mrf;                        
+    }
+    
+    public void setCacheConstraints(boolean cache) {
+    	this.cacheConstraints = cache;
     }
     
     protected double getDivisor() {
@@ -346,6 +352,9 @@ public class WCSPConverter {
         for(String s : relevantSettings)
             out.println(s);
         
+        if (this.cacheConstraints)
+        	wcspConstraints.put(wf.formula, defaultCosts == 0 ? cost : defaultCosts);
+        
         numConstraints++;
     }
 
@@ -412,6 +421,10 @@ public class WCSPConverter {
 	            	out.printf("%d %d\n", iValue, top);
         		}
         	}   
+        	
+        	if (this.cacheConstraints)
+        		wcspConstraints.put(new GroundLiteral(!isTrue, gndAtom), top);
+        	
         	numConstraints++;
         }        
     }
@@ -462,6 +475,15 @@ public class WCSPConverter {
     		}
         }
     }
+    
+	public long getWorldCosts(PossibleWorld world) {
+		long costs = 0;
+		for (Formula f : wcspConstraints.keySet()) {
+			if (!f.isTrue(world))
+				costs += wcspConstraints.get(f);
+		}
+		return costs;
+	}
     
     protected void gatherConstraintLinesSimplified(ComplexFormula f, ArrayList<Integer> wcspVarIndices, long cost, ArrayList<String> settings, boolean isConjunction) throws Exception {
         // gather assignment
