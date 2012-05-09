@@ -24,12 +24,14 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 	protected ParameterHandler paramHandler;
 	protected boolean debug = false;	
 	protected boolean verbose = true;
+	protected int maxSteps = 5000;
 	
 	public InferenceAlgorithm(MarkovRandomField mrf) throws Exception {
 		this.mrf = mrf;
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebugMode");
 		paramHandler.add("verbose", "setVerbose");
+		paramHandler.add("maxSteps", "setMaxSteps");
 	}
 	
 	public void setDebugMode(boolean active) {
@@ -38,6 +40,10 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 	
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
+	}
+
+	public void setMaxSteps(int maxSteps) {
+		this.maxSteps = maxSteps;
 	}
 	
 	public abstract double getResult(GroundAtom ga);	
@@ -68,7 +74,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 		return results;
 	}
 	
-	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception;
+	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception;
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();

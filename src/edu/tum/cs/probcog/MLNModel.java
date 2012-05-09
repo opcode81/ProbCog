@@ -45,8 +45,7 @@ public class MLNModel extends Model {
 		InferenceAlgorithm ia = new MCSAT(mrf);
 		paramHandler.addSubhandler(ia);
 		Vector<InferenceResult> res = new Vector<InferenceResult>();
-		int maxSteps = 5000;
-		for(edu.tum.cs.srl.mln.inference.InferenceResult r : ia.infer(queries, maxSteps)) {
+		for(edu.tum.cs.srl.mln.inference.InferenceResult r : ia.infer(queries)) {
 			InferenceResult r2 = new InferenceResult(r.ga.predicate, r.ga.args, r.value);
 			res.add(r2);
 		}

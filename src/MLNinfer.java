@@ -36,7 +36,7 @@ public class MLNinfer {
 			String[] mlnFiles = null;
 			String dbFile = null;
 			String query = null;
-			int maxSteps = 1000;
+			Integer maxSteps = null;
 			String resultsFile = null;
 			Algorithm algo = Algorithm.MCSAT;
 			String[] cwPreds = null;
@@ -78,13 +78,14 @@ public class MLNinfer {
 			}			
 			if(mlnFiles == null || dbFile == null || query == null) {
 				System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
-									 "    -maxSteps #      the maximum number of steps to take [default: 1000]\n" +
+									 "    -maxSteps #      the maximum number of steps to take (default determined by algorithm, if any)\n" +
 									 "    -r <filename>    save results to file\n" + 
 									 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 									 "    -mcsat           algorithm: MC-SAT (default)\n" +
 									 "    -t2              algorithm: Toulbar2 branch & bound\n" +									 
 							         "    -debug           debug mode with additional outputs\n" +
-							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n"
+							         "    -cw <predNames>  set predicates as closed-world (comma-separated list of names)\n" +
+							         "    --<key>=<value>  set algorithm-specific parameter\n" 
 									 );
 				return;
 			}			
@@ -148,9 +149,11 @@ public class MLNinfer {
 				break;
 			}			
 			infer.setDebugMode(debug);
+			if(maxSteps != null)
+				infer.setMaxSteps(maxSteps);
 			infer.getParameterHandler().handle(params, true);
-			System.out.printf("algorithm: %s, steps: %d\n", infer.getAlgorithmName(), maxSteps);
-			List<InferenceResult> results = infer.infer(queries, maxSteps);
+			System.out.printf("algorithm: %s\n", infer.getAlgorithmName());
+			List<InferenceResult> results = infer.infer(queries);
 	        sw.stop();
 	        
 	        // show results

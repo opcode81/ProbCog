@@ -26,8 +26,7 @@ public class MCSAT extends InferenceAlgorithm {
 	}
 
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps)
-			throws Exception {
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
 		sampler.setDebugMode(debug);
 		sampler.run(maxSteps);
 		return getResults(queries);
