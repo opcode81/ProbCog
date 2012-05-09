@@ -483,7 +483,10 @@ public class WCSPConverter {
         	if(!isConjunction) // for disjunction, consider case where formula is false
         		isTrue = !isTrue; 
         	int wcspVarIdx = this.gndAtomIdx2varIdx.get(gndAtom.index);
-        	assignment.put(wcspVarIdx, getVariableSettingFromGroundAtomSetting(wcspVarIdx, gndAtom, isTrue));        	
+        	Integer value = getVariableSettingFromGroundAtomSetting(wcspVarIdx, gndAtom, isTrue);
+        	Integer oldValue = assignment.put(wcspVarIdx, value);
+        	if(oldValue != null && oldValue != value) // formula contains the same variable twice with different value
+        		throw new SimplifiedConversionNotSupportedException();
         }
         
         StringBuffer zeile = new StringBuffer();
