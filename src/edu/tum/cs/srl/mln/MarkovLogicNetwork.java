@@ -262,7 +262,7 @@ public class MarkovLogicNetwork implements RelationalModel {
         // assign weights to hard constraints
         double hardWeight = getHardWeight();
         for (Formula f : hardFormulas)
-            addFormula(f, hardWeight);
+            addHardFormula(f);
     }
 
     /**
