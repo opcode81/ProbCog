@@ -354,7 +354,7 @@ public class WCSPConverter {
             out.println(s);
         
         if (this.cacheConstraints)
-        	wcspConstraints.put(wf.formula, defaultCosts == 0 ? cost : defaultCosts);
+        	wcspConstraints.put(f, cost);
         
         numConstraints++;
     }
@@ -596,6 +596,7 @@ public class WCSPConverter {
         createVariables();
         simplifyVars(mrf.getDb());
         divisor = getDivisor();
+        System.out.printf("divisor: %g\n", divisor);
         
     	long sumSoftCosts = 0;
         for(WeightedFormula wf : mrf) {
@@ -603,7 +604,7 @@ public class WCSPConverter {
 	        	long cost = Math.abs(Math.round(wf.weight / divisor));
                 long newSum = sumSoftCosts + cost;
                 if (newSum < sumSoftCosts)
-                    throw new Exception("Numeric overflow in sumSoftCosts");
+                    throw new Exception(String.format("Numeric overflow in sumSoftCosts (%d < %d)", newSum, sumSoftCosts));
 	        	sumSoftCosts = newSum;
         	}
         }
