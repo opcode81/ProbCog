@@ -12,10 +12,15 @@ public class InferenceResult implements Comparable<InferenceResult> {
 	}
 	
 	public void print() {
-		System.out.println(String.format("  %.4f  %s", value, ga.toString()));
+		System.out.println(toString());
 	}
 
 	public int compareTo(InferenceResult o) {
 		return this.ga.toString().compareTo(o.ga.toString());
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("  %.4f  %s", value, ga.toString());
 	}
 }
