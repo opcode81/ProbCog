@@ -47,13 +47,14 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		return state.get(ga.index) ? 1.0 : 0.0;
 	}
 
-	public WCSPConverter constructWCSP(String filename) throws Exception {
+	public WCSPConverter constructWCSP(String filename, boolean cache) throws Exception {
 		if(converter != null)
 			throw new Exception("WCSP was already constructed");
 		// perform conversion to WCSP
 		this.wcspFilename = filename;
 		if(verbose) System.out.println("performing WCSP conversion...");
 		converter = new WCSPConverter(mrf);
+		converter.setCacheConstraints(cache);
 		converter.run(this.wcspFilename);
 		return converter;
 	}
@@ -63,7 +64,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		// construct WCSP if necessary
 		if(converter == null)
-			constructWCSP(this.wcspFilename);
+			constructWCSP(this.wcspFilename, false);
 		
 		// run Toulbar2
 		String command = "toulbar2 -s " + wcspFilename + " " + toulbar2Args;
@@ -90,7 +91,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		if(solution == null)
 			throw new Exception("No solution was found");
-
+		
 		// set evidence (as in the WCSP, evidence variables are removed)
 		state.setEvidence(mrf.getDb());
 		
