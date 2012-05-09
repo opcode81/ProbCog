@@ -20,6 +20,7 @@ import edu.tum.cs.logic.Disjunction;
 import edu.tum.cs.logic.Formula;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.GroundLiteral;
+import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.logic.Negation;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
@@ -476,11 +477,15 @@ public class WCSPConverter {
         }
     }
     
-	public long getWorldCosts(PossibleWorld world) {
+	public long getWorldCosts(IPossibleWorld world) throws Exception {
 		long costs = 0;
 		for (Formula f : wcspConstraints.keySet()) {
-			if (!f.isTrue(world))
-				costs += wcspConstraints.get(f);
+			if (!f.isTrue(world)) {
+				long newCosts = costs + wcspConstraints.get(f);
+				if (newCosts < costs)
+					throw new Exception("Numeric overflow in costs");
+				costs = newCosts;
+			}
 		}
 		return costs;
 	}
