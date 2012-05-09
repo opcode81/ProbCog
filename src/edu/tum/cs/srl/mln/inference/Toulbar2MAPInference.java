@@ -1,8 +1,5 @@
 /*
  * Created on Aug 19, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.srl.mln.inference;
 
@@ -18,13 +15,31 @@ import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.wcsp.WCSPConverter;
 
+/**
+ * Toulbar2 branch & bound inference wrapper.
+ * Requires installation of the toulbar2 executable in the system PATH.
+ * 
+ * @author jain
+ */
 public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	
 	protected PossibleWorld state;
+	protected WCSPConverter converter = null;
+	protected String wcspFilename = "temp.wcsp";
+	protected String toulbar2Args;
 
 	public Toulbar2MAPInference(MarkovRandomField mrf) throws Exception {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
+		this.paramHandler.add("toulbar2Args", "setToulbar2Args");
+	}
+	
+	/**
+	 * sets toulbar2 command-line arguments
+	 * @param args
+	 */
+	public void setToulbar2Args(String args) {
+		toulbar2Args = args;
 	}
 
 	@Override
@@ -32,17 +47,28 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		return state.get(ga.index) ? 1.0 : 0.0;
 	}
 
-	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries, int maxSteps) throws Exception {
-		
+	public WCSPConverter constructWCSP(String filename) throws Exception {
+		if(converter != null)
+			throw new Exception("WCSP was already constructed");
 		// perform conversion to WCSP
-		System.out.println("performing WCSP conversion...");
-		WCSPConverter converter = new WCSPConverter(mrf);
-		converter.run("temp.wcsp");
+		this.wcspFilename = filename;
+		if(verbose) System.out.println("performing WCSP conversion...");
+		converter = new WCSPConverter(mrf);
+		converter.run(this.wcspFilename);
+		return converter;
+	}
+	
+	@Override
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
+		
+		// construct WCSP if necessary
+		if(converter == null)
+			constructWCSP(this.wcspFilename);
 		
 		// run Toulbar2
-		System.out.println("running Toulbar2... now");
-		Process p = Runtime.getRuntime().exec("toulbar2 -s temp.wcsp");
+		String command = "toulbar2 -s " + wcspFilename + " " + toulbar2Args;
+		if(verbose) System.out.println("running WCSP solver: " + command);
+		Process p = Runtime.getRuntime().exec(command);
 		InputStream s = p.getInputStream();
 		BufferedReader br = new BufferedReader(new InputStreamReader(s));
 		String solution = null;
@@ -69,7 +95,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		state.setEvidence(mrf.getDb());
 		
 		// set solution state
-		System.out.println("WCSP solution: " + solution);
+		if(verbose) System.out.println("WCSP solution: " + solution);
 		String[] solutionParts = solution.trim().split(" ");		
 		for(int i = 0; i < solutionParts.length; i++) {
 			int domIdx = Integer.parseInt(solutionParts[i]);
@@ -77,7 +103,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		// clean up
-		new File("temp.wcsp").delete();
+		new File(this.wcspFilename).delete();
 				
 		return getResults(queries);
 	}
