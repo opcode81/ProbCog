@@ -32,6 +32,7 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
@@ -283,15 +284,18 @@ public class WCSPConverter {
         f.getGroundAtoms(gndAtoms);
 
         // save index of the corresponding simplified variable in an array
-        ArrayList<Integer> referencedVarIndices = new ArrayList<Integer>(gndAtoms.size());
-        for (GroundAtom g : gndAtoms) {
+        HashSet<Integer> setVarIndices = new HashSet<Integer>(gndAtoms.size());
+        for(GroundAtom g : gndAtoms) {
             // add simplified variable only if the array doesn't contain this sf_variable already
         	Integer idx = gndAtomIdx2varIdx.get(g.index);
         	if(idx == null)
         		throw new Exception("Variable index for '" + g + "' is null");
-            if (!referencedVarIndices.contains(idx)) 
-                referencedVarIndices.add(idx);
+        	setVarIndices.add(idx);
         }
+        int[] referencedVarIndices = new int[setVarIndices.size()];
+        int i = 0;
+        for(Integer varIdx : setVarIndices)
+        	referencedVarIndices[i++] = varIdx;
 
         // get cost value for this constraint
         long cost;
@@ -300,7 +304,7 @@ public class WCSPConverter {
         else
         	cost = Math.round(weight / divisor);
         
-        ArrayList<String> relevantSettings = null;
+        ArrayList<Pair<int[],Long>> relevantSettings = null;
         long defaultCosts = -1;
         
         // try the simplified conversion method 
@@ -309,7 +313,7 @@ public class WCSPConverter {
         if(isConjunction || f instanceof Disjunction) {
         	generateAllPossibilities = false;
         	try {
-        		relevantSettings = new ArrayList<String>();
+        		relevantSettings = new ArrayList<Pair<int[],Long>>();
         		this.gatherConstraintLinesSimplified((ComplexFormula)f, referencedVarIndices, cost, relevantSettings, isConjunction);
         		defaultCosts = isConjunction ? cost : 0;
         	}
@@ -321,9 +325,9 @@ public class WCSPConverter {
         // if necessary, use the complex conversion method which looks at all possible settings
         if(generateAllPossibilities) {        
 	        // generate all possibilities for this constraint
-	        ArrayList<String> settingsZero = new ArrayList<String>();
-	        ArrayList<String> settingsOther = new ArrayList<String>();
-	        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.size()], cost, settingsZero, settingsOther);                 
+	        ArrayList<Pair<int[],Long>> settingsZero = new ArrayList<Pair<int[],Long>>();
+	        ArrayList<Pair<int[],Long>> settingsOther = new ArrayList<Pair<int[],Long>>();
+	        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.length], cost, settingsZero, settingsOther);                 
 	        
 	        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
 	        	relevantSettings = settingsOther;
@@ -342,16 +346,11 @@ public class WCSPConverter {
         	return;
         
         // write results
-        // first line of the constraint: arity of the constraint followed by indices of the variables, default costs, and number of constraint lines
-        out.print(referencedVarIndices.size() + " ");
-        for(Integer in : referencedVarIndices) {
-            out.print(in + " ");
-        }        
-        out.print(defaultCosts + " " + relevantSettings.size());        
-        out.println();
-        // all lines differing from default costs are appended to the string buffer
-        for(String s : relevantSettings)
-            out.println(s);
+        Constraint c = new Constraint(defaultCosts, referencedVarIndices, relevantSettings.size());
+        for(Pair<int[],Long> tuple : relevantSettings) {
+        	c.addTuple(tuple.first, tuple.second);
+        }
+        c.writeWCSP(out);
         
         if (this.cacheConstraints)
         	wcspConstraints.put(f, cost);
@@ -405,23 +404,28 @@ public class WCSPConverter {
         		continue; // variable was removed due to simplification
         	
         	Vector<GroundAtom> block = this.varIdx2groundAtoms.get(iVar);
-        	int iValue = -1;
+        	int iValue = -1;        	
+        	long tupleCost, defaultCost;
         	if(block.size()==1) {
         		iValue = isTrue ? 0 : 1;
-        		out.printf("1 %d %d 1\n", iVar, top);
-            	out.printf("%d 0\n", iValue);
+        		defaultCost = top;
+            	tupleCost = 0;
         	}
         	else {
         		iValue = block.indexOf(gndAtom);        		
         		if(isTrue) {
-	        		out.printf("1 %d %d 1\n", iVar, top);
-	            	out.printf("%d 0\n", iValue);
+	        		defaultCost = top;
+	            	tupleCost = 0;
         		}
         		else {
-	        		out.printf("1 %d 0 1\n", iVar);
-	            	out.printf("%d %d\n", iValue, top);
+	        		defaultCost = 0;
+	            	tupleCost = top;
         		}
-        	}   
+        	}
+        	int[] varIndices = new int[]{iVar};
+        	Constraint c = new Constraint(defaultCost, varIndices, 1);
+        	c.addTuple(new int[]{iValue}, tupleCost);
+        	c.writeWCSP(out);
         	
         	if (this.cacheConstraints)
         		wcspConstraints.put(new GroundLiteral(!isTrue, gndAtom), top);
@@ -436,32 +440,21 @@ public class WCSPConverter {
      * @param wcspVarIndices set of all ground atoms of the formula
      * @param i counter to terminate the recursion
      * @param w possible world to evaluate costs for a setting of ground atoms
-     * @param g current variable assignment
+     * @param domIndices current variable assignment
      * @param cost cost associated with the formula
      * @param settingsZero set to save all possibilities with costs of 0
      * @param settingsOther set to save all possibilities with costs different from 0
      * @throws Exception 
      */
-    protected void gatherConstraintLines(Formula f, ArrayList<Integer> wcspVarIndices, int i, PossibleWorld w, int[] g, long cost, ArrayList<String> settingsZero, ArrayList<String> settingsOther) throws Exception {
-    	if(cost < 0)
-    		throw new Exception("Costs must be positive");
+    protected void gatherConstraintLines(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Pair<int[],Long>> settingsZero, ArrayList<Pair<int[],Long>> settingsOther) throws Exception {
         // if all ground atoms were handled, the costs for this setting can be evaluated
-        if (i == wcspVarIndices.size()) {
-            StringBuffer zeile = new StringBuffer();
-            // print the allocation of variables
-            for (Integer c : g)
-                zeile.append(c + " ");
-            
-            // calculate weight according to WCSP-Syntax
-            if (!f.isTrue(w)) { // if formula is false, costs correspond to the weight
-                zeile.append(cost);
-                settingsOther.add(zeile.toString());  
-            } else { // if formula is true, there are no costs
-                zeile.append("0");
-                settingsZero.add(zeile.toString()); 
-            }
+        if (i == wcspVarIndices.length) {
+            if(!f.isTrue(w))  // if formula is false, costs correspond to the weight
+                settingsOther.add(new Pair<int[],Long>(domIndices.clone(), cost));  
+            else // if formula is true, there are no costs
+                settingsZero.add(new Pair<int[],Long>(domIndices.clone(), 0L)); 
         } else { // recursion  
-        	int wcspVarIdx = wcspVarIndices.get(i);
+        	int wcspVarIdx = wcspVarIndices[i];
             // get domain of the handled simplified variable
         	HashSet<String> domSet = doms.get(func_dom.get(vars.get(wcspVarIdx)));
         	int domSize;
@@ -470,9 +463,9 @@ public class WCSPConverter {
         	else // variable is non-boolean (results from blocked ground atoms)
         		domSize = domSet.size();
     		for(int j = 0; j < domSize; j++) {
-    			g[i] = j;
+    			domIndices[i] = j;
     			setGroundAtomState(w, wcspVarIdx, j);
-    			gatherConstraintLines(f, wcspVarIndices, i + 1, w, g, cost, settingsZero, settingsOther);
+    			gatherConstraintLines(f, wcspVarIndices, i + 1, w, domIndices, cost, settingsZero, settingsOther);
     		}
         }
     }
@@ -490,7 +483,7 @@ public class WCSPConverter {
 		return costs;
 	}
     
-    protected void gatherConstraintLinesSimplified(ComplexFormula f, ArrayList<Integer> wcspVarIndices, long cost, ArrayList<String> settings, boolean isConjunction) throws Exception {
+    protected void gatherConstraintLinesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Pair<int[], Long>> settings, boolean isConjunction) throws Exception {
         // gather assignment
     	HashMap<Integer,Integer> assignment = new HashMap<Integer,Integer>();
         for(Formula child : f.children) {
@@ -507,7 +500,7 @@ public class WCSPConverter {
         	}
         	else
         		throw new SimplifiedConversionNotSupportedException();
-        	if(!isConjunction) // for disjunction, consider case where formula is false
+        	if(!isConjunction) // for disjunction, consider the case where the child is false
         		isTrue = !isTrue; 
         	int wcspVarIdx = this.gndAtomIdx2varIdx.get(gndAtom.index);
         	Integer value = getVariableSettingFromGroundAtomSetting(wcspVarIdx, gndAtom, isTrue);
@@ -516,19 +509,15 @@ public class WCSPConverter {
         		throw new SimplifiedConversionNotSupportedException();
         }
         
-        StringBuffer zeile = new StringBuffer();
-        for(Integer wcspVarIdx : wcspVarIndices) {
-        	Integer value = assignment.get(wcspVarIdx);
-        	zeile.append(value + " ");        	
-        }
+        int[] domIndices = new int[wcspVarIndices.length];
+        int i = 0;
+        for(Integer wcspVarIdx : wcspVarIndices) 
+        	domIndices[i++] = assignment.get(wcspVarIdx);        
 
         // if the formula is true, we have no costs
-        // if the formula is false, costs apply
-        if(isConjunction) // for conjunction, we considered the true case
-        	zeile.append("0");        	
-        else // for disjunction, we considered the false case
-        	zeile.append(cost);
-        settings.add(zeile.toString());
+        // if the formula is false, costs apply.
+        // for conjunction, we considered the true case; for disjunction, we considered the false case
+        settings.add(new Pair<int[],Long>(domIndices, isConjunction ? 0 : cost));
     }
     
     /**
