@@ -1,5 +1,6 @@
 package edu.tum.cs.wcsp;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -141,8 +142,10 @@ public class BranchAndBound {
 			if(relevantConstraints != null)
 				for(Constraint c : varIdx2constraint.get(varIdx)) {				
 					int numRequiredTuples = 1;
-					for(int constraintVarIdx : c.getVarIndices())
-						numRequiredTuples *= wcsp.getDomainSize(constraintVarIdx);
+					for(int constraintVarIdx : c.getVarIndices()) {
+						if(!assignment.containsKey(constraintVarIdx))
+							numRequiredTuples *= wcsp.getDomainSize(constraintVarIdx);
+					}
 					long min = Long.MAX_VALUE;
 					int numPresentTuples = 0;
 					for(Tuple t : c.getTuples()) {
@@ -160,7 +163,7 @@ public class BranchAndBound {
 				}
 			
 			System.out.println("lower bound: " + lowerBound);
-			return lowerBound <= upperBound;
+			return lowerBound < upperBound;
 		}
 		
 		public void undoAssignment() {
@@ -172,7 +175,7 @@ public class BranchAndBound {
 			if(relevantConstraints != null)
 				for(Constraint c : relevantConstraints) {
 					lowerBound -= lowerBoundAdditions.pop(c);
-					lowerBound += lowerBoundAdditions.peek(c);
+					lowerBound += lowerBoundAdditions.peekDefault(c, 0L);
 				}
 		}
 		
@@ -185,8 +188,9 @@ public class BranchAndBound {
 		}
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 	
+		/*
 		WCSP wcsp = new WCSP(2, new int[]{2,2}, 100);
 		
 		Constraint c = new Constraint(100, new int[]{0}, 1);
@@ -199,6 +203,11 @@ public class BranchAndBound {
 		c.addTuple(new int[]{1,0}, 10);
 		c.addTuple(new int[]{1,1}, 10);
 		wcsp.addConstraint(c);
+		*/
+		
+		WCSP wcsp = WCSP.fromFile(new java.io.File("/usr/wiss/jain/4queens.wcsp"));
+		for(Constraint c: wcsp)
+			c.writeWCSP(System.out);
 		
 		BranchAndBound bb = new BranchAndBound(wcsp, wcsp.getTop());
 		int[] sol = bb.findSolution();
