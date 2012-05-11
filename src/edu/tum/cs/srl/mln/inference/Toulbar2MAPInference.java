@@ -78,11 +78,13 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 				String l = br.readLine();
 				if(l == null)
 					break;
-				if(l.startsWith("New solution:")) {
-					solution = br.readLine();
-				}
 				if(debug)
 					System.out.println(l);
+				if(l.startsWith("New solution:")) {
+					solution = br.readLine();
+					if(debug)
+						System.out.println(solution);
+				}
 			}
 			catch(IOException e) {
 				break;
