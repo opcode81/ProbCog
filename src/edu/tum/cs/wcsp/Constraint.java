@@ -22,7 +22,6 @@ public class Constraint {
 	
 	public Constraint(long defaultCost, int[] varIndices, int initialTuples) {
 		this.varIndices = varIndices;
-		Arrays.sort(this.varIndices);
 		this.defaultCost = defaultCost;
 		tuples = new HashMap<ArrayKey, Tuple>();
 	}

@@ -65,21 +65,31 @@ public class WCSP implements Iterable<Constraint> {
 			Constraint c2 = i.next();
 			Constraint c1 = existingConstraints.get(new ArrayKey(c2.getVarIndices()));
 			if(c1 != null) {
-				// add c2's default costs to tuples found in c1 but not in c2 
-				for(Tuple t1 : c1.getTuples()) {
-					if(c2.getTuple(t1.domIndices) == null)
-						t1.cost += c2.getDefaultCosts();
-				}
-				// add contents of c2's tuples to c1 
+				HashMap<Integer,Integer> varIdx2arrayIdx = new HashMap<Integer, Integer>();
+				int[] varIndices = c1.getVarIndices();
+				for(int k = 0; k < varIndices.length; k++)
+					varIdx2arrayIdx.put(varIndices[k], k);
+				// add contents of c2's tuples to c1
+				HashSet<Tuple> processedTuples;
 				for(Tuple t2 : c2.getTuples()) {
-					Tuple t1 = c1.getTuple(t2.domIndices);
+					int[] domIndices = new int[varIndices.length];
+					int[] c2varIdx = c2.getVarIndices();
+					for(int k = 0; k < varIndices.length; k++)
+						domIndices[varIdx2arrayIdx.get(c2varIdx[k])] = t2.domIndices[k]; 
+					Tuple t1 = c1.getTuple(domIndices);
 					if(t1 == null) {
 						t2.cost += c1.getDefaultCosts();
+						t2.domIndices = domIndices;
 						c1.addTuple(t2);
 					}
 					else {
 						t1.cost += t2.cost; 
 					}
+				}
+				// add c2's default costs to tuples found in c1 but not in c2 
+				for(Tuple t1 : c1.getTuples()) {
+					if(!processedTuples.contains(t1))
+						t1.cost += c2.getDefaultCosts();
 				}
 				c1.setDefaultCosts(c1.getDefaultCosts() + c2.getDefaultCosts());
 				i.remove();
