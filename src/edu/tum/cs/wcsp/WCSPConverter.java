@@ -34,6 +34,7 @@ import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
+import edu.tum.cs.wcsp.Constraint.Tuple;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
@@ -328,7 +329,7 @@ public class WCSPConverter implements IParameterHandler {
         else
         	cost = Math.round(weight / divisor);
         
-        ArrayList<Pair<int[],Long>> relevantSettings = null;
+        ArrayList<Tuple> relevantSettings = null;
         long defaultCosts = -1;
         
         // try the simplified conversion method 
@@ -337,7 +338,7 @@ public class WCSPConverter implements IParameterHandler {
         if(isConjunction || f instanceof Disjunction) {
         	generateAllPossibilities = false;
         	try {
-        		relevantSettings = new ArrayList<Pair<int[],Long>>();
+        		relevantSettings = new ArrayList<Tuple>();
         		this.gatherConstraintLinesSimplified((ComplexFormula)f, referencedVarIndices, cost, relevantSettings, isConjunction);
         		defaultCosts = isConjunction ? cost : 0;
         	}
@@ -349,8 +350,8 @@ public class WCSPConverter implements IParameterHandler {
         // if necessary, use the complex conversion method which looks at all possible settings
         if(generateAllPossibilities) {        
 	        // generate all possibilities for this constraint
-	        ArrayList<Pair<int[],Long>> settingsZero = new ArrayList<Pair<int[],Long>>();
-	        ArrayList<Pair<int[],Long>> settingsOther = new ArrayList<Pair<int[],Long>>();
+	        ArrayList<Tuple> settingsZero = new ArrayList<Tuple>();
+	        ArrayList<Tuple> settingsOther = new ArrayList<Tuple>();
 	        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.length], cost, settingsZero, settingsOther);                 
 	        
 	        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
@@ -371,8 +372,8 @@ public class WCSPConverter implements IParameterHandler {
         
         // write results
         Constraint c = new Constraint(defaultCosts, referencedVarIndices, relevantSettings.size());
-        for(Pair<int[],Long> tuple : relevantSettings) {
-        	c.addTuple(tuple.first, tuple.second);
+        for(Tuple tuple : relevantSettings) {
+        	c.addTuple(tuple);
         }
         wcsp.addConstraint(c);
         
@@ -437,13 +438,13 @@ public class WCSPConverter implements IParameterHandler {
      * @param settingsOther set to save all possibilities with costs different from 0
      * @throws Exception 
      */
-    protected void gatherConstraintLines(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Pair<int[],Long>> settingsZero, ArrayList<Pair<int[],Long>> settingsOther) throws Exception {
+    protected void gatherConstraintLines(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Tuple> settingsZero, ArrayList<Tuple> settingsOther) throws Exception {
         // if all ground atoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.length) {
             if(!f.isTrue(w))  // if formula is false, costs correspond to the weight
-                settingsOther.add(new Pair<int[],Long>(domIndices.clone(), cost));  
+                settingsOther.add(new Tuple(domIndices.clone(), cost));  
             else // if formula is true, there are no costs
-                settingsZero.add(new Pair<int[],Long>(domIndices.clone(), 0L)); 
+                settingsZero.add(new Tuple(domIndices.clone(), 0L)); 
         } else { // recursion  
         	int wcspVarIdx = wcspVarIndices[i];
             // get domain of the handled simplified variable
@@ -474,7 +475,7 @@ public class WCSPConverter implements IParameterHandler {
 		return costs;
 	}
     
-    protected void gatherConstraintLinesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Pair<int[], Long>> settings, boolean isConjunction) throws Exception {
+    protected void gatherConstraintLinesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Tuple> settings, boolean isConjunction) throws Exception {
         // gather assignment
     	HashMap<Integer,Integer> assignment = new HashMap<Integer,Integer>();
         for(Formula child : f.children) {
@@ -508,7 +509,7 @@ public class WCSPConverter implements IParameterHandler {
         // if the formula is true, we have no costs
         // if the formula is false, costs apply.
         // for conjunction, we considered the true case; for disjunction, we considered the false case
-        settings.add(new Pair<int[],Long>(domIndices, isConjunction ? 0 : cost));
+        settings.add(new Tuple(domIndices, isConjunction ? 0 : cost));
     }
     
     /**
