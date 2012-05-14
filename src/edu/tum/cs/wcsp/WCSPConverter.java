@@ -4,7 +4,6 @@
  */
 package edu.tum.cs.wcsp;
 
-import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +13,8 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import edu.tum.cs.inference.IParameterHandler;
+import edu.tum.cs.inference.ParameterHandler;
 import edu.tum.cs.logic.ComplexFormula;
 import edu.tum.cs.logic.Conjunction;
 import edu.tum.cs.logic.Disjunction;
@@ -38,7 +39,7 @@ import edu.tum.cs.util.datastruct.Pair;
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
  * @author wylezich, jain
  */
-public class WCSPConverter {
+public class WCSPConverter implements IParameterHandler {
 
 	protected MarkovLogicNetwork mln;
 	protected MarkovRandomField mrf;
@@ -64,10 +65,10 @@ public class WCSPConverter {
 	protected boolean initialized = false;
 	int numConstraints = 0;
 	protected long hardCost = -1;
-	protected boolean debug = false;
+	protected boolean debug = false, verbose = false;
 	protected Database db;
-	protected PrintStream out;
 	protected boolean cacheConstraints = false;
+	protected ParameterHandler paramHandler;
 	
     /**
      * @param mrf
@@ -75,11 +76,22 @@ public class WCSPConverter {
      */
     public WCSPConverter(MarkovRandomField mrf) throws Exception {
         this.mln = mrf.mln;
-        this.mrf = mrf;                        
+        this.mrf = mrf;    
+        this.paramHandler = new ParameterHandler(this);
+        paramHandler.add("verbose", "setVerbose");
+        paramHandler.add("debug", "setDebug");
     }
     
     public void setCacheConstraints(boolean cache) {
     	this.cacheConstraints = cache;
+    }
+    
+    public void setVerbose(boolean verbose) {
+    	this.verbose = verbose;
+    }
+    
+    public void setDebug(boolean debug) {
+    	this.debug = debug;
     }
     
     protected double getDivisor() {
@@ -121,18 +133,34 @@ public class WCSPConverter {
      * @throws Exception 
      */
     public void run(String wcspFilename) throws Exception {
-    	initialize();
-        //out = new PrintStream(wcspFilename);
-    	ByteArrayOutputStream byteStream = new ByteArrayOutputStream(); 
-    	out = new PrintStream(byteStream);        
-        generateEvidenceConstraints();
-        generateConstraints();        
-        out.flush();
-        out.close();
+    	initialize();        
+
+    	// instantiate WCSP
+        int[] domSizes = new int[vars.size()];
+        for(int i = 0; i < vars.size(); i++) {
+        	HashSet<String> domSet = doms.get(func_dom.get(vars.get(i))); 
+            domSizes[i] = domSet == null ? 2 : domSet.size();
+        }
+        long top = hardCost;   	
+    	WCSP wcsp = new WCSP(domSizes, top);
+    	
+    	// generate evidence constraints
+    	if(verbose)
+    		System.out.println("generating evidence constraints...");
+        generateEvidenceConstraints(wcsp);
         
-        PrintStream outFile = new PrintStream(wcspFilename);
-        outFile.print(generateHead());
-        outFile.print(byteStream.toString());
+        // generate constraints for weighted formulas
+        if(verbose) System.out.printf("generating constraints for %d weighted formulas...", mrf.getNumFormulas());
+        for(WeightedFormula wf : mrf)
+        	generateConstraint(wf, wcsp);
+        
+    	System.out.println("unifying constraints...");
+    	int numConstraintsBefore = wcsp.size();
+        wcsp.unifyConstraints();
+        if(verbose) System.out.printf("  reduced %d constraints to %s", numConstraintsBefore, wcsp.size());
+        
+        PrintStream out = new PrintStream(wcspFilename);
+        wcsp.writeWCSP(out, "WCSPFromMLN");
     }
 
     /**
@@ -257,18 +285,14 @@ public class WCSPConverter {
         */        	
     }
 
-    protected void generateConstraints() throws Exception {
-        for(WeightedFormula wf : mrf)
-        	generateConstraint(wf);
-    }
-    
+  
     /**
      * this method generates a WCSP-Constraint for a formula
      * @param f formula (for this formula a WCSP- constraint is generated), the formula is already simplified
      * @param weight the weight of the formula to calculate the costs
      * @throws Exception 
      */
-    protected void generateConstraint(WeightedFormula wf) throws Exception {
+    protected void generateConstraint(WeightedFormula wf, WCSP wcsp) throws Exception {
         // if the weight is negative, negate the formula and its weight
     	Formula f = wf.formula;
     	double weight = wf.weight;
@@ -350,47 +374,16 @@ public class WCSPConverter {
         for(Pair<int[],Long> tuple : relevantSettings) {
         	c.addTuple(tuple.first, tuple.second);
         }
-        c.writeWCSP(out);
+        wcsp.addConstraint(c);
         
         if (this.cacheConstraints)
         	wcspConstraints.put(f, cost);
         
         numConstraints++;
     }
-
-    /**
-     * writes the header of the WCSP file
-     * @param out the stream to write to
-     * @throws Exception 
-     */
-    protected String generateHead() throws Exception {
-    	if(!initialized)
-    		throw new Exception("Not initialized");
-    	
-        int maxDomSize = 0;        
-
-        // get list of domain sizes and maximum domain size
-        StringBuffer strDomSizes = new StringBuffer();
-        for(int i = 0; i < vars.size(); i++) {
-        	HashSet<String> domSet = doms.get(func_dom.get(vars.get(i))); 
-            int domSize = domSet == null ? 2 : domSet.size();
-            strDomSizes.append(domSize + " ");
-            if(domSize > maxDomSize)
-                maxDomSize = domSize;
-        }
-
-        long top = hardCost;
-        System.out.println("# variables: " + vars.size());
-        System.out.println("top: " + top);
-        System.out.println("divisor: " + divisor);       
-
-        // the first line of the WCSP-File
-        // syntax: name of the WCSP, number of variables, maximum domain size of the variables, number of constraints, initial TOP
-        return String.format("WCSPfromMLN %d %d %d %d\n%s\n", vars.size(), maxDomSize, numConstraints, top, strDomSizes.toString());
-    }
     
-    protected void generateEvidenceConstraints() throws Exception {
-    	long top = hardCost;
+    protected void generateEvidenceConstraints(WCSP wcsp) throws Exception {
+    	long top = wcsp.top;
         // add unary constraints for evidence variables
         String[][] entries = db.getEntriesAsArray();
         WorldVariables worldVars = world.getVariables();
@@ -425,12 +418,10 @@ public class WCSPConverter {
         	int[] varIndices = new int[]{iVar};
         	Constraint c = new Constraint(defaultCost, varIndices, 1);
         	c.addTuple(new int[]{iValue}, tupleCost);
-        	c.writeWCSP(out);
+        	wcsp.addConstraint(c);
         	
         	if (this.cacheConstraints)
         		wcspConstraints.put(new GroundLiteral(!isTrue, gndAtom), top);
-        	
-        	numConstraints++;
         }        
     }
 
@@ -604,4 +595,9 @@ public class WCSPConverter {
         
         initialized = true;
     }
+
+	@Override
+	public ParameterHandler getParameterHandler() {		
+		return paramHandler;
+	}
 }
