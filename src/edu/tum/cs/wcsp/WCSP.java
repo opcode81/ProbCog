@@ -8,7 +8,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,32 +73,35 @@ public class WCSP implements Iterable<Constraint> {
 				for(int k = 0; k < varIndices.length; k++)
 					varIdx2arrayIdx.put(varIndices[k], k);
 				// add contents of c2's tuples to c1
-				HashSet<Tuple> processedTuples;
+				HashSet<ArrayKey> processedTuples = new HashSet<ArrayKey>();
 				for(Tuple t2 : c2.getTuples()) {
+					// rearrange domain indices according to c1's var indices
 					int[] domIndices = new int[varIndices.length];
 					int[] c2varIdx = c2.getVarIndices();
 					for(int k = 0; k < varIndices.length; k++)
-						domIndices[varIdx2arrayIdx.get(c2varIdx[k])] = t2.domIndices[k]; 
+						domIndices[varIdx2arrayIdx.get(c2varIdx[k])] = t2.domIndices[k];
+					processedTuples.add(new ArrayKey(domIndices));
 					Tuple t1 = c1.getTuple(domIndices);
-					if(t1 == null) {
+					if(t1 != null) 
+						t1.cost += t2.cost; 
+					else {
 						t2.cost += c1.getDefaultCosts();
 						t2.domIndices = domIndices;
 						c1.addTuple(t2);
 					}
-					else {
-						t1.cost += t2.cost; 
-					}
 				}
 				// add c2's default costs to tuples found in c1 but not in c2 
 				for(Tuple t1 : c1.getTuples()) {
-					if(!processedTuples.contains(t1))
+					if(! processedTuples.contains(new ArrayKey(t1.domIndices))) {
 						t1.cost += c2.getDefaultCosts();
+					}
 				}
 				c1.setDefaultCosts(c1.getDefaultCosts() + c2.getDefaultCosts());
 				i.remove();
 			}
-			else
+			else {
 				existingConstraints.put(new ArrayKey(c2.getVarIndices()), c2);
+			}
 		}
 	}
 	
@@ -131,7 +137,7 @@ public class WCSP implements Iterable<Constraint> {
 			wcsp.addConstraint(c);
 		}
 		return wcsp;
-	}
+	} 
 	
 	/**
 	 * writes a toulbar2-style wcsp file
@@ -151,5 +157,17 @@ public class WCSP implements Iterable<Constraint> {
     	// write constraints
     	for(Constraint c : this)
     		c.writeWCSP(out);
+	}
+	
+	public static void main(String[] args) {
+		WCSP wcsp;
+		try {
+			wcsp = WCSP.fromFile(new File("/home/nyga/code/prac/models/filling/temp.wcsp"));
+			wcsp.unifyConstraints();			
+			wcsp.writeWCSP(new PrintStream("/home/nyga/code/prac/models/filling/exist-unified.wcsp"), "unifiedWCSP");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
