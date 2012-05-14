@@ -106,7 +106,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		// clean up
-//		new File(this.wcspFilename).delete();
+		new File(this.wcspFilename).delete();
 				
 		return getResults(queries);
 	}
