@@ -1193,13 +1193,14 @@ class MRF(object):
     def _isTrueGndFormulaGivenEvidence(self, gf):
         return gf.isTrue(self.evidence)
 
-    def setEvidence(self, evidence):
+    def setEvidence(self, evidence, clear=True):
         '''
           sets the evidence, which is to be given as a dictionary that maps ground atom strings to their truth values.
           Any previous evidence is cleared.
           The closed-world assumption is applied to any predicates for which it was declared.
         '''
-        self._clearEvidence()
+        if clear is True:
+            self._clearEvidence()
         for gndAtom, value in evidence.iteritems():
             idx = self.gndAtoms[gndAtom].idx
             self._setEvidence(idx, value)
