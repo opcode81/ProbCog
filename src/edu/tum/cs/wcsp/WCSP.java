@@ -83,6 +83,8 @@ public class WCSP implements Iterable<Constraint> {
 				c1.setDefaultCosts(c1.getDefaultCosts() + c2.getDefaultCosts());
 				i.remove();
 			}
+			else
+				existingConstraints.put(c2.getVarIndices(), c2);
 		}
 	}
 	
