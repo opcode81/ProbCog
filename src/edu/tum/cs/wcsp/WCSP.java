@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import edu.tum.cs.wcsp.Constraint.ArrayKey;
 import edu.tum.cs.wcsp.Constraint.Tuple;
 
 public class WCSP implements Iterable<Constraint> {
@@ -58,11 +59,11 @@ public class WCSP implements Iterable<Constraint> {
 	}
 	
 	public void unifyConstraints() {
-		HashMap<int[], Constraint> existingConstraints = new HashMap<int[], Constraint>(); 
+		HashMap<ArrayKey, Constraint> existingConstraints = new HashMap<ArrayKey, Constraint>(); 
 		Iterator<Constraint> i = this.iterator();
 		while(i.hasNext()) {
 			Constraint c2 = i.next();
-			Constraint c1 = existingConstraints.get(c2.getVarIndices());
+			Constraint c1 = existingConstraints.get(new ArrayKey(c2.getVarIndices()));
 			if(c1 != null) {
 				// add c2's default costs to tuples found in c1 but not in c2 
 				for(Tuple t1 : c1.getTuples()) {
@@ -84,7 +85,7 @@ public class WCSP implements Iterable<Constraint> {
 				i.remove();
 			}
 			else
-				existingConstraints.put(c2.getVarIndices(), c2);
+				existingConstraints.put(new ArrayKey(c2.getVarIndices()), c2);
 		}
 	}
 	

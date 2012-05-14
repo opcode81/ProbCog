@@ -12,7 +12,7 @@ import java.util.Map.Entry;
   * @author jain
   */
 public class Constraint {
-	protected HashMap<TupleKey, Tuple> tuples;
+	protected HashMap<ArrayKey, Tuple> tuples;
 	/**
 	 * array of variable indices references by this constraint; for technical reasons (required e.g. by
 	 * {@link WCSP.unifyConstraints}) it is sorted
@@ -24,15 +24,15 @@ public class Constraint {
 		this.varIndices = varIndices;
 		Arrays.sort(this.varIndices);
 		this.defaultCost = defaultCost;
-		tuples = new HashMap<TupleKey, Tuple>();
+		tuples = new HashMap<ArrayKey, Tuple>();
 	}
 	
 	public void addTuple(int[] domainIndices, long cost) {
-		tuples.put(new TupleKey(domainIndices), new Tuple(domainIndices, cost));
+		tuples.put(new ArrayKey(domainIndices), new Tuple(domainIndices, cost));
 	}
 	
 	public void addTuple(Tuple t) {
-		tuples.put(new TupleKey(t.domIndices), t);
+		tuples.put(new ArrayKey(t.domIndices), t);
 	}
 	
 	public long getCost(int[] domainIndices) {
@@ -51,10 +51,10 @@ public class Constraint {
 	}
 	
 	public Tuple getTuple(int[] setting) {
-		return tuples.get(new TupleKey(setting));
+		return tuples.get(new ArrayKey(setting));
 	}
 	
-	public Tuple getTuple(TupleKey k) {
+	public Tuple getTuple(ArrayKey k) {
 		return tuples.get(k);
 	}
 	
@@ -77,7 +77,7 @@ public class Constraint {
 		out.print(defaultCost);
 		out.print(' ');
 		out.println(tuples.size());
-		for(Entry<TupleKey, Tuple> e : tuples.entrySet()) {
+		for(Entry<ArrayKey, Tuple> e : tuples.entrySet()) {
 			Tuple t = e.getValue();
 			for(int domIdx : t.domIndices) {
 				out.print(domIdx);
@@ -107,22 +107,22 @@ public class Constraint {
 
 	}
 	
-	protected static class TupleKey {
-		protected int[] domIndices; 
+	public static class ArrayKey {
+		protected int[] array; 
 		
-		public TupleKey(int[] domIndices) {
-			this.domIndices = domIndices;
+		public ArrayKey(int[] domIndices) {
+			this.array = domIndices;
 		}
 		
 		@Override
 		public int hashCode() {
-			return Arrays.hashCode(domIndices);
+			return Arrays.hashCode(array);
 		}
 		
 		public boolean equals(Object o) {
-			if(!(o instanceof TupleKey))
+			if(!(o instanceof ArrayKey))
 				return false;
-			return Arrays.equals(this.domIndices, ((TupleKey)o).domIndices);
+			return Arrays.equals(this.array, ((ArrayKey)o).array);
 		}
 	}
 }
