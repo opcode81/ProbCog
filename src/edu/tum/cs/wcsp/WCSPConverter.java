@@ -156,7 +156,7 @@ public class WCSPConverter implements IParameterHandler {
         
     	System.out.println("unifying constraints...");
     	int numConstraintsBefore = wcsp.size();
-        wcsp.unifyConstraints();
+       // wcsp.unifyConstraints();
         if(verbose) System.out.printf("  reduced %d constraints to %s", numConstraintsBefore, wcsp.size());
         
         PrintStream out = new PrintStream(wcspFilename);

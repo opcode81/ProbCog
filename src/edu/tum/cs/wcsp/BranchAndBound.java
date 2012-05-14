@@ -1,12 +1,15 @@
 package edu.tum.cs.wcsp;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
 
 import edu.tum.cs.util.datastruct.Map2Set;
 import edu.tum.cs.util.datastruct.Map2Stack;
@@ -20,6 +23,7 @@ public class BranchAndBound {
 	protected SearchStack searchStack = null;
 	protected long bestSolutionCosts;
 	
+	
 	public BranchAndBound(WCSP wcsp, long initialUpperBound) {
 		this.wcsp = wcsp;		
 		this.upperBound = initialUpperBound;
@@ -30,6 +34,18 @@ public class BranchAndBound {
 				varIdx2constraint.add(i, c);
 		}
 	}
+	
+//	protected int[] getVariableOrder() {
+//		
+//		TreeMap<Long, Integer> varOrder = new TreeMap<Long, Integer>();
+//		Map<Integer, Map<Integer, Long>> costs = new HashMap<Integer, Map<Integer>, Long>>();
+//		for (Constraint c: wcsp) {
+//			HashMap<> 
+//			for (Tuple t: c.getTuples()) {
+//				
+//			}
+//		}
+//	}
 	
 	public int[] findSolution() {
 		this.searchStack = new SearchStack();		
@@ -205,7 +221,7 @@ public class BranchAndBound {
 		wcsp.addConstraint(c);
 		*/
 		
-		WCSP wcsp = WCSP.fromFile(new java.io.File("/usr/wiss/jain/4queens.wcsp"));
+		WCSP wcsp = WCSP.fromFile(new java.io.File("/home/nyga/code/prac/models/filling/temp.wcsp"));
 		for(Constraint c: wcsp)
 			c.writeWCSP(System.out);
 		

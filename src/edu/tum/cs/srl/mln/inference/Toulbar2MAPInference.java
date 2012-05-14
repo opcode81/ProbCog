@@ -67,7 +67,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			constructWCSP(this.wcspFilename, false);
 		
 		// run Toulbar2
-		String command = "toulbar2 -s " + wcspFilename + " " + toulbar2Args;
+		String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 		if(verbose) System.out.println("running WCSP solver: " + command);
 		Process p = Runtime.getRuntime().exec(command);
 		InputStream s = p.getInputStream();
@@ -106,7 +106,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		// clean up
-		new File(this.wcspFilename).delete();
+//		new File(this.wcspFilename).delete();
 				
 		return getResults(queries);
 	}

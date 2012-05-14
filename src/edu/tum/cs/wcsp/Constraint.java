@@ -103,7 +103,6 @@ public class Constraint {
 			}
 			return true;
 		}
-
 	}
 	
 	public static class ArrayKey {
