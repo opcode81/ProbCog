@@ -1,8 +1,5 @@
 /*
  * Created on May 11, 2012
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package edu.tum.cs.wcsp;
 
@@ -10,19 +7,28 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.LinkedList;
+import java.util.List;
+
+import edu.tum.cs.wcsp.Constraint.Tuple;
 
 public class WCSP implements Iterable<Constraint> {
 	protected long top;
-	protected Vector<Constraint> constraints;
+	protected List<Constraint> constraints;
 	protected int numVariables;
 	protected int[] domainSizes;
+	protected int maxDomSize;
 	
-	public WCSP(int numVars, int[] domainSizes, long top) {
-		constraints = new Vector<Constraint>();
-		this.numVariables = numVars;
+	public WCSP(int[] domainSizes, long top) {
+		constraints = new LinkedList<Constraint>();
+		this.numVariables = domainSizes.length;
 		this.domainSizes = domainSizes;
+		maxDomSize = 0;
+		for(int i = 0; i < numVariables; i++)
+			maxDomSize = Math.max(maxDomSize, domainSizes[i]);
 		this.top = top;
 	}
 	
@@ -47,18 +53,51 @@ public class WCSP implements Iterable<Constraint> {
 		return constraints.iterator();
 	}
 	
+	public int size() {
+		return constraints.size();
+	}
+	
+	public void unifyConstraints() {
+		HashMap<int[], Constraint> existingConstraints = new HashMap<int[], Constraint>(); 
+		Iterator<Constraint> i = this.iterator();
+		while(i.hasNext()) {
+			Constraint c2 = i.next();
+			Constraint c1 = existingConstraints.get(c2.getVarIndices());
+			if(c1 != null) {
+				// add c2's default costs to tuples found in c1 but not in c2 
+				for(Tuple t1 : c1.getTuples()) {
+					if(c2.getTuple(t1.domIndices) == null)
+						t1.cost += c2.getDefaultCosts();
+				}
+				// add contents of c2's tuples to c1 
+				for(Tuple t2 : c2.getTuples()) {
+					Tuple t1 = c1.getTuple(t2.domIndices);
+					if(t1 == null) {
+						t2.cost += c1.getDefaultCosts();
+						c1.addTuple(t2);
+					}
+					else {
+						t1.cost += t2.cost; 
+					}
+				}
+				c1.setDefaultCosts(c1.getDefaultCosts() + c2.getDefaultCosts());
+				i.remove();
+			}
+		}
+	}
+	
 	public static WCSP fromFile(File f) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader(f));
 		String l = br.readLine();
 		String[] elems = l.split(" ");
 		int numVars = Integer.parseInt(elems[1]);
 		int numConstraints = Integer.parseInt(elems[3]);
-		long top = Integer.parseInt(elems[4]);
+		long top = Long.parseLong(elems[4]);
 		elems = br.readLine().split(" ");
 		int[] domSizes = new int[numVars];
 		for(int i = 0; i < numVars; i++)
 			domSizes[i] = Integer.parseInt(elems[i]);
-		WCSP wcsp = new WCSP(numVars, domSizes, top);
+		WCSP wcsp = new WCSP(domSizes, top);
 		for(int i = 0; i < numConstraints; i++) {
 			elems = br.readLine().split(" ");
 			int arity = Integer.parseInt(elems[0]);
@@ -79,5 +118,25 @@ public class WCSP implements Iterable<Constraint> {
 			wcsp.addConstraint(c);
 		}
 		return wcsp;
+	}
+	
+	/**
+	 * writes a toulbar2-style wcsp file
+	 * @param out the stream to write to
+	 * @param name the name of this WCSP
+	 */
+	public void writeWCSP(PrintStream out, String name) {
+        // the first line of the WCSP-File
+        // syntax: name of the WCSP, number of variables, maximum domain size of the variables, number of constraints, initial TOP
+    	out.printf("%s %d %d %d %d\n", name, getNumVariables(), this.maxDomSize, constraints.size(), top);
+    	// second line: domain sizes
+    	for(int i = 0; i < numVariables; i++) {
+    		out.print(domainSizes[i]);
+    		out.print(' ');
+    	}
+    	out.println();
+    	// write constraints
+    	for(Constraint c : this)
+    		c.writeWCSP(out);
 	}
 }
