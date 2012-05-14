@@ -73,26 +73,29 @@ public class WCSP implements Iterable<Constraint> {
 				for(int k = 0; k < varIndices.length; k++)
 					varIdx2arrayIdx.put(varIndices[k], k);
 				// add contents of c2's tuples to c1
-				HashSet<ArrayKey> processedTuples = new HashSet<ArrayKey>();
+				HashSet<Tuple> processedTuples = new HashSet<Tuple>(c2.getTuples().size());
+				int[] c2varIdx = c2.getVarIndices();
 				for(Tuple t2 : c2.getTuples()) {
 					// rearrange domain indices according to c1's var indices
 					int[] domIndices = new int[varIndices.length];
-					int[] c2varIdx = c2.getVarIndices();
 					for(int k = 0; k < varIndices.length; k++)
 						domIndices[varIdx2arrayIdx.get(c2varIdx[k])] = t2.domIndices[k];
-					processedTuples.add(new ArrayKey(domIndices));
+					// unify with corresponding tuple
 					Tuple t1 = c1.getTuple(domIndices);
-					if(t1 != null) 
-						t1.cost += t2.cost; 
+					if(t1 != null) {
+						t1.cost += t2.cost;
+						processedTuples.add(t1);
+					}
 					else {
 						t2.cost += c1.getDefaultCosts();
 						t2.domIndices = domIndices;
 						c1.addTuple(t2);
+						processedTuples.add(t2);
 					}
 				}
 				// add c2's default costs to tuples found in c1 but not in c2 
 				for(Tuple t1 : c1.getTuples()) {
-					if(! processedTuples.contains(new ArrayKey(t1.domIndices))) {
+					if(! processedTuples.contains(t1)) {
 						t1.cost += c2.getDefaultCosts();
 					}
 				}
@@ -164,7 +167,7 @@ public class WCSP implements Iterable<Constraint> {
 		try {
 			wcsp = WCSP.fromFile(new File("/home/nyga/code/prac/models/filling/temp.wcsp"));
 			wcsp.unifyConstraints();			
-			wcsp.writeWCSP(new PrintStream("/home/nyga/code/prac/models/filling/exist-unified.wcsp"), "unifiedWCSP");
+			wcsp.writeWCSP(new PrintStream("/home/nyga/code/prac/models/filling/unified.wcsp"), "unifiedWCSP");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
