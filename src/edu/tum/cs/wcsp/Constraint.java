@@ -4,6 +4,7 @@
 package edu.tum.cs.wcsp;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -12,17 +13,26 @@ import java.util.Map.Entry;
   */
 public class Constraint {
 	protected HashMap<int[], Tuple> tuples;
+	/**
+	 * array of variable indices references by this constraint; for technical reasons (required e.g. by
+	 * {@link WCSP.unifyConstraints}) it is sorted
+	 */
 	protected int[] varIndices;
 	protected long defaultCost;
 	
 	public Constraint(long defaultCost, int[] varIndices, int initialTuples) {
 		this.varIndices = varIndices;
+		Arrays.sort(this.varIndices);
 		this.defaultCost = defaultCost;
 		tuples = new HashMap<int[], Tuple>();
 	}
 	
 	public void addTuple(int[] domainIndices, long cost) {
 		tuples.put(domainIndices, new Tuple(domainIndices, cost));
+	}
+	
+	public void addTuple(Tuple t) {
+		tuples.put(t.domIndices, t);
 	}
 	
 	public long getCost(int[] domainIndices) {
@@ -40,8 +50,16 @@ public class Constraint {
 		return tuples.values();
 	}
 	
+	public Tuple getTuple(int[] setting) {
+		return tuples.get(setting);
+	}
+	
 	public long getDefaultCosts() {
 		return defaultCost;
+	}
+	
+	public void setDefaultCosts(long c) {
+		this.defaultCost = c;
 	}
 	
 	public void writeWCSP(PrintStream out) {
