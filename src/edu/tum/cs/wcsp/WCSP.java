@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import edu.tum.cs.wcsp.Constraint.ArrayKey;
 import edu.tum.cs.wcsp.Constraint.Tuple;
@@ -62,11 +64,22 @@ public class WCSP implements Iterable<Constraint> {
 	}
 	
 	public void unifyConstraints() {
-		HashMap<ArrayKey, Constraint> existingConstraints = new HashMap<ArrayKey, Constraint>(); 
+		HashMap<Set<Integer>, Constraint> existingConstraints = new HashMap<Set<Integer>, Constraint>(); 
 		Iterator<Constraint> i = this.iterator();
 		while(i.hasNext()) {
 			Constraint c2 = i.next();
-			Constraint c1 = existingConstraints.get(new ArrayKey(c2.getVarIndices()));
+			final int[] c2varIndices = c2.getVarIndices();
+			Set<Integer> keySet = new HashSet<Integer>(new AbstractList<Integer>() {
+				@Override
+				public Integer get(int index) {					
+					return c2varIndices[index];
+				}
+				@Override
+				public int size() {
+					return c2varIndices.length;
+				}				
+			});
+			Constraint c1 = existingConstraints.get(keySet);
 			if(c1 != null) {
 				HashMap<Integer,Integer> varIdx2arrayIdx = new HashMap<Integer, Integer>();
 				int[] varIndices = c1.getVarIndices();
@@ -103,7 +116,7 @@ public class WCSP implements Iterable<Constraint> {
 				i.remove();
 			}
 			else {
-				existingConstraints.put(new ArrayKey(c2.getVarIndices()), c2);
+				existingConstraints.put(keySet, c2);
 			}
 		}
 	}
