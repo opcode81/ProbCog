@@ -85,8 +85,9 @@ public class Constraint {
 			out.println(t.cost);
 		}
 	}
+
 	
-	protected class Tuple {
+	protected static class Tuple {
 		public int[] domIndices;
 		public long cost;
 		
@@ -94,15 +95,22 @@ public class Constraint {
 			this.cost = cost;
 			this.domIndices = domIndices;
 		}
-		
-		public boolean couldApply(java.util.Map<Integer,Integer> partialAssignment) {
-			for(int i = 0; i < varIndices.length; i++) {
-				Integer a = partialAssignment.get(varIndices[i]);
+
+		/**
+		 * @param c the constraint for which the check is made
+		 * @param partialAssignment 
+		 * @return true if under the given partial assignment, the tuple could apply (i.e. the assignment
+		 * includes only assignments that are also made in this tuple)
+		 */
+		public boolean couldApply(Constraint c, java.util.Map<Integer,Integer> partialAssignment) {
+			for(int i = 0; i < c.varIndices.length; i++) {
+				Integer a = partialAssignment.get(c.varIndices[i]);
 				if(a != null && domIndices[i] != a)
 					return false;
 			}
 			return true;
 		}
+
 	}
 	
 	public static class ArrayKey {
