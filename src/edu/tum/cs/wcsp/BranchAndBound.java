@@ -1,20 +1,23 @@
 package edu.tum.cs.wcsp;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 
+import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.datastruct.Map2Set;
 import edu.tum.cs.util.datastruct.Map2Stack;
 import edu.tum.cs.wcsp.Constraint.Tuple;
 
+/**
+ * simple, mostly naive implementation of branch and bound search
+ * @author jain
+ * @author nyga
+ */
 public class BranchAndBound {
 
 	protected long upperBound = 0L;
@@ -46,7 +49,7 @@ public class BranchAndBound {
 //			}
 //		}
 //	}
-	
+		
 	public int[] findSolution() {
 		this.searchStack = new SearchStack();		
 		Map<Integer,Integer> currentBestSolution = null;
@@ -79,11 +82,12 @@ public class BranchAndBound {
 				varIdx = getNextVariable();
 
 				// if there isn't one, we have found a leaf and need to go on to the next value
-				if(varIdx == -1) { 
+				if(varIdx == -1) {					
 					if(searchStack.lowerBound < currentBestSolutionCosts) {
 						currentBestSolution = (Map)searchStack.assignment.clone();
 						currentBestSolutionCosts = searchStack.lowerBound;
 						upperBound = currentBestSolutionCosts;
+						System.out.println("new solution " + currentBestSolution + " with costs " + currentBestSolutionCosts);
 					}
 					// try the next value of the previous variable
 					searchStack.undoAssignment();
@@ -142,7 +146,7 @@ public class BranchAndBound {
 		
 		public boolean assign(Integer domIdx) {
 			assignment.put(varIdx, domIdx);	
-			System.out.println(assignment);
+			//System.out.println(assignment);
 			valuesTried.peek().add(domIdx);
 			
 			// remove from lower bound all values that are referenced by constraints that have been
@@ -165,7 +169,7 @@ public class BranchAndBound {
 					long min = Long.MAX_VALUE;
 					int numPresentTuples = 0;
 					for(Tuple t : c.getTuples()) {
-						if(t.couldApply(assignment)) {
+						if(t.couldApply(c, assignment)) {
 							min = Math.min(min, t.cost);
 							++numPresentTuples;
 						}
@@ -178,7 +182,7 @@ public class BranchAndBound {
 					lowerBoundAdditions.push(c, min);
 				}
 			
-			System.out.println("lower bound: " + lowerBound);
+			//System.out.println("lower bound: " + lowerBound);
 			return lowerBound < upperBound;
 		}
 		
@@ -221,9 +225,14 @@ public class BranchAndBound {
 		wcsp.addConstraint(c);
 		*/
 		
-		WCSP wcsp = WCSP.fromFile(new java.io.File("/home/nyga/code/prac/models/filling/temp.wcsp"));
+		//WCSP wcsp = WCSP.fromFile(new java.io.File("/usr/wiss/jain/4queens.wcsp"));
+		WCSP wcsp = WCSP.fromFile(new java.io.File("/usr/wiss/jain/temp.wcsp"));
 		for(Constraint c: wcsp)
 			c.writeWCSP(System.out);
+
+		Stopwatch sw = new Stopwatch();
+		sw.start();
+
 		
 		BranchAndBound bb = new BranchAndBound(wcsp, wcsp.getTop());
 		int[] sol = bb.findSolution();
@@ -236,6 +245,8 @@ public class BranchAndBound {
 			System.out.println();
 			System.out.println("Solution costs: " + bb.getBestSolutionCosts());
 		}
+		
+		System.out.println("time taken: " + sw.getElapsedTimeSecs());
 	}
 	
 }

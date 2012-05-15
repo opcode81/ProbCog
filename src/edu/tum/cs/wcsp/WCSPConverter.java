@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package edu.tum.cs.wcsp;
 
 import java.io.PrintStream;
@@ -34,13 +30,13 @@ import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.util.StringTool;
-import edu.tum.cs.util.datastruct.Pair;
 import edu.tum.cs.wcsp.Constraint.ArrayKey;
 import edu.tum.cs.wcsp.Constraint.Tuple;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
- * @author wylezich, jain
+ * @author wylezich
+ * @author jain
  */
 public class WCSPConverter implements IParameterHandler {
 
@@ -65,7 +61,6 @@ public class WCSPConverter implements IParameterHandler {
 	protected HashMap<String, String> func_dom;
 	protected HashMap<Formula, Long> wcspConstraints = new HashMap<Formula, Long>();
 	protected PrintStream ps;
-	protected boolean initialized = false;
 	protected long hardCost = -1;
 	protected boolean debug = false, verbose = false;
 	protected Database db;
@@ -96,7 +91,11 @@ public class WCSPConverter implements IParameterHandler {
     	this.debug = debug;
     }
     
-    protected double getDivisor() {
+    /**
+     * computes the divisor that is used to convert MLN weights to WCSP costs
+     * @return
+     */
+    protected double computeDivisor() {
         // get minimum weight and build sorted tree set of weights
     	TreeSet<Double> weight = new TreeSet<Double>();
         double minWeight = Double.MAX_VALUE;
@@ -134,7 +133,7 @@ public class WCSPConverter implements IParameterHandler {
      * @param wcspFilename
      * @throws Exception 
      */
-    public void run(String wcspFilename) throws Exception {
+    public WCSP run() throws Exception {
     	initialize();        
 
     	// instantiate WCSP
@@ -151,7 +150,7 @@ public class WCSPConverter implements IParameterHandler {
     		System.out.println("generating evidence constraints...");
         generateEvidenceConstraints(wcsp);
         
-        // generate constraints for weighted formulas, merging constraints with the same domain
+        // generate constraints for weighted formulas, merging constraints with the same domains
         if(verbose) System.out.printf("generating constraints for %d weighted formulas...", mrf.getNumFormulas());
         HashMap<ArrayKey, Constraint> collectedConstraints = new HashMap<ArrayKey, Constraint>();
         for(WeightedFormula wf : mrf) {
@@ -172,8 +171,7 @@ public class WCSPConverter implements IParameterHandler {
         if(verbose)
         	System.out.printf("constructed %d constraints in total", wcsp.size());;
         
-        PrintStream out = new PrintStream(wcspFilename);
-        wcsp.writeWCSP(out, "WCSPFromMLN");
+        return wcsp;
     }
 
     /**
@@ -248,11 +246,10 @@ public class WCSPConverter implements IParameterHandler {
 
     /**
      * this method simplifies the generated variables (if a variable is given by the evidence, it's not necessary for the WCSP) 
-     * @param variables all generated variables to check for evidence-entry
-     * @param db evidence of the scenario
+     * @param db evidence database
      * @throws Exception 
      */
-    private void simplifyVars(Database db) throws Exception {
+    protected void simplifyVars(Database db) throws Exception {
     	ArrayList<String> simplifiedVars = new ArrayList<String>(); // list of simplified variables
     	HashMap<Integer, Integer> sf_gndAtomIdx2varIdx = new HashMap<Integer, Integer>(); // mapping of ground atom indices to simplified variable indices
     	HashMap<Integer, Vector<GroundAtom>> sf_varIdx2groundAtoms = new HashMap<Integer, Vector<GroundAtom>>(); // mapping of simplified variable to ground atom
@@ -283,19 +280,10 @@ public class WCSPConverter implements IParameterHandler {
             }
         }
         
-        System.out.printf("simplification: reduced %d to %d variables\n", vars.size(), simplifiedVars.size());
+        if(verbose) System.out.printf("simplification: reduced %d to %d variables\n", vars.size(), simplifiedVars.size());
         this.vars = simplifiedVars;
         this.gndAtomIdx2varIdx = sf_gndAtomIdx2varIdx;
         this.varIdx2groundAtoms = sf_varIdx2groundAtoms; 
-        
-        /*
-        if(debug) {
-        	System.out.println("WCSP variables (simplified):");
-        	for(Entry<Integer,HashSet<GroundAtom>> e : sfvars_gnd.entrySet()) {
-        		System.out.printf("%d %s\n", e.getKey(), StringTool.join(", ", e.getValue()));
-        	}
-        }
-        */        	
     }
 
   
@@ -587,8 +575,8 @@ public class WCSPConverter implements IParameterHandler {
         doms = mrf.getDb().getDomains();
         createVariables();
         simplifyVars(mrf.getDb());
-        divisor = getDivisor();
-        System.out.printf("divisor: %g\n", divisor);
+        divisor = computeDivisor();
+        if(verbose) System.out.printf("divisor: %g\n", divisor);
         
     	long sumSoftCosts = 0;
         for(WeightedFormula wf : mrf) {
@@ -604,8 +592,6 @@ public class WCSPConverter implements IParameterHandler {
         hardCost = sumSoftCosts + 1;
         if (hardCost <= sumSoftCosts)
             throw new Exception("Numeric overflow in sumSoftCosts");
-        
-        initialized = true;
     }
 
 	@Override

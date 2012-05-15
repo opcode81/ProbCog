@@ -8,11 +8,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.srl.mln.MarkovRandomField;
+import edu.tum.cs.wcsp.WCSP;
 import edu.tum.cs.wcsp.WCSPConverter;
 
 /**
@@ -55,7 +57,8 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		if(verbose) System.out.println("performing WCSP conversion...");
 		converter = new WCSPConverter(mrf);
 		converter.setCacheConstraints(cache);
-		converter.run(this.wcspFilename);
+		WCSP wcsp = converter.run();
+		wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
 		return converter;
 	}
 	
