@@ -56,6 +56,7 @@ public class PrologKnowledgeBase extends yprolog.YProlog {
 	 * @param goalAtom a query such as "parent(eve,X)"
 	 * @return a vector of argument lists, where each list corresponds to one ground atom that matches the query
 	 */
+	@SuppressWarnings("unchecked")
 	public Vector<String[]> fetchBindings(String goal) {
 		return this.queryToTable(goal, 0, true);
 	}

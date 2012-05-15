@@ -1,10 +1,8 @@
 package edu.tum.cs.srl;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.Vector;
 
-import edu.tum.cs.srl.bayesnets.RelationalBeliefNetwork;
 import edu.tum.cs.srl.bayesnets.RelationalNode;
 
 /**

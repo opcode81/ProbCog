@@ -83,7 +83,6 @@ public class BLNLearner implements IParameterHandler {
 	public ABLModel learn() throws IllegalArgumentException {
 		try {
 			boolean verbose = true;
-			String acronym = "ABL";
 
 			if(bn == null) {
 				if(bifFile == null) {

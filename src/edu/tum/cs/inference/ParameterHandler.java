@@ -9,9 +9,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import edu.tum.cs.util.StringTool;
 

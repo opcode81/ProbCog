@@ -1,12 +1,18 @@
 package edu.tum.cs.rpt;
-import kdl.prox3.db.ProxDB; 
-import kdl.prox3.model.classifiers.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Vector;
+
+import kdl.prox3.model.classifiers.RPNode;
+import kdl.prox3.model.estimators.DiscreteEstimator;
+import kdl.prox3.model.estimators.ProbDistribution;
+import kdl.prox3.model.features.Feature;
+import kdl.prox3.model.features.FeatureSetting;
 import kdl.prox3.script.ItemModelAttr;
-import kdl.prox3.model.features.*;
-import java.util.*;
-import kdl.prox3.model.estimators.*;
-import java.io.*;
-import java.util.regex.*;
 
 // TODO use data dictionary
 public class RPT2Logic {
@@ -81,7 +87,7 @@ public class RPT2Logic {
 		walkTree(root, new Path());
 	}
 	
-	protected class DistributionValue implements Comparable {
+	protected class DistributionValue implements Comparable<DistributionValue> {
 		public String value;
 		public double probability;
 		
@@ -90,8 +96,8 @@ public class RPT2Logic {
 			this.probability = count/total;
 		}
 
-		public int compareTo(Object o) { // sort in reverse order of probability
-			return (int)-Math.signum(probability - ((DistributionValue)o).probability);
+		public int compareTo(DistributionValue o) { // sort in reverse order of probability
+			return (int)-Math.signum(probability - o.probability);
 		}		
 	}
 	
@@ -120,6 +126,7 @@ public class RPT2Logic {
 			items = new Vector<String>();
 		}
 		
+		@SuppressWarnings("unchecked")
 		public Path clone() {
 			Path p = new Path();
 			p.items = (Vector<String>)items.clone();
@@ -180,11 +187,11 @@ public class RPT2Logic {
 			// get the values sorted in descending order of probability 
 			DiscreteEstimator de = node.getClassLabelDistribution();
 			ProbDistribution dist = de.getProbDistribution();
-			Map distMap = dist.getDistributionMap();
-			Iterator iEntry = distMap.entrySet().iterator();
+			Map<?,?> distMap = dist.getDistributionMap();
+			Iterator<?> iEntry = distMap.entrySet().iterator();
 			TreeSet<DistributionValue> sortedVals = new TreeSet<DistributionValue>();
 			while(iEntry.hasNext()) {
-				Map.Entry entry = (Map.Entry) iEntry.next();
+				Map.Entry<?,?> entry = (Map.Entry<?,?>) iEntry.next();
 				sortedVals.add(new DistributionValue((String)entry.getKey(), (Double)entry.getValue(), dist.getTotalNumValues()));
 			}
 			// set support for this path

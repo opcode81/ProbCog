@@ -21,7 +21,7 @@ import kdl.prox3.dbmgr.DataTypeEnum;
 public class DDAttribute implements Cloneable, Serializable {
 	private static final long serialVersionUID = 1L;
 	protected String name;
-	protected Domain domain;
+	protected Domain<?> domain;
 	/**
 	 * whether this attribute is scheduled for clustering
 	 */
@@ -89,12 +89,12 @@ public class DDAttribute implements Cloneable, Serializable {
 		this.owner = null;
 	}
 	
-	public DDAttribute(String name, Domain domain) {
+	public DDAttribute(String name, Domain<?> domain) {
 		this(name);
 		this.domain = domain;
 	}
 	
-	public DDAttribute(String name, Domain domain, boolean doClustering) {
+	public DDAttribute(String name, Domain<?> domain, boolean doClustering) {
 		this(name, domain);
 		setClustering(doClustering);
 	}
@@ -142,7 +142,7 @@ public class DDAttribute implements Cloneable, Serializable {
 		return clusteringTask != null;
 	}
 	
-	public Domain getDomain() {
+	public Domain<?> getDomain() {
 		return domain;
 	}
 	
@@ -177,7 +177,7 @@ public class DDAttribute implements Cloneable, Serializable {
 		this.name = name;
 	}
 	
-	public void setDomain(Domain domain) {
+	public void setDomain(Domain<?> domain) {
 		this.domain = domain;
 	}
 	

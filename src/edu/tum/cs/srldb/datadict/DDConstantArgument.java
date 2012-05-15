@@ -12,7 +12,7 @@ public class DDConstantArgument extends DDAttribute implements IDDRelationArgume
 
 	private static final long serialVersionUID = 1L;
 
-	public DDConstantArgument(String name, Domain domain) {
+	public DDConstantArgument(String name, Domain<?> domain) {
 		super(name, domain);		
 	}
 	

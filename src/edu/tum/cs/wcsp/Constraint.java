@@ -5,7 +5,6 @@ package edu.tum.cs.wcsp;
 
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -181,7 +180,7 @@ public class Constraint {
 
 	}
 	
-	public static class ArrayKey {
+	public static final class ArrayKey {
 		protected int[] array; 
 		protected int hashCode;
 		

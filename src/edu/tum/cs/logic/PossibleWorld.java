@@ -2,9 +2,8 @@ package edu.tum.cs.logic;
 
 import java.io.PrintStream;
 
-import edu.tum.cs.srl.Database;
-import edu.tum.cs.srl.RelationalModel;
 import edu.tum.cs.srl.AbstractVariable;
+import edu.tum.cs.srl.Database;
 
 public class PossibleWorld implements IPossibleWorld {
 	
@@ -75,7 +74,7 @@ public class PossibleWorld implements IPossibleWorld {
     }
     
     public void setEvidence(Database db) throws Exception {
-    	for(AbstractVariable var : db.getEntries()) {
+    	for(AbstractVariable<?> var : db.getEntries()) {
     		this.set(var.getPredicate(), var.isTrue()); 
     	}
     }

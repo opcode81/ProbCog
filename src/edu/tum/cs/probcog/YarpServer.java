@@ -78,7 +78,6 @@ public class YarpServer extends Server {
 	        	checkNumParams(call, 3);
 	        	// perform inference
 	        	String modelName = call.get(0).toString();
-	        	Model model = this.modelPool.getModel(modelName);
 	        	Vector<String> queries = queriesFromTuples(readListOfLists(call.get(1).asList()));
 	        	Vector<String[]> evidence = readListOfLists(call.get(2).asList());
 	        	Vector<InferenceResult> results = query(modelName, queries, evidence);

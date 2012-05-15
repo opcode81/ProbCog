@@ -246,7 +246,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				else {
 					Iterable<String> outcomes = db.getDomain(sig.returnType);
 					int c = 0;
-					for(String o : outcomes)
+					for(@SuppressWarnings("unused") String o : outcomes)
 						c++;
 					aOutcomes = new String[c];
 					int i = 0;
@@ -886,7 +886,6 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		protected double getValue(int[] addr) {
 			// SUM of real nodes: add up all nodes
 			double sum = 0.0;
-			boolean isTrue = false;
 			for(int i = 0; i < addr.length; i++)
 				sum += addr[i];
 			return sum;

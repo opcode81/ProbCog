@@ -26,6 +26,7 @@ import edu.tum.cs.util.math.MathUtils;
 /**
  * An instance of <code>BeliefNetworkFromClassifiers</code> is able to create the structure
  * of a BeliefNetwork from the dependencies and splits of decision trees ({@link weka.classifiers.trees.J48}).
+ * @author kirchlec
  */
 public class BeliefNetworkFromClassifiers {
 	protected static Logger logger = Logger.getLogger(BeliefNetworkFromClassifiers.class); 

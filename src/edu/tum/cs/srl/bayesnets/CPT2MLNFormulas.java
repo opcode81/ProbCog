@@ -297,12 +297,9 @@ public class CPT2MLNFormulas {
 		}
 		
 		public Formula getConjunction(Rule rule, Map<String,String> constantAssignment) throws Exception {
-			boolean haveMainNode = false;
 			Vector<Formula> conjuncts = new Vector<Formula>();
 			for(Condition c : rule.getAntecedent()) {
 				RelationalNode node = this.getRelationalNode(c);
-				if(node == mainNode)
-					haveMainNode = true;
 				int value = rbn.getDomainIndex(node.node, c.getValue());
 				Formula literal = node.toLiteral(value, constantAssignment);
 				conjuncts.add(literal);

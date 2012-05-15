@@ -85,7 +85,7 @@ public class AutomaticDataDictionary extends DataDictionary {
 		int i = 0;
 		for(IDDRelationArgument argtype : ddlink.getArguments()) {
 			if(argtype instanceof DDConstantArgument) {
-				Domain dom = getDomain(argtype.getDomainName());
+				Domain<?> dom = getDomain(argtype.getDomainName());
 				// extend the domain if applicable
 				IRelationArgument arg = link.getArguments()[i];
 				String value = arg.getConstantName();					

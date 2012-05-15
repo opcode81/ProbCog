@@ -64,7 +64,7 @@ public class DomainLearner extends Learner {
 	 * an array of hash sets, where each set contains the outcomes that were
 	 * encountered so far for one of the entries in array directDomains
 	 */
-	protected HashSet<?>[] directDomainData;
+	protected Vector<HashSet<String>> directDomainData;
 
 	/**
 	 * an array of arrays of strings specifying domains that can be transferred
@@ -133,7 +133,7 @@ public class DomainLearner extends Learner {
 	 * @throws Exception
 	 */
 	public DomainLearner(BeliefNetworkEx bn, String[] directDomains,
-			ClusteredDomain[] clusteredDomains, ClusterNamer namer,
+			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
 			String[][] duplicateDomains) throws Exception {
 		super(bn);
 		init(getBeliefNodes(directDomains), clusteredDomains, namer, duplicateDomains);
@@ -169,7 +169,7 @@ public class DomainLearner extends Learner {
 	 * @throws Exception
 	 */
 	public DomainLearner(BeliefNetwork bn, String[] directDomains,
-			ClusteredDomain[] clusteredDomains, ClusterNamer namer,
+			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
 			String[][] duplicateDomains) {
 		super(bn);
 		init(getBeliefNodes(directDomains), clusteredDomains, namer, duplicateDomains);
@@ -220,9 +220,9 @@ public class DomainLearner extends Learner {
 
 		// create outcome sets for direct domain learning
 		if (directDomains != null) {
-			directDomainData = new HashSet<?>[directDomains.length];
+			directDomainData = new Vector<HashSet<String>>();
 			for (int i = 0; i < directDomains.length; i++)
-				directDomainData[i] = new HashSet<String>();
+				directDomainData.add(new HashSet<String>());
 		}
 
 		// create instance storage for learning of domains using clustering
@@ -265,14 +265,12 @@ public class DomainLearner extends Learner {
 		do {
 			// for direct learning, add outcomes to the set of outcomes
 			for (int i = 0; i < numDirectDomains; i++) {
-				((HashSet<String>) directDomainData[i]).add(rs
-						.getString(directDomains[i].getName()));
+				directDomainData.get(i).add(rs.getString(directDomains[i].getName()));
 			}
 			// for clustering, gather all instances
 			for (int i = 0; i < numClusteredDomains; i++) {
 				Instance inst = new Instance(1);
-				inst.setValue(attrValue, rs
-						.getDouble(clusteredDomains[i].nodeName));
+				inst.setValue(attrValue, rs.getDouble(clusteredDomains[i].nodeName));
 				clusterData[i].add(inst);
 			}
 		} while (rs.next());
@@ -302,13 +300,13 @@ public class DomainLearner extends Learner {
 		// gather domain data
 		int numDirectDomains = directDomains != null ? directDomains.length : 0;
 		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length : 0;
+		@SuppressWarnings("unchecked")
 		Enumeration<Instance> instanceEnum = instances.enumerateInstances();
 		while (instanceEnum.hasMoreElements()) {
 			Instance instance = instanceEnum.nextElement();
 			// for direct learning, add outcomes to the set of outcomes
 			for (int i = 0; i < numDirectDomains; i++) {
-				((HashSet<String>) directDomainData[i]).add(instance.stringValue(
-						instances.attribute(directDomains[i].getName())));
+				directDomainData.get(i).add(instance.stringValue(instances.attribute(directDomains[i].getName())));
 			}
 			// for clustering, gather all instances
 			for (int i = 0; i < numClusteredDomains; i++) {
@@ -339,18 +337,15 @@ public class DomainLearner extends Learner {
 		for (int i = 0; i < numDirectDomains; i++) {
 			String val = data.get(directDomains[i]);
 			if (val == null)
-				throw new Exception("Key " + clusteredDomains[i].nodeName
-						+ " not found in data!");
-			((HashSet<String>) directDomainData[i]).add(val);
+				throw new Exception("Key " + clusteredDomains[i].nodeName + " not found in data!");
+			directDomainData.get(i).add(val);
 		}
 		// for clustering, gather all instances
 		for (int i = 0; i < numClusteredDomains; i++) {
 			Instance inst = new Instance(1);
 			String val = data.get(clusteredDomains[i].nodeName);
 			if (val == null) {
-				boolean b = data.containsKey(clusteredDomains[i].nodeName);
-				throw new Exception("Key " + clusteredDomains[i].nodeName
-						+ " not found in data!");
+				throw new Exception("Key " + clusteredDomains[i].nodeName + " not found in data!");
 			}
 			inst.setValue(attrValue, Double.parseDouble(val));
 			clusterData[i].add(inst);
@@ -421,7 +416,7 @@ public class DomainLearner extends Learner {
 			for (int i = 0; i < directDomains.length; i++) {
 				if (verbose)
 					System.out.println(directDomains[i]);
-				HashSet<String> hs = (HashSet<String>) directDomainData[i];
+				HashSet<String> hs = directDomainData.get(i);
 				Discrete domain = new Discrete();
 				for (Iterator<String> iter = hs.iterator(); iter.hasNext();)
 					domain.addName(iter.next());

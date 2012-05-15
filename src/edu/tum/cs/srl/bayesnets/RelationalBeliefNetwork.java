@@ -2,10 +2,8 @@ package edu.tum.cs.srl.bayesnets;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -492,7 +490,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			}
 			else {
 				if(node.aggregator == Aggregator.NoisyOr) {
-					out.print(writer.formatAsAtom(node.getCleanName()) + " <=> ");
+					out.print(MLNWriter.formatAsAtom(node.getCleanName()) + " <=> ");
 					int k = 0;
 					for(RelationalNode parent : node.getParents()) {
 						// get the parameters that are free in this parent
@@ -505,7 +503,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 						// print the condition
 						if(k++ > 0)
 							out.print(" v ");						
-						out.print("EXIST " + StringTool.join(",", freeparams.toArray(new String[0])) + " " + writer.formatAsAtom(parent.toAtom()));
+						out.print("EXIST " + StringTool.join(",", freeparams.toArray(new String[0])) + " " + MLNWriter.formatAsAtom(parent.toAtom()));
 					}
 					if(k == 0)
 						throw new Exception("None of the parents of OR-node " + node + " handle any of the free parameters.");

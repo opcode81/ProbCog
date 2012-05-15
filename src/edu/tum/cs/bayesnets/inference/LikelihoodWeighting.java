@@ -1,9 +1,11 @@
 package edu.tum.cs.bayesnets.inference;
 
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.util.Stopwatch;
 
+/**
+ * @author jain
+ */
 public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
 	
@@ -30,6 +32,7 @@ public class LikelihoodWeighting extends Sampler {
 			if(ret != null) {
 				addSample(ret);
 				
+				/*
 				if(false) { // debugging of weighting
 					out.print("w=" + ret.weight);
 					for(int j = 0; j < evidenceDomainIndices.length; j++)
@@ -39,6 +42,7 @@ public class LikelihoodWeighting extends Sampler {
 						}
 					out.println();
 				}
+				*/
 			}
 			if(converged())
 				break;

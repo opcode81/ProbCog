@@ -1,14 +1,14 @@
 package edu.tum.cs.bayesnets.learning;
 
-import edu.ksu.cis.bnj.ver3.core.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import weka.core.Instance;
+
+import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 
 /**
  * the abstract base class for other learners, which provides some basic functionality

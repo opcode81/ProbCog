@@ -1,8 +1,7 @@
 package edu.tum.cs.srl.bayesnets.learning;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -55,15 +54,15 @@ public class DomainLearner extends edu.tum.cs.bayesnets.learning.DomainLearner {
 						for(String value : values) {
 							if(debug)
 								System.out.println("adding " + value + " to " + returnType + " while processing " + node.getFunctionName() + " - returnType = " + returnType);
-							((HashSet<String>) directDomainData[i]).add(value);
+							directDomainData.get(i).add(value);
 						}
 						continue;
 					}
 				}
 			}
 			if(mustApplyBooleanDomain) {
-				((HashSet<String>) directDomainData[i]).add(BooleanDomain.True);
-				((HashSet<String>) directDomainData[i]).add(BooleanDomain.False);
+				directDomainData.get(i).add(BooleanDomain.True);
+				directDomainData.get(i).add(BooleanDomain.False);
 				continue;
 			}
 		}

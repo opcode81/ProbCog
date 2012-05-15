@@ -170,10 +170,6 @@ public class MCSAT implements IParameterHandler {
 			}
 			sat.initConstraints(M);
 			sat.run();
-	
-			if(false) {
-				sat.getState().print();
-			}
 			
 			synchronized(dist) {
 				dist.addSample(sat.getState(), 1.0);

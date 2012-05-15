@@ -259,8 +259,6 @@ public class MarkovLogicNetwork implements RelationalModel {
             sumAbsWeights += Math.abs(weight);
         }
         
-        // assign weights to hard constraints
-        double hardWeight = getHardWeight();
         for (Formula f : hardFormulas)
             addHardFormula(f);
     }

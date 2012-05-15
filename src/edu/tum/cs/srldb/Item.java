@@ -16,6 +16,7 @@ import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 
 public abstract class Item implements Serializable {
+	private static final long serialVersionUID = 1L;
 	protected HashMap<String,String> attribs;
 	protected static int GUID = 1;
 	protected int id;
@@ -63,7 +64,7 @@ public abstract class Item implements Serializable {
 		checkMutable();
 		DDAttribute attrib = database.getDataDictionary().getAttribute(attribute);
 		if(attrib != null) {
-			Domain domain = attrib.getDomain();
+			Domain<?> domain = attrib.getDomain();
 			if(domain instanceof AutomaticDomain)
 				((AutomaticDomain)domain).addValue(value);
 		}

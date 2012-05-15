@@ -235,7 +235,8 @@ public class CPTLearner extends Learner implements IParameterHandler {
 		
         // gather data, iterating over the result set
 		int[] domainIndices = new int[nodes.length];
-        Enumeration<Instance> instanceEnum = instances.enumerateInstances();
+        @SuppressWarnings("unchecked")
+		Enumeration<Instance> instanceEnum = instances.enumerateInstances();
         while (instanceEnum.hasMoreElements()) {
         	Instance instance = instanceEnum.nextElement();
 			// for each row...
@@ -283,8 +284,8 @@ public class CPTLearner extends Learner implements IParameterHandler {
 					}
 					domain_idx = domain.findName(strValue);
 					if(domain_idx == -1) {
-						String[] myDomain = bn.getDiscreteDomainAsArray(bn.bn.getNodes()[node_idx].getName());
-						/*for (int i=0; i<myDomain.length; i++) {
+						/*String[] myDomain = bn.getDiscreteDomainAsArray(bn.bn.getNodes()[node_idx].getName());
+						for (int i=0; i<myDomain.length; i++) {
 							logger.debug(myDomain[i]);
 						}*/
 						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());

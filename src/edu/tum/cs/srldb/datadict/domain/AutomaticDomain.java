@@ -1,7 +1,6 @@
 package edu.tum.cs.srldb.datadict.domain;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.HashSet;
 
 import kdl.prox3.dbmgr.DataTypeEnum;
