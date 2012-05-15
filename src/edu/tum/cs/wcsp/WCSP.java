@@ -9,8 +9,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import edu.tum.cs.wcsp.Constraint.ArrayKey;
+import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.wcsp.Constraint.Tuple;
 
 public class WCSP implements Iterable<Constraint> {
@@ -63,13 +61,16 @@ public class WCSP implements Iterable<Constraint> {
 		return constraints.size();
 	}
 	
+	/**
+	 * unifies constraints with the same domain, reducing the total number of constraints
+	 */
 	public void unifyConstraints() {
 		HashMap<Set<Integer>, Constraint> existingConstraints = new HashMap<Set<Integer>, Constraint>(); 
 		Iterator<Constraint> i = this.iterator();
 		while(i.hasNext()) {
 			Constraint c2 = i.next();
 			final int[] c2varIndices = c2.getVarIndices();
-			Set<Integer> keySet = new HashSet<Integer>(new AbstractList<Integer>() {
+			Set<Integer> key = new HashSet<Integer>(new AbstractList<Integer>() {
 				@Override
 				public Integer get(int index) {					
 					return c2varIndices[index];
@@ -78,45 +79,14 @@ public class WCSP implements Iterable<Constraint> {
 				public int size() {
 					return c2varIndices.length;
 				}				
-			});
-			Constraint c1 = existingConstraints.get(keySet);
+			});			
+			Constraint c1 = existingConstraints.get(key);
 			if(c1 != null) {
-				HashMap<Integer,Integer> varIdx2arrayIdx = new HashMap<Integer, Integer>();
-				int[] varIndices = c1.getVarIndices();
-				for(int k = 0; k < varIndices.length; k++)
-					varIdx2arrayIdx.put(varIndices[k], k);
-				// add contents of c2's tuples to c1
-				HashSet<Tuple> processedTuples = new HashSet<Tuple>(c2.getTuples().size());
-				int[] c2varIdx = c2.getVarIndices();
-				for(Tuple t2 : c2.getTuples()) {
-					// rearrange domain indices according to c1's var indices
-					int[] domIndices = new int[varIndices.length];
-					for(int k = 0; k < varIndices.length; k++)
-						domIndices[varIdx2arrayIdx.get(c2varIdx[k])] = t2.domIndices[k];
-					// unify with corresponding tuple
-					Tuple t1 = c1.getTuple(domIndices);
-					if(t1 != null) {
-						t1.cost += t2.cost;
-						processedTuples.add(t1);
-					}
-					else {
-						t2.cost += c1.getDefaultCosts();
-						t2.domIndices = domIndices;
-						c1.addTuple(t2);
-						processedTuples.add(t2);
-					}
-				}
-				// add c2's default costs to tuples found in c1 but not in c2 
-				for(Tuple t1 : c1.getTuples()) {
-					if(! processedTuples.contains(t1)) {
-						t1.cost += c2.getDefaultCosts();
-					}
-				}
-				c1.setDefaultCosts(c1.getDefaultCosts() + c2.getDefaultCosts());
+				c1.mergeReorder(c2);
 				i.remove();
 			}
 			else {
-				existingConstraints.put(keySet, c2);
+				existingConstraints.put(key, c2);
 			}
 		}
 	}
@@ -178,9 +148,14 @@ public class WCSP implements Iterable<Constraint> {
 	public static void main(String[] args) {
 		WCSP wcsp;
 		try {
-			wcsp = WCSP.fromFile(new File("/home/nyga/code/prac/models/filling/temp.wcsp"));
-			wcsp.unifyConstraints();			
-			wcsp.writeWCSP(new PrintStream("/home/nyga/code/prac/models/filling/unified.wcsp"), "unifiedWCSP");
+			//File inFile = new File("/home/nyga/code/prac/models/filling/temp.wcsp");
+			File inFile = new File("/usr/wiss/nyga/temp.wcsp");
+			wcsp = WCSP.fromFile(inFile);
+			Stopwatch sw = new Stopwatch();
+			sw.start();
+			wcsp.unifyConstraints();
+			System.out.println("unification time: " + sw.getElapsedTimeSecs());
+			//wcsp.writeWCSP(new PrintStream("/home/nyga/code/prac/models/filling/unified.wcsp"), "unifiedWCSP");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
