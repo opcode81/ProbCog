@@ -6,6 +6,7 @@ package edu.tum.cs.wcsp;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import edu.tum.cs.srl.mln.MarkovLogicNetwork;
 import edu.tum.cs.srl.mln.MarkovRandomField;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
+import edu.tum.cs.wcsp.Constraint.ArrayKey;
 import edu.tum.cs.wcsp.Constraint.Tuple;
 
 /**
@@ -64,7 +66,6 @@ public class WCSPConverter implements IParameterHandler {
 	protected HashMap<Formula, Long> wcspConstraints = new HashMap<Formula, Long>();
 	protected PrintStream ps;
 	protected boolean initialized = false;
-	int numConstraints = 0;
 	protected long hardCost = -1;
 	protected boolean debug = false, verbose = false;
 	protected Database db;
@@ -150,15 +151,26 @@ public class WCSPConverter implements IParameterHandler {
     		System.out.println("generating evidence constraints...");
         generateEvidenceConstraints(wcsp);
         
-        // generate constraints for weighted formulas
+        // generate constraints for weighted formulas, merging constraints with the same domain
         if(verbose) System.out.printf("generating constraints for %d weighted formulas...", mrf.getNumFormulas());
-        for(WeightedFormula wf : mrf)
-        	generateConstraint(wf, wcsp);
+        HashMap<ArrayKey, Constraint> collectedConstraints = new HashMap<ArrayKey, Constraint>();
+        for(WeightedFormula wf : mrf) {
+        	Constraint c = generateConstraint(wf);
+        	if(c != null) {
+        		// check if we have a previous constraint with the same domain
+        		ArrayKey key = new ArrayKey(c.getVarIndices());
+        		Constraint prevConstraint = collectedConstraints.get(key);
+        		if(prevConstraint != null)
+        			prevConstraint.merge(c);
+        		else {
+        			collectedConstraints.put(key, c);
+        			wcsp.addConstraint(c);
+        		}
+        	}
+        }
         
-    	System.out.println("unifying constraints...");
-    	int numConstraintsBefore = wcsp.size();
-       // wcsp.unifyConstraints();
-        if(verbose) System.out.printf("  reduced %d constraints to %s", numConstraintsBefore, wcsp.size());
+        if(verbose)
+        	System.out.printf("constructed %d constraints in total", wcsp.size());;
         
         PrintStream out = new PrintStream(wcspFilename);
         wcsp.writeWCSP(out, "WCSPFromMLN");
@@ -288,12 +300,11 @@ public class WCSPConverter implements IParameterHandler {
 
   
     /**
-     * this method generates a WCSP-Constraint for a formula
-     * @param f formula (for this formula a WCSP- constraint is generated), the formula is already simplified
-     * @param weight the weight of the formula to calculate the costs
+     * this method generates a WCSP Constraint for a weighted formula
+     * @param wf the weighted formula
      * @throws Exception 
      */
-    protected void generateConstraint(WeightedFormula wf, WCSP wcsp) throws Exception {
+    protected Constraint generateConstraint(WeightedFormula wf) throws Exception {
         // if the weight is negative, negate the formula and its weight
     	Formula f = wf.formula;
     	double weight = wf.weight;
@@ -321,6 +332,7 @@ public class WCSPConverter implements IParameterHandler {
         int i = 0;
         for(Integer varIdx : setVarIndices)
         	referencedVarIndices[i++] = varIdx;
+        Arrays.sort(referencedVarIndices); // have this array sorted to simplify constraint unification
 
         // get cost value for this constraint
         long cost;
@@ -339,7 +351,7 @@ public class WCSPConverter implements IParameterHandler {
         	generateAllPossibilities = false;
         	try {
         		relevantSettings = new ArrayList<Tuple>();
-        		this.gatherConstraintLinesSimplified((ComplexFormula)f, referencedVarIndices, cost, relevantSettings, isConjunction);
+        		this.gatherConstraintTuplesSimplified((ComplexFormula)f, referencedVarIndices, cost, relevantSettings, isConjunction);
         		defaultCosts = isConjunction ? cost : 0;
         	}
         	catch(SimplifiedConversionNotSupportedException e) {
@@ -352,7 +364,7 @@ public class WCSPConverter implements IParameterHandler {
 	        // generate all possibilities for this constraint
 	        ArrayList<Tuple> settingsZero = new ArrayList<Tuple>();
 	        ArrayList<Tuple> settingsOther = new ArrayList<Tuple>();
-	        gatherConstraintLines(f, referencedVarIndices, 0, world, new int[referencedVarIndices.length], cost, settingsZero, settingsOther);                 
+	        gatherConstraintTuples(f, referencedVarIndices, 0, world, new int[referencedVarIndices.length], cost, settingsZero, settingsOther);                 
 	        
 	        if(settingsOther.size() < settingsZero.size()) { // in this case there are more null-values than lines with a value differing from 0
 	        	relevantSettings = settingsOther;
@@ -368,19 +380,18 @@ public class WCSPConverter implements IParameterHandler {
         
         // if the smaller set contains no lines, this constraint is either unsatisfiable or a tautology, so it need not be considered at all
         if(relevantSettings.size() == 0)
-        	return;
+        	return null;
         
-        // write results
+        // construct the constraint
         Constraint c = new Constraint(defaultCosts, referencedVarIndices, relevantSettings.size());
         for(Tuple tuple : relevantSettings) {
         	c.addTuple(tuple);
         }
-        wcsp.addConstraint(c);
         
-        if (this.cacheConstraints)
+        if(this.cacheConstraints)
         	wcspConstraints.put(f, cost);
-        
-        numConstraints++;
+
+        return c;
     }
     
     protected void generateEvidenceConstraints(WCSP wcsp) throws Exception {
@@ -438,7 +449,7 @@ public class WCSPConverter implements IParameterHandler {
      * @param settingsOther set to save all possibilities with costs different from 0
      * @throws Exception 
      */
-    protected void gatherConstraintLines(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Tuple> settingsZero, ArrayList<Tuple> settingsOther) throws Exception {
+    protected void gatherConstraintTuples(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Tuple> settingsZero, ArrayList<Tuple> settingsOther) throws Exception {
         // if all ground atoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.length) {
             if(!f.isTrue(w))  // if formula is false, costs correspond to the weight
@@ -457,7 +468,7 @@ public class WCSPConverter implements IParameterHandler {
     		for(int j = 0; j < domSize; j++) {
     			domIndices[i] = j;
     			setGroundAtomState(w, wcspVarIdx, j);
-    			gatherConstraintLines(f, wcspVarIndices, i + 1, w, domIndices, cost, settingsZero, settingsOther);
+    			gatherConstraintTuples(f, wcspVarIndices, i + 1, w, domIndices, cost, settingsZero, settingsOther);
     		}
         }
     }
@@ -475,7 +486,7 @@ public class WCSPConverter implements IParameterHandler {
 		return costs;
 	}
     
-    protected void gatherConstraintLinesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Tuple> settings, boolean isConjunction) throws Exception {
+    protected void gatherConstraintTuplesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Tuple> settings, boolean isConjunction) throws Exception {
         // gather assignment
     	HashMap<Integer,Integer> assignment = new HashMap<Integer,Integer>();
         for(Formula child : f.children) {
