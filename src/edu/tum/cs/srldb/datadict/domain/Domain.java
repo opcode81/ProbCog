@@ -5,6 +5,7 @@ import java.io.Serializable;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
 public abstract class Domain<T> implements Serializable {
+	private static final long serialVersionUID = 1L;
 	protected String name;
 	
 	public Domain(String name) {

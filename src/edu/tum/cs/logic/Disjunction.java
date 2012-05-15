@@ -1,10 +1,8 @@
 package edu.tum.cs.logic;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.Vector;
 
 import edu.tum.cs.srl.GenericDatabase;
@@ -81,7 +79,8 @@ public class Disjunction extends ComplexFormula {
             //Formula RD = new Disjunction(clause);
             Vector<Formula> elems = new Vector<Formula>();
             for (Formula Ci : conjuncts) {
-            	HashSet<Formula> newClause = (HashSet<Formula>)clause.clone();
+            	@SuppressWarnings("unchecked")
+				HashSet<Formula> newClause = (HashSet<Formula>)clause.clone();
             	newClause.add(Ci);
                 elems.add(new Disjunction(newClause));
             }

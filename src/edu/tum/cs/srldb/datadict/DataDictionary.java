@@ -1,16 +1,15 @@
 package edu.tum.cs.srldb.datadict;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map.Entry;
-
-import org.xml.sax.Attributes;
+import java.util.Set;
+import java.util.Vector;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
-import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
-import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
-import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.ConstantArgument;
 import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.IRelationArgument;
@@ -18,6 +17,8 @@ import edu.tum.cs.srldb.IdentifierNamer;
 import edu.tum.cs.srldb.Item;
 import edu.tum.cs.srldb.Link;
 import edu.tum.cs.srldb.Object;
+import edu.tum.cs.srldb.datadict.domain.BooleanDomain;
+import edu.tum.cs.srldb.datadict.domain.Domain;
 
 public class DataDictionary implements java.io.Serializable {
 
@@ -28,13 +29,13 @@ public class DataDictionary implements java.io.Serializable {
 	/**
 	 * !!! this map is not guaranteed to contain all relevant entries (is not certain to be in sync)
 	 */
-	protected HashMap<String, Domain> domains;
+	protected HashMap<String, Domain<?>> domains;
 	
 	public DataDictionary() {
 		objects = new HashMap<String, DDObject>();
 		attributes = new HashMap<String, DDAttribute>();
 		relations = new HashMap<String, DDRelation>();
-		domains = new HashMap<String, Domain>();
+		domains = new HashMap<String, Domain<?>>();
 	}
 	
 	public void addObject(DDObject obj) throws DDException {
@@ -91,7 +92,7 @@ public class DataDictionary implements java.io.Serializable {
 		return attributes.get(name);
 	}
 	
-	public Domain getDomain(String name) {
+	public Domain<?> getDomain(String name) {
 		return domains.get(name);
 	}
 
@@ -104,11 +105,11 @@ public class DataDictionary implements java.io.Serializable {
 	}
 	
 	protected class DomainData {
-		public Domain domain;
+		public Domain<?> domain;
 		public Vector<DDAttribute> occurrences = new Vector<DDAttribute>();
 		public String[] values;
 		public boolean wasReplaced = false;
-		public DomainData(Domain domain) {
+		public DomainData(Domain<?> domain) {
 			this.domain = domain;
 			values = domain.getValues();
 		}
@@ -125,7 +126,7 @@ public class DataDictionary implements java.io.Serializable {
 		// get a hash map of all domains used 
 		HashMap<String, DomainData> domains = new HashMap<String,DomainData>();
 		for(DDAttribute attrib : this.attributes.values()) {
-			Domain domain = attrib.getDomain();
+			Domain<?> domain = attrib.getDomain();
 			String domName = domain.getName();
 			DomainData dd;
 			if(!domains.containsKey(domName))
@@ -217,6 +218,7 @@ public class DataDictionary implements java.io.Serializable {
 		checkItemAttributes(obj, ddobj);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void checkLink(Link link) throws DDException, Exception {
 		// check existence of corresponding link type in data dictionary
 		DDRelation ddlink = getRelation(link.getName());
@@ -239,7 +241,7 @@ public class DataDictionary implements java.io.Serializable {
 					throw new DDException(String.format("Type mismatch for argument %d of %s; expected a constant argument!", i+1, link.toString()));
 				}
 				DDConstantArgument ddconst = (DDConstantArgument) argtype;
-				if(!ddconst.getDomain().contains(arg.getConstantName()))
+				if(!((Domain<String>)ddconst.getDomain()).contains(arg.getConstantName()))
 					throw new DDException(String.format("Domain of argument %d of %s does not contain %s!", i+1, link.toString(), arg.getConstantName()));
 			}
 			i++;		
@@ -262,7 +264,7 @@ public class DataDictionary implements java.io.Serializable {
 				throw new DDException("Undefined attribute '" + attribName + "' for item type '" + ddItem.getName() + "' or the attribute was applied to more than one type of object.");
 			if(getAttribute(attribName).isDiscarded())
 				continue;
-			Domain domain = ddItem.getAttributes().get(attribName).getDomain();
+			Domain<?> domain = ddItem.getAttributes().get(attribName).getDomain();
 			String value = attr.getValue();
 			if(!domain.containsString(value))
 				throw new DDException("Invalid value " + value + " for attribute " + attribName + " of item " + ddItem.getName() + "; not in domain " + domain.getName()); 
@@ -288,7 +290,7 @@ public class DataDictionary implements java.io.Serializable {
 		for(DDAttribute attrib : datadict.getAttributes()) {
 			if(attrib.isDiscarded())
 				continue;
-			Domain domain = attrib.getDomain();
+			Domain<?> domain = attrib.getDomain();
 			if(domain == null || attrib.isBoolean() || !domain.isFinite()) // boolean domains aren't handled because a boolean attribute value is not specified as a constant but rather using negation of the entire predicate
 				continue;
 			// we have a finite domain -> output this domain if it hasn't already been printed

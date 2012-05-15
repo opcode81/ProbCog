@@ -10,6 +10,7 @@ import edu.tum.cs.srldb.Database;
 import edu.tum.cs.srldb.IdentifierNamer;
 
 public abstract class DDItem implements Serializable {
+	private static final long serialVersionUID = 1L;
 	protected String name;
 	protected HashMap<String, DDAttribute> attributes;
 	

@@ -1,7 +1,6 @@
 package edu.tum.cs.clustering;
 import java.util.Arrays;
 
-import umontreal.iro.lecuyer.charts.SSJCategorySeriesCollection;
 import weka.clusterers.Clusterer;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
@@ -108,7 +107,6 @@ public interface ClusterNamer<Cl extends Clusterer> {
 				for(int j = 0; j < numClusters; j++)
 					if(centroids[j] == sortedCentroids[i])
 						sortOrder[i] = j;
-			boolean lastNoInterv = false;
 			for(int i = 0; i < numClusters; i++) {
 				int idx = sortOrder[i];
 				if(stdDevs[idx] == 0.0) { // no deviation -> no range
@@ -154,7 +152,6 @@ public interface ClusterNamer<Cl extends Clusterer> {
 				for(int j = 0; j < numClusters; j++)
 					if(centroids[j] == sortedCentroids[i])
 						sortOrder[i] = j;
-			boolean lastNoInterv = false;
 			for(int i = 0; i < numClusters; i++) {
 				int idx = sortOrder[i];
 				if(stdDevs[idx] == 0.0) { // no deviation -> no range

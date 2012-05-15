@@ -11,7 +11,6 @@ import edu.tum.cs.bayesnets.core.BeliefNetworkEx;
 import edu.tum.cs.bayesnets.inference.BackwardSamplingWithPriors;
 import edu.tum.cs.bayesnets.inference.SampledDistribution;
 import edu.tum.cs.bayesnets.inference.WeightedSample;
-import edu.tum.cs.srl.bayesnets.bln.AbstractGroundBLN;
 import edu.tum.cs.srl.bayesnets.bln.GroundBLN;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.datastruct.Cache2D;

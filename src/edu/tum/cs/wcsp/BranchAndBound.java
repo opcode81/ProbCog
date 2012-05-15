@@ -50,6 +50,7 @@ public class BranchAndBound {
 //		}
 //	}
 		
+	@SuppressWarnings("unchecked")
 	public int[] findSolution() {
 		this.searchStack = new SearchStack();		
 		Map<Integer,Integer> currentBestSolution = null;
@@ -83,8 +84,8 @@ public class BranchAndBound {
 
 				// if there isn't one, we have found a leaf and need to go on to the next value
 				if(varIdx == -1) {					
-					if(searchStack.lowerBound < currentBestSolutionCosts) {
-						currentBestSolution = (Map)searchStack.assignment.clone();
+					if(searchStack.lowerBound < currentBestSolutionCosts) {						
+						currentBestSolution = (Map<Integer,Integer>)searchStack.assignment.clone();
 						currentBestSolutionCosts = searchStack.lowerBound;
 						upperBound = currentBestSolutionCosts;
 						System.out.println("new solution " + currentBestSolution + " with costs " + currentBestSolutionCosts);

@@ -27,7 +27,6 @@ import edu.tum.cs.logic.WorldVariables;
 import edu.tum.cs.logic.sat.ClausalKB;
 import edu.tum.cs.logic.sat.Clause;
 import edu.tum.cs.logic.sat.SampleSAT;
-import edu.tum.cs.srl.AbstractVariable;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.StringVariable;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;

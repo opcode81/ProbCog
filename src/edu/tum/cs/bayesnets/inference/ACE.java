@@ -5,7 +5,6 @@ package edu.tum.cs.bayesnets.inference;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -97,7 +96,7 @@ public class ACE extends Sampler {
 		if(verbose) System.out.println("evaluating...");
 		BufferedInputStream is = runAce("evaluate", bnFile.getName() + " " + instFile.getName());		
 		
-		NumberFormat format = NumberFormat.getInstance();
+		//NumberFormat format = NumberFormat.getInstance();
 		
 		// read running time
 		String output = FileUtil.readInputStreamAsString(is);

@@ -23,7 +23,7 @@ import edu.tum.cs.util.datastruct.MutableDouble;
 
 /**
  * Iterative Join-Graph Propagation
- * @author waldhers, jain
+ * @author waldhers
  */
 public class IJGP extends Sampler {
 

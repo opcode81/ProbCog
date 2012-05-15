@@ -15,15 +15,12 @@ import java.util.Vector;
 
 import edu.tum.cs.clustering.BasicClusterer;
 import edu.tum.cs.clustering.ClusterNamer;
-import edu.tum.cs.clustering.EMClusterer;
-import edu.tum.cs.clustering.SimpleClusterer;
 import edu.tum.cs.srl.bayesnets.ABLModel;
 import edu.tum.cs.srldb.datadict.AutomaticDataDictionary;
 import edu.tum.cs.srldb.datadict.DDAttribute;
 import edu.tum.cs.srldb.datadict.DDException;
 import edu.tum.cs.srldb.datadict.DDItem;
 import edu.tum.cs.srldb.datadict.DataDictionary;
-import edu.tum.cs.srldb.datadict.domain.AutomaticDomain;
 import edu.tum.cs.srldb.datadict.domain.Domain;
 import edu.tum.cs.srldb.datadict.domain.OrderedStringDomain;
 import edu.tum.cs.util.datastruct.MultiIterator;
@@ -275,7 +272,7 @@ public class Database implements Cloneable, Serializable {
 			String attribName = attrib.getName();
 			System.out.println("  attribute " + attribName);
 			out.println("    <ATTRIBUTE NAME=\"" + Database.stdAttribName(attribName) + "\" ITEM-TYPE=\"" + (attrib.getOwner().isObject() ? "O" : "L") + "\" DATA-TYPE=\"" + attrib.getType() + "\">");			
-			Iterator iItem = owner.isObject() ? objects.iterator() : links.iterator();
+			Iterator<? extends Item> iItem = owner.isObject() ? objects.iterator() : links.iterator();
 			while(iItem.hasNext()) {
 				Item item = (Item) iItem.next();
 				if(item.hasAttribute(attribName)) {

@@ -131,7 +131,6 @@ public class ParentGrounder {
 			for(RelationalNode n : workingSet) {
 				int numHandledParams = 0;
 				FunctionalLookup flookup = null;
-				Signature s = bn.getSignature(n);
 				// check all of the parent's parameters
 				for(String param : n.params) {			
 					//System.out.println("trying to handle " + param + " in " + n);
@@ -260,6 +259,7 @@ public class ParentGrounder {
 	 * @param ret
 	 * @throws Exception 
 	 */
+	@SuppressWarnings("unchecked")
 	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<ParentGrounding> ret) throws Exception {
 		if(ungroundedParams == null || idx == ungroundedParams.length) {
 			// all variables have been grounded, so now generate a mapping: node index -> list of actual parameters

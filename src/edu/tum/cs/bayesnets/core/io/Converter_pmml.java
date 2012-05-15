@@ -225,7 +225,7 @@ public class Converter_pmml
 						}
 						else if(n.getNodeName().equals("X-Position")) {
 							attrs = n.getAttributes();
-							int xPos = 0, yPos = 0, have = 0;
+							int xPos = 0, yPos = 0;
 							for(int k = attrs.getLength()-1; k >= 0; k--) {
 								Node attr = attrs.item(k);
 								if(attr.getNodeName().equals("x"))
