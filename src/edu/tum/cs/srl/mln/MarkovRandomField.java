@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import edu.tum.cs.logic.Formula;
+import edu.tum.cs.logic.Formula.FormulaSimplification;
 import edu.tum.cs.logic.GroundAtom;
 import edu.tum.cs.logic.IPossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
@@ -130,9 +131,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         for(WeightedFormula wf : mln.getFormulas()) {
         	double weight = wf.weight;
         	boolean isHard = wf.isHard;
+        	FormulaSimplification simplification = simplifyGroundedFormulas ? (isHard ? FormulaSimplification.OnDisallowFalse : FormulaSimplification.On) : FormulaSimplification.None;
         	Vector<Formula> groundings;
         	try {
-        		groundings = wf.formula.getAllGroundings(db, vars, simplifyGroundedFormulas);
+        		groundings = wf.formula.getAllGroundings(db, vars, simplification);
         	}
         	catch(Exception e) {
         		throw new Exception("Error while grounding formula '" + wf.formula.toString() + "'", e);

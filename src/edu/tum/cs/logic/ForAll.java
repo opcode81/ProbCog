@@ -48,7 +48,7 @@ public class ForAll extends UngroundedFormula {
 		}
 		// ground
 		Vector<Formula> parts = new Vector<Formula>();
-		f.generateGroundings(parts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars, false);
+		f.generateGroundings(parts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars, FormulaSimplification.None);
 		return new Conjunction(parts);
 	}
 

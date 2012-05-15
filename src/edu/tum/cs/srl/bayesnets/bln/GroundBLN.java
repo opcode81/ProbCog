@@ -16,6 +16,7 @@ import edu.tum.cs.logic.GroundLiteral;
 import edu.tum.cs.logic.KnowledgeBase;
 import edu.tum.cs.logic.PossibleWorld;
 import edu.tum.cs.logic.WorldVariables;
+import edu.tum.cs.logic.Formula.FormulaSimplification;
 import edu.tum.cs.srl.Database;
 import edu.tum.cs.srl.Signature;
 import edu.tum.cs.srl.bayesnets.bln.coupling.VariableLogicCoupling;
@@ -93,7 +94,7 @@ public class GroundBLN extends AbstractGroundBLN {
 		WorldVariables worldVars = coupling.getWorldVars();
 		state = new PossibleWorld(worldVars);
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
-		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification); 
+		gkb = bln.kb.ground(this.db, worldVars, useFormulaSimplification ? FormulaSimplification.OnDisallowFalse : FormulaSimplification.None); 
 		if(verbose) System.out.printf("    %d formulas resulted in %s ground formulas\n", bln.kb.size(), gkb.size());
 		HashMap<String, Value[]> cpfCache = new HashMap<String, Value[]>();
 		int i = 0;

@@ -40,6 +40,12 @@ public abstract class Formula {
 	 */
 	public abstract void getGroundAtoms(Set<GroundAtom> ret);
 	public abstract boolean isTrue(IPossibleWorld w);
+	
+	public enum FormulaSimplification {
+		None,
+		On,
+		OnDisallowFalse
+	}
 
 	/**
 	 * gets a list of all groundings of the formula for a particular set of objects
@@ -49,7 +55,7 @@ public abstract class Formula {
 	 * @return
 	 * @throws Exception
 	 */
-	public Vector<Formula> getAllGroundings(Database db, WorldVariables worldVars, boolean simplify) throws Exception {
+	public Vector<Formula> getAllGroundings(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
 		Vector<Formula> ret = new Vector<Formula>();
 		addAllGroundingsTo(ret, db, worldVars, simplify);
 		return ret;
@@ -63,7 +69,7 @@ public abstract class Formula {
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
 	 * @throws Exception
 	 */
-	public void addAllGroundingsTo(Collection<Formula> collection, Database db, WorldVariables worldVars, boolean simplify) throws Exception {
+	public void addAllGroundingsTo(Collection<Formula> collection, Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
 		HashMap<String, String> vars = new HashMap<String, String>();
 		getVariables(db, vars);
 		String[] varNames = vars.keySet().toArray(new String[vars.size()]);
@@ -82,16 +88,15 @@ public abstract class Formula {
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
 	 * @throws Exception
 	 */
-	protected void generateGroundings(Collection<Formula> ret, GenericDatabase<?,?> db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, boolean simplify) throws Exception {
+	protected void generateGroundings(Collection<Formula> ret, GenericDatabase<?,?> db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
 		// if we have the full set of parameters, add it to the collection
 		if(i == varNames.length) {
             Formula f = (this.ground(binding, worldVars, db));
-            if(simplify)
+            if(simplify != FormulaSimplification.None)
             	f = f.simplify(db);
             if(f instanceof TrueFalse) {
-            	if(!((TrueFalse)f).isTrue())
-            		// TODO this may be an error if the formula that was grounded was "hard"
-            		;//throw new Exception("Unsatisfiable formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");            		
+            	if(!((TrueFalse)f).isTrue() && simplify == FormulaSimplification.OnDisallowFalse)
+            		throw new Exception("Unsatisfiable hard formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");            		
             	return;
             }
             else
