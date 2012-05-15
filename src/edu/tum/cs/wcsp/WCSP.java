@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Set;
 
 import edu.tum.cs.util.Stopwatch;
-import edu.tum.cs.wcsp.Constraint.Tuple;
 
 public class WCSP implements Iterable<Constraint> {
 	protected long top;
