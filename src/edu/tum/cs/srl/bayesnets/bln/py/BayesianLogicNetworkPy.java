@@ -13,7 +13,7 @@ import edu.tum.cs.tools.JythonInterpreter;
 /**
  * Bayesian Logic Network with Python-based logic implementation
  * @author jain
- *
+ * @deprecated
  */
 public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	public RelationalBeliefNetwork rbn;

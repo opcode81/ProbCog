@@ -9,6 +9,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.tum.cs.logic.Formula.FormulaSimplification;
 import edu.tum.cs.logic.parser.FormulaParser;
 import edu.tum.cs.logic.parser.ParseException;
 import edu.tum.cs.srl.Database;
@@ -82,7 +83,7 @@ public class KnowledgeBase implements Iterable<Formula> {
 	 * @return
 	 * @throws Exception
 	 */
-	public KnowledgeBase ground(Database db, WorldVariables worldVars, boolean simplify) throws Exception {
+	public KnowledgeBase ground(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
 		KnowledgeBase ret = new KnowledgeBase();
 		Integer formulaID = 0;
 		for(Formula f : formulas) {

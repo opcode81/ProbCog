@@ -53,7 +53,7 @@ public class Exist extends UngroundedFormula {
 		}
 		// ground
 		Vector<Formula> disjuncts = new Vector<Formula>();
-		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars, false);
+		f.generateGroundings(disjuncts, db, binding, vars.toArray(new String[vars.size()]), 0, var2domName, worldVars, FormulaSimplification.None);
 		return new Disjunction(disjuncts);
 	}
 
