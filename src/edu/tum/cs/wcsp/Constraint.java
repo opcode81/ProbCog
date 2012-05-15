@@ -5,7 +5,9 @@ package edu.tum.cs.wcsp;
 
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map.Entry;
 
 /**
@@ -22,8 +24,8 @@ public class Constraint {
 	
 	public Constraint(long defaultCost, int[] varIndices, int initialTuples) {
 		this.varIndices = varIndices;
-		this.defaultCost = defaultCost;
-		tuples = new HashMap<ArrayKey, Tuple>();
+		this.defaultCost = defaultCost;		
+		tuples = new HashMap<ArrayKey, Tuple>(initialTuples);
 	}
 	
 	public void addTuple(int[] domainIndices, long cost) {
@@ -63,6 +65,72 @@ public class Constraint {
 	
 	public void setDefaultCosts(long c) {
 		this.defaultCost = c;
+	}
+	
+	/**
+	 * @return the number of tuples in this constraint
+	 */
+	public int size() {
+		return tuples.size();
+	}
+	
+	/**
+	 * merge the contents of another constraint c2, whose domain and variable ordering is the same, into this constraint
+	 * @param c2 the constraint to merge into this. The constraint should no longer be used after being passed to this
+	 * method, as its contents are modified.
+	 */
+	public void merge(Constraint c2) {
+		// add contents of c2's tuples to c1
+		HashSet<Tuple> processedTuples = new HashSet<Tuple>(c2.size());
+		for(Tuple t2 : c2.getTuples()) {
+			// unify with corresponding tuple
+			Tuple t1 = getTuple(t2.domIndices);
+			if(t1 != null) {
+				t1.cost += t2.cost;
+				processedTuples.add(t1);
+			}
+			else {
+				t2.cost += this.defaultCost;
+				addTuple(t2);
+				processedTuples.add(t2);
+			}
+		}
+		// add c2's default costs to tuples found in c1 but not in c2
+		long c2defaultCosts = c2.getDefaultCosts(); 
+		for(Tuple t1 : getTuples()) {
+			if(!processedTuples.contains(t1)) {
+				t1.cost += c2defaultCosts;
+			}
+		}
+		// update the default costs
+		setDefaultCosts(defaultCost + c2defaultCosts);
+	}
+	
+	/**
+	 * merges the contents of c2, which is assumed to have the same domain but not necessarily the same variable ordering,
+	 * into this constraint
+	 * @param c2 the constraint to merge into this. The constraint should no longer be used after being passed to this
+	 * method, as its contents are modified.
+	 */
+	public void mergeReorder(Constraint c2) {
+		HashMap<Integer,Integer> varIdx2arrayIdx = new HashMap<Integer, Integer>();
+		int[] c2varIndices = c2.varIndices;
+		boolean sameOrder = true;
+		for(int k = 0; k < varIndices.length; k++) {
+			varIdx2arrayIdx.put(varIndices[k], k);
+			sameOrder = sameOrder && varIndices[k] == c2varIndices[k];
+		}
+		// if the order isn't the same, reorder all of c2's tuples
+		if(!sameOrder) {
+			for(Tuple t2 : c2.getTuples()) {
+				int[] domIndices = new int[t2.domIndices.length];
+				for(int k = 0; k < varIndices.length; k++)
+					domIndices[varIdx2arrayIdx.get(c2varIndices[k])] = t2.domIndices[k];
+				t2.domIndices = domIndices;
+			}
+		}
+		// do the actual merge
+		merge(c2);
 	}
 	
 	public void writeWCSP(PrintStream out) {
@@ -115,14 +183,16 @@ public class Constraint {
 	
 	public static class ArrayKey {
 		protected int[] array; 
+		protected int hashCode;
 		
 		public ArrayKey(int[] domIndices) {
 			this.array = domIndices;
+			this.hashCode = Arrays.hashCode(array);
 		}
 		
 		@Override
 		public int hashCode() {
-			return Arrays.hashCode(array);
+			return hashCode;
 		}
 		
 		public boolean equals(Object o) {
