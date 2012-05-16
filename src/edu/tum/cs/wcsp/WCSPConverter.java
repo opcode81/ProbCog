@@ -343,6 +343,7 @@ public class WCSPConverter implements IParameterHandler {
         		defaultCosts = isConjunction ? cost : 0;
         	}
         	catch(SimplifiedConversionNotSupportedException e) {
+        		if(debug) System.out.printf("No simplified conversion (%s): %s\n", e.getMessage(), f.toString());
         		generateAllPossibilities = true;
         	}
         }
@@ -490,14 +491,14 @@ public class WCSPConverter implements IParameterHandler {
         		isTrue = true;
         	}
         	else
-        		throw new SimplifiedConversionNotSupportedException();
+        		throw new SimplifiedConversionNotSupportedException("Child is not a literal");
         	if(!isConjunction) // for disjunction, consider the case where the child is false
         		isTrue = !isTrue; 
         	int wcspVarIdx = this.gndAtomIdx2varIdx.get(gndAtom.index);
         	Integer value = getVariableSettingFromGroundAtomSetting(wcspVarIdx, gndAtom, isTrue);
         	Integer oldValue = assignment.put(wcspVarIdx, value);
         	if(oldValue != null && oldValue != value) // formula contains the same variable twice with different value
-        		throw new SimplifiedConversionNotSupportedException();
+        		throw new SimplifiedConversionNotSupportedException("Multiple appearances of the same variable");
         }
         
         int[] domIndices = new int[wcspVarIndices.length];
@@ -536,7 +537,7 @@ public class WCSPConverter implements IParameterHandler {
     	}
     	else {
     		if(!isTrue)
-    			throw new SimplifiedConversionNotSupportedException();
+    			throw new SimplifiedConversionNotSupportedException("Blocked variable appears negated");
     		int idx = atoms.indexOf(gndAtom);
     		if(idx == -1)
     			throw new IllegalArgumentException("Ground atom does not appear in list");
@@ -545,6 +546,8 @@ public class WCSPConverter implements IParameterHandler {
     }
     
     protected class SimplifiedConversionNotSupportedException extends Exception {
+    	public SimplifiedConversionNotSupportedException(String message) { super(message); }
+    	
 		private static final long serialVersionUID = 1L;
 	}
     
