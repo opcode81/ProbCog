@@ -80,25 +80,27 @@ public class Constraint {
 	 */
 	public void merge(Constraint c2) {
 		// add contents of c2's tuples to c1
-		HashSet<Tuple> processedTuples = new HashSet<Tuple>(c2.size());
+		long c2defaultCosts = c2.getDefaultCosts();		
+		HashSet<Tuple> processedTuples = c2defaultCosts != 0L ? new HashSet<Tuple>(c2.size()) : null;
 		for(Tuple t2 : c2.getTuples()) {
 			// unify with corresponding tuple
 			Tuple t1 = getTuple(t2.domIndices);
 			if(t1 != null) {
 				t1.cost += t2.cost;
-				processedTuples.add(t1);
+				if(processedTuples != null) processedTuples.add(t1);
 			}
 			else {
 				t2.cost += this.defaultCost;
 				addTuple(t2);
-				processedTuples.add(t2);
+				if(processedTuples != null) processedTuples.add(t2);
 			}
 		}
-		// add c2's default costs to tuples found in c1 but not in c2
-		long c2defaultCosts = c2.getDefaultCosts(); 
-		for(Tuple t1 : getTuples()) {
-			if(!processedTuples.contains(t1)) {
-				t1.cost += c2defaultCosts;
+		// add c2's default costs to tuples found in c1 but not in c2		 
+		if(processedTuples != null)  {
+			for(Tuple t1 : getTuples()) {
+				if(!processedTuples.contains(t1)) {
+					t1.cost += c2defaultCosts;
+				}
 			}
 		}
 		// update the default costs
