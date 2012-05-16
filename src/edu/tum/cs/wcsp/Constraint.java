@@ -15,8 +15,7 @@ import java.util.Map.Entry;
 public class Constraint {
 	protected HashMap<ArrayKey, Tuple> tuples;
 	/**
-	 * array of variable indices references by this constraint; for technical reasons (required e.g. by
-	 * {@link WCSP.unifyConstraints}) it is sorted
+	 * array of variable indices encompassed by this constraint
 	 */
 	protected int[] varIndices;
 	protected long defaultCost;
@@ -147,6 +146,7 @@ public class Constraint {
 		out.print(defaultCost);
 		out.print(' ');
 		out.println(tuples.size());
+		// actual constraint tuples
 		for(Entry<ArrayKey, Tuple> e : tuples.entrySet()) {
 			Tuple t = e.getValue();
 			for(int domIdx : t.domIndices) {
