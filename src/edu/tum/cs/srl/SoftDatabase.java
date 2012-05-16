@@ -1,6 +1,6 @@
 package edu.tum.cs.srl;
 
-// TODO doesn't consider prolog
+// TODO doesn't consider Prolog
 public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistribution> {
 
 	public SoftDatabase(RelationalModel model) throws Exception {

@@ -363,6 +363,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * 
 	 * @return
 	 * @throws Exception
+	 * @deprecated no longer maintained; for BLNs superseded by the respective grounding process  
 	 */
 	public BeliefNetworkEx getGroundBN() throws Exception {
 		// create a new Bayesian network
@@ -465,7 +466,8 @@ public class ABLModel extends RelationalBeliefNetwork {
 		// functions
 		writeDeclarations(out);
 
-		// CPTs
+		// write conditional probability distributions
+		// NOTE: These declarations are only included for compatibility with BLOG, they are not necessary otherwise, as distributions are read from fragment networks
 		// TODO handle decision parents properly by using if-then-else?
 		for (RelationalNode relNode : getRelationalNodes()) {
 			if (relNode.isAuxiliary)
