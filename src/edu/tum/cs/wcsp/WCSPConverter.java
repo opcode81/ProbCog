@@ -151,7 +151,7 @@ public class WCSPConverter implements IParameterHandler {
         generateEvidenceConstraints(wcsp);
         
         // generate constraints for weighted formulas, merging constraints with the same domains
-        if(verbose) System.out.printf("generating constraints for %d weighted formulas...", mrf.getNumFormulas());
+        if(verbose) System.out.printf("generating constraints for %d weighted formulas...\n", mrf.getNumFormulas());
         HashMap<ArrayKey, Constraint> collectedConstraints = new HashMap<ArrayKey, Constraint>();
         for(WeightedFormula wf : mrf) {
         	Constraint c = generateConstraint(wf);
@@ -169,7 +169,7 @@ public class WCSPConverter implements IParameterHandler {
         }
         
         if(verbose)
-        	System.out.printf("constructed %d constraints in total", wcsp.size());;
+        	System.out.printf("constructed %d constraints in total\n", wcsp.size());;
         
         return wcsp;
     }
