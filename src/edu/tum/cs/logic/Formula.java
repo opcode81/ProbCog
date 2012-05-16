@@ -42,8 +42,17 @@ public abstract class Formula {
 	public abstract boolean isTrue(IPossibleWorld w);
 	
 	public enum FormulaSimplification {
+		/**
+		 * perform no simplification
+		 */
 		None,
+		/**
+		 * perform simplification, removing trivial groundings that reduce to True or False
+		 */
 		On,
+		/**
+		 * do simplification, throwing an exception if a ground formula is simplified to False
+		 */
 		OnDisallowFalse
 	}
 
@@ -114,9 +123,17 @@ public abstract class Formula {
 			generateGroundings(ret, db, binding, varNames, i+1, var2domName, worldVars, simplify);
 		}
 	}
-
+	
+	/**
+	 * convert the formula to conjunctive normal form 
+	 * @return a CNF formula
+	 */
 	public abstract Formula toCNF();
 	
+	/**
+	 * convert the formula to negation normal form
+	 * @return an NNF formula
+	 */
 	public abstract Formula toNNF();
 
 	/**
