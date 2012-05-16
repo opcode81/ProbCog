@@ -79,32 +79,34 @@ public class Constraint {
 	 * method, as its contents are modified.
 	 */
 	public void merge(Constraint c2) {
+		long c2defaultCosts = c2.getDefaultCosts();	
+		boolean c1TupleUpdateRequired = c2defaultCosts != 0L;
 		// add contents of c2's tuples to c1
-		long c2defaultCosts = c2.getDefaultCosts();		
-		HashSet<Tuple> processedTuples = c2defaultCosts != 0L ? new HashSet<Tuple>(c2.size()) : null;
+		HashSet<Tuple> processedTuples = c1TupleUpdateRequired ? new HashSet<Tuple>(c2.size()) : null;
 		for(Tuple t2 : c2.getTuples()) {
 			// unify with corresponding tuple
 			Tuple t1 = getTuple(t2.domIndices);
 			if(t1 != null) {
 				t1.cost += t2.cost;
-				if(processedTuples != null) processedTuples.add(t1);
+				if(c1TupleUpdateRequired) processedTuples.add(t1);
 			}
 			else {
 				t2.cost += this.defaultCost;
 				addTuple(t2);
-				if(processedTuples != null) processedTuples.add(t2);
+				if(c1TupleUpdateRequired) processedTuples.add(t2);
 			}
 		}
-		// add c2's default costs to tuples found in c1 but not in c2		 
-		if(processedTuples != null)  {
+		// if c2 has relevant default costs...				 
+		if(c1TupleUpdateRequired)  {
+			// add c2's default costs to tuples found in c1 but not in c2
 			for(Tuple t1 : getTuples()) {
 				if(!processedTuples.contains(t1)) {
 					t1.cost += c2defaultCosts;
 				}
 			}
+			// update the default costs
+			setDefaultCosts(defaultCost + c2defaultCosts);
 		}
-		// update the default costs
-		setDefaultCosts(defaultCost + c2defaultCosts);
 	}
 	
 	/**
