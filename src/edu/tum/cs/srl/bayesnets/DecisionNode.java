@@ -54,7 +54,7 @@ public class DecisionNode extends ExtendedNode {
 			switch(operator) {
 			case Negation:
 				if(parents.size() != 1)
-					throw new Exception("Operator neg must have exactly one child");
+					throw new Exception("Operator neg must have exactly one parent");
 				return !parents.iterator().next().isTrue(varBinding, w, worldVars, db);		
 			default:
 				throw new Exception("Operator not handled");
