@@ -56,6 +56,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		this.wcspFilename = filename;
 		if(verbose) System.out.println("performing WCSP conversion...");
 		converter = new WCSPConverter(mrf);
+		paramHandler.addSubhandler(converter);
 		converter.setCacheConstraints(cache);
 		WCSP wcsp = converter.run();
 		wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
