@@ -307,7 +307,7 @@ public class WCSPConverter implements IParameterHandler {
         HashSet<GroundAtom> gndAtoms = new HashSet<GroundAtom>();
         f.getGroundAtoms(gndAtoms);
 
-        // save index of the corresponding simplified variable in an array
+        // get corresponding list of WCSP variables
         HashSet<Integer> setVarIndices = new HashSet<Integer>(gndAtoms.size());
         for(GroundAtom g : gndAtoms) {
             // add simplified variable only if the array doesn't contain this sf_variable already
@@ -320,7 +320,7 @@ public class WCSPConverter implements IParameterHandler {
         int i = 0;
         for(Integer varIdx : setVarIndices)
         	referencedVarIndices[i++] = varIdx;
-        Arrays.sort(referencedVarIndices); // have this array sorted to simplify constraint unification
+        Arrays.sort(referencedVarIndices); // have the array sorted to simplify constraint unification
 
         // get cost value for this constraint
         long cost;
@@ -398,7 +398,7 @@ public class WCSPConverter implements IParameterHandler {
         		continue; // variable was removed due to simplification
         	
         	Vector<GroundAtom> block = this.varIdx2groundAtoms.get(iVar);
-        	int iValue = -1;        	
+        	int iValue;        	
         	long tupleCost, defaultCost;
         	if(block.size()==1) {
         		iValue = isTrue ? 0 : 1;
@@ -572,7 +572,7 @@ public class WCSPConverter implements IParameterHandler {
             w.set(it.next().index, false);
     }
 
-    public void initialize() throws Exception {
+    protected void initialize() throws Exception {
     	this.db = mrf.getDb();
         this.world = new PossibleWorld(mrf.getWorldVariables());
         doms = mrf.getDb().getDomains();
