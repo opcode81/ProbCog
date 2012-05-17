@@ -13,7 +13,7 @@ importjar("ssj.jar")
 importjar("optimization.jar")
 importjar("yprolog.jar")
 
-from edu.tum.cs.probcog import ModelPool as _ModelPool, BLNModel as _BLNModel, MLNModel as _MLNModel
+from probcog.probcog import ModelPool as _ModelPool, BLNModel as _BLNModel, MLNModel as _MLNModel
 from java.util import Vector, HashMap
 from java.lang import String
 import jarray
