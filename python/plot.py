@@ -111,7 +111,8 @@ class Plot(object):
     
     def show(self):
         if not self.drawn: self.draw()
-        show()
+        import pylab
+        pylab.show()
     
 def showPlots():
     import pylab
