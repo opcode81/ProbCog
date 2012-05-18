@@ -1,4 +1,4 @@
-package probcog.probcog;
+package probcog.service;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -10,7 +10,9 @@ import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.srl.Signature;
 
-
+/**
+ * @author jain
+ */
 public abstract class Model implements IParameterHandler {
 	/**
 	 * default parameters to be used with this model

@@ -1,4 +1,4 @@
-package probcog.probcog;
+package probcog.service;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +14,9 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import probcog.logic.parser.ParseException;
 
-
+/**
+ * @author jain
+ */
 public class ModelPool {
 	protected HashMap<String, Model> pool;
 	protected File poolPath;
