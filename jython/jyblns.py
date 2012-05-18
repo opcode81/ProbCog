@@ -11,7 +11,7 @@ importjar("ssj.jar")
 importjar("optimization.jar")
 importjar("yprolog.jar")
 
-from edu.tum.cs.srl.bayesnets.inference import BLNinfer
+from probcog.srl.directed.inference import BLNinfer
 
 def infer(network, decls, logic, algorithm, evidence, queries, cwPreds = None, maxSteps = None, args=None):
 	'''
