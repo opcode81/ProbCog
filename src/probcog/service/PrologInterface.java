@@ -1,4 +1,4 @@
-package probcog.probcog.prolog;
+package probcog.service;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -11,9 +11,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import probcog.logic.parser.ParseException;
-import probcog.probcog.InferenceResult;
-import probcog.probcog.Model;
-import probcog.probcog.Server;
 
 import jpl.Query;
 import jpl.fli.Prolog;

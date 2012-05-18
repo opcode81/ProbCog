@@ -1,4 +1,4 @@
-package probcog.probcog;
+package probcog.service;
 
 import java.io.IOException;
 import java.util.Collection;

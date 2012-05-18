@@ -4,7 +4,7 @@
  * TODO To change the template for this generated file go to
  * Window - Preferences - Java - Code Style - Code Templates
  */
-package probcog.probcog;
+package probcog.service;
 
 import java.util.Map;
 import java.util.Vector;
@@ -18,7 +18,9 @@ import probcog.srl.mln.MarkovRandomField;
 import probcog.srl.mln.inference.InferenceAlgorithm;
 import probcog.srl.mln.inference.MCSAT;
 
-
+/**
+ * @author jain
+ */
 public class MLNModel extends Model {
 
 	protected MarkovLogicNetwork mln;

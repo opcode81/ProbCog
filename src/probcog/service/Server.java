@@ -1,4 +1,4 @@
-package probcog.probcog;
+package probcog.service;
 
 import java.io.BufferedReader;
 import java.io.IOException;

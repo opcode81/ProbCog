@@ -1,9 +1,12 @@
-package probcog.probcog;
+package probcog.service;
 
 import java.io.PrintStream;
 
 import edu.tum.cs.util.StringTool;
 
+/**
+ * @author jain
+ */
 public class InferenceResult implements Comparable<InferenceResult> {
 	public String functionName;
 	public String[] params;
