@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.PriorityQueue;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-import probcog.bayesnets.util.TopologicalOrdering;
-import probcog.bayesnets.util.TopologicalSort;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.datastruct.PrioritySet;
 
@@ -16,9 +13,7 @@ import edu.tum.cs.util.datastruct.PrioritySet;
  * @author jain
  */
 public class SampleSearchBJ extends SampleSearch {
-	HashMap<BeliefNode, Integer> node2orderIndex;
-	TopologicalOrdering topologicalOrdering;
-	int[] samplingOrder;
+	protected HashMap<BeliefNode, Integer> node2orderIndex;
 	
 	public SampleSearchBJ(BeliefNetworkEx bn) throws Exception {
 		super(bn);			
@@ -26,32 +21,39 @@ public class SampleSearchBJ extends SampleSearch {
 
 	@Override
 	protected int[] computeNodeOrdering() throws Exception {
-		topologicalOrdering = new TopologicalSort(this.bn.bn).run();
-		/*order = new int[nodes.length];
+		if(verbose)
+			System.out.println("computing node ordering...");
+		
+		/*
+		TopologicalOrdering topologicalOrdering = new TopologicalSort(this.bn.bn).run();
+		order = new int[nodes.length];
 		int i = 0;
 		for(int nodeIdx : topologicalOrdering)
 			order[i++] = nodeIdx;
 		*/			
-		samplingOrder = bn.getTopologicalOrder(); // TODO: Find out why this ordering is so much better
+		// this ordering seems to work slightly better than the above in practice
+		int[] samplingOrder = bn.getTopologicalOrder(); 
 		
 		// maintain mapping of node to index in ordering
 		node2orderIndex = new HashMap<BeliefNode, Integer>();
-		for(int i = 0; i < samplingOrder.length; i++) 
-			node2orderIndex.put(nodes[samplingOrder[i]], i);			
+		for(int i = 0; i < samplingOrder.length; i++) {
+			node2orderIndex.put(nodes[samplingOrder[i]], i);
+		}
 		
 		return samplingOrder;
 	}
 	
-	class HighestFirst implements Comparator<Integer> {
+	protected static final class HighestFirst implements Comparator<Integer> {
+		
+		public HighestFirst() {}
 
 		@Override
 		public int compare(Integer o1, Integer o2) {
 			return -o1.compareTo(o2);
-		}
-		
+		}		
 	}
 	
-	protected class DomainExclusions {
+	public class DomainExclusions {
 		HashMap<Integer, boolean[]> domExclusions = new HashMap<Integer, boolean[]>();
 		
 		public boolean[] get(Integer nodeIdx) {
@@ -71,8 +73,20 @@ public class SampleSearchBJ extends SampleSearch {
 		public void remove(Integer nodeIdx) {
 			domExclusions.remove(nodeIdx);
 		}
+		
+		public int getNumExclusions(Integer nodeIdx) {
+			boolean[] excl = domExclusions.get(nodeIdx);
+			if(excl == null) 
+				return 0;
+			int n = 0;
+			for(boolean b : excl)
+				if(b)
+					++n;
+			return n;
+		}
 	}
 
+	@Override
 	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
 		s.trials = 1;
 		s.operations = 0;
@@ -85,11 +99,11 @@ public class SampleSearchBJ extends SampleSearch {
 		HashMap<Integer,PrioritySet<Integer>> backtrackQueues = new HashMap<Integer,PrioritySet<Integer>>();
 
 		// assign values to the nodes in order
-		for(int orderIdx = 0; orderIdx < samplingOrder.length;) {
+		for(int orderIdx = 0; orderIdx < nodeOrder.length;) {
 			s.operations++;			
 			boolean valueSuccessfullyAssigned = false;
 			
-			int nodeIdx = samplingOrder[orderIdx];
+			int nodeIdx = nodeOrder[orderIdx];
 			
 			if(!debug && infoInterval == 1)
 				System.out.printf("  #%d  \r", orderIdx);
