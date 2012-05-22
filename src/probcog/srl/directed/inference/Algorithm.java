@@ -1,8 +1,5 @@
 /*
  * Created on Nov 2, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 package probcog.srl.directed.inference;
 
@@ -45,14 +42,16 @@ public enum Algorithm {
 		EnumerationAsk("Enumeration-Ask (exact)", null, EnumerationAsk.class),
 		Pearl("Pearl's algorithm for polytrees (exact)", null, BNJPearl.class),
 		SmilePearl("Pearl's algorithm for polytrees (exact) [SMILE]", "probcog.bayesnets.inference.SmilePearl"),
-		VarElim("variable elimination (exact)", null, VariableElimination.class),
+		VarElim("variable elimination (exact)", null, VariableElimination.class),		
 		SampleSearchBJ("SampleSearch with backjumping", null, probcog.bayesnets.inference.SampleSearchBJ.class),
+		SampleSearchBJLearning("SampleSearch with backjumping and constraint learning", null, probcog.bayesnets.inference.SampleSearchBJLearning.class),
 		Experimental2("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning"),
 		Experimental2b("an experimental algorithm (usually beta)", "dev.SampleSearchIBLearning2"),
+		Experimental2c("an experimental algorithm (usually beta)", "dev.SampleSearchBJLearning"),
 		BackwardSampleSearch("backward SampleSearch", null, probcog.bayesnets.inference.BackwardSampleSearch.class),
 		BackwardSampleSearchBJ("backward SampleSearch with backjumping", null, probcog.bayesnets.inference.BackwardSampleSearchBJ.class),
 		BackwardSampleSearchBJPruning("backward SampleSearch with backjumping and backpruning","dev.BackwardSampleSearchBJPruning"),
-		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),
+		Experimental3("an experimental algorithm (usually beta)", "dev.SampleSearch2"),		
 		ACE("ACE 2.0 (arithmetic circuits evaluation; requires installation)", null, probcog.bayesnets.inference.ACE.class),
 		SampleSearchChoco("SampleSearch that exploits the Choco constraint solver for search", "dev.SampleSearchChoco"),
 		QGraphInference("Inference based on counting in the training database", "dev.QGraphInference");
