@@ -8,6 +8,8 @@ package probcog.bayesnets.inference;
 
 import java.lang.reflect.InvocationTargetException;
 
+
+
 import probcog.bayesnets.core.BeliefNetworkEx;
 
 
@@ -22,6 +24,8 @@ public enum Algorithm {
 	SmileBackwardSampling("backward simulation [SMILE]", "edu.tum.cs.bayesnets.inference.SmileBackwardSampling"),						 
 	SATIS("SAT-IS: satisfiability-based importance sampling", SATIS_BSampler.class),
 	SampleSearch("SampleSearch: backtracking search for satisfiable states", SampleSearch.class),
+	SampleSearchBJ("SampleSearch with backjumping", SampleSearchBJ.class),
+	SampleSearchBJLearning("SampleSearch with backjumping and constraint learning", SampleSearchBJLearning.class),
 	IJGP("Iterative Join-Graph Propagation", IJGP.class),
 	BeliefPropagation("Belief Propagation", BeliefPropagation.class),
 	EnumerationAsk("Enumeration-Ask (exact, highly inefficient)", EnumerationAsk.class),
