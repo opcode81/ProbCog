@@ -128,13 +128,13 @@ class BPLL(PLL):
                 self.evidenceIndices.append(0)
             else:
                 # find out which ga is true in the block
-                idxGATrueone = -1
-                for i in block:
-                    if self.mrf._getEvidence(i):
-                        if idxGATrueone != -1: raise Exception("More than one true ground atom in block '%s'!" % self.mrf._strBlock(block))
-                        idxGATrueone = i                    
-                if idxGATrueone == -1: raise Exception("No true ground atom in block '%s'!" % self.mrf._strBlock(block))
-                self.evidenceIndices.append(block.index(idxGATrueone))
+                idxValueTrueone = -1
+                for idxValue, idxGA in enumerate(block):
+                    if self.mrf._getEvidence(idxGA):
+                        if idxValueTrueone != -1: raise Exception("More than one true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                        idxValueTrueone = idxValue
+                if idxValueTrueone == -1: raise Exception("No true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                self.evidenceIndices.append(idxValueTrueone)
         
         # compute actual statistics
         self.fcounts = {}        
@@ -171,12 +171,12 @@ class BPLL(PLL):
                 else: # the block is the variable (idxGA is None)
 
                     size = len(block)
-                    idxInBlockTrueone = self.evidenceIndices[idxVar]
+                    idxGATrueone = block[self.evidenceIndices[idxVar]]
                     
                     # check true groundings for each block assigment
-                    for idxValue, i in enumerate(block):
-                        if i != idxGATrueone:
-                            self.mrf._setTemporaryEvidence(i, True)
+                    for idxValue, idxGA in enumerate(block):
+                        if idxGA != idxGATrueone:
+                            self.mrf._setTemporaryEvidence(idxGA, True)
                             self.mrf._setTemporaryEvidence(idxGATrueone, False)
                         if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                             self._addMBCount(idxVar, size, idxValue, gndFormula.idxFormula)
