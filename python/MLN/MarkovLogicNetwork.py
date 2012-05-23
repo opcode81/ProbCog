@@ -1277,6 +1277,13 @@ class MRF(object):
 
     def _strBlock(self, block):
         return "{%s}" % (",".join(map(lambda x: str(self.gndAtomsByIdx[x]), block)))
+    
+    def _strBlockVar(self, varIdx):
+        (idxGA, block) = self.pllBlocks[varIdx]
+        if block is None:
+            return str(self.gndAtomsByIdx[idxGA])
+        else:
+            return self._strBlock(block)
 
     def _getBlockExpsums(self, block, wt, world_values, idxGATrueone=None, relevantGroundFormulas=None):
         # if the true gnd atom in the block is not known (or there isn't one perhaps), set the first one to true by default and restore values later
