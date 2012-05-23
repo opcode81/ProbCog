@@ -36,10 +36,195 @@ import subprocess
 import shlex
 import tkMessageBox
 from fnmatch import fnmatch
+from pprint import pprint
+
+# --- generic learning interface ---
+
+class MLNLearn:
+    
+    def __init__(self):
+        self.pymlns_methods = MLN.ParameterLearningMeasures.getNames()
+        self.alchemy_methods = {
+            "pseudo-log-likelihood via BFGS": (["-g"], False, "pll"),
+            "sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], True, "slldn"),
+            "sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], True, "sllcg"),
+            "[discriminative] sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], False, "dslldn"),
+            "[discriminative] sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], False, "dsllcg"),
+        }
+        self.alchemy_versions = config.alchemy_versions        
+    
+    def run(self, **kwargs):
+        '''
+            required arguments:
+                training databases(s): either one of
+                    "dbs": list of database filenames (or MLN.Database objects for PyMLNs)
+                    "db": database filename
+                    "pattern": file mask pattern from which to generate the list of databases
+                "mln": an MLN filename (or MLN.MLN object for PyMLNs)
+                "method": the learning method name
+                "output_filename": the output filename
+            
+            optional arguments:
+                "engine": either "PyMLNs" (default) or one of the Alchemy versions defined in the config
+                "initialWts": (true/false)
+                "usePrior": (true/false); default: False
+                "priorStdDev": (float) standard deviation of prior when usePrior=True
+                "addUnitClauses": (true/false) whether to add unit clauses (Alchemy only); default: False
+                "params": (string) additional parameters to pass to the learner; for Alchemy: command-line parameters; for PyMLNs: either dictionary string (e.g. "foo=bar, baz=2") or a dictionary object
+                ...
+        '''
+        defaults = {
+            "engine": "PyMLNs",
+            "usePrior": False,
+            "priorStdDev": 10.0,
+            "addUnitClauses": False,
+            "params": ""
+        }
+        self.settings = defaults
+        self.settings.update(kwargs)
+        
+        
+        # determine training databases(s)
+        if "dbs" in self.settings:
+            dbs = self.settings["dbs"]
+        elif "db" in self.settings and self.settings["db"] != "":
+            dbs = [self.settings["db"]]
+        elif "pattern" in self.settings and self.settings["pattern"] != "":
+            dbs = []
+            pattern = settings["pattern"]
+            dir, mask = os.path.split(os.path.abspath(pattern))
+            for fname in os.listdir(dir):
+                if fnmatch(fname, mask):
+                    dbs.append(os.path.join(dir, fname))
+            if len(dbs) == 0:
+                raise Exception("The pattern '%s' matches no files" % pattern)
+        else:
+            raise Exception("No training data given; A training database must be selected or a pattern must be specified")
+        print "training databases:", ",".join(dbs)
+        
+        # check if other required arguments are set
+        missingSettings = set(["mln", "method", "output_filename"]).difference(set(self.settings.keys()))
+        if len(missingSettings) > 0:
+            raise Exception("Some required settings are missing: %s" % str(missingSettings))
+
+        params = self.settings["params"]
+        method = self.settings["method"]
+        discriminative = "discriminative" in method
+
+        if self.settings["engine"] in ("PyMLNs", "internal"): # PyMLNs internal engine
+            # arguments
+            args = {"initialWts":False}
+            if type(params) == str:
+                params = eval("dict(%s)" % params)
+            elif type(params) != dict:
+                raise("Argument 'params' must be string or a dictionary")
+            args.update(params) # add additional parameters
+            if discriminative:
+                args["queryPreds"] = self.settings["nePreds"].split(",")
+            if self.settings["usePrior"]:
+                args["gaussianPriorSigma"] = float(self.settings["priorStdDev"])
+            # learn weights
+            if type(self.settings["mln"]) == str:
+                mln = MLN.MLN(self.settings["mln"])
+            elif type(self.settings["mln"] == MLN.MLN):
+                mln = self.settings["mln"]
+            else:
+                raise Exception("Argument 'mln' must be either string or MLN object")
+            mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method), **args)
+            # determine output filename
+            fname = self.settings["output_filename"]
+            mln.write(file(fname, "w"))
+            print "\nWROTE %s\n\n" % fname
+            #mln.write(sys.stdout)
+        else: # Alchemy
+            if self.settings["engine"] not in self.alchemy_versions:
+                raise Exception("Invalid alchemy version '%s'. Known versions: %s" % (self.settings["engine"], ", ".join(lambda x: '"%s"' % x, self.alchemy_versions.keys())))
+            alchemy_version = self.alchemy_versions[self.settings["engine"]]
+            if type(alchemy_version) != dict:
+                alchemy_version = {"path": str(alchemy_version)}
+            # find binary
+            path = alchemy_version["path"]
+            path2 = os.path.join(path, "bin")
+            if os.path.exists(path2):
+                path = path2
+            alchemyLearn = os.path.join(path, "learnwts")
+            if not os.path.exists(alchemyLearn) and not os.path.exists(alchemyLearn+".exe"):
+                error = "Alchemy's learnwts/learnwts.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
+                tkMessageBox.showwarning("Error", error)
+                raise Exception(error)
+            # run Alchemy's learnwts
+            method_switches, discriminativeAsGenerative, shortname = self.alchemy_methods[method]
+            params = [alchemyLearn] + method_switches + ["-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", ",".join(dbs)] + shlex.split(params)
+            if discriminative:
+                params += ["-ne", self.settings["nePreds"]]
+            elif discriminativeAsGenerative:                    
+                preds = MLN.getPredicateList(self.settings["mln"])
+                params += ["-ne", ",".join(preds)]
+            if not self.settings["addUnitClauses"]:
+                params.append("-noAddUnitClauses")
+            if not self.settings["usePrior"]:
+                params.append("-noPrior")
+            else:
+                if self.settings["priorStdDev"] != "":
+                    params += ["-priorStdDev", self.settings["priorStdDev"]]
+                    
+            command = subprocess.list2cmdline(params)
+            print "\n", command, "\n"
+            
+            #print "running Alchemy's learnwts..."
+            p = subprocess.Popen(params, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            cin, cout = p.stdin, p.stdout
+            #cin, cout = os.popen2(command)
+            output_text = ""
+            while True:
+                l = cout.readline()
+                if l == "":
+                    break
+                print l,
+                output_text += l
+
+            # add data reported by learnwts and, from the input mln, domain declarations and rules for mutual exclusiveness and exhaustiveness
+            if True:
+                # read the input file
+                f = file(self.settings["mln"], "r")
+                text = f.read()
+                f.close()
+                comment = re.compile(r'//.*?^|/\*.*\*/', re.DOTALL | re.MULTILINE)
+                text = re.sub(comment, '', text)
+                merules  = []
+                domain_decls = []
+                for l in text.split("\n"):
+                    l = l.strip()
+                    # domain decls
+                    if "{" in l:
+                        domain_decls.append(l)
+                    # mutex rules
+                    m = re.match(r"\w+\((.*?)\)", l)
+                    if m != None and m.group(0) == l and ("!" in m.group(1)):
+                        merules.append(m.group(0))
+                # read the output file
+                f = file(self.settings["output_filename"], "r")
+                outfile = f.read()
+                f.close()
+                # rewrite the output file
+                f = file(self.settings["output_filename"], "w")
+                # - get report with command line and learnwts output
+                if config.learnwts_full_report:
+                    report = output_text
+                else:
+                    report = output_text[output_text.rfind("Computing counts took"):]
+                report = "/*\n%s\n\n%s*/\n" % (command, report)
+                # - write
+                outfile = outfile.replace("//function declarations", "\n".join(merules))
+                if not config.learnwts_report_bottom: f.write(report + "\n")
+                f.write("// domain declarations\n" + "\n".join(domain_decls) + "\n\n")
+                f.write(outfile)
+                if config.learnwts_report_bottom: f.write("\n\n" + report)
+                f.close()
 
 # --- gui class ---
 
-class LearnWeights:
+class MLNLearnGUI:
 
     def file_pick(self, label, mask, row, default, change_hook = None):
         # create label
@@ -67,17 +252,16 @@ class LearnWeights:
         self.master.title("MLN Parameter Learning Tool")
         self.dir = dir
         self.settings = settings
+        self.learner = MLNLearn()
 
         self.frame = Frame(master)
         self.frame.pack(fill=BOTH, expand=1)
         self.frame.columnconfigure(1, weight=1)
 
         # engine selection
-        row = 0
-        self.alchemy_versions = config.alchemy_versions
+        row = 0        
         Label(self.frame, text="Engine: ").grid(row=row, column=0, sticky="E")
-        alchemy_engines = config.alchemy_versions.keys()
-        alchemy_engines.sort()
+        alchemy_engines = sorted(config.alchemy_versions.keys())
         engines = ["internal"]
         engines.extend(alchemy_engines)
         self.selected_engine = StringVar(master)
@@ -99,13 +283,6 @@ class LearnWeights:
         row += 1
         self.list_methods_row = row
         Label(self.frame, text="Method: ").grid(row=row, column=0, sticky=E)
-        self.alchemy_methods = {
-            "pseudo-log-likelihood via BFGS": (["-g"], False, "pll"),
-            "sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], True, "slldn"),
-            "sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], True, "sllcg"),
-            "[discriminative] sampling-based log-likelihood via diagonal Newton": (["-d", "-dNewton"], False, "dslldn"),
-            "[discriminative] sampling-based log-likelihood via rescaled conjugate gradient": (["-d", "-dCG"], False, "dsllcg"),
-        }
         self.selected_method = StringVar(master)
         ## create list in onChangeEngine
         
@@ -190,11 +367,11 @@ class LearnWeights:
         if self.selected_engine.get() == "internal":
             state = DISABLED
             self.internalMode = True
-            methods = sorted(MLN.ParameterLearningMeasures.getNames())
+            methods = sorted(self.learner.pymlns_methods)
         else:
             state = NORMAL
             self.internalMode = False
-            methods = sorted(self.alchemy_methods.keys())
+            methods = sorted(self.learner.alchemy_methods.keys())
         self.cb_add_unit_clauses.configure(state=state)
 
         # change additional parameters
@@ -227,7 +404,7 @@ class LearnWeights:
             method = MLN.ParameterLearningMeasures.getShortName(method).lower()
         else:
             engine = "alch"
-            method = self.alchemy_methods[self.selected_method.get()][2]
+            method = self.learner.alchemy_methods[self.selected_method.get()][2]
         filename = config.learnwts_output_filename(mln, engine, method, db)
         self.output_filename.set(filename)
 
@@ -271,132 +448,14 @@ class LearnWeights:
             self.settings["addUnitClauses"] = int(self.add_unit_clauses.get())
             if saveGeometry:
                 self.settings["geometry"] = self.master.winfo_geometry()
-            #print "dumping config..."
             pickle.dump(self.settings, file("learnweights.config.dat", "w+"))
-
-            # determine training databases(s)
-            if db != "":
-                dbs = [db]
-            else:
-                dbs = []
-                pattern = settings["pattern"]
-                if pattern == "":
-                    raise Exception("No training data given; A training database must be selected or a pattern must be specified")
-                dir, mask = os.path.split(os.path.abspath(pattern))
-                for fname in os.listdir(dir):
-                    if fnmatch(fname, mask):
-                        dbs.append(os.path.join(dir, fname))
-                if len(dbs) == 0:
-                    raise Exception("The mask '%s' matches no files" % mask)
-            print "training databases:", ",".join(dbs)
 
             # hide gui
             self.master.withdraw()
             
-            discriminative = "discriminative" in method
-
-            if self.settings["engine"] == "internal": # internal engine
-                # arguments
-                args = {"initialWts":False}                
-                args.update(eval("dict(%s)" % params)) # add additional parameters
-                if discriminative:
-                    args["queryPreds"] = self.settings["nePreds"].split(",")
-                if self.settings["usePrior"]:
-                    args["gaussianPriorSigma"] = float(self.settings["priorStdDev"])
-                # learn weights
-                mln = MLN.MLN(self.settings["mln"])
-                mln.learnWeights(dbs, method=MLN.ParameterLearningMeasures.byName(method), **args)
-                # determine output filename
-                fname = self.settings["output_filename"]
-                mln.write(file(fname, "w"))
-                print "\nWROTE %s\n\n" % fname
-                #mln.write(sys.stdout)
-            else: # Alchemy
-                alchemy_version = self.alchemy_versions[self.selected_engine.get()]
-                if type(alchemy_version) != dict:
-                    alchemy_version = {"path": str(alchemy_version)}
-                # find binary
-                path = alchemy_version["path"]
-                path2 = os.path.join(path, "bin")
-                if os.path.exists(path2):
-                    path = path2
-                alchemyLearn = os.path.join(path, "learnwts")
-                if not os.path.exists(alchemyLearn) and not os.path.exists(alchemyLearn+".exe"):
-                    error = "Alchemy's learnwts/learnwts.exe binary not found in %s. Please configure Alchemy in python/configMLN.py" % path
-                    tkMessageBox.showwarning("Error", error)
-                    raise Exception(error)
-                # run Alchemy's learnwts
-                method_switches, discriminativeAsGenerative, shortname = self.alchemy_methods[method]
-                params = [alchemyLearn] + method_switches + ["-i", self.settings["mln"], "-o", self.settings["output_filename"], "-t", ",".join(dbs)] + shlex.split(params)
-                if discriminative:
-                    params += ["-ne", self.settings["nePreds"]]
-                elif discriminativeAsGenerative:                    
-                    preds = MLN.getPredicateList(self.settings["mln"])
-                    params += ["-ne", ",".join(preds)]
-                if not self.settings["addUnitClauses"]:
-                    params.append("-noAddUnitClauses")
-                if not self.settings["usePrior"]:
-                    params.append("-noPrior")
-                else:
-                    if self.settings["priorStdDev"] != "":
-                        params += ["-priorStdDev", self.settings["priorStdDev"]]
-                        
-                command = subprocess.list2cmdline(params)
-                print "\n", command, "\n"
-                
-                self.master.withdraw() # hide gui
-                
-                #print "running Alchemy's learnwts..."
-                p = subprocess.Popen(params, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                cin, cout = p.stdin, p.stdout
-                #cin, cout = os.popen2(command)
-                output_text = ""
-                while True:
-                    l = cout.readline()
-                    if l == "":
-                        break
-                    print l,
-                    output_text += l
-
-                # add data reported by learnwts and, from the input mln, domain declarations and rules for mutual exclusiveness and exhaustiveness
-                if True:
-                    # read the input file
-                    f = file(self.settings["mln"], "r")
-                    text = f.read()
-                    f.close()
-                    comment = re.compile(r'//.*?^|/\*.*\*/', re.DOTALL | re.MULTILINE)
-                    text = re.sub(comment, '', text)
-                    merules  = []
-                    domain_decls = []
-                    for l in text.split("\n"):
-                        l = l.strip()
-                        # domain decls
-                        if "{" in l:
-                            domain_decls.append(l)
-                        # mutex rules
-                        m = re.match(r"\w+\((.*?)\)", l)
-                        if m != None and m.group(0) == l and ("!" in m.group(1)):
-                            merules.append(m.group(0))
-                    # read the output file
-                    f = file(self.settings["output_filename"], "r")
-                    outfile = f.read()
-                    f.close()
-                    # rewrite the output file
-                    f = file(self.settings["output_filename"], "w")
-                    # - get report with command line and learnwts output
-                    if config.learnwts_full_report:
-                        report = output_text
-                    else:
-                        report = output_text[output_text.rfind("Computing counts took"):]
-                    report = "/*\n%s\n\n%s*/\n" % (command, report)
-                    # - write
-                    outfile = outfile.replace("//function declarations", "\n".join(merules))
-                    if not config.learnwts_report_bottom: f.write(report + "\n")
-                    f.write("// domain declarations\n" + "\n".join(domain_decls) + "\n\n")
-                    f.write(outfile)
-                    if config.learnwts_report_bottom: f.write("\n\n" + report)
-                    f.close()
-
+            # invoke learner
+            self.learner.run(params=params, method=method, **self.settings)
+            
             if config.learnwts_edit_outfile_when_done:
                 params = [config.editor, self.settings["output_filename"]]
                 print "starting editor: %s" % subprocess.list2cmdline(params)
@@ -437,7 +496,7 @@ if __name__ == '__main__':
 
     # run learning task/GUI
     root = Tk()
-    app = LearnWeights(root, ".", settings)
+    app = MLNLearnGUI(root, ".", settings)
     #print "options:", options
     if options.run:
         app.learn(saveGeometry=False)
