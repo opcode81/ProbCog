@@ -314,7 +314,7 @@ class MLNInfer(object):
 
 # --- main gui class ---
 
-class MLNQuery(object):
+class MLNQueryGUI(object):
 
     def __init__(self, master, dir, settings):
         self.initialized = False
@@ -635,7 +635,7 @@ if __name__ == '__main__':
     if options.noPMW:
         widgets.havePMW = False
     root = Tk()
-    app = MLNQuery(root, ".", settings)
+    app = MLNQueryGUI(root, ".", settings)
     if options.run:
         app.start(saveGeometry=False)
     else:
