@@ -338,6 +338,34 @@ class MLN(object):
         if attr[:5] == "infer":
             return self.mrf.__getattribute__(attr)
 
+    def materializeFormulaTemplates(self, dbs):
+        '''
+            dbs: list of Database objects
+        '''
+        
+        # obtain full domain with all objects 
+        fullDomain = dict(self.domains)
+        for db in dbs:            
+            for domName, values in db.domains.iteritems():
+                if domName not in fullDomain:
+                    fullDomain[domName] = values
+                else:
+                    fullDomain[domName] = list(set(fullDomain[domName] + values))
+        
+        # expand formula templates
+        oldDomains = self.domains
+        self.domains = fullDomain
+        self._materializeFormulaTemplates()
+        self.domains = oldDomains
+        
+        # permanently transfer domains of variables that were expanded from templates
+        for ft in self.formulaTemplates:
+            domNames = ft._getTemplateVariables(self).values()
+            for domName in domNames:
+                self.domains[domName] = fullDomain[domName]
+                #print "permanent domain %s: %s" % (domName, fullDomain[domName])
+
+
     def _materializeFormulaTemplates(self, verbose=False):
         if self.materializedTemplates:
             raise Exception("This MLN's formula templates were previously materialized")
@@ -663,34 +691,23 @@ class MLN(object):
         for formula in self.formulas:
             print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
 
-    def learnWeights(self, dbFilenames, method=ParameterLearningMeasures.BPLL, initialWts=False, **params):
-        # read all databases and get combined domain of all databases
-        dbs = []
-        fullDomain = {}
-        for filename in dbFilenames:
-            db = Database(self, filename)
-            for domName, values in db.domains.iteritems():
-                if domName not in fullDomain:
-                    fullDomain[domName] = values
-                else:
-                    fullDomain[domName] = list(set(fullDomain[domName] + values))
+    def learnWeights(self, databases, method=ParameterLearningMeasures.BPLL, initialWts=False, **params):
+        '''
+            databases: list of Database objects or filenames
+        '''
+        
+        # get a list of database objects
+        dbs = []        
+        for db in databases:
+            if type(db) == str:
+                db = Database(self, db)
+            elif type(db) != Database:
+                raise Exception("Got database of unknown type '%s'" % (str(type(db))))
             dbs.append(db)
 
-        # materialize formula templates using full domain
-        oldDomains = self.domains
-        self.domains = fullDomain
-        self._materializeFormulaTemplates()
-        for f in self.formulas:print f
-        self.domains = oldDomains
-        # permanently transfer domains of variables that were expanded from templates
-        for ft in self.formulaTemplates:
-            domNames = ft._getTemplateVariables(self).values()
-            for domName in domNames:
-                self.domains[domName] = fullDomain[domName]
-                #print "permanent domain %s: %s" % (domName, fullDomain[domName])
-        # clean up
-        fullDomain = None
-
+        if not self.materializedTemplates:
+            self.materializeFormulaTemplates(dbs)
+        
         # run learner
         if len(dbs) == 1:
             print "grounding MRF..." 
@@ -704,7 +721,7 @@ class MLN(object):
         # set new weights
         self.setWeights(wt)
 
-        #delete worlds from learning
+        # delete worlds from learning
         if hasattr(self.mrf, "worlds"):
             del self.mrf.worlds
 
