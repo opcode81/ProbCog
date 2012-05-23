@@ -98,9 +98,9 @@ class MLNLearn:
                     dbs.append(os.path.join(dir, fname))
             if len(dbs) == 0:
                 raise Exception("The pattern '%s' matches no files" % pattern)
+            print "training databases:", ",".join(dbs)
         else:
-            raise Exception("No training data given; A training database must be selected or a pattern must be specified")
-        print "training databases:", ",".join(dbs)
+            raise Exception("No training data given; A training database must be selected or a pattern must be specified")        
         
         # check if other required arguments are set
         missingSettings = set(["mln", "method", "output_filename"]).difference(set(self.settings.keys()))
