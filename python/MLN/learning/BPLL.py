@@ -49,10 +49,7 @@ class BPLL(PLL):
         self.mrf.atom2BlockIdx = None
     
     def _addMBCount(self, idxVar, size, idxValue, idxWeight):
-        if idxVar not in self.mbcounts:
-            d = self.mbcounts[idxVar] = [[] for i in xrange(size)]
-        self.mbcounts[idxVar][idxValue].append(idxWeight)
-
+        self.blockRelevantFormulas[idxVar].add(idxWeight)
         if idxWeight not in self.fcounts:
             self.fcounts[idxWeight] = {}
         d = self.fcounts[idxWeight]
@@ -60,24 +57,23 @@ class BPLL(PLL):
             d[idxVar] = [0] * size
         d[idxVar][idxValue] += 1
 
-    def _getBlockProbMB(self, idxVar, wt):
-        l = self.mbcounts.get(idxVar, None)
-        if l is None: # no list was saved, so the truth of all formulas is unaffected by the variable's value
+    def _getBlockProbMB(self, idxVar, wt):        
+        (idxGA, block) = self.mrf.pllBlocks[idxVar]
+        numValues = 2 if idxGA is not None else len(block)
+        
+        relevantFormulas = self.blockRelevantFormulas.get(idxVar, None)
+        if relevantFormulas is None: # no list was saved, so the truth of all formulas is unaffected by the variable's value
             # uniform distribution applies
-            (idxVar, block) = self.mrf.pllBlocks[idxVar]
-            numValues = 2 if idxVar is not None else len(block)
             p = 1.0/numValues
             return [p] * numValues
         
-        sums = []
-        for i, l2 in enumerate(l):
-            v = 0.0
-            for idxWeight in l2:
-                v += wt[idxWeight]
-            sums.append(v)
-        expsums = map(exp, sums)
+        sums = numpy.zeros(numValues)
+        for idxFormula in relevantFormulas:            
+            for idxValue, n in enumerate(self.fcounts[idxFormula][idxVar]):
+                sums[idxValue] += n * wt[idxFormula]
+        expsums = numpy.exp(sums)
         s = fsum(expsums)
-        return map(lambda e: float(e/s), expsums)
+        return expsums / s
     
     def _calculateBlockProbsMB(self, wt):
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
@@ -95,22 +91,18 @@ class BPLL(PLL):
         return fsum(map(log, probs))
    
     def _grad(self, wt):
-        #grad = [mpmath.mpf(0) for i in xrange(len(self.formulas))]
         self._calculateBlockProbsMB(wt)
         grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)        
-        print "gradient calculation"
+        #print "gradient calculation"
         for idxFormula, d in self.fcounts.iteritems():
             for idxVar, counts in d.iteritems():
                 v = counts[self.evidenceIndices[idxVar]]
                 for i in xrange(len(counts)):
                     v -= counts[i] * self.blockProbsMB[idxVar][i]
                 grad[idxFormula] += v
-                #print " adding %f for %s (diff=%f, p=%f)" % (v, self.mrf._strBlockVar(idxBlock), diff, self.blockProbsMB[idxBlock])
         #print "wts =", wt
         #print "grad =", grad
         self.grad_opt_norm = float(sqrt(fsum(map(lambda x: x * x, grad))))
-        
-        #print "norm = %f" % norm
         return numpy.array(grad)
     
     def _computeStatistics(self):
@@ -138,7 +130,7 @@ class BPLL(PLL):
         
         # compute actual statistics
         self.fcounts = {}        
-        self.mbcounts = {} # maps from variable/pllBlock index to a list of lists, where each list is a list of indices of weights
+        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
         for idxGndFormula, gndFormula in enumerate(self.mrf.gndFormulas):
             if debug:
@@ -176,8 +168,8 @@ class BPLL(PLL):
                     # check true groundings for each block assigment
                     for idxValue, idxGA in enumerate(block):
                         if idxGA != idxGATrueone:
-                            self.mrf._setTemporaryEvidence(idxGA, True)
                             self.mrf._setTemporaryEvidence(idxGATrueone, False)
+                            self.mrf._setTemporaryEvidence(idxGA, True)                            
                         if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                             self._addMBCount(idxVar, size, idxValue, gndFormula.idxFormula)
                         self.mrf._removeTemporaryEvidence()
