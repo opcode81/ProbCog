@@ -1,6 +1,6 @@
 # First-Order Logic - parsing and processing
 # 
-# (C) 2007 by Dominik Jain
+# (C) 2007-2012 by Dominik Jain
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,13 +21,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from __future__ import generators # required for jython 2.2
 import sys
-if "java" not in sys.platform:
-    from pyparsing import *
-else: # using Jython (assuming 2.2)
-    from jyparsing import *
-    from jythonext import set    
+from _pyparsing import *
 if __name__ != '__main__':
     from RRF import RRF, RRFConstantLeaf, RRFVariableLeaf, RRF_HARD_WEIGHT
 
