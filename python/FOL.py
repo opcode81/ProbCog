@@ -48,8 +48,8 @@ class Constraint(object):
         '''returns whether this is a logical constraint, i.e. a logical formula'''
         raise Exception("%s does not implement isLogical" % str(type(self)))
 
-    def iterGroundings(self, mln):
-        '''iteratively yields the groundings of the formula for the given MLN/ground MRF'''
+    def iterGroundings(self, mrf):
+        '''iteratively yields the groundings of the formula for the given ground MRF'''
         raise Exception("%s does not implement iterGroundings" % str(type(self)))
     
     def idxGroundAtoms(self, l = None):
@@ -113,28 +113,28 @@ class Formula(Constraint):
                 assignment: a mapping from variable names to constants'''
         raise Exception("%s does not implement _groundTemplate" % str(type(self)))
 
-    def iterGroundings(self, mln):
-        '''iteratively yields the groundings of the formula for the given MLN/ground MRF'''
+    def iterGroundings(self, mrf):
+        '''iteratively yields the groundings of the formula for the given ground MRF'''
         try:
-            vars = self.getVariables(mln)
+            vars = self.getVariables(mrf.mln)
         except Exception, e:
             raise Exception("Error grounding '%s': %s" % (str(self), str(e)))
-        for grounding, referencedGndAtoms in self._iterGroundings(mln, vars, {}):
+        for grounding, referencedGndAtoms in self._iterGroundings(mrf, vars, {}):
             yield grounding, referencedGndAtoms
         
-    def _iterGroundings(self, mln, variables, assignment):
+    def _iterGroundings(self, mrf, variables, assignment):
         # if all variables have been grounded...
         if variables == {}:
             referencedGndAtoms = []
-            gndFormula = self.ground(mln, assignment, referencedGndAtoms)
+            gndFormula = self.ground(mrf, assignment, referencedGndAtoms)
             yield gndFormula, referencedGndAtoms
             return
         # ground the first variable...
         varname, domName = variables.popitem()
-        for value in mln.domains[domName]: # replacing it with one of the constants
+        for value in mrf.domains[domName]: # replacing it with one of the constants
             assignment[varname] = value
             # recursive descent to ground further variables
-            for g, r in self._iterGroundings(mln, dict(variables), assignment):
+            for g, r in self._iterGroundings(mrf, dict(variables), assignment):
                 yield g, r
     
     def getVariables(self, mln, vars = None):
@@ -194,10 +194,10 @@ class ComplexFormula(Formula):
             constants = child.getConstants(mln, vars)
         return constants  
 
-    def ground(self, mln, assignment, referencedGndAtoms = None):
+    def ground(self, mrf, assignment, referencedGndAtoms = None):
         children = []
         for child in self.children:
-            gndChild = child.ground(mln, assignment, referencedGndAtoms)
+            gndChild = child.ground(mrf, assignment, referencedGndAtoms)
             children.append(gndChild)
         gndFormula = apply(type(self), (children,))
         return gndFormula
@@ -287,14 +287,14 @@ class Lit(Formula):
                 vars[varname] = domain
         return vars
 
-    def ground(self, mln, assignment, referencedGndAtoms = None):
+    def ground(self, mrf, assignment, referencedGndAtoms = None):
         params = map(lambda x: assignment.get(x, x), self.params)
         s = "%s(%s)" % (self.predName, ",".join(params))
         try:
-            gndAtom = mln.gndAtoms[s]
+            gndAtom = mrf.gndAtoms[s]
         except:
             print "\nground atoms:"
-            mln.printGroundAtoms()
+            mrf.printGroundAtoms()
             raise Exception("Could not ground formula containing '%s' - this atom is not among the ground atoms (see above)." % s)
         gndFormula = GroundLit(gndAtom, self.negated)
         if referencedGndAtoms != None: referencedGndAtoms.append(gndAtom.idx)
@@ -664,14 +664,14 @@ class Exist(ComplexFormula):
         vars.update(newvars)
         return vars
         
-    def ground(self, mln, assignment, referencedGroundAtoms = None):
+    def ground(self, mrf, assignment, referencedGroundAtoms = None):
         assert len(self.children) == 1
         # find out variable domains
         vars = {}
         for var in self.vars:
             domName = None
             for child in self.children:
-                domName = child.getVarDomain(var, mln)
+                domName = child.getVarDomain(var, mrf.mln)
                 if domName is not None:
                     break
             if domName is None:
@@ -679,23 +679,23 @@ class Exist(ComplexFormula):
             vars[var] = domName
         # ground
         gndings = []
-        self._ground(self.children[0], vars, assignment, gndings, mln, referencedGroundAtoms)
+        self._ground(self.children[0], vars, assignment, gndings, mrf, referencedGroundAtoms)
         if len(gndings) == 1:
             return gndings[0]
         return Disjunction(gndings)
             
-    def _ground(self, formula, variables, assignment, gndings, mln, referencedGroundAtoms = None):
+    def _ground(self, formula, variables, assignment, gndings, mrf, referencedGroundAtoms = None):
         # if all variables have been grounded...
         if variables == {}:
-            gndFormula = formula.ground(mln, assignment, referencedGroundAtoms)
+            gndFormula = formula.ground(mrf, assignment, referencedGroundAtoms)
             gndings.append(gndFormula)
             return
         # ground the first variable...
         varname,domName = variables.popitem()
-        for value in mln.domains[domName]: # replacing it with one of the constants
+        for value in mrf.domains[domName]: # replacing it with one of the constants
             assignment[varname] = value
             # recursive descent to ground further variables
-            self._ground(formula, dict(variables), assignment, gndings, mln)
+            self._ground(formula, dict(variables), assignment, gndings, mrf)
     
     def toCNF(self):
         raise Exception("'%s' cannot be converted to CNF. Ground this formula first!" % str(self))
@@ -708,7 +708,7 @@ class Equality(Formula):
     def __str__(self):
         return "%s=%s" % (str(self.params[0]), str(self.params[1]))
 
-    def ground(self, mln, assignment, referencedGndAtoms = None):
+    def ground(self, mrf, assignment, referencedGndAtoms = None):
         params = map(lambda x: {True: assignment.get(x), False: x}[x[0].islower()], self.params) # if the parameter is a variable (lower case), do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
         if None in params: raise Exception("At least one variable was not grounded in '%s'!" % str(self))
         return TrueFalse(params[0] == params[1])
@@ -777,7 +777,7 @@ class CountConstraint(NonLogicalConstraint):
         if op == "==": op = "="
         return "count(%s | %s) %s %d" % (str(self.literal), ", ".join(self.fixed_params), op, self.count)
     
-    def iterGroundings(self, mln):
+    def iterGroundings(self, mrf):
         a = {}
         other_params = []
         for param in self.literal.params:
@@ -788,15 +788,15 @@ class CountConstraint(NonLogicalConstraint):
                     other_params.append(param)
         #other_params = list(set(self.literal.params).difference(self.fixed_params))
         # for each assignment of the fixed parameters...
-        for assignment in self._iterAssignment(mln, list(self.fixed_params), a):
+        for assignment in self._iterAssignment(mrf, list(self.fixed_params), a):
             gndAtoms = []
             # generate a count constraint with all the atoms we obtain by grounding the other params
-            for full_assignment in self._iterAssignment(mln, list(other_params), assignment):
-                gndLit = self.literal.ground(mln, full_assignment, None)
+            for full_assignment in self._iterAssignment(mrf, list(other_params), assignment):
+                gndLit = self.literal.ground(mrf, full_assignment, None)
                 gndAtoms.append(gndLit.gndAtom)
             yield GroundCountConstraint(gndAtoms, self.op, self.count), []
         
-    def _iterAssignment(self, mln, variables, assignment):
+    def _iterAssignment(self, mrf, variables, assignment):
         '''iterates over all possible assignments for the given variables of this constraint's literal
                 variables: the variables that are still to be grounded'''
         # if all variables have been grounded, we have the complete assigment
@@ -805,11 +805,11 @@ class CountConstraint(NonLogicalConstraint):
             return
         # otherwise one of the remaining variables in the list...
         varname = variables.pop()
-        domName = self.literal.getVarDomain(varname, mln)
+        domName = self.literal.getVarDomain(varname, mrf.mln)
         for value in mln.domains[domName]: # replacing it with one of the constants
             assignment[varname] = value
             # recursive descent to ground further variables            
-            for a in self._iterAssignment(mln, variables, assignment):
+            for a in self._iterAssignment(mrf, variables, assignment):
                 yield a
             
 class GroundCountConstraint(NonLogicalConstraint):
