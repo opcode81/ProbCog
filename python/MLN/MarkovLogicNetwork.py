@@ -101,8 +101,6 @@ import learning
 
 POSSWORLDS_BLOCKING = True
 
-# TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
-
 # -- Markov logic network
 
 class MLN(object):
@@ -864,6 +862,55 @@ class Database(object):
                 return se["p"]
         return None
 
+    class MRF_Placeholder(object):
+        '''
+            can be used in order to use only a Database object to ground formulas
+            (without instantiating an MRF) and determine the truth of these ground
+            formulas by partly replicating the interface of an MRF object
+        '''
+        
+        def __init__(self, db, mln):
+            self.mln = mln
+            self.domains = db.domains
+            self.gndAtoms = Database.MRF_Placeholder.GroundAtomGen()
+            self.evidence = Database.MRF_Placeholder.WorldValues(db)
+
+        class GroundAtomGen(object):
+            def __getitem__(self, gndAtomName):
+                return Database.MRF_Placeholder.TextGroundAtom(gndAtomName)
+        
+        class TextGroundAtom(object):
+            def __init__(self, name):
+                self.name = self.idx = name
+        
+            def isTrue(self, world_values):
+                return world_values[self.name]
+        
+            def __str__(self):
+                return self.name
+            
+        class WorldValues(object):
+            def __init__(self, db):
+                self.db = db
+            
+            def __getitem__(self, gndAtomString):
+                return self.db.evidence.get(gndAtomString, False)
+            
+        def iterGroundings(self, formula):
+            for t in formula.iterGroundings(self):
+                yield t
+        
+        def isTrue(self, gndFormula):
+            return gndFormula.isTrue(self.evidence)
+        
+        def countTrueGroundings(self, formula):
+            numTotal = 0
+            numTrue = 0
+            for gf, refGndAtoms in self.iterGroundings(formula):
+                numTotal += 1
+                if gf.isTrue(self.evidence):
+                    numTrue += 1
+            return (numTrue, numTotal)
 
 class MRF(object):
     '''
