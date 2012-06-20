@@ -77,12 +77,6 @@ import pickle
 
 sys.setrecursionlimit(10000)
 
-if "java" not in sys.platform:
-    from pyparsing import ParseException
-else: # using Jython (assuming 2.2)
-    from jyparsing import ParseException
-    from jythonext import set
-
 import platform
 if platform.architecture()[0] == '32bit':
     try:
@@ -92,6 +86,7 @@ if platform.architecture()[0] == '32bit':
     except:
         sys.stderr.write("Note: Psyco (http://psyco.sourceforge.net) was not loaded. On 32bit systems, it is recommended to install it for improved performance.\n")
 
+from _pyparsing import ParseException
 import FOL
 from inference import *
 from util import *
