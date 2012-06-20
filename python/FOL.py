@@ -114,7 +114,13 @@ class Formula(Constraint):
         raise Exception("%s does not implement _groundTemplate" % str(type(self)))
 
     def iterGroundings(self, mrf):
-        '''iteratively yields the groundings of the formula for the given ground MRF'''
+        '''
+            iteratively yields the groundings of the formula for the given grounder
+            mrf: an object, such as an MRF instance, which
+                - has an "mln" member (MarkovLogicNetwork instance)
+                - has a "domains" member (like an MLN/MRF)
+                - has a "gndAtoms" member that can be indexed, i.e. gndAtoms[string] should return a ground atom instance
+        '''
         try:
             vars = self.getVariables(mrf.mln)
         except Exception, e:
