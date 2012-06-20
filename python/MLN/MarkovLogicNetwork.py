@@ -62,8 +62,6 @@ To learn factors rather than regular weights, use "LL_fac" rather than "LL" as t
 (pseudolikelihood is currently unsupported for learning such representations)
 '''
 
-from __future__ import generators # required for jython 2.2
-
 DEBUG = False
 
 import math
