@@ -335,13 +335,7 @@ class MLN(object):
         '''
         
         # obtain full domain with all objects 
-        fullDomain = dict(self.domains)
-        for db in dbs:            
-            for domName, values in db.domains.iteritems():
-                if domName not in fullDomain:
-                    fullDomain[domName] = values
-                else:
-                    fullDomain[domName] = list(set(fullDomain[domName] + values))
+        fullDomain = mergeDomains(self.domains, *[db.domains for db in dbs])
         
         # expand formula templates
         oldDomains = self.domains
@@ -871,7 +865,7 @@ class Database(object):
         
         def __init__(self, db):
             self.mln = db.mln
-            self.domains = db.domains
+            self.domains = mergeDomains(self.mln.domains, db.domains)
             self.gndAtoms = Database.PseudoMRF.GroundAtomGen()
             self.evidence = Database.PseudoMRF.WorldValues(db)
 
@@ -952,13 +946,7 @@ class MRF(object):
             raise Exception("Not a valid database argument (type %s)" % (str(type(db))))
 
         # get combined domain
-        domain = db.domains
-        self.domains = {}
-        domNames = set(mln.domains.keys() + domain.keys())
-        for domName in domNames:
-            a = self.mln.domains.get(domName, [])
-            b = domain.get(domName, [])
-            self.domains[domName] = list(set(a + b))
+        self.domains = mergeDomains(mln.domains, db.domains)
         #print "MLN domains: ", self.mln.domains
         #print "MRF domains: ", self.domains
 
