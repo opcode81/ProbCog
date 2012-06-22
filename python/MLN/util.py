@@ -184,3 +184,16 @@ def gaussianZeroMean(x, sigma):
 
 def gradGaussianZeroMean(x, sigma):
     return - (0.3990434423 * x * math.exp(-0.5 * x**2 / sigma**2) ) / (sigma**3)
+
+def mergeDomains(*domains):
+    ''' returning a new domains dictionary that contains the elements of all the given domains '''
+    fullDomain = {}
+    for domain in domains:            
+        for domName, values in domain.iteritems():
+            if domName not in fullDomain:
+                fullDomain[domName] = set(values)
+            else:
+                fullDomain[domName].update(values)
+    for key, s in fullDomain.iteritems():
+        fullDomain[key] = list(s)
+    return fullDomain
