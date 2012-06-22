@@ -107,8 +107,7 @@ class BPLL(PLL):
     
     def _computeStatistics(self):
         '''
-        computes the statistics upon which the optimization is based:
-        differences for the gradient computation, counts for probability given Markov blanket
+        computes the statistics upon which the optimization is based
         '''
         debug = False
         print "computing statistics..."

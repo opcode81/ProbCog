@@ -29,6 +29,9 @@ from AbstractLearner import *
 import re
 from MLN.learning.AbstractLearner import SoftEvidenceLearner
 
+
+# TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
+
 class PLL(AbstractLearner):
     
     def __init__(self, mln, pmbMethod="old", diffMethod="blocking", **params):
