@@ -854,23 +854,30 @@ class Database(object):
             if se["expr"] == s:
                 return se["p"]
         return None
+    
+    def getPseudoMRF(self):
+        '''
+            gets a pseudo-MRF object that can be used to generate formula groundings
+            or count true groundings based on the domain in this database
+        '''       
+        return Database.PseudoMRF(self)
 
-    class MRF_Placeholder(object):
+    class PseudoMRF(object):
         '''
             can be used in order to use only a Database object to ground formulas
             (without instantiating an MRF) and determine the truth of these ground
             formulas by partly replicating the interface of an MRF object
         '''
         
-        def __init__(self, db, mln):
-            self.mln = mln
+        def __init__(self, db):
+            self.mln = db.mln
             self.domains = db.domains
-            self.gndAtoms = Database.MRF_Placeholder.GroundAtomGen()
-            self.evidence = Database.MRF_Placeholder.WorldValues(db)
+            self.gndAtoms = Database.PseudoMRF.GroundAtomGen()
+            self.evidence = Database.PseudoMRF.WorldValues(db)
 
         class GroundAtomGen(object):
             def __getitem__(self, gndAtomName):
-                return Database.MRF_Placeholder.TextGroundAtom(gndAtomName)
+                return Database.PseudoMRF.TextGroundAtom(gndAtomName)
         
         class TextGroundAtom(object):
             def __init__(self, name):
