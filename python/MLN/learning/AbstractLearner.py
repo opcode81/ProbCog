@@ -214,6 +214,31 @@ class AbstractLearner(object):
     def getAssociatedOptimizerName(self):
         return None
 
+    def hessian(self, wt):
+        wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
+        wt = self._convertToFloatVector(wt)
+        fullHessian = self._hessian(wt)
+        return self._projectMatrixToNonFixedWeightIndices(fullHessian)
+    
+    def _projectMatrixToNonFixedWeightIndices(self, matrix):
+        if len(self._fixedWeightFormulas) == 0:
+            return matrix
+
+        dim = len(self.mln.formulas) - len(self._fixedWeightFormulas)
+        proj = numpy.zeros((dim, dim), numpy.float64)
+        i2 = 0
+        for i in xrange(len(self.mln.formulas)):
+            if (i in self._fixedWeightFormulas):
+                continue
+            j2 = 0
+            for j in xrange(len(self.mln.formulas)):
+                if (j in self._fixedWeightFormulas):
+                    continue
+                proj[i2][j2] = matrix[i][j]
+                j2 += 1
+            i2 += 1            
+        return proj
+
     def _hessian(self, wt):
         raise Exception("The learner '%s' does not provide a Hessian computation; use another optimizer!" % str(type(self)))
     
