@@ -165,7 +165,7 @@ class MLN(object):
         if mlnContent is not None:
             text += "\n"
             text += mlnContent
-        if text == "": raise Exception("No MLN content to construct model from was given; must specify either file/list of files or content string!")
+        if text == "": return #raise Exception("No MLN content to construct model from was given; must specify either file/list of files or content string!")
         # replace some meta-directives in comments
         text = re.compile(r'//\s*<group>\s*$', re.MULTILINE).sub("#group", text)
         text = re.compile(r'//\s*</group>\s*$', re.MULTILINE).sub("#group.", text)
@@ -776,13 +776,14 @@ class MLN(object):
 
 
 class Database(object):
-    def __init__(self, mln, dbfile):
+    def __init__(self, mln, dbfile=None):
         self.mln = mln
         self.domains = {}
         self.evidence = {}
         self.softEvidence = []
         self.includeNonExplicitDomains = True
-        self.readFile(dbfile)
+        if dbfile is not None:
+            self.readFile(dbfile)
     
     def readFile(self, dbfile):
         '''
