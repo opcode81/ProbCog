@@ -115,7 +115,10 @@ class MCMCSampler(object):
             for j in xrange(self.N):
                 self.hessian[i][j] = eCounts[i] * eCounts[j]
         self.hessian -= self.hessianProd / self.numSamples
-        return -self.hessian
+        return self.hessian
+
+    def getCovariance(self):
+        return -self.getHessian()
 
 class SLL(AbstractLearner):
     '''
@@ -170,7 +173,7 @@ class SLL(AbstractLearner):
         #for i in xrange(self.numUniformSamples):
         #    world = self.mrf.getRandomWorld()
         #    self.totalFormulaCountsUni += self.mrf.countTrueGroundingsInWorld(world)
-            
+
 
 class SLL_DN(SLL):
     '''
@@ -257,7 +260,7 @@ class SLL_ISE(LL_ISE):
                                        discardDuplicateWorlds=True)
 
 
-class SLL_SE(AbstractLearner):
+class SLL_SE(SoftEvidenceLearner):
     '''
         NOTE: SLL_SE_DN should usually be preferred to this
     
@@ -267,8 +270,7 @@ class SLL_SE(AbstractLearner):
     '''
     
     def __init__(self, mrf, **params):
-        AbstractLearner.__init__(self, mrf, **params)
-        
+        SoftEvidenceLearner.__init__(self, mrf, **params)        
         
     def _sample(self, wt):
         self.normSampler.sample(wt)
@@ -315,13 +317,14 @@ class SLL_SE(AbstractLearner):
                                           maxSoftEvidenceDeviation=0.05))
 
 
-class SLL_SE_DN(AbstractLearner):
+class SLL_SE_DN(SoftEvidenceLearner):
     '''
         sample-based log-likelihood with soft evidence via diagonal Newton
     '''
     
     def __init__(self, mrf, **params):
-        AbstractLearner.__init__(self, mrf, **params)
+        print "init soft ev learner"
+        SoftEvidenceLearner.__init__(self, mrf, **params)
 
     def _f(self, wt):
         raise Exception("Objective function not implemented; use e.g. diagonal Newton to optimize")
@@ -337,6 +340,7 @@ class SLL_SE_DN(AbstractLearner):
 
     def _hessian(self, wt):
         self._sample(wt)
+        #return self.seSampler.getCovariance() - self.normSampler.getCovariance()
         return self.normSampler.getHessian()
     
     def getAssociatedOptimizerName(self):
@@ -355,4 +359,5 @@ class SLL_SE_DN(AbstractLearner):
                                      dict(given=evidenceString, softEvidence=self.mrf.softEvidence, maxSteps=self.mcsatStepsEvidence, 
                                           doProbabilityFitting=False,
                                           verbose=False, details=False, infoInterval=1000, resultsInterval=1000,
-                                          maxSoftEvidenceDeviation=0.05))
+                                          maxSoftEvidenceDeviation=0.05),
+                                     computeHessian=True)
