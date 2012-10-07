@@ -44,13 +44,14 @@ class DiagonalNewton(object):
 	
 	def run(self):
 		p = self.problem
+		grad_fct = lambda wt: p.grad(wt)
 		wt = numpy.matrix(self.wt).transpose()
 		wtarray = numpy.asarray(wt.transpose())[0]		
 		N = len(wt)
 		l = 0.5				
 		
 		# initial gradient
-		g = numpy.asmatrix(p.grad(wtarray)).transpose()
+		g = numpy.asmatrix(grad_fct(wtarray)).transpose()
 		d = numpy.sign(g)
 		dT = d.transpose()		
 		
@@ -63,7 +64,7 @@ class DiagonalNewton(object):
 				print "\nThreshold reached after %d steps. final gradient: %s (norm: %f <= %f)" % (step, g.transpose(), normg, self.gtol)
 				break
 			
-			H = p.hessian(wtarray)
+			H = -p.hessian(wtarray)
 			
 			# scale gradient with inverse diagonal Hessian
 			sgrad = numpy.asmatrix(numpy.zeros(N)).transpose()
@@ -90,7 +91,7 @@ class DiagonalNewton(object):
 				wtarray = numpy.asarray(wt.transpose())[0]				
 				
 				# compute new gradient
-				g = numpy.asmatrix(p.grad(wtarray)).transpose()
+				g = numpy.asmatrix(grad_fct(wtarray)).transpose()
 				d = numpy.sign(g)
 				dT = d.transpose()
 				
