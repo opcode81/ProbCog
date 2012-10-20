@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 
-import probcog.analysis.actionrecognition.mocap.BodyPose;
 import probcog.hmm.IObservationModel;
 import probcog.hmm.Segment;
 import probcog.hmm.SegmentSequence;
@@ -47,7 +46,7 @@ public class LDHMM extends DwellTimeHMM<ObservationVector> implements Serializab
 		this.numSubStates = numSubStates;
 	}
 	
-	public void learn(Iterable<? extends SegmentSequence<BodyPose>> seqs, Class<? extends ISubHMM> subHMMClass, ParameterMap learningParams) throws Exception {
+	public void learn(Iterable<? extends SegmentSequence<? extends ObservationVector>> seqs, Class<? extends ISubHMM> subHMMClass, ParameterMap learningParams) throws Exception {
 		// for each segment type, learn sub-hmm and dwell time distributions
 		System.out.println("learning...");
 		boolean usePseudoCounts = learningParams.getBoolean("usePseudoCounts");
@@ -55,15 +54,15 @@ public class LDHMM extends DwellTimeHMM<ObservationVector> implements Serializab
 			//i = 4;
 
 			// collect relevant training segments
-			List<Segment<BodyPose>> trainingSegs = new Vector<Segment<BodyPose>>();
-			for(SegmentSequence<BodyPose> seq : seqs) {
-				Vector<Segment<BodyPose>> segs = seq.getSegments(i);
+			List<Segment<? extends ObservationVector>> trainingSegs = new Vector<Segment<? extends ObservationVector>>();
+			for(SegmentSequence<? extends ObservationVector> seq : seqs) {
+				Vector<? extends Segment<? extends ObservationVector>> segs = seq.getSegments(i);
 				if(segs == null)
 					continue;
 				trainingSegs.addAll(segs);
 			}
 			if(trainingSegs.size() == 0) {
-				for(SegmentSequence<BodyPose> seq : seqs)
+				for(SegmentSequence<? extends ObservationVector> seq : seqs)
 					System.out.println(seq);
 				throw new Exception("No training data available for label " + i);
 			}

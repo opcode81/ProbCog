@@ -6,8 +6,6 @@ package probcog.hmm.latent;
 import java.util.List;
 import java.util.Vector;
 
-import probcog.analysis.actionrecognition.mocap.BodyPose;
-import probcog.analysis.actionrecognition.mocap.BodyPoseSegmentSequence;
 import probcog.clustering.multidim.EMClusterer;
 import probcog.clustering.multidim.KMeansClusterer;
 import probcog.clustering.multidim.MultiDimClusterer;
@@ -44,22 +42,22 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 	}
 
 	@Override
-	public void learn(List<? extends Segment<BodyPose>> s, ParameterMap learningParams) throws Exception {
+	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws Exception {
 		if(learningParams.getBoolean("learnSubHMMViaBaumWelch"))
 			throw new Exception("Baum-Welch learning not supported by class " + this.getClass().getName());
 		// learn pi, A and observation models
-		SegmentSequence<BodyPose> ss = learnViaClustering(this, s, learningParams.getBoolean("usePseudoCounts"));
+		SegmentSequence<? extends ObservationVector> ss = learnViaClustering(this, s, learningParams.getBoolean("usePseudoCounts"));
 		
 		// learn dwell time distributions
 		for(int i = 0; i < this.numStates; i++) {
 			Vector<ObservationReal> lengths = new Vector<ObservationReal>();
-			for(Segment<BodyPose> seg : ss.getSegments(i))
+			for(Segment<? extends ObservationVector> seg : ss.getSegments(i))
 				lengths.add(new ObservationReal(seg.size()));
 			this.learnDwellTimeDistribution(i, lengths);
 		}
 	}
 	
-	public static SegmentSequence<BodyPose> learnViaClustering(IDwellTimeHMM<ObservationVector> hmm, Iterable<? extends Segment<BodyPose>> s, boolean usePseudoCounts) throws Exception {
+	public static SegmentSequence<? extends ObservationVector> learnViaClustering(IDwellTimeHMM<ObservationVector> hmm, Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws Exception {
 		final int dim = s.iterator().next().firstElement().dimension();
 		Integer numStates = hmm.getNumStates();
 		
@@ -69,9 +67,10 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 			clusterer = new KMeansClusterer(new SimpleKMeans(), dim, numStates);
 		else
 			clusterer = new EMClusterer(new EM(), dim);
-		for(Segment<BodyPose> seg : s)
-			for(BodyPose p : seg)
-				clusterer.addInstance(p.getArray());
+		for(Segment<? extends ObservationVector> seg : s)
+			for(ObservationVector p : seg)
+				//clusterer.addInstance(p.getArray());
+				clusterer.addInstance(p.values()); // TODO slow, performs clone
 		clusterer.buildClusterer();
 		if(numStates == null) {
 			numStates = clusterer.getWekaClusterer().numberOfClusters();
@@ -82,11 +81,12 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 		// partition observations according to clustering
 		TransitionLearner tl = new TransitionLearner(numStates, usePseudoCounts);
 		DistributionLearner dl = new DistributionLearner(numStates, usePseudoCounts);
-		BodyPoseSegmentSequence segseq = new BodyPoseSegmentSequence("foo");
-		for(Segment<BodyPose> seg : s) {			
+		SegmentSequence<ObservationVector> segseq = new SegmentSequence<ObservationVector>("foo");
+		for(Segment<? extends ObservationVector> seg : s) {			
 			int prev = -1;
-			for(BodyPose p : seg) {
-				int c = clusterer.classify(p.getArray());
+			for(ObservationVector p : seg) {
+				//int c = clusterer.classify(p.getArray());
+				int c = clusterer.classify(p.values()); // TODO inefficient, clones values
 				segseq.build(c, p);				
 				if(prev == -1)
 					dl.learn(c);
