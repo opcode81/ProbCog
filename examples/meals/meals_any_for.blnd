@@ -1,0 +1,33 @@
+fragments meals_any_for.xml;
+constraints meals_any_for.blnl;
+
+Type dommealT;
+Type objType_m;
+Type objType_pl;
+Type domutensilT;
+Type domname;
+Type objType_p;
+Type objType_g;
+Type domtimeT;
+Type domday;
+
+guaranteed dommealT Dinner, Lunch, Breakfast;
+guaranteed objType_pl Seat3, Seat1, Seat0, Seat2;
+guaranteed domname Frank, Charly, Emily, Anna, Dorothy, Bert;
+guaranteed domutensilT Plate, Cup, Fork, Platter, Bowl, Glass, Knife, Spoon, Pitcher;
+guaranteed objType_g Bread, Cereals, Cheese, Soup, Juice, Sausage, Water, Tea, Salad, Cake, Pizza, Coffee, Noodles;
+guaranteed domtimeT EarlyAfternoon, Noon, EarlyMorning, LateMorning, LateAfternoon, Evening;
+guaranteed domday Saturday, Monday, Wednesday, Sunday, Friday, Tuesday, Thursday;
+
+random dommealT mealT(objType_m);
+random Boolean anyUsedByAllIn(domutensilT, objType_m);
+random domname name(objType_p);
+random Boolean usesAnyIn(objType_p, domutensilT, objType_m);
+random Boolean sitsAtIn(objType_p, objType_pl, objType_m);
+random domtimeT timeT(objType_m);
+random Boolean consumesAnyIn(objType_p, objType_g, objType_m);
+random Boolean takesPartIn(objType_p, objType_m);
+random domday day(objType_m);
+random Boolean usesAnyForIn(objType_p, domutensilT, objType_g, objType_m);
+
+

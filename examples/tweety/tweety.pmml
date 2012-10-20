@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- Bayesian network in a PMML-based format -->
+<PMML version="3.0" xmlns="http://www.dmg.org/PMML-3_0">
+	<Header copyright="Technische Universitaet Muenchen" />
+	<DataDictionary>
+		<DataField name="bird(x)" optype="categorical" id="0">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="278" y="154" />
+				<X-Definition>
+					<X-Given>2</X-Given> <!-- penguin(x) -->
+					<X-Table>1.0 0.0 0.5 0.5 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="flies(x)" optype="categorical" id="1">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="278" y="212" />
+				<X-Definition>
+					<X-Given>0</X-Given> <!-- bird(x) -->
+					<X-Table>0.9 0.1 0.2 0.8 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="penguin(x)" optype="categorical" id="2">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="366" y="117" />
+				<X-Definition>
+					<X-Table>0.5 0.5 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="flies(x)" optype="categorical" id="3">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="402" y="169" />
+				<X-Definition>
+					<X-Given>2</X-Given> <!-- penguin(x) -->
+					<X-Table>0.01 0.99 0.3 0.7 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+	</DataDictionary>
+</PMML>

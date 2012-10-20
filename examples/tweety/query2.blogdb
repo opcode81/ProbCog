@@ -1,0 +1,6 @@
+bird(Tweety)=True
+penguin(Tweety)=False
+
+penguin(Opus)=True
+
+

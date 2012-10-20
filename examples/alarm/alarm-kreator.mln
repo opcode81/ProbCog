@@ -1,0 +1,16 @@
+alarm(person)
+burglary(person)
+neighborhood(person,domNeighborhood!)
+livesIn(person,place!)
+tornado(place)
+
+domNeighborhood = {Good, Bad, Average}
+person = {James,Stefan}
+place = {Freiburg,Yorkshire,Austin}
+
+2.2 burglary(x) => alarm(x)
+2.2 livesIn(x,y) ^ tornado(y) => alarm(x)
+0.4 neighborhood(x,Bad) => burglary(x)
+-0.4 neighborhood(x,Average) => burglary(x)
+-0.8 neighborhood(x,Good) => burglary(x)
+

@@ -1,0 +1,66 @@
+This is an adaptation of an example that comes with BLOG 0.2,
+which is mentioned in several papers.
+
+Here are some inference results:
+
+BLNQuery:
+	
+	algorithm: BNInference:BackwardSamplingWithChildren
+	sampling...
+	<snip>
+	step 10000
+	time taken: 2.49s (0.0002s per sample, 1.0 trials/step)
+	
+	prob time: 0.0050
+	dist time: 0.145
+	
+	grade(Fred,CS106):
+		0.0000 None
+		0.2507 A
+		0.4078 B
+		0.2518 C
+		0.0648 D
+		0.0249 F
+	grade(Mary,CS106):
+		0.0000 None
+		0.4828 A
+		0.3121 B
+		0.1482 C
+		0.0400 D
+		0.0168 F
+	grade(John,CS106):
+		0.0000 None
+		0.2477 A
+		0.4105 B
+		0.2484 C
+		0.0673 D
+		0.0262 F
+	total inference time: 2.505 seconds
+
+
+runblog (on original example provided with distribution of BLOG 0.2):
+	
+	Samples done: 10000.    Time elapsed: 13.316 s.
+	======== LW Trial Stats =========
+	Average likelihood weight (this trial): 0.016319814499999814
+	Fraction of consistent worlds (this trial): 1.0
+	Fraction of consistent worlds (running avg, all trials): 1.0
+	======== Query Results =========
+	Distribution of values for GradeObtained(John, CS106)
+		0.36876145252754844     A
+		0.3379371438321254      B
+		0.21516448609143535     C
+		0.056770804594624025    D
+		0.021366112954286573    F
+	Distribution of values for GradeObtained(Mary, CS106)
+		0.4721295392175018      A
+		0.3106062571973549      B
+		0.15983364884447954     C
+		0.0427222380499489      D
+		0.014708316690732155    F
+	Distribution of values for GradeObtained(Fred, CS106)
+		0.2595455665259007      A
+		0.39653042624964413     B
+		0.2667144899226691      C
+		0.050188621935623755    D
+		0.02702089536618231     F

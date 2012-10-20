@@ -1,0 +1,9 @@
+bird(entity)
+flies(entity)
+penguin(entity)
+
+log(0.9/0.1)   bird(x) => flies(x)
+log(0.01/0.99) penguin(x) => flies(x)
+penguin(x) => bird(x).
+ 
+

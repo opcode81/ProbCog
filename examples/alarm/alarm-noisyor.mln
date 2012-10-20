@@ -1,0 +1,35 @@
+alarm(person)
+alarmFromBurglary(person)
+burglary(person)
+neighborhood(person,domNeighborhood!)
+livesIn(person,place!)
+tornado(place)
+alarmFromTornado(person,place)
+
+domNeighborhood = {Good, Bad, Average}
+
+logx(0.9) alarmFromBurglary(x) ^ burglary(x)
+logx(0.1) !alarmFromBurglary(x) ^ burglary(x)
+logx(0) alarmFromBurglary(x) ^ !burglary(x)
+logx(1) !alarmFromBurglary(x) ^ !burglary(x)
+
+logx(0.9) alarmFromTornado(x,y) ^ livesIn(x,y) ^ tornado(y)
+logx(0.1) !alarmFromTornado(x,y) ^ livesIn(x,y) ^ tornado(y)
+
+logx(0.01) alarmFromTornado(x,y) ^ livesIn(x,y) ^ !tornado(y)
+logx(0.99) !alarmFromTornado(x,y) ^ livesIn(x,y) ^ !tornado(y)
+
+logx(0) alarmFromTornado(x,y) ^ !livesIn(x,y)
+logx(1) !alarmFromTornado(x,y) ^ !livesIn(x,y)
+
+logx(0.6) burglary(x) ^ neighborhood(x,Bad)
+logx(0.4) !burglary(x) ^ neighborhood(x,Bad)
+
+logx(0.4) burglary(x) ^ neighborhood(x,Average)
+logx(0.6) !burglary(x) ^ neighborhood(x,Average)
+
+logx(0.3) burglary(x) ^ neighborhood(x,Good)
+logx(0.7) !burglary(x) ^ neighborhood(x,Good)
+
+alarm(x) <=> alarmFromBurglary(x) v EXIST y (alarmFromTornado(x,y)). // noisy or
+

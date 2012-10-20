@@ -1,0 +1,2 @@
+
+These models are based upon the examples that are available for KReator (http://kreator.cs.tu-dortmund.de/)

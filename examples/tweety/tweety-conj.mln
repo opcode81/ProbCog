@@ -1,0 +1,19 @@
+bird(entity)
+flies(entity)
+penguin(entity)
+
+log(0.9) flies(x) ^ bird(x) ^ !penguin(x)
+log(0.1) !flies(x) ^ bird(x) ^ !penguin(x)
+log(0.2) flies(x) ^ !bird(x)
+log(0.8) !flies(x) ^ !bird(x)
+
+log(0.01) flies(x) ^ penguin(x)
+log(0.99) flies(x) ^ !penguin(x)
+
+penguin(x) => bird(x).
+ 
+
+
+
+
+

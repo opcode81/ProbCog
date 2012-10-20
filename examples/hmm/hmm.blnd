@@ -1,0 +1,27 @@
+fragments hmm.pmml; // reference to the probabilistic fragment network
+
+// we need just one type for time, everything else is boolean
+type time; 
+
+// declare the two predicates (hidden state: rain, evidence: umbrella)
+random boolean rain(time);
+random boolean umbrella(time);
+
+// we need a temporal succession to determine the structure of the model
+// we declare it as logical, because it is to be fully given as evidence
+logical boolean next(time, time);
+
+// automatically generate the evidence for the temporal successor predicate
+prolog next(X,Y) :- V is X+1, Y=V.
+
+// declare that we can functionally determine the predecessor of any point in time
+relationKey next(_,y);
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+A model about the habits of people consuming foodstuffs and using utensils during meals.
+
+The directory contains:
+
+	2 BLNs
+	
+		meals_any_for
+			difficult to handle with most algorithms because of the hard constraint for usesAnyIn
+		meals_any_for_functional
+			more efficient as it functionally determines usesAnyIn from usesAnyForIn
+	
+	1 MLN
+	
+		meals_any_for
+			direct translation of the above BLN model

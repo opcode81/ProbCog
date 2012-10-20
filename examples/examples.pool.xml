@@ -1,0 +1,39 @@
+<!DOCTYPE pool [
+<!ELEMENT pool (model+)>
+
+<!ELEMENT model (file+,param*,constantMap*)>
+<!ATTLIST model name CDATA #REQUIRED>
+<!ATTLIST model type CDATA #REQUIRED>
+<!ATTLIST model path CDATA ".">
+
+<!ELEMENT file EMPTY>
+<!ATTLIST file type CDATA #REQUIRED>
+<!ATTLIST file name CDATA #REQUIRED>
+
+<!ELEMENT param EMPTY>
+<!ATTLIST param name CDATA #REQUIRED>
+<!ATTLIST param value CDATA #REQUIRED>
+
+<!ELEMENT constantMap EMPTY>
+<!ATTLIST constantMap from CDATA #REQUIRED>
+<!ATTLIST constantMap to CDATA #REQUIRED>
+]>
+<pool>
+	<model name="meals_bln" type="BLN" path="meals">
+		<file type="decls" name="meals_any_for.blnd" />
+		<file type="network" name="meals_any_for_functional.xml" />
+		<file type="logic" name="meals_any_for_functional.blnl" />
+	</model>
+	<model name="alarm_mln" type="MLN" path="alarm">
+		<file type="network" name="alarm-noisyor.mln" />
+	</model>
+	<model name="alarm_bln" type="BLN" path="alarm">
+		<file type="decls" name="alarm.blnd" />
+		<file type="network" name="alarm.pmml" />
+		<file type="logic" name="alarm.blnl" />
+		<param name="inferenceMethod" value="EnumerationAsk" />
+	</model>
+	<model name="smokers" type="MLN" path="smokers">
+		<file type="network" name="wts.pybpll.smoking-train-smoking.mln" />
+	</model>
+</pool>

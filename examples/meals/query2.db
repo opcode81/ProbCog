@@ -1,0 +1,5 @@
+mealT(M,Breakfast)
+takesPartIn(P1,M)
+takesPartIn(P2,M)
+takesPartIn(P3,M)
+

@@ -1,0 +1,5 @@
+time = {0..4}
+umbrella(0)=True
+umbrella(1)=True
+umbrella(2)=False
+

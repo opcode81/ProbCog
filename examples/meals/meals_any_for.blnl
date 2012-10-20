@@ -1,0 +1,8 @@
+sitsAtIn(p,pl,m) ^ sitsAtIn(p2,pl,m) => p = p2.
+takesPartIn(p,m) => (EXIST pl (sitsAtIn(p,pl,m) ^ !(EXIST pl2 (sitsAtIn(p,pl2,m) ^ !(pl = pl2))))).
+usesAnyIn(p,u,m) <=> (EXIST g (usesAnyForIn(p,u,g,m))).
+
+ 
+
+
+

@@ -1,0 +1,20 @@
+takes(John, Stat10) = True
+takes(John, CS106) = True
+takes(Mary, Phil80) = True
+takes(Mary, CS106) = True
+takes(Fred, Stat10) = True
+takes(Fred, CS106) = True
+
+teaches(Smith, CS106) = True
+teaches(Jones, CS106) = True
+teaches(Moriarty, Phil80) = True
+teaches(Jones, Stat10) = True
+
+advises(Moriarty, John) = True
+
+grade(John, Stat10) = C
+grade(Mary, Phil80) = A
+grade(Fred, Stat10) = C
+
+
+

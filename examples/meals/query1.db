@@ -1,0 +1,9 @@
+mealT(M,Breakfast)
+takesPartIn(P1,M)
+takesPartIn(P2,M)
+takesPartIn(P3,M)
+name(P1,Anna)
+name(P2,Bert)
+name(P3,Dorothy)
+
+

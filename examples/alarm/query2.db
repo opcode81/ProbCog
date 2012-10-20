@@ -1,0 +1,10 @@
+livesIn(James,Yorkshire)
+livesIn(Stefan,Freiburg)
+burglary(James)
+tornado(Freiburg)
+neighborhood(James,Average)
+neighborhood(Stefan,Good)
+
+
+
+

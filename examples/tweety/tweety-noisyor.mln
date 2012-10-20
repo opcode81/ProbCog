@@ -1,0 +1,33 @@
+bird(entity)
+flies(entity)
+flyingBird(entity)
+flyingPenguin(entity)
+penguin(entity)
+
+logx(0.9) flyingBird(x) ^ bird(x)
+logx(0.1) !flyingBird(x) ^ bird(x)
+logx(0.2) flyingBird(x) ^ !bird(x)
+logx(0.8) !flyingBird(x) ^ !bird(x)
+
+logx(0.01) flyingPenguin(x) ^ penguin(x)
+logx(0.99) !flyingPenguin(x) ^ penguin(x)
+logx(0.3) flyingPenguin(x) ^ !penguin(x)
+logx(0.7) !flyingPenguin(x) ^ !penguin(x)
+
+penguin(x) => bird(x).
+
+flies(x) <=> flyingBird(x) v flyingPenguin(x).
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
