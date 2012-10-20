@@ -1,1 +1,4 @@
 bin
+apps
+env.bat
+env.sh
