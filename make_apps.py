@@ -22,7 +22,7 @@ includes = {
     "kipm": {"jars": ["$SRLDB_HOME/../KIPM/bin", "$SRLDB_HOME/lib/kipm.jar", "$SRLDB_HOME/lib/fipmbase.jar", "$SRLDB_HOME/lib/kipmdata.jar"], "optional":True},
     "choco": {"jars": ["$SRLDB_HOME/lib/choco-2.1.1.jar"], "optional": True},
     "jdom": {"jars": ["$SRLDB_HOME/lib/jdom.jar"], "optional": True},
-    "proximity_new": {"jars": ["$SRLDB_HOME/lib/proximity.jar"]},
+    "proximity_new": {"jars": ["$SRLDB_HOME/lib/proximity.jar"], "optional":True},
 }
 
 java_apps = {
