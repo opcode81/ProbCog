@@ -1,0 +1,20 @@
+random boolean bird(entity);
+random boolean flies(entity);
+random boolean penguin(entity);
+
+combining-rule flies noisy-or;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

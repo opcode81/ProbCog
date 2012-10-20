@@ -1,0 +1,9 @@
+person = {P1,P2}
+dish = {D1,D2}
+
+vegetarian(P1)
+vegetarianDish(D1)
+
+
+
+

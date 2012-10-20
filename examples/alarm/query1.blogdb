@@ -1,0 +1,7 @@
+livesIn(James,Yorkshire)=True
+livesIn(Stefan,Freiburg)=True
+burglary(James)=True
+tornado(Freiburg)=True
+neighborhood(James)=Average
+neighborhood(Stefan)=Bad
+

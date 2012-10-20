@@ -1,0 +1,47 @@
+// model from kr_mln paper
+
+vegetarian(person)
+vegetarianDish(dish)
+orders(person,dish!) 
+female(person)
+
+friends(person,person)
+//1.3 friends(x,y) ^ vegetarian(x) => vegetarian(y)
+4 vegetarian(x) ^ vegetarian(y)
+
+0 female(p)
+log(0.15/0.85) vegetarian(p)
+log(0.25/0.75) vegetarianDish(d)
+
+1.4 female(x) => vegetarian(x)
+
+2.3 orders(p,d) ^ !vegetarian(p) => !vegetarianDish(d)
+orders(p,d) ^ vegetarian(p) => vegetarianDish(d).
+
+P(vegetarian(p))=0.10
+P(female(p))=0.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- Bayesian network in a PMML-based format -->
+<PMML version="3.0" xmlns="http://www.dmg.org/PMML-3_0">
+	<Header copyright="Technische Universitaet Muenchen" />
+	<DataDictionary>
+		<DataField name="rain(before)" optype="categorical" id="0">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="395" y="183" />
+				<X-Definition>
+					<X-Given>4</X-Given> <!-- before=0 -->
+					<X-Table>0.5 0.5 0.5 0.5 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="rain(after)" optype="categorical" id="1">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="604" y="185" />
+				<X-Definition>
+					<X-Given>0</X-Given> <!-- rain(before) -->
+					<X-Given>3</X-Given> <!-- !(after=0) -->
+					<X-Given>5</X-Given> <!-- +next(before,after) -->
+					<X-Table>0.7 0.3 0.7 0.3 0.7 0.3 0.7 0.3 0.3 0.7 0.3 0.7 0.3 0.7 0.3 0.7 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="umbrella(after)" optype="categorical" id="2">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="604" y="309" />
+				<X-Definition>
+					<X-Given>1</X-Given> <!-- rain(after) -->
+					<X-Table>0.9 0.1 0.2 0.8 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="!(after=0)" optype="categorical" id="3">
+			<Extension>
+				<X-NodeType>decision</X-NodeType>
+				<X-Position x="604" y="82" />
+				<X-Definition>
+					<X-Table>0.0 0.0 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="before=0" optype="categorical" id="4">
+			<Extension>
+				<X-NodeType>decision</X-NodeType>
+				<X-Position x="395" y="89" />
+				<X-Definition>
+					<X-Table>0.0 0.0 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="+next(before,after)" optype="categorical" id="5">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="523" y="110" />
+				<X-Definition>
+					<X-Table>0.0 0.0 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+	</DataDictionary>
+</PMML>

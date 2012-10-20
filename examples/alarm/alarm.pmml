@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- Bayesian network in a PMML-based format -->
+<PMML version="3.0" xmlns="http://www.dmg.org/PMML-3_0">
+	<Header copyright="Technische Universitaet Muenchen" />
+	<DataDictionary>
+		<DataField name="livesIn(p,pl)" optype="categorical" id="0">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="146" y="109" />
+				<X-Definition>
+					<X-Table>0.5 0.5 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="tornado(pl)" optype="categorical" id="1">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="336" y="115" />
+				<X-Definition>
+					<X-Table>0.5 0.5 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="alarm(p)|pl" optype="categorical" id="2">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="252" y="263" />
+				<X-Definition>
+					<X-Given>0</X-Given> <!-- livesIn(p,pl) -->
+					<X-Given>1</X-Given> <!-- tornado(pl) -->
+					<X-Table>0.9 0.1 0.01 0.99 0.0 1.0 0.0 1.0 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="burglary(p)" optype="categorical" id="3">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="548" y="208" />
+				<X-Definition>
+					<X-Given>5</X-Given> <!-- neighborhood(p) -->
+					<X-Table>0.6 0.4 0.4 0.6 0.3 0.7 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="alarm(p)" optype="categorical" id="4">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="549" y="339" />
+				<X-Definition>
+					<X-Given>3</X-Given> <!-- burglary(p) -->
+					<X-Table>0.9 0.1 0.0 1.0 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="True" />
+			<Value value="False" />
+		</DataField>
+		<DataField name="neighborhood(p)" optype="categorical" id="5">
+			<Extension>
+				<X-NodeType>chance</X-NodeType>
+				<X-Position x="548" y="64" />
+				<X-Definition>
+					<X-Table>0.3333 0.3333 0.3333 </X-Table>
+				</X-Definition>
+			</Extension>
+			<Value value="Bad" />
+			<Value value="Average" />
+			<Value value="Good" />
+		</DataField>
+	</DataDictionary>
+</PMML>

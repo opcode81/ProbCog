@@ -1,0 +1,14 @@
+person = {P1,P2,P3}
+dish = {D1,D2}
+
+
+vegetarianDish(D1)
+orders(P1,D1)
+
+
+
+
+
+
+
+

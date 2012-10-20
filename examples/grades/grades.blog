@@ -1,0 +1,27 @@
+type Professor;
+type Student;
+type Course;
+
+type Grade;
+guaranteed Grade None,A, B, C, D, F;
+
+type DifficultyLevel;
+guaranteed DifficultyLevel Easy, Hard;
+
+type IntelligenceLevel;
+guaranteed IntelligenceLevel Weak, Average, Smart;
+
+random Boolean teaches(Professor, Course);
+random Boolean advises(Professor, Student);
+random Boolean takes(Student, Course);
+
+random Boolean likes(Professor, Professor);
+random DifficultyLevel difficulty(Course);
+random IntelligenceLevel intelligence(Student);
+random Grade grade(Student, Course);
+
+random Boolean teacherOfLikesAdvisorOf(Course,Student);
+
+
+
+

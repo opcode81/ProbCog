@@ -1,0 +1,17 @@
+type person, domNeighborhood;
+type place;
+
+guaranteed domNeighborhood = {Good, Bad, Average};
+
+random boolean alarm(person);
+random boolean burglary(person);
+random domNeighborhood neighborhood(person);
+random boolean livesIn(person,place);
+random boolean tornado(place);
+
+combining-rule alarm noisy-or-n;
+
+
+
+
+
