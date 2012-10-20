@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/weka_fipm.jar"/>
+	<classpathentry kind="lib" path="lib/optimization.jar"/>
+	<classpathentry kind="lib" path="lib/ssj.jar"/>
+	<classpathentry kind="lib" path="lib/yprolog.jar"/>
+	<classpathentry kind="lib" path="lib/bnj_res.jar"/>
+	<classpathentry kind="lib" path="lib/bnj.jar" sourcepath="/BNJ/src"/>
+	<classpathentry kind="lib" path="lib/jython250.jar"/>
+	<classpathentry kind="lib" path="lib/jython250lib.jar"/>
+	<classpathentry kind="lib" path="lib/jahmm.jar"/>
+	<classpathentry kind="lib" path="lib/tumutils.jar"/>
+	<classpathentry kind="lib" path="lib/proximity3.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
