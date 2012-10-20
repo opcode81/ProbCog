@@ -5,7 +5,6 @@ package probcog.hmm.latent;
 
 import java.util.List;
 
-import probcog.analysis.actionrecognition.mocap.BodyPose;
 import probcog.hmm.ForwardCalculator;
 import probcog.hmm.HMM;
 import probcog.hmm.Segment;
@@ -39,7 +38,7 @@ public class SubHMMSimple extends HMM<ObservationVector> implements ISubHMM {
 		return new OpdfIndependentGaussiansFactory(obsDimension);
 	}
 	
-	public void learnViaBaumWelch(List<? extends Segment<BodyPose>> s) {
+	public void learnViaBaumWelch(List<? extends Segment<? extends ObservationVector>> s) {
 		BaumWelchScaledLearner bw = new BaumWelchScaledLearner();
 		Hmm<ObservationVector> hmm = bw.learn(this, s);
 		
@@ -48,7 +47,7 @@ public class SubHMMSimple extends HMM<ObservationVector> implements ISubHMM {
 		this.opdfs = hmm.getOpdfs();
 	}
 	
-	public void learnViaClustering(Iterable<? extends Segment<BodyPose>> s, boolean usePseudoCounts) throws Exception {
+	public void learnViaClustering(Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws Exception {
 		SubHMM.learnViaClustering(this, s, usePseudoCounts);
 	}
 
@@ -63,7 +62,7 @@ public class SubHMMSimple extends HMM<ObservationVector> implements ISubHMM {
 	}
 
 	@Override
-	public void learn(List<? extends Segment<BodyPose>> s, ParameterMap learningParams) throws Exception {
+	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws Exception {
 		if(learningParams.getBoolean("learnSubHMMViaBaumWelch"))
 			learnViaBaumWelch(s);
 		else
