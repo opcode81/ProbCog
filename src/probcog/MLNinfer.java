@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2009-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog;
 import java.io.File;
 import java.io.PrintStream;
@@ -7,7 +25,6 @@ import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import probcog.logic.sat.weighted.MaxWalkSATRoom;
 import probcog.logic.sat.weighted.WeightedFormula;
 import probcog.srl.Database;
 import probcog.srl.mln.MarkovLogicNetwork;
@@ -18,13 +35,12 @@ import probcog.srl.mln.inference.MAPInferenceAlgorithm;
 import probcog.srl.mln.inference.MCSAT;
 import probcog.srl.mln.inference.MaxWalkSAT;
 import probcog.srl.mln.inference.Toulbar2MAPInference;
-
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 
 /**
  * MLN command-line inference tool 
- * @author jain
+ * @author Dominik Jain
  */
 public class MLNinfer {
 
@@ -143,8 +159,7 @@ public class MLNinfer {
 				infer = new MCSAT(mrf);
 				break;
 			case MaxWalkSAT:
-			case MaxWalkSATRooms:
-				infer = new MaxWalkSAT(mrf, algo == Algorithm.MaxWalkSAT ? probcog.logic.sat.weighted.MaxWalkSAT.class : MaxWalkSATRoom.class); 
+				infer = new MaxWalkSAT(mrf); 
 				break;
 			case Toulbar2:
 				infer = new Toulbar2MAPInference(mrf);

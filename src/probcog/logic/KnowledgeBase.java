@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.logic;
 
 import java.io.BufferedReader;
@@ -17,9 +35,8 @@ import probcog.srl.Database;
 import edu.tum.cs.util.FileUtil;
 
 /**
- * class that represents a logical knowledge base
- * @author jain
- *
+ * Represents a logical knowledge base
+ * @author Dominik Jain
  */
 public class KnowledgeBase implements Iterable<Formula> {
 	protected Vector<Formula> formulas;
@@ -42,7 +59,7 @@ public class KnowledgeBase implements Iterable<Formula> {
 	public KnowledgeBase(String filename) throws IOException, ParseException {
 		this();
 		readFile(filename);
-	}
+	}	
 	
 	public void readFile(String filename) throws IOException, ParseException {
 		// read KB file

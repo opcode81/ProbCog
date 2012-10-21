@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.srl.directed.bln;
 
 import java.util.ArrayList;
@@ -36,6 +54,10 @@ import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 import edu.tum.cs.util.datastruct.Pair;
 
+/**
+ * Abstract base class for ground networks generated from BLNs.
+ * @author Dominik Jain
+ */
 public abstract class AbstractGroundBLN implements IParameterHandler {
 	/**
 	 * the ground Bayesian network (or ground auxiliary Bayesian network)
@@ -760,7 +782,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	/**
 	 * abstract base class for filling a CPF that is determined by a combination function
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public abstract class CPFFiller {
 		CPF cpf;
@@ -798,7 +820,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	/**
 	 * CPF filler for simple OR of boolean nodes
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public class CPFFiller_AND extends CPFFiller {
 		public CPFFiller_AND(BeliefNode node) {
@@ -817,7 +839,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	/**
 	 * CPF filler for simple OR of boolean nodes
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public class CPFFiller_OR extends CPFFiller {
 		public CPFFiller_OR(BeliefNode node) {
@@ -836,7 +858,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	/**
 	 * CPF filler for disjunction of conjunction of boolean nodes
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public class CPFFiller_ORGrouped extends CPFFiller {
 		int groupSize;

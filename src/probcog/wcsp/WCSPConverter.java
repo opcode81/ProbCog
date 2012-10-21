@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2012 Gregor Wylezich, Dominik Jain and Paul Maier.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.wcsp;
 
 import java.io.PrintStream;
@@ -36,8 +54,9 @@ import edu.tum.cs.util.StringTool;
 
 /**
  * Converts an instantiated MLN (i.e. a ground MRF) into the Toulbar2 WCSP format
- * @author wylezich
- * @author jain
+ * @author Gregor Wylezich 
+ * @author Dominik Jain
+ * @author Paul Maier
  */
 public class WCSPConverter implements IParameterHandler {
 

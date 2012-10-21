@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.service;
 
 import java.io.BufferedReader;
@@ -15,9 +33,9 @@ import probcog.logic.parser.ParseException;
 
 
 /**
- * serves a pool of models (base class for specialized server interfaces);
- * uses a dummy command pipe interface
- * @author jain
+ * Serves a pool of models (base class for specialized server interfaces);
+ * the implementation here uses a dummy command pipe interface
+ * @author Dominik Jain
  */
 public class Server {
 	ModelPool modelPool; 
