@@ -1,6 +1,21 @@
-/*
- * Created on Jun 2, 2010
- */
+/*******************************************************************************
+ * Copyright (C) 2010-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.hmm.latent;
 
 import java.util.Collection;
@@ -11,9 +26,9 @@ import be.ac.ulg.montefiore.run.jahmm.ObservationReal;
 import be.ac.ulg.montefiore.run.jahmm.OpdfGaussian;
 
 /**
- * hidden semi-Markov model where state transition probabilities depend
+ * Hidden semi-Markov model where state transition probabilities depend
  * on the dwell time, i.e. the number of time steps already spent in a state
- * @author jain
+ * @author Dominik Jain
  */
 public abstract class DwellTimeHMM<O extends Observation> implements IDwellTimeHMM<O> {
 	protected double[][] A;

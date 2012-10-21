@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.bayesnets.inference;
 
 import java.util.Arrays;
@@ -19,8 +37,8 @@ import edu.tum.cs.util.StringTool;
 /**
  * an implementation of the backward simulation algorithm as described by Robert Fung and Brendan Del Favero 
  * in "Backward Simulation in Bayesian Networks" (UAI 1994)
- * @author jain
- *
+ * 
+ * @author Dominik Jain
  */
 public class BackwardSampling extends Sampler {
 
@@ -100,7 +118,7 @@ public class BackwardSampling extends Sampler {
 	
 	/**
 	 * for ordering belief nodes in descending order of the tier they are in (as indicated by the topological ordering)
-	 * @author jain
+	 * @author Dominik Jain
 	 *
 	 */
 	public static class TierComparator implements Comparator<BeliefNode> {

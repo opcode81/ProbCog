@@ -1,6 +1,21 @@
-/*
- * Created on Nov 2, 2009
- */
+/*******************************************************************************
+ * Copyright (C) 2009-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.srl.directed.inference;
 
 import java.lang.reflect.Constructor;
@@ -14,16 +29,17 @@ import probcog.bayesnets.inference.BeliefPropagation;
 import probcog.bayesnets.inference.EnumerationAsk;
 import probcog.bayesnets.inference.IJGP;
 import probcog.bayesnets.inference.LikelihoodWeighting;
-import probcog.bayesnets.inference.LikelihoodWeightingWithUncertainEvidence;
 import probcog.bayesnets.inference.SampleSearch;
 import probcog.bayesnets.inference.VariableElimination;
 import probcog.srl.directed.bln.AbstractGroundBLN;
 
-
+/**
+ * Enumeration of inference methods.
+ * @author Dominik Jain
+ */
 public enum Algorithm {
 	  	// NOTE: Algorithms that may not exist in some distributions are specified using the string constructor
 		LikelihoodWeighting("likelihood weighting", null, LikelihoodWeighting.class), 
-		LWU("likelihood weighting with uncertain evidence", null, LikelihoodWeightingWithUncertainEvidence.class), 
 		GibbsSampling("Gibbs sampling (MCMC)", null, probcog.bayesnets.inference.GibbsSampling.class), 
 		EPIS("importance sampling based on evidence prepropagation [SMILE]", "probcog.inference.SmileEPIS"), 
 		BackwardSampling("backward simulation", null, BackwardSampling.class),			 

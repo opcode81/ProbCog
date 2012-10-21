@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2007-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.srl.directed;
 
 import java.io.PrintStream;
@@ -22,6 +40,10 @@ import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
 
+/**
+ * Converts conditional probability tables to MLN formulas.
+ * @author Dominik Jain
+ */
 public class CPT2MLNFormulas {
 	protected RelationalBeliefNetwork rbn;
 	protected RelationalNode mainNode;
@@ -119,7 +141,7 @@ public class CPT2MLNFormulas {
 	 *  the task here is to learn a decision tree as a compact representation of a 
 	 *  CPT, the predictors being the values of all nodes relevant to the CPT (parents and child)
 	 *  and the predicted class attribute being the probability value
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public static class CPT2Rules {
 		/**

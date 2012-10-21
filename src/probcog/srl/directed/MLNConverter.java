@@ -1,9 +1,21 @@
-/*
- * Created on Nov 9, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
+/*******************************************************************************
+ * Copyright (C) 2009-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.srl.directed;
 
 import java.util.Collection;
@@ -14,8 +26,8 @@ import probcog.srl.mln.MarkovLogicNetwork;
 
 
 /**
- * abstract base class for conversions of relational models to MLNs
- * @author jain
+ * Abstract base class for conversions of relational models to MLNs.
+ * @author Dominik Jain
  */
 public abstract class MLNConverter {
 	public abstract void addGuaranteedDomainElements(String domain, Collection<String> elements);

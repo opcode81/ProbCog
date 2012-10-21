@@ -1,9 +1,21 @@
-/*
- * Created on Aug 17, 2009
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.logic.sat;
 
 import java.util.HashMap;
@@ -23,6 +35,10 @@ import edu.tum.cs.util.datastruct.Map2Set;
 
 // TODO we could speed some of this up by explicitly keeping track of blocked and unblocked non-evidence vars 
 
+/**
+ * Helper class for handling evidence.
+ * @author Dominik Jian
+ */
 public class EvidenceHandler {
 	
 	protected static boolean verbose = false;

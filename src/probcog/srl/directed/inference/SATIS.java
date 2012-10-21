@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2008-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.srl.directed.inference;
 
 import java.util.HashMap;
@@ -20,9 +38,10 @@ import probcog.srl.directed.bln.coupling.VariableLogicCoupling;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 
 /**
- * SAT-IS: satisfiability-based importance sampling for inference in mixed networks with probabilistic and deterministic constraints
+ * SAT-IS: satisfiability-based importance sampling for inference in mixed networks with 
+ * probabilistic and deterministic constraints.
  * 
- * @author jain
+ * @author Dominik Jain
  */
 public class SATIS extends BNSampler {
 
@@ -89,7 +108,7 @@ public class SATIS extends BNSampler {
 	 * the sampled distribution may be dominated by a few high-probability worlds that
 	 * were sampled. To prevent this, we use the prior to initialize random variables,
 	 * thus introducing a slight bias towards worlds with higher probability.
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	protected class SampleSATPriors extends SampleSAT {
 

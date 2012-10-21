@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (C) 2006-2012 Dominik Jain.
+ * 
+ * This file is part of ProbCog.
+ * 
+ * ProbCog is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * ProbCog is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package probcog.clustering;
 import java.util.Arrays;
 
@@ -6,7 +24,7 @@ import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
 
 /**
- * an interface for use with DomainLearner that contains a function that, when given
+ * An interface for use with DomainLearner that contains a function that, when given
  * a WEKA clusterer, returns an array of cluster names
  * @author Dominik Jain
  */
@@ -15,7 +33,7 @@ public interface ClusterNamer<Cl extends Clusterer> {
 	
 	/**
 	 * the most basic cluster namer, which simply adds a prefix to each cluster index
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public static class SimplePrefix implements ClusterNamer<Clusterer> {
 		protected String prefix;
@@ -35,7 +53,7 @@ public interface ClusterNamer<Cl extends Clusterer> {
 	
 	/**
 	 * a basic cluster namer that simply returns a fixed list of predetermined names
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public static class Fixed implements ClusterNamer<Clusterer> {
 		protected String[] names;
@@ -131,7 +149,7 @@ public interface ClusterNamer<Cl extends Clusterer> {
 	
 	/**
 	 * variant of Intervals that produces names that are compatible with SRL databases 
-	 * @author jain
+	 * @author Dominik Jain
 	 */
 	public static class IntervalsPlain implements ClusterNamer<SimpleKMeans> {
 		
