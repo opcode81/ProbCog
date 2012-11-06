@@ -1,0 +1,100 @@
+type student;
+type course;
+
+type scientist;
+type professor isa scientist;
+type advisor isa scientist;
+
+type grade;
+guaranteed grade None,A, B, C, D, F;
+
+type difficultyLevel;
+guaranteed difficultyLevel Easy, Hard;
+
+type intelligenceLevel;
+guaranteed intelligenceLevel Weak, Average, Smart;
+
+random difficultyLevel difficulty(course);
+random intelligenceLevel intelligence(student);
+random grade grade(student, course);
+
+logical Boolean teaches(professor, course);
+logical Boolean advises(scientist, student);
+logical Boolean takes(student, course);
+logical Boolean similar(course,course);
+logical Boolean similarRST(course,course);
+
+random Boolean likes(scientist,scientist);
+random Boolean teacherOfLikesAdvisorOf(course,student);
+random Boolean takesSimilarCourse(student,course);
+
+prolog similarRST(C1,C1).
+prolog similarRST(C1,C2) :- similar(C1,C2).
+prolog similarRST(C1,C2) :- similar(C2,C1).
+prolog similarRST(C1,C3) :- similar(C1,C2),similarRST(C2,C3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
