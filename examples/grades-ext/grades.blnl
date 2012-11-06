@@ -1,0 +1,47 @@
+// everybody likes him- or herself
+likes(p,p).
+
+// similar courses
+(EXIST c2 (similarRST(c,c2) ^ takes(p,c) ^ takes(p,c2) ^ !(c=c2)) <=> (takesSimilarCourse(p,c))).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
