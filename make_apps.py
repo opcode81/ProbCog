@@ -99,6 +99,11 @@ if __name__ == '__main__':
     print
 
     args = sys.argv[1:]
+    
+    # check if probcog binaries exist
+    if not os.path.exists("bin") and not os.path.exists("lib/srldb.jar"):
+        print "ERROR: No ProbCog binaries found. If you are using the source version of ProbCog, please compile it first using 'ant compile' or an Eclipse build"
+        sys.exit(1)
 
     # determine architecture
     arch = None
