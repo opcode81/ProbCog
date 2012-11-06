@@ -3,7 +3,7 @@ import sys
 HAVE_JAVA = 1
 try: 
     import java
-    from edu.tum.cs import srldb
+    from probcog import srldb
     import jarray
 except:
     #sys.stderr.write("Note: Could not import Java packages - database generation disabled.")
