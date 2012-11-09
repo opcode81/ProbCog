@@ -12,6 +12,7 @@
   
   <target name="compile">
 	<echo>=== COMPILE ===</echo>
+	<mkdir dir="${dir.build}" />
 	<javac debug="on" srcdir="${dir.src}" destdir="${dir.build}">
 	  <classpath refid="class.path" />
 	</javac>
