@@ -38,7 +38,7 @@ import weka.clusterers.Clusterer;
 import kdl.prox3.dbmgr.DataTypeEnum;
 
 /**
- * Data dictionary definition of an attribute.ö
+ * Data dictionary definition of an attribute.
  * @author Dominik Jain
  */
 public class DDAttribute implements Cloneable, Serializable {
