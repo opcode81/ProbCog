@@ -95,6 +95,7 @@ class Formula(Constraint):
     def _getTemplateVariants(self, mln, vars, assignment, variants, i):
         if i == len(vars): # all template variables have been assigned a value
             # ground the vars in all children
+#            print type(self)
             variants.extend(self._groundTemplate(assignment))
             return
         else:
@@ -113,7 +114,7 @@ class Formula(Constraint):
                 assignment: a mapping from variable names to constants'''
         raise Exception("%s does not implement _groundTemplate" % str(type(self)))
 
-    def iterGroundings(self, mrf):
+    def iterGroundings(self, mrf, simplify=False):
         '''
             iteratively yields the groundings of the formula for the given grounder
             mrf: an object, such as an MRF instance, which
@@ -125,14 +126,14 @@ class Formula(Constraint):
             vars = self.getVariables(mrf.mln)
         except Exception, e:
             raise Exception("Error grounding '%s': %s" % (str(self), str(e)))
-        for grounding, referencedGndAtoms in self._iterGroundings(mrf, vars, {}):
+        for grounding, referencedGndAtoms in self._iterGroundings(mrf, vars, {}, simplify):
             yield grounding, referencedGndAtoms
         
-    def _iterGroundings(self, mrf, variables, assignment):
+    def _iterGroundings(self, mrf, variables, assignment, simplify=False):
         # if all variables have been grounded...
         if variables == {}:
             referencedGndAtoms = []
-            gndFormula = self.ground(mrf, assignment, referencedGndAtoms)
+            gndFormula = self.ground(mrf, assignment, referencedGndAtoms, simplify)
             yield gndFormula, referencedGndAtoms
             return
         # ground the first variable...
@@ -140,13 +141,13 @@ class Formula(Constraint):
         for value in mrf.domains[domName]: # replacing it with one of the constants
             assignment[varname] = value
             # recursive descent to ground further variables
-            for g, r in self._iterGroundings(mrf, dict(variables), assignment):
+            for g, r in self._iterGroundings(mrf, dict(variables), assignment, simplify):
                 yield g, r
     
     def getVariables(self, mln, vars = None):
         raise Exception("%s does not implement getVariables" % str(type(self)))
     
-    def ground(self, mln, assignment, referencedAtoms = None):
+    def ground(self, mln, assignment, referencedAtoms = None, simplify=False):
         '''grounds the formula using the given assignment of variables to values/constants and, if given a list in referencedAtoms, fills that list with indices of ground atoms that the resulting ground formula uses
                 returns the ground formula object
                 assignment: mapping of variable names to values'''
@@ -172,7 +173,14 @@ class Formula(Constraint):
     
     def isLogical(self):
         return True
-
+    
+    def simplify(self, mrf):
+        '''
+        Simplify the formula by evaluating it with respect to the ground atoms given 
+        by the evidence in the mrf.
+        '''
+        raise Exception('%s does not implement simplify' % str(type(self)))
+    
 # a formula that has other formulas as subelements (children)
 class ComplexFormula(Formula):
     
@@ -200,12 +208,14 @@ class ComplexFormula(Formula):
             constants = child.getConstants(mln, vars)
         return constants  
 
-    def ground(self, mrf, assignment, referencedGndAtoms = None):
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False):
         children = []
         for child in self.children:
             gndChild = child.ground(mrf, assignment, referencedGndAtoms)
             children.append(gndChild)
         gndFormula = apply(type(self), (children,))
+        if simplify:
+            gndFormula = gndFormula.simplify(mrf)
         return gndFormula
 
     def _groundTemplate(self, assignment):
@@ -225,6 +235,7 @@ class ComplexFormula(Formula):
                 final_variants.append(Exist(self.vars, variant[0]))
             else:
                 final_variants.append(apply(type(self), (variant,)))
+                
         return final_variants
 
     def getVarDomain(self, varname, mln):
@@ -239,9 +250,8 @@ class ComplexFormula(Formula):
         for child in self.children:
             if not hasattr(child, "_getTemplateVariables"): continue
             vars = child._getTemplateVariables(mln, vars)
-        return vars
-
-
+        return vars        
+        
 class Lit(Formula):
     def __init__(self, negated, predName, params):
         self.negated = negated
@@ -293,7 +303,7 @@ class Lit(Formula):
                 vars[varname] = domain
         return vars
 
-    def ground(self, mrf, assignment, referencedGndAtoms = None):
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False):
         params = map(lambda x: assignment.get(x, x), self.params)
         s = "%s(%s)" % (self.predName, ",".join(params))
         try:
@@ -334,7 +344,16 @@ class GroundAtom(Formula):
     
     def toRRF(self):
         return RRFVariableLeaf(self)
-
+    
+    def simplify(self, mrf):
+        truth = mrf.evidence[self.idx]
+        if truth is None:
+            return self
+        elif truth is True:
+            return TrueFalse(True)
+        else:
+            return TrueFalse(False)
+        
 class GroundLit(Formula):
     def __init__(self, gndAtom, negated):
         self.gndAtom = gndAtom
@@ -365,6 +384,15 @@ class GroundLit(Formula):
         if self.negated:
             return Negation([self.gndAtom]).toRRF()
         return self.gndAtom.toRRF()
+
+    def simplify(self, mrf):
+        f = self.gndAtom.simplify(mrf)
+        if isinstance(f, TrueFalse):
+            if self.negated:
+                return f.invert()
+            else:
+                return f
+        return self
 
 class Disjunction(ComplexFormula):
     def __init__(self, children):
@@ -456,10 +484,26 @@ class Disjunction(ComplexFormula):
         conj = RRF(children)
         conj.weight = -RRF_HARD_WEIGHT
         return RRF([conj])
+
+    def simplify(self, mrf):
+        sf_children = []
+        for child in self.children:
+            child = child.simplify(mrf)
+            if isinstance(child, TrueFalse):
+                if child.isTrue():
+                    return TrueFalse(True)
+            else:
+                sf_children.append(child)
+        if len(sf_children) == 1:
+            return sf_children[0]
+        elif len(sf_children) >= 2:
+            return Disjunction(sf_children)
+        else:
+            return TrueFalse(False)
         
 class Conjunction(ComplexFormula):
     def __init__(self, children):
-        #assert len(children) >= 2
+        assert len(children) >= 2
         self.children = children
 
     def __str__(self):
@@ -534,6 +578,22 @@ class Conjunction(ComplexFormula):
             children.append(childRRF)
         return RRF(children)
 
+    def simplify(self, mrf):
+        sf_children = []
+        for child in self.children:
+            child = child.simplify(mrf)
+            if isinstance(child, TrueFalse):
+                if not child.isTrue():
+                    return TrueFalse(False)
+            else:
+                sf_children.append(child)
+        if len(sf_children) == 1:
+            return sf_children[0]
+        elif len(sf_children) >= 2:
+            return Conjunction(sf_children)
+        else:
+            return TrueFalse(True)
+            
 class Implication(ComplexFormula):
     def __init__(self, children):
         assert len(children) == 2
@@ -555,6 +615,9 @@ class Implication(ComplexFormula):
     
     def toRRF(self):
         return Disjunction([Negation([self.children[0]]), self.children[1]]).toRRF()
+    
+    def simplify(self, mrf):
+        return Disjunction([Negation([self.children[0]]), self.children[1]]).simplify(mrf)
 
 class Biimplication(ComplexFormula):    
     def __init__(self, children):
@@ -578,6 +641,11 @@ class Biimplication(ComplexFormula):
     def toRRF(self):
         return Conjunction([Implication([self.children[0], self.children[1]]), Implication([self.children[1], self.children[0]])]).toRRF()
 
+    def simplify(self, mrf):
+        c1 = Disjunction([Negation(self.children[0]), self.children[1]])
+        c2 = Disjunction([self.children[0], Negation(self.children[1])])
+        return Conjunction([c1,c2]).simplify(mrf)
+    
 class Negation(ComplexFormula):    
     def __init__(self, children):
         assert len(children) == 1
@@ -647,7 +715,14 @@ class Negation(ComplexFormula):
         child = self.children[0].toRRF()
         child.weight = -RRF_HARD_WEIGHT
         return RRF([child])
-            
+    
+    def simplify(self, mrf):
+        f = self.children[0].simplify(mrf)
+        if isinstance(f, TrueFalse):
+            return f.invert()
+        else:
+            return Negation([f])
+        
 class Exist(ComplexFormula):
     def __init__(self, vars, formula):
         self.children = [formula]
@@ -706,6 +781,9 @@ class Exist(ComplexFormula):
     def toCNF(self):
         raise Exception("'%s' cannot be converted to CNF. Ground this formula first!" % str(self))
 
+    def isTrue(self, w):
+        raise Exception("'%s' does not implement isTrue()")
+
 class Equality(Formula):
     def __init__(self, params):
         assert len(params)==2
@@ -753,6 +831,12 @@ class TrueFalse(Formula):
 
     def toRRF(self):
         return RRFConstantLeaf(self.value)
+    
+    def invert(self):
+        return TrueFalse(not self.value)
+    
+    def simplify(self, mrf):
+        return self
 
 class NonLogicalConstraint(Constraint):
     '''a constraint that is not somehow made up of logical connectives and (ground) atoms'''
