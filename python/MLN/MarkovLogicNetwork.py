@@ -350,7 +350,6 @@ class MLN(object):
                 self.domains[domName] = fullDomain[domName]
                 #print "permanent domain %s: %s" % (domName, fullDomain[domName])
 
-
     def _materializeFormulaTemplates(self, verbose=False):
         if self.materializedTemplates:
             raise Exception("This MLN's formula templates were previously materialized")
@@ -460,12 +459,12 @@ class MLN(object):
         self._createFormulaGroundings(verbose)
         if verbose: print "ground formulas: %d" % len(self.gndFormulas)
 
-    def groundMRF(self, db, verbose=False):
+    def groundMRF(self, db, verbose=False, simplify=False):
         '''
             creates and returns a ground Markov random field for the given database
                 db: database filename (string) or Database object
         '''
-        self.mrf = MRF(self, db, verbose=verbose)
+        self.mrf = MRF(self, db, verbose=verbose, simplify=simplify)
         return self.mrf
 
     def combineOverwrite(self, domain, verbose=False, groundFormulas=True):
@@ -686,7 +685,7 @@ class MLN(object):
         for db in databases:
             if type(db) == str:
                 db = Database(self, db)
-            elif type(db) != Database:
+            elif not isinstance(db, Database):
                 raise Exception("Got database of unknown type '%s'" % (str(type(db))))
             dbs.append(db)
 
@@ -884,6 +883,9 @@ class Database(object):
             def __str__(self):
                 return self.name
             
+            def simplify(self, mrf):
+                return self
+            
         class WorldValues(object):
             def __init__(self, db):
                 self.db = db
@@ -930,7 +932,7 @@ class MRF(object):
 
     '''
 
-    def __init__(self, mln, db, verbose=False):
+    def __init__(self, mln, db, verbose=False, simplify=False):
         '''
         db: database filename (.db) or a Database object
         '''
@@ -938,7 +940,8 @@ class MRF(object):
         self.evidence = {}
         self.evidenceBackup = {}
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
-
+        self.simplify = simplify
+        
         if type(db) == str:
             db = Database(self.mln, db)
         elif isinstance(db, Database):
@@ -956,13 +959,16 @@ class MRF(object):
             self.mln._materializeFormulaTemplates(verbose)
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
-        # ground
+        # ground atoms
         self._generateGroundAtoms()
-        self._createFormulaGroundings(verbose=verbose)
 
         # set evidence
         self.setEvidence(db.evidence)
         self.softEvidence = db.softEvidence
+        
+        # ground formulas after setting the evidence to apply formula simplification
+        self._createFormulaGroundings(verbose=verbose)
+
 
     def __getattr__(self, attr):
         # forward attribute access to the MLN (yes, it's a hack)
@@ -1065,7 +1071,11 @@ class MRF(object):
             if verbose: print "  %s" % strFormula(formula)
             #vars = formula.getVariables(self)
             #self._groundFormula(formula, vars, {}, idxFormula)
-            for gndFormula, referencedGndAtoms in formula.iterGroundings(self):
+            for gndFormula, referencedGndAtoms in formula.iterGroundings(self, self.simplify):
+                gndFormula.isHard = formula.isHard
+                gndFormula.weight = formula.weight
+                if isinstance(gndFormula, FOL.TrueFalse):
+                    continue
                 self._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
 
         # materialize all formula weights
