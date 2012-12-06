@@ -178,7 +178,14 @@ class AbstractLearner(object):
         self.wt = self._projectVectorToNonFixedWeightIndices(wt)
         
         self.params.update(params)
-        self._prepareOpt()
+        for i, db in enumerate(self.dbs):
+            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
+            mrf = self.mln.groundMRF(db)
+            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
+            self.learners.append(learner)
+            learner._prepareOpt()
+    
+#        self._prepareOpt()
         self._optimize(**params)
             
         return self.wt
@@ -276,14 +283,16 @@ class MultipleDatabaseLearner(AbstractLearner):
         self.params = params
         
         self.learners = []
-        for i, db in enumerate(self.dbs):
-            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
-            mrf = self.mln.groundMRF(db)
-            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
-            self.learners.append(learner)
-    
+#        for i, db in enumerate(self.dbs):
+#            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
+#            mrf = self.mln.groundMRF(db)
+#            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
+#            self.learners.append(learner)
+#            learner._prepareOpt()
+#    
     def getName(self):
-        return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
+        return ''
+#        return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
     
     def _f(self, wt):
         likelihood = 0

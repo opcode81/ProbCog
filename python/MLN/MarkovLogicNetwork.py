@@ -1064,13 +1064,11 @@ class MRF(object):
     def _createFormulaGroundings(self, verbose=False):
         self.gndFormulas = []
         self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
-
+        
         # generate all groundings
         if verbose: print "grounding formulas..."
         for idxFormula, formula in enumerate(self.formulas):
             if verbose: print "  %s" % strFormula(formula)
-            #vars = formula.getVariables(self)
-            #self._groundFormula(formula, vars, {}, idxFormula)
             for gndFormula, referencedGndAtoms in formula.iterGroundings(self, self.simplify):
                 gndFormula.isHard = formula.isHard
                 gndFormula.weight = formula.weight
@@ -1136,10 +1134,12 @@ class MRF(object):
         remove data on ground formulas to save space (e.g. because the necessary statistics were already collected and the actual formulas
         are no longer needed)
         '''
-        self.gndFormulas = None
-        self.gndAtomOccurrencesInGFs = None
+        del self.gndFormulas
+        del self.gndAtomOccurrencesInGFs
+        del self.mln.gndFormulas
+        del self.mln.gndAtomOccurrencesInGFs
         if hasattr(self, "blockRelevantGFs"):
-            self.blockRelevantGFs = None
+            del self.blockRelevantGFs
 
     def _addFormula(self, formula, weight):
         idxFormula = len(self.formulas)
