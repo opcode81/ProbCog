@@ -65,9 +65,6 @@ to try out some inference tasks.
 
 In the ./examples/meals/ directory, you can also try out learning.
 To train a BLN or MLN model run "blnlearn" or "mlnlearn". 
-There is an example training database called "train.blogdb", which
-was generated from the scripted stochastic process in "gen.py" (a Python/Jython script). 
-You can use the application "genDB" to generate such a database from the generator script.
 
 
 *** Further Reading ***
