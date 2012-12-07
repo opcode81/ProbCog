@@ -178,14 +178,8 @@ class AbstractLearner(object):
         self.wt = self._projectVectorToNonFixedWeightIndices(wt)
         
         self.params.update(params)
-        for i, db in enumerate(self.dbs):
-            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
-            mrf = self.mln.groundMRF(db)
-            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
-            self.learners.append(learner)
-            learner._prepareOpt()
     
-#        self._prepareOpt()
+        self._prepareOpt()
         self._optimize(**params)
             
         return self.wt
@@ -283,16 +277,15 @@ class MultipleDatabaseLearner(AbstractLearner):
         self.params = params
         
         self.learners = []
-#        for i, db in enumerate(self.dbs):
-#            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
-#            mrf = self.mln.groundMRF(db)
-#            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
-#            self.learners.append(learner)
-#            learner._prepareOpt()
-#    
+        for i, db in enumerate(self.dbs):
+            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
+            mrf = self.mln.groundMRF(db)
+            learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
+            self.learners.append(learner)
+            learner._prepareOpt()
+    
     def getName(self):
-        return ''
-#        return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
+        return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
     
     def _f(self, wt):
         likelihood = 0
@@ -316,8 +309,7 @@ class MultipleDatabaseLearner(AbstractLearner):
         return hessian
 
     def _prepareOpt(self):
-        for learner in self.learners:
-            learner._prepareOpt()
+        pass # _prepareOpt is called for individual learners during construction
     
     def _fixFormulaWeights(self):
         self._fixedWeightFormulas = {}
