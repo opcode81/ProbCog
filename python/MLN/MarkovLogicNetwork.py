@@ -133,7 +133,6 @@ class MLN(object):
         t_start = time.time()
         self.domains = {}
         self.predicates = {}
-        self.rigidPredicates = []
         self.formulas = []
         self.blocks = {}
         self.domDecls = []
@@ -769,9 +768,6 @@ class MLN(object):
     def printFormulas(self):
         for f in self.formulas:
             print "%7.3f  %s" % (f.weight, strFormula(f))
-
-    def setRigidPredicate(self, predName):
-        self.rigidPredicates.append(predName)
 
 
 class Database(object):
@@ -1421,18 +1417,8 @@ class MRF(object):
             return
         # values that can be set for the truth value of the ground atom with index idx
         possible_settings = [True, False]
-        # check for rigid predicates: for rigid predicates, we consider both values only if the evidence value is
-        # unknown, otherwise we use the evidence value
-        restricted = False
-        if True:
-            gndAtom = self.gndAtomsByIdx[idx]
-            if gndAtom.predName in self.rigidPredicates:
-                v = self._getEvidence(idx, False)
-                if v != None:
-                    possible_settings = [v]
-                    restricted = True
         # check if setting the truth value for idx is critical for a block (which is the case when idx is the highest index in a block)
-        if not restricted and idx in self.gndBlockLookup and POSSWORLDS_BLOCKING:
+        if idx in self.gndBlockLookup and POSSWORLDS_BLOCKING:
             block = self.gndBlocks[self.gndBlockLookup[idx]]
             if idx == max(block):
                 # count number of true values already set
