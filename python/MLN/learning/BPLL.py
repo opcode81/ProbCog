@@ -71,9 +71,13 @@ class BPLL(PLL):
         for idxFormula in relevantFormulas:            
             for idxValue, n in enumerate(self.fcounts[idxFormula][idxVar]):
                 sums[idxValue] += n * wt[idxFormula]
-        expsums = numpy.exp(sums)
-        s = fsum(expsums)
-        return expsums / s
+        sum_min = numpy.min(sums)
+        sums -= sum_min
+        sum_max = numpy.max(sums)
+        sums -= sum_max
+        expsums = fsum(numpy.exp(sums))
+        s = numpy.log(expsums)
+        return numpy.exp(sums - s)
     
     def _calculateBlockProbsMB(self, wt):
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
