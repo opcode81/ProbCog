@@ -25,6 +25,7 @@
 
 from PLL import *
 from collections import defaultdict
+import numpy
 
 class BPLL(PLL):
     '''
@@ -75,7 +76,7 @@ class BPLL(PLL):
         sums -= sum_min
         sum_max = numpy.max(sums)
         sums -= sum_max
-        expsums = fsum(numpy.exp(sums))
+        expsums = numpy.sum(numpy.exp(sums))
         s = numpy.log(expsums)
         return numpy.exp(sums - s)
     
