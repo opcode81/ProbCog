@@ -280,8 +280,9 @@ class MultipleDatabaseLearner(AbstractLearner):
         
         self.learners = []
         for i, db in enumerate(self.dbs):
-            print "grounding MRF for database %d/%d..." % (i+1, len(self.dbs))
-            mrf = self.mln.groundMRF(db)
+            groundingMethod = eval('MLN.learning.%s.groundingMethod' % self.constructor)
+            print "grounding MRF for database %d/%d using %s..." % (i+1, len(self.dbs), groundingMethod)
+            mrf = self.mln.groundMRF(db, method=groundingMethod)
             learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
             self.learners.append(learner)
             learner._prepareOpt()
