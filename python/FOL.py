@@ -331,7 +331,7 @@ class Lit(Formula):
             return [Lit(self.negated, self.predName, params)]
 
 class GroundAtom(Formula):
-    def __init__(self, predName, params, idx):
+    def __init__(self, predName, params, idx=None):
         self.predName = predName
         self.params = params
         self.idx = idx
