@@ -35,6 +35,8 @@ except:
 
 class AbstractLearner(object):
     
+    groundingMethod = 'DefaultGroundingFactory'
+    
     def __init__(self, mrf, gaussianPriorSigma=None, **params):
         self.mln = mrf # only for backward compatibility of implementations
         self.mrf = mrf

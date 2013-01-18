@@ -90,7 +90,7 @@ from inference import *
 from util import *
 from methods import *
 import learning
-
+from grounding import *
 
 POSSWORLDS_BLOCKING = True
 
@@ -459,12 +459,12 @@ class MLN(object):
         self._createFormulaGroundings(verbose)
         if verbose: print "ground formulas: %d" % len(self.gndFormulas)
 
-    def groundMRF(self, db, verbose=False, simplify=False):
+    def groundMRF(self, db, verbose=False, simplify=False, method='DefaultGroundingFactory'):
         '''
             creates and returns a ground Markov random field for the given database
                 db: database filename (string) or Database object
         '''
-        self.mrf = MRF(self, db, verbose=verbose, simplify=simplify)
+        self.mrf = MRF(self, db, verbose=verbose, simplify=simplify, groundingMethod=method)
         return self.mrf
 
     def combineOverwrite(self, domain, verbose=False, groundFormulas=True):
@@ -695,7 +695,7 @@ class MLN(object):
         # run learner
         if len(dbs) == 1:
             print "grounding MRF..." 
-            mrf = self.groundMRF(dbs[0])
+            mrf = self.groundMRF(dbs[0], method=eval('learning.%s.groundingMethod'))
             learner = eval("learning.%s(mrf, **params)" % method)
         else:
             learner = learning.MultipleDatabaseLearner(self, method, dbs, **params)
@@ -932,7 +932,7 @@ class MRF(object):
 
     '''
 
-    def __init__(self, mln, db, verbose=False, simplify=False):
+    def __init__(self, mln, db, verbose=False, simplify=False, groundingMethod='DefaultGroundingFactory'):
         '''
         db: database filename (.db) or a Database object
         '''
@@ -941,6 +941,14 @@ class MRF(object):
         self.evidenceBackup = {}
         self.softEvidence = list(mln.posteriorProbReqs) # constraints on posterior probabilities are nothing but soft evidence and can be handled in exactly the same way
         self.simplify = simplify
+        
+         # ground members
+        self.gndAtoms = {}
+        self.gndBlockLookup = {}
+        self.gndBlocks = {}
+        self.gndAtomsByIdx = {}
+        self.gndFormulas = []
+        self.gndAtomOccurrencesInGFs = []
         
         if type(db) == str:
             db = Database(self.mln, db)
@@ -959,69 +967,73 @@ class MRF(object):
             self.mln._materializeFormulaTemplates(verbose)
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
+        groundingMethod = eval('%s(self, db)' % groundingMethod)
+        self.groundingMethod = groundingMethod
+        groundingMethod.groundMRF()
         # ground atoms
-        self._generateGroundAtoms()
+#        self._generateGroundAtoms()
 
         # set evidence
-        self.setEvidence(db.evidence)
-        self.softEvidence = db.softEvidence
+#        self.setEvidence(db.evidence)
+#        self.softEvidence = db.softEvidence
+        
         
         # ground formulas after setting the evidence to apply formula simplification
-        self._createFormulaGroundings(verbose=verbose)
+#        self._createFormulaGroundings(verbose=verbose)
 
 
     def __getattr__(self, attr):
         # forward attribute access to the MLN (yes, it's a hack)
         return self.mln.__getattribute__(attr)
 
-    def _generateGroundAtoms(self):
-        self.gndAtoms = {}
-        self.gndBlockLookup = {}
-        self.gndBlocks = {}
-
-        # create ground atoms
-        atoms = []
-        for predName, domNames in self.mln.predicates.iteritems():
-            self._groundAtoms([], predName, domNames)
-
-        # create reverse lookup
-        self.gndAtomsByIdx = dict([(g.idx, g) for g in self.gndAtoms.values()])
-
-        # for backward compatibility with older code, transfer the members to the MLN
-        self.mln.gndAtoms = self.gndAtoms
-        self.mln.gndBlockLookup = self.gndBlockLookup
-        self.mln.gndBlocks = self.gndBlocks
-
-    def _groundAtoms(self, cur, predName, domNames):
-        # if there are no more parameters to ground, we're done
-        if domNames == []:
-            idxAtom = len(self.gndAtoms)
-
-            # add atom
-            gndAtom = "%s(%s)" % (predName, ",".join(cur))
-            #print gndAtom
-            self.gndAtoms[gndAtom] = FOL.GroundAtom(predName, cur, idxAtom)
-
-            # check if atom is in block
-            mutex = self.mln.blocks.get(predName)
-            if mutex != None:
-                blockName = "%s_" % predName
-                for i, v in enumerate(mutex):
-                    if v == False:
-                        blockName += cur[i]
-                if not blockName in self.gndBlocks:
-                    self.gndBlocks[blockName] = []
-                self.gndBlocks[blockName].append(idxAtom)
-                self.gndBlockLookup[idxAtom] = blockName
-
-            return
-
-        # create ground atoms for each way of grounding the first of the remaining variables whose domains are given in domNames
-        dom = self.domains.get(domNames[0])
-        if dom is None or len(dom) == 0:
-            raise Exception("Domain '%s' is empty!" % domNames[0])
-        for value in dom:
-            self._groundAtoms(cur + [value], predName, domNames[1:])
+#    def _generateGroundAtoms(self):
+#        self.gndAtoms = {}
+#        self.gndBlockLookup = {}
+#        self.gndBlocks = {}
+#
+#        # create ground atoms
+#        atoms = []
+#        for predName, domNames in self.mln.predicates.iteritems():
+#            self._groundAtoms([], predName, domNames)
+#
+#        # create reverse lookup
+#        self.gndAtomsByIdx = dict([(g.idx, g) for g in self.gndAtoms.values()])
+#
+#        # for backward compatibility with older code, transfer the members to the MLN
+#        self.mln.gndAtoms = self.gndAtoms
+#        self.mln.gndBlockLookup = self.gndBlockLookup
+#        self.mln.gndBlocks = self.gndBlocks
+#
+#    def _groundAtoms(self, cur, predName, domNames):
+#        # if there are no more parameters to ground, we're done
+#        if domNames == []:
+#            idxAtom = len(self.gndAtoms)
+#
+#            # add atom
+#            gndAtom = "%s(%s)" % (predName, ",".join(cur))
+#            #print gndAtom
+#            self.gndAtoms[gndAtom] = FOL.GroundAtom(predName, cur, idxAtom)
+#
+#            # check if atom is in block
+#            mutex = self.mln.blocks.get(predName)
+#            if mutex != None:
+#                blockName = "%s_" % predName
+#                for i, v in enumerate(mutex):
+#                    if v == False:
+#                        blockName += cur[i]
+#                if not blockName in self.gndBlocks:
+#                    self.gndBlocks[blockName] = []
+#                self.gndBlocks[blockName].append(idxAtom)
+#                self.gndBlockLookup[idxAtom] = blockName
+#
+#            return
+#
+#        # create ground atoms for each way of grounding the first of the remaining variables whose domains are given in domNames
+#        dom = self.domains.get(domNames[0])
+#        if dom is None or len(dom) == 0:
+#            raise Exception("Domain '%s' is empty!" % domNames[0])
+#        for value in dom:
+#            self._groundAtoms(cur + [value], predName, domNames[1:])
 
     def _getPredGroundings(self, predName):
         '''
@@ -1061,59 +1073,85 @@ class MRF(object):
         idxFirst = self.gndAtoms[gndAtom].idx
         return range(idxFirst, idxFirst + numGroundings)
 
-    def _createFormulaGroundings(self, verbose=False):
-        self.gndFormulas = []
-        self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
+#    def _createFormulaGroundings(self, verbose=False):
+#        self.gndFormulas = []
+#        self.gndAtomOccurrencesInGFs = [[] for i in range(len(self.gndAtoms))]
+#        
+#        # generate all groundings
+#        if verbose: print "grounding formulas..."
+#        for idxFormula, formula in enumerate(self.formulas):
+#            if verbose: print "  %s" % strFormula(formula)
+#            for gndFormula, referencedGndAtoms in formula.iterGroundings(self, self.simplify):
+#                gndFormula.isHard = formula.isHard
+#                gndFormula.weight = formula.weight
+#                if isinstance(gndFormula, FOL.TrueFalse):
+#                    continue
+#                self._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
+#
+#        # materialize all formula weights
+#        max_weight = 0
+#        for f in self.formulas:
+#            if f.weight is not None:
+#                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (old AMLN learning?)
+#                    f.weight = f.complexWeight
+#                w = str(f.weight)
+#                f.complexWeight = w
+#                while "$" in w:
+#                    try:
+#                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
+#                    except:
+#                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
+#                        raise
+#                    if numReplacements == 0:
+#                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
+#                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
+#                try:
+#                    f.weight = eval(w)
+#                except:
+#                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
+#                    raise
+#                max_weight = max(abs(f.weight), max_weight)
+#
+#        # set weights of hard formulas
+#        hard_weight = 20 + max_weight
+#        if verbose: print "setting %d hard weights to %f" % (len(self.hard_formulas), hard_weight)
+#        for f in self.hard_formulas:
+#            if verbose: print "  ", strFormula(f)
+#            f.weight = hard_weight
+#        if verbose:
+#            pass
+#            #self.printGroundFormulas()
+#            #self.mln.printFormulas()
+#
+#        # for backward compatibility with older code, transfer the members to the MLN
+#        self.mln.gndFormulas = self.gndFormulas
+#        self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
+
+    def addGroundAtom(self, gndAtom):
+        '''
+        Adds a ground atom to the set (actually it's a dict) of ground atoms.
+        gndAtom: a FOL.GroundAtom object
+        '''
+        if str(gndAtom) in self.gndAtoms:
+            return
+
+        atomIdx = len(self.gndAtoms)
+        gndAtom.idx = atomIdx
+        self.gndAtomsByIdx[gndAtom.idx] = gndAtom
+        self.gndAtoms[str(gndAtom)] = gndAtom
+        self.gndAtomOccurrencesInGFs.append([])
         
-        # generate all groundings
-        if verbose: print "grounding formulas..."
-        for idxFormula, formula in enumerate(self.formulas):
-            if verbose: print "  %s" % strFormula(formula)
-            for gndFormula, referencedGndAtoms in formula.iterGroundings(self, self.simplify):
-                gndFormula.isHard = formula.isHard
-                gndFormula.weight = formula.weight
-                if isinstance(gndFormula, FOL.TrueFalse):
-                    continue
-                self._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
-
-        # materialize all formula weights
-        max_weight = 0
-        for f in self.formulas:
-            if f.weight is not None:
-                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (old AMLN learning?)
-                    f.weight = f.complexWeight
-                w = str(f.weight)
-                f.complexWeight = w
-                while "$" in w:
-                    try:
-                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
-                    except:
-                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
-                        raise
-                    if numReplacements == 0:
-                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
-                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
-                try:
-                    f.weight = eval(w)
-                except:
-                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
-                    raise
-                max_weight = max(abs(f.weight), max_weight)
-
-        # set weights of hard formulas
-        hard_weight = 20 + max_weight
-        if verbose: print "setting %d hard weights to %f" % (len(self.hard_formulas), hard_weight)
-        for f in self.hard_formulas:
-            if verbose: print "  ", strFormula(f)
-            f.weight = hard_weight
-        if verbose:
-            pass
-            #self.printGroundFormulas()
-            #self.mln.printFormulas()
-
-        # for backward compatibility with older code, transfer the members to the MLN
-        self.mln.gndFormulas = self.gndFormulas
-        self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
+        # check if atom is in block and update the lookup
+        mutex = self.mln.blocks.get(gndAtom.predName)
+        if mutex != None:
+            blockName = "%s_" % gndAtom.predName
+            for i, v in enumerate(mutex):
+                if v == False:
+                    blockName += gndAtom.params[i]
+            if not blockName in self.gndBlocks:
+                self.gndBlocks[blockName] = []
+            self.gndBlocks[blockName].append(gndAtom.idx)
+            self.gndBlockLookup[gndAtom.idx] = blockName
 
     def _addGroundFormula(self, gndFormula, idxFormula, idxGndAtoms = None):
         '''
