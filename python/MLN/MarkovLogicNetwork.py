@@ -464,6 +464,7 @@ class MLN(object):
             creates and returns a ground Markov random field for the given database
                 db: database filename (string) or Database object
         '''
+        print method
         self.mrf = MRF(self, db, verbose=verbose, simplify=simplify, groundingMethod=method)
         return self.mrf
 
@@ -694,8 +695,9 @@ class MLN(object):
         
         # run learner
         if len(dbs) == 1:
-            print "grounding MRF..." 
-            mrf = self.groundMRF(dbs[0], method=eval('learning.%s.groundingMethod'))
+            groundingMethod = eval('learning.%s.groundingMethod')
+            print "grounding MRF using %s..." % groundingMethod 
+            mrf = self.groundMRF(dbs[0], groundingMethod)
             learner = eval("learning.%s(mrf, **params)" % method)
         else:
             learner = learning.MultipleDatabaseLearner(self, method, dbs, **params)
@@ -968,8 +970,9 @@ class MRF(object):
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
         groundingMethod = eval('%s(self, db)' % groundingMethod)
+        print groundingMethod
         self.groundingMethod = groundingMethod
-        groundingMethod.groundMRF()
+        groundingMethod.groundMRF(verbose=verbose)
         # ground atoms
 #        self._generateGroundAtoms()
 
