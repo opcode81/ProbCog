@@ -1,1 +1,2 @@
-from AbstractGrounding import DefaultGroundingFactory
+from AbstractGrounding import *
+from bpll import *

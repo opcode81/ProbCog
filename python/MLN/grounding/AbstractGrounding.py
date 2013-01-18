@@ -31,17 +31,17 @@ class AbstractGroundingFactory(object):
         self.mln = mrf.mln
         self.db = db
         
-    def _createGroundAtoms(self):
+    def _createGroundAtoms(self, verbose=False):
         raise Exception('Not implemented')
     
-    def _createGroundFormulas(self):
+    def _createGroundFormulas(self, verbose=False):
         raise Exception('Not implemented')
 
-    def groundMRF(self):
-        self._createGroundAtoms()
+    def groundMRF(self, verbose=False):
+        self._createGroundAtoms(verbose)
         self.mrf.setEvidence(self.db.evidence)
         self.mrf.softEvidence = self.db.softEvidence
-        self._createGroundFormulas()
+        self._createGroundFormulas(verbose)
         return self.mrf
         
 
@@ -51,11 +51,11 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
     creates ALL ground atoms and ALL ground formulas.
     '''
     
-    def _createGroundAtoms(self):
+    def _createGroundAtoms(self, verbose=False):
         # create ground atoms
         atoms = []
         for predName, domNames in self.mln.predicates.iteritems():
-            self._groundAtoms([], predName, domNames)
+            self._groundAtoms([], predName, domNames, verbose)
 
     def _groundAtoms(self, cur, predName, domNames, verbose=False):
         # if there are no more parameters to ground, we're done
