@@ -695,9 +695,9 @@ class MLN(object):
         
         # run learner
         if len(dbs) == 1:
-            groundingMethod = eval('learning.%s.groundingMethod')
+            groundingMethod = eval('learning.%s.groundingMethod' % method)
             print "grounding MRF using %s..." % groundingMethod 
-            mrf = self.groundMRF(dbs[0], groundingMethod)
+            mrf = self.groundMRF(dbs[0], method=groundingMethod)
             learner = eval("learning.%s(mrf, **params)" % method)
         else:
             learner = learning.MultipleDatabaseLearner(self, method, dbs, **params)
@@ -961,8 +961,8 @@ class MRF(object):
 
         # get combined domain
         self.domains = mergeDomains(mln.domains, db.domains)
-        #print "MLN domains: ", self.mln.domains
-        #print "MRF domains: ", self.domains
+#        print "MLN domains: ", self.mln.domains
+#        print "MRF domains: ", self.domains
 
         # materialize MLN formulas
         if not self.mln.materializedTemplates:
@@ -970,7 +970,6 @@ class MRF(object):
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
         groundingMethod = eval('%s(self, db)' % groundingMethod)
-        print groundingMethod
         self.groundingMethod = groundingMethod
         groundingMethod.groundMRF(verbose=verbose)
         # ground atoms

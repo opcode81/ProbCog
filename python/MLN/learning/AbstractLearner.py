@@ -99,8 +99,8 @@ class AbstractLearner(object):
         # reconstruct full weight vector
         wt = self._reconstructFullWeightVectorWithFixedWeights(wt)
         wt = self._convertToFloatVector(wt)
-        print "_f: wt = ", wt
-        sys.stdout.flush()
+#        print "_f: wt = ", wt
+#        sys.stdout.flush()
         
         # compute likelihood
         likelihood = self._f(wt)
