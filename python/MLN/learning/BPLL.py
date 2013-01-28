@@ -37,9 +37,13 @@ class BPLL(PLL):
     on a sufficient statistic.
     '''    
     
+    groundingMethod = 'BPLLGroundingFactory'
+    
     def __init__(self, mrf, **params):
         PLL.__init__(self, mrf, **params)
-
+        self.fcounts = mrf.groundingMethod.fcounts
+        self.blockRelevantFormulas = mrf.groundingMethod.blockRelevantFormulas
+        
     def _prepareOpt(self):
         print "constructing blocks..."
         self.mrf._getPllBlocks()
@@ -49,14 +53,14 @@ class BPLL(PLL):
         self.mrf.removeGroundFormulaData()
         self.mrf.atom2BlockIdx = None
     
-    def _addMBCount(self, idxVar, size, idxValue, idxWeight):
+    def _addMBCount(self, idxVar, size, idxValue, idxWeight, increment=1):
         self.blockRelevantFormulas[idxVar].add(idxWeight)
         if idxWeight not in self.fcounts:
             self.fcounts[idxWeight] = {}
         d = self.fcounts[idxWeight]
         if idxVar not in d:
             d[idxVar] = [0] * size
-        d[idxVar][idxValue] += 1
+        d[idxVar][idxValue] += increment
 
     def _getBlockProbMB(self, idxVar, wt):        
         (idxGA, block) = self.mrf.pllBlocks[idxVar]
@@ -133,8 +137,8 @@ class BPLL(PLL):
                 self.evidenceIndices.append(idxValueTrueone)
         
         # compute actual statistics
-        self.fcounts = {}        
-        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
+#        self.fcounts = {}        
+#        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
         for idxGndFormula, gndFormula in enumerate(self.mrf.gndFormulas):
             if debug:
