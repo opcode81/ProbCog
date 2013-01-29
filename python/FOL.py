@@ -129,6 +129,35 @@ class Formula(Constraint):
         for grounding, referencedGndAtoms in self._iterGroundings(mrf, vars, {}, simplify):
             yield grounding, referencedGndAtoms
         
+    def iterTrueVariableAssignments(self, mrf, world):
+        '''
+        Iteratively yields the variable assignments (as a dict) for which this
+        formula is true. Same as iterGroundings, but returns variable mappings
+        for only assignments rendering this formula true.
+        '''
+        try:
+            vars = self.getVariables(mrf.mln)
+        except Exception, e:
+            raise Exception("Error grounding '%s': %s" % (str(self), str(e)))
+        for assignment in self._iterTrueVariableAssignments(mrf, vars, {}, world):
+            yield assignment
+    
+    def _iterTrueVariableAssignments(self, mrf, variables, assignment, world):
+        # if all variables have been grounded...
+        if variables == {}:
+            referencedGndAtoms = []
+            gndFormula = self.ground(mrf, assignment, referencedGndAtoms)
+            if gndFormula.isTrue(world):
+                yield assignment
+            return
+        # ground the first variable...
+        varname, domName = variables.popitem()
+        for value in mrf.domains[domName]: # replacing it with one of the constants
+            assignment[varname] = value
+            # recursive descent to ground further variables
+            for assignment in self._iterTrueVariableAssignments(mrf, dict(variables), assignment, world):
+                yield assignment
+                
     def _iterGroundings(self, mrf, variables, assignment, simplify=False):
         # if all variables have been grounded...
         if variables == {}:

@@ -910,6 +910,10 @@ class Database(object):
                 if gf.isTrue(self.evidence):
                     numTrue += 1
             return (numTrue, numTotal)
+        
+        def iterTrueVariableAssignments(self, formula):
+            for assignment in formula.iterTrueVariableAssignments(self, self.evidence):
+                yield assignment
 
 class MRF(object):
     '''
