@@ -822,7 +822,7 @@ class Equality(Formula):
         return "%s=%s" % (str(self.params[0]), str(self.params[1]))
 
     def ground(self, mrf, assignment, referencedGndAtoms = None):
-        params = map(lambda x: {True: assignment.get(x), False: x}[x[0].islower()], self.params) # if the parameter is a variable (lower case), do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
+        params = map(lambda x: {True: assignment.get(x), False: x}[isVar(x[0])], self.params) # if the parameter is a variable, do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
         if None in params: raise Exception("At least one variable was not grounded in '%s'!" % str(self))
         return TrueFalse(params[0] == params[1])
 
