@@ -287,7 +287,7 @@ class MLN(object):
                             formula = line[:-1]
                         else: # with weight
                             spacepos = line.find(' ')
-                            weight = line[:spacepos]
+                            weight = float(line[:spacepos])
                             formula = line[spacepos:].strip()
                         try:
                             formula = FOL.parseFormula(formula)
@@ -464,7 +464,7 @@ class MLN(object):
             creates and returns a ground Markov random field for the given database
                 db: database filename (string) or Database object
         '''
-        print method
+#        print method
         self.mrf = MRF(self, db, verbose=verbose, simplify=simplify, groundingMethod=method)
         return self.mrf
 
