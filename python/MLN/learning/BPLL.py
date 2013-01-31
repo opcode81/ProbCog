@@ -43,14 +43,15 @@ class BPLL(PLL):
         PLL.__init__(self, mrf, **params)
         self.fcounts = mrf.groundingMethod.fcounts
         self.blockRelevantFormulas = mrf.groundingMethod.blockRelevantFormulas
+        self.evidenceIndices = mrf.groundingMethod.evidenceIndices
         
     def _prepareOpt(self):
         print "constructing blocks..."
         self.mrf._getPllBlocks()
         self.mrf._getAtom2BlockIdx()
-        self._computeStatistics()
+#        self._computeStatistics()
         # remove data that is now obsolete
-        self.mrf.removeGroundFormulaData()
+#        self.mrf.removeGroundFormulaData()
         self.mrf.atom2BlockIdx = None
     
     def _addMBCount(self, idxVar, size, idxValue, idxWeight, increment=1):

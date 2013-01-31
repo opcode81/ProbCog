@@ -32,7 +32,7 @@ def isConjunctionOfLiterals(f):
     if not type(f) is Conjunction:
         return False
     for child in f.children:
-        if not isinstance(child, Lit) and not isinstance(child, GroundLit) and not isinstance(child, GroundAtom):
+        if not isinstance(child, Lit):
             return False
     return True
 
@@ -111,57 +111,143 @@ class BPLLGroundingFactory(DefaultGroundingFactory):
         mln = mrf.mln    
         mrf._getPllBlocks()
         mrf._getAtom2BlockIdx()    
-        conjunctions = []
-        otherFormulas = []
-        conjIndices = []
-        otherIndices = []
-        for i, f in enumerate(self.mrf.formulas):
-            if isConjunctionOfLiterals(f):
-                conjunctions.append(f)
-                conjIndices.append(i)
-            else:
-                otherFormulas.append(f)
-                otherIndices.append(i)
-	
+        
         mrf.evidence = map(lambda x: x is True, mrf.evidence)
         self.fcounts = {} 
         self.blockRelevantFormulas = defaultdict(set)
         trueGndAtoms = [self.mrf.gndAtomsByIdx[i] for i, v in enumerate(self.mrf.evidence) if v == True]
         falseGndAtoms = [self.mrf.gndAtomsByIdx[i] for i, v in enumerate(self.mrf.evidence) if v == False]
-        
-        print mln.domains
-        
-        for conjIdx, conj in enumerate(conjunctions):
-            stdout.write('%d/%d\r' % (conjIdx, len(conjunctions)))
+
+        # get evidence indices
+        self.evidenceIndices = []
+        for (idxGA, block) in self.mrf.pllBlocks:
+            if idxGA is not None:
+                self.evidenceIndices.append(0)
+            else:
+                # find out which ga is true in the block
+                idxValueTrueone = -1
+                for idxValue, idxGA in enumerate(block):
+                    if self.mrf._getEvidence(idxGA):
+                        if idxValueTrueone != -1: raise Exception("More than one true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                        idxValueTrueone = idxValue
+                if idxValueTrueone == -1: raise Exception("No true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                self.evidenceIndices.append(idxValueTrueone)
+
+        for fIdx, formula in enumerate(mrf.formulas):
+            stdout.write('%d/%d\r' % (fIdx, len(mrf.formulas)))
             
-            trueAtomAssignments, trueGndAtomIndices = self.getValidVariableAssignments(conj, True, trueGndAtoms)
+            if isConjunctionOfLiterals(formula):
+                trueAtomAssignments, trueGndAtomIndices = self.getValidVariableAssignments(formula, True, trueGndAtoms)
             
-            # generate all true groundings of the conjunction
-            trueGndFormulas = self._generateAllGroundings(trueAtomAssignments, trueGndAtomIndices)
-            for gf in trueGndFormulas:
-                for atomIdx in gf:
-                    idxVar = mrf.atom2BlockIdx[atomIdx]
-                    (idxGA, block) = mrf.pllBlocks[idxVar]
-                    if idxGA is not None:
-                        self._addMBCount(idxVar, 2, 0, conjIndices[conjIdx])
-                    else:
-                        size = len(block)
-                        idxValue = block.index(atomIdx)
-                        self._addMBCount(idxVar, size, idxValue, conjIndices[conjIdx])
-                    
-            # count for each false ground atom the number of ground formulas rendered true if its truth value was inverted
-            falseAtomAssignments, falseGndAtomIndices = self.getValidVariableAssignments(conj, False, falseGndAtoms)
-            
-            for idx, atom in enumerate(falseAtomAssignments):
-                if reduce(lambda x, y: x or y, mln.blocks.get(conj.children[idx].predName, [False])):
-                    continue
-                groundFormulas = self._generateAllGroundings(trueAtomAssignments[:idx] + [falseAtomAssignments[idx]] + trueAtomAssignments[idx+1:], 
-                                                        trueGndAtomIndices[:idx] + [falseGndAtomIndices[idx]] + trueGndAtomIndices[idx+1:])
-                for gf in groundFormulas:
-                    idxVar = mrf.atom2BlockIdx[gf[idx]]
-                    self._addMBCount(idxVar, 2, 1, conjIndices[conjIdx])
+                # generate all true groundings of the conjunction
+                trueGndFormulas = self._generateAllGroundings(trueAtomAssignments, trueGndAtomIndices)
+                for gf in trueGndFormulas:
+                    for atomIdx in gf:
+                        idxVar = mrf.atom2BlockIdx[atomIdx]
+                        (idxGA, block) = mrf.pllBlocks[idxVar]
+                        if idxGA is not None:
+                            self._addMBCount(idxVar, 2, 0, fIdx)
+                        else:
+                            size = len(block)
+                            idxValue = block.index(atomIdx)
+                            self._addMBCount(idxVar, size, idxValue, fIdx)
                         
-            self.createDefaultGroundings(otherFormulas, otherIndices)
+                # count for each false ground atom the number of ground formulas rendered true if its truth value was inverted
+                falseAtomAssignments, falseGndAtomIndices = self.getValidVariableAssignments(formula, False, falseGndAtoms)
+                
+                for idx, atom in enumerate(falseAtomAssignments):
+                    if reduce(lambda x, y: x or y, mln.blocks.get(formula.children[idx].predName, [False])):
+                        continue
+                    groundFormulas = self._generateAllGroundings(trueAtomAssignments[:idx] + [falseAtomAssignments[idx]] + trueAtomAssignments[idx+1:], 
+                                                            trueGndAtomIndices[:idx] + [falseGndAtomIndices[idx]] + trueGndAtomIndices[idx+1:])
+                    for gf in groundFormulas:
+                        idxVar = mrf.atom2BlockIdx[gf[idx]]
+                        self._addMBCount(idxVar, 2, 1, fIdx)
+            else:
+                # go through all ground formulas
+                for gndFormula, _ in formula.iterGroundings(mrf, False):
+                    # get the set of block indices that the variables appearing in the formula correspond to
+                    idxBlocks = set()
+                    for idxGA in gndFormula.idxGroundAtoms():
+#                        if debug: print self.mrf.gndAtomsByIdx[idxGA]
+                        idxBlocks.add(self.mrf.atom2BlockIdx[idxGA])
+                    
+                    for idxVar in idxBlocks:
+                        
+                        (idxGA, block) = self.mrf.pllBlocks[idxVar]
+                    
+                        if idxGA is not None: # ground atom is the variable as it's not in a block
+                            
+                            # check if formula is true if gnd atom maintains its truth value
+                            if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
+                                self._addMBCount(idxVar, 2, 0, fIdx)
+                            
+                            # check if formula is true if gnd atom's truth value is inverted
+                            old_tv = self.mrf._getEvidence(idxGA)
+                            self.mrf._setTemporaryEvidence(idxGA, not old_tv)
+                            if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
+                                self._addMBCount(idxVar, 2, 1, fIdx)
+                            self.mrf._removeTemporaryEvidence()
+                                
+                        else: # the block is the variable (idxGA is None)
+        
+                            size = len(block)
+                            idxGATrueone = block[self.evidenceIndices[idxVar]]
+                            
+                            # check true groundings for each block assigment
+                            for idxValue, idxGA in enumerate(block):
+                                if idxGA != idxGATrueone:
+                                    self.mrf._setTemporaryEvidence(idxGATrueone, False)
+                                    self.mrf._setTemporaryEvidence(idxGA, True)                            
+                                if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
+                                    self._addMBCount(idxVar, size, idxValue, fIdx)
+                                self.mrf._removeTemporaryEvidence()
+        
+        
+#        conjunctions = []
+#        otherFormulas = []
+#        conjIndices = []
+#        otherIndices = []
+#        for i, f in enumerate(self.mrf.formulas):
+#            if isConjunctionOfLiterals(f):
+#                conjunctions.append(f)
+#                conjIndices.append(i)
+#            else:
+#                otherFormulas.append(f)
+#                otherIndices.append(i)
+	
+        
+#        for conjIdx, conj in enumerate(conjunctions):
+#            stdout.write('%d/%d\r' % (conjIdx, len(conjunctions)))
+#            
+#            trueAtomAssignments, trueGndAtomIndices = self.getValidVariableAssignments(conj, True, trueGndAtoms)
+#            
+#            # generate all true groundings of the conjunction
+#            trueGndFormulas = self._generateAllGroundings(trueAtomAssignments, trueGndAtomIndices)
+#            for gf in trueGndFormulas:
+#                for atomIdx in gf:
+#                    idxVar = mrf.atom2BlockIdx[atomIdx]
+#                    (idxGA, block) = mrf.pllBlocks[idxVar]
+#                    if idxGA is not None:
+#                        self._addMBCount(idxVar, 2, 0, conjIndices[conjIdx])
+#                    else:
+#                        size = len(block)
+#                        idxValue = block.index(atomIdx)
+#                        self._addMBCount(idxVar, size, idxValue, conjIndices[conjIdx])
+#                    
+#            # count for each false ground atom the number of ground formulas rendered true if its truth value was inverted
+#            falseAtomAssignments, falseGndAtomIndices = self.getValidVariableAssignments(conj, False, falseGndAtoms)
+#            
+#            for idx, atom in enumerate(falseAtomAssignments):
+#                if reduce(lambda x, y: x or y, mln.blocks.get(conj.children[idx].predName, [False])):
+#                    continue
+#                groundFormulas = self._generateAllGroundings(trueAtomAssignments[:idx] + [falseAtomAssignments[idx]] + trueAtomAssignments[idx+1:], 
+#                                                        trueGndAtomIndices[:idx] + [falseGndAtomIndices[idx]] + trueGndAtomIndices[idx+1:])
+#                for gf in groundFormulas:
+#                    idxVar = mrf.atom2BlockIdx[gf[idx]]
+#                    self._addMBCount(idxVar, 2, 1, conjIndices[conjIdx])
+                        
+#            self.createDefaultGroundings(otherFormulas, otherIndices)
             
     def createDefaultGroundings(self, formulas, indices):
         mrf = self.mrf
