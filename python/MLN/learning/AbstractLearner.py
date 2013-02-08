@@ -143,8 +143,8 @@ class AbstractLearner(object):
         wt = self._convertToFloatVector(wt)
         
         grad = self._grad(wt)
-        print "_grad: wt = %s\ngrad = %s" % (wt, grad)
-        sys.stdout.flush()
+#        print "_grad: wt = %s\ngrad = %s" % (wt, grad)
+#        sys.stdout.flush()
 
         self.lastFullGradient = grad
         

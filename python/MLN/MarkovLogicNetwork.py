@@ -722,9 +722,9 @@ class MLN(object):
             print "fitting with params ", fittingParams
             self._fitProbabilityConstraints(self.probreqs, **fittingParams)
 
-        print "\n// formulas"
-        for formula in self.formulas:
-            print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
+#        print "\n// formulas"
+#        for formula in self.formulas:
+#            print "%f  %s" % (float(eval(str(formula.weight))), strFormula(formula))
 
     def setWeights(self, wt):
         if len(wt) != len(self.formulas):
