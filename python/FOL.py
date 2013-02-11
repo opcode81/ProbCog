@@ -176,7 +176,7 @@ class Formula(Constraint):
     def getVariables(self, mln, vars = None):
         raise Exception("%s does not implement getVariables" % str(type(self)))
     
-    def ground(self, mln, assignment, referencedAtoms = None, simplify=False):
+    def ground(self, mln, assignment, referencedAtoms = None, simplify=False, allowPartialGroundings=False):
         '''grounds the formula using the given assignment of variables to values/constants and, if given a list in referencedAtoms, fills that list with indices of ground atoms that the resulting ground formula uses
                 returns the ground formula object
                 assignment: mapping of variable names to values'''
@@ -210,6 +210,18 @@ class Formula(Constraint):
         '''
         raise Exception('%s does not implement simplify' % str(type(self)))
     
+    def iterLiterals(self):
+        '''
+        Traverses the formula and returns a generator for the literals it contains.
+        ''' 
+        if not hasattr(self, 'children'):
+            yield self
+            return
+        else:
+            for child in self.children:
+                for lit in child.iterLiterals():
+                    yield lit
+    
 # a formula that has other formulas as subelements (children)
 class ComplexFormula(Formula):
     
@@ -237,10 +249,10 @@ class ComplexFormula(Formula):
             constants = child.getConstants(mln, vars)
         return constants  
 
-    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False):
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False, allowPartialGroundings=False):
         children = []
         for child in self.children:
-            gndChild = child.ground(mrf, assignment, referencedGndAtoms)
+            gndChild = child.ground(mrf, assignment, referencedGndAtoms, simplify, allowPartialGroundings)
             children.append(gndChild)
         gndFormula = apply(type(self), (children,))
         if simplify:
@@ -290,6 +302,9 @@ class Lit(Formula):
     def __str__(self):
         return {True:"!", False:""}[self.negated] + self.predName + "(" + ", ".join(self.params) + ")"
 
+    def isTrue(self, world_values):
+        return None
+
     def getVariables(self, mln, vars = None, constants = None):
         if vars == None: vars = {}
         paramDomains = mln.predicates[self.predName]
@@ -332,18 +347,22 @@ class Lit(Formula):
                 vars[varname] = domain
         return vars
 
-    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False):
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False, allowPartialGroundings=False):
         params = map(lambda x: assignment.get(x, x), self.params)
         s = "%s(%s)" % (self.predName, ",".join(params))
         try:
             gndAtom = mrf.gndAtoms[s]
+            gndFormula = GroundLit(gndAtom, self.negated)
+            if referencedGndAtoms != None: referencedGndAtoms.append(gndAtom.idx)
+            return gndFormula
         except:
-            print "\nground atoms:"
-            mrf.printGroundAtoms()
-            raise Exception("Could not ground formula containing '%s' - this atom is not among the ground atoms (see above)." % s)
-        gndFormula = GroundLit(gndAtom, self.negated)
-        if referencedGndAtoms != None: referencedGndAtoms.append(gndAtom.idx)
-        return gndFormula
+            print allowPartialGroundings
+            if allowPartialGroundings:
+                return Lit(self.negated, self.predName, params)
+            else:
+                print "\nground atoms:"
+                mrf.printGroundAtoms()
+                raise Exception("Could not ground formula containing '%s' - this atom is not among the ground atoms (see above)." % s)
 
     def getVarDomain(self, varname, mln):
         '''returns the name of the domain of the given variable'''
@@ -358,6 +377,9 @@ class Lit(Formula):
             return [Lit(False, self.predName, params), Lit(True, self.predName, params)]
         else:
             return [Lit(self.negated, self.predName, params)]
+        
+    def simplify(self, mrf):
+        return self
 
 class GroundAtom(Formula):
     def __init__(self, predName, params, idx=None):
@@ -389,7 +411,7 @@ class GroundLit(Formula):
         self.negated = negated
 
     def isTrue(self, world_values):
-        if self.negated:
+        if self.negated and not world_values[self.gndAtom.idx] is None:
             return (not world_values[self.gndAtom.idx])
         return world_values[self.gndAtom.idx]
 
@@ -432,10 +454,16 @@ class Disjunction(ComplexFormula):
         return "("+" v ".join(map(str, self.children))+")"
 
     def isTrue(self, world_values):
+        dontKnow = False
         for child in self.children:
             if child.isTrue(world_values):
                 return True
-        return False
+            if child.isTrue(world_values) is None:
+                dontKnow = True
+        if dontKnow:
+            return None
+        else:
+            return False
         
     def toCNF(self, level=0):
         if DEBUG_NF: print "%-8s %*c%s" % ("disj", level*2, ' ', str(self))
@@ -539,10 +567,16 @@ class Conjunction(ComplexFormula):
         return "("+" ^ ".join(map(str, self.children))+")"
 
     def isTrue(self, world_values):
+        dontKnow = False
         for child in self.children:
-            if not child.isTrue(world_values):
+            if child.isTrue(world_values) is False:
                 return False
-        return True
+            if child.isTrue(world_values) is None:
+                dontKnow = True
+        if dontKnow:
+            return None
+        else:
+            return True
     
     def toCNF(self, level=0):
         if DEBUG_NF: print "%-8s %*c%s" % ("conj", level*2, ' ', str(self))
@@ -632,6 +666,10 @@ class Implication(ComplexFormula):
         return "(" + str(self.children[0]) + " => " + str(self.children[1]) + ")"
 
     def isTrue(self, world_values):
+        if self.children[0].isTrue(world_values) is None:
+            return None
+        elif self.children[0].isTrue(world_values):
+            return self.children[1].isTrue(world_values)
         return ((not self.children[0].isTrue(world_values)) or self.children[1].isTrue(world_values))
         
     def toCNF(self, level=0):
@@ -657,6 +695,8 @@ class Biimplication(ComplexFormula):
         return "(" + str(self.children[0]) + " <=> " + str(self.children[1]) + ")"
 
     def isTrue(self, world_values):
+        if self.children[0].isTrue(world_values) is None or self.children[1].isTrue(world_values) is None:
+            return None
         return (self.children[0].isTrue(world_values) == self.children[1].isTrue(world_values))
     
     def toCNF(self, level=0):
@@ -684,6 +724,8 @@ class Negation(ComplexFormula):
         return "!(" + str(self.children[0]) + ")"
 
     def isTrue(self, world_values):
+        if self.children[0].isTrue(world_values) is None:
+            return None
         return not self.children[0].isTrue(world_values)
     
     def toCNF(self, level=0):
@@ -774,7 +816,7 @@ class Exist(ComplexFormula):
         vars.update(newvars)
         return vars
         
-    def ground(self, mrf, assignment, referencedGroundAtoms = None):
+    def ground(self, mrf, assignment, referencedGroundAtoms = None, allowPartialGroundings=False):
         assert len(self.children) == 1
         # find out variable domains
         vars = {}
@@ -821,9 +863,14 @@ class Equality(Formula):
     def __str__(self):
         return "%s=%s" % (str(self.params[0]), str(self.params[1]))
 
-    def ground(self, mrf, assignment, referencedGndAtoms = None):
-        params = map(lambda x: {True: assignment.get(x), False: x}[isVar(x[0])], self.params) # if the parameter is a variable, do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
-        if None in params: raise Exception("At least one variable was not grounded in '%s'!" % str(self))
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False, allowPartialGroundings=False):
+        params = map(lambda x: assignment.get(x, x), self.params) # if the parameter is a variable, do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
+        if isVar(params[0]) or isVar(params[1]):
+            if allowPartialGroundings:
+                return Equality(params)
+            else: raise Exception("At least one variable was not grounded in '%s'!" % str(self))
+#        params = map(lambda x: {True: assignment.get(x), False: x}[isVar(x[0])], self.params) # if the parameter is a variable, do a lookup (it must be bound by now), otherwise it's a constant which we can use directly
+#        if None in params: raise Exception("At least one variable was not grounded in '%s'!" % str(self))
         return TrueFalse(params[0] == params[1])
 
     def _groundTemplate(self, assignment):
@@ -844,6 +891,9 @@ class Equality(Formula):
                     if domain not in constants: constants[domain] = []
                     constants[domain].append(p)
         return vars
+    
+    def toNNF(self, level=0):
+        return 
     
     def getVarDomain(self, varname, mln):
         return None
