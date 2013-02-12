@@ -356,7 +356,6 @@ class Lit(Formula):
             if referencedGndAtoms != None: referencedGndAtoms.append(gndAtom.idx)
             return gndFormula
         except:
-            print allowPartialGroundings
             if allowPartialGroundings:
                 return Lit(self.negated, self.predName, params)
             else:
