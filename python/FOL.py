@@ -173,7 +173,7 @@ class Formula(Constraint):
             for g, r in self._iterGroundings(mrf, dict(variables), assignment, simplify):
                 yield g, r
     
-    def getVariables(self, mln, vars = None):
+    def getVariables(self, mln, vars = None, constants=None):
         raise Exception("%s does not implement getVariables" % str(type(self)))
     
     def ground(self, mln, assignment, referencedAtoms = None, simplify=False, allowPartialGroundings=False):
@@ -310,7 +310,7 @@ class Lit(Formula):
         paramDomains = mln.predicates[self.predName]
         if len(paramDomains) != len(self.params): raise Exception("Wrong number of parameters in '%s'; expected %d!" % (str(self), len(paramDomains)))
         for i,param in enumerate(self.params):
-            if isVar(param[0]):
+            if isVar(param):
                 varname = param
                 domain = paramDomains[i]
                 if varname in vars and vars[varname] != domain:
@@ -419,6 +419,13 @@ class GroundLit(Formula):
 
     def containsGndAtom(self, idxGndAtom):
         return (self.gndAtom.idx == idxGndAtom)
+    
+    def getVariables(self, mln, vars=None, constants=None):
+        if vars is None: vars = {}
+        return vars
+    
+    def getVarDomain(self, varname, mln):
+        return None
 
     def idxGroundAtoms(self, l = None):
         if l == None: l = []
@@ -434,6 +441,9 @@ class GroundLit(Formula):
         if self.negated:
             return Negation([self.gndAtom]).toRRF()
         return self.gndAtom.toRRF()
+
+    def ground(self, mrf, assignment, referencedGndAtoms = None, simplify=False, allowPartialGroundings=False):
+        return GroundLit(self.gndAtom, self.negated)
 
     def simplify(self, mrf):
         f = self.gndAtom.simplify(mrf)
