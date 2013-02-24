@@ -120,10 +120,10 @@ class MCSAT(MCMCInference):
         saveHistoryFile: if not None, save history to given filename
         sampleCallback: function that is called for every sample with the sample and step number as parameters
         softEvidence: if None, use soft evidence from MLN, otherwise use given dictionary of soft evidence
-        handleSoftEvidence: if False, ignore all soft evidence in the MCMC sampling (but still compute softe evidence statistics is soft evidence is there)
+        handleSoftEvidence: if False, ignore all soft evidence in the MCMC sampling (but still compute softe evidence statistics if soft evidence is there)
         '''
         
-        if verbose: print "starting MC-SAT with maxSteps=%d" % maxSteps
+        if verbose: print "starting MC-SAT with maxSteps=%d, handleSoftEvidence=%s" % (maxSteps, handleSoftEvidence)
         if softEvidence is None:
             self.softEvidence = self.mln.softEvidence
         else:
