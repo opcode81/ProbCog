@@ -137,8 +137,16 @@ class SciPyOpt(object):
 	def run(self):
 		optimizer = self.optimizer
 		p = self.problem
-		neg_f = lambda wt: -p.f(wt)
-		neg_grad = lambda wt: -p.grad(wt)
+		f = p.f
+		grad = p.grad
+		
+		# coerce return types
+		f = lambda wt: numpy.float64(p.f(wt))
+		grad = lambda wt: numpy.array(map(numpy.float64, p.grad(wt)))
+		
+		# negate for minimization
+		neg_f = lambda wt: -f(wt)
+		neg_grad = lambda wt: -grad(wt)
 		#if not useGrad or not p.useGrad(): neg_grad = None
 		#if not useF or not p.useF(): neg_f = lambda wt: -p.__fDummy(wt)
 	
