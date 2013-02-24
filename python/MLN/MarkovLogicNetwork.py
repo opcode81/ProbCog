@@ -770,6 +770,12 @@ class MLN(object):
     def printFormulas(self):
         for f in self.formulas:
             print "%7.3f  %s" % (f.weight, strFormula(f))
+    
+    def getWeightedFormulas(self):
+        return [(f.weight, f) for f in self.formulas]
+
+    def getWeights(self):
+        return [f.weight for f in self.formulas]
 
 
 class Database(object):
