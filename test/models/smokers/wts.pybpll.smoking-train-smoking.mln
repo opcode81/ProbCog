@@ -1,0 +1,10 @@
+// domain declarations
+
+// predicate declarations
+Smokes(person)
+Friends(person, person)
+Cancer(person)
+
+// formulas
+1.126769    Smokes(x) => Cancer(x)
+1.577776    Friends(x, y) => (Smokes(x) <=> Smokes(y))
