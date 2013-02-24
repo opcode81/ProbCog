@@ -31,7 +31,11 @@ from util import *
 
 # math functions
 
+USE_MPMATH = True
+
 try:
+    if not USE_MPMATH:
+        raise Exception()
     import mpmath
     mpmath.mp.dps = 80
     from mpmath import exp, fsum, log
@@ -39,7 +43,7 @@ except:
     from math import exp, log
     try:
         from math import fsum 
-    except: # not supported in Python 2.5
+    except: # not support   ed in Python 2.5
         fsum = sum
 #sys.stderr.write("Warning: Falling back to standard math module because mpmath is not installed. If overflow errors occur, consider installing mpmath.")
 from math import floor, ceil, e, sqrt
