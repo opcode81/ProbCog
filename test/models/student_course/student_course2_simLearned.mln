@@ -1,0 +1,51 @@
+sType = {Bachelor,Master}
+cType = {Beginner,Advanced}
+
+studentType(student,sType!)
+courseType(course,cType!)
+
+takes(student,course)
+
+// ** this simulates learning from a database with a particular number of courses **
+$numCourses = 1875
+
+log(float(2)/3) studentType(x,Bachelor)
+log(float(1)/3) studentType(x,Master)
+
+//log(6.0/$numCourses) courseType(x,Beginner)
+//log(1-6.0/$numCourses) courseType(x,Advanced)
+
+log(0.8*6.0/6.0) takes(x,y) ^ studentType(x,Bachelor) ^ courseType(y,Beginner)
+log(1-0.8*6.0/6.0) !takes(x,y) ^ studentType(x,Bachelor) ^ courseType(y,Beginner)
+
+log(0.2*6.0/($numCourses-6)) takes(x,y) ^ studentType(x,Bachelor) ^ courseType(y,Advanced)
+log(1-0.2*6.0/($numCourses-6)) !takes(x,y) ^ studentType(x,Bachelor) ^ courseType(y,Advanced)
+
+log(1.0/3.0*6.0/6.0) takes(x,y) ^ studentType(x,Master) ^ courseType(y,Beginner)
+log(1-1.0/3.0*6.0/6.0) !takes(x,y) ^ studentType(x,Master) ^ courseType(y,Beginner)
+
+log(2.0/3.0*6.0/($numCourses-6)) takes(x,y) ^ studentType(x,Master) ^ courseType(y,Advanced)
+log(1-2.0/3.0*6.0/($numCourses-6)) !takes(x,y) ^ studentType(x,Master) ^ courseType(y,Advanced)
+
+count(takes(x,y)|x)=6.
+count(courseType(c,Beginner))=6.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

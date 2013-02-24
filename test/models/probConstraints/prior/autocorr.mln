@@ -1,0 +1,8 @@
+attr(object)
+rel(object,object)
+
+0 attr(x)
+4 attr(x) ^ attr(y) ^ !(x=y)
+
+P(attr(x))=0.4
+

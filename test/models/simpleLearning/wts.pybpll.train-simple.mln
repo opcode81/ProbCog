@@ -1,0 +1,11 @@
+// domain declarations
+
+// predicate declarations
+a(object)
+b(object)
+
+// formulas
+16.946120   a(x)
+-5.648724   b(x)
+-11.297429  a(x) v b(x)
+5.648705    a(x) => b(x)
