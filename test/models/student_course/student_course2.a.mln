@@ -1,0 +1,24 @@
+// domain declarations
+sType = {Bachelor,Master}
+cType = {Beginner,Advanced}
+
+// predicate declarations
+studentType(student, sType!)
+courseType(course, cType!)
+takes(student, course)
+
+// formulas
+1.54707223854+(0.0133568140134*domSize(course))+(-0.542980049287*logx(domSize(course)))  takes(x, y) ^ studentType(x, Bachelor) ^ courseType(y, Beginner)
+3.6321459208+(0.0190282109144*domSize(course))+(-1.74278784461*logx(domSize(course)))  takes(x, y) ^ studentType(x, Bachelor) ^ courseType(y, Advanced)
+-0.785780657156+(-0.0110327016596*domSize(course))+(0.166767655454*logx(domSize(course)))  takes(x, y) ^ studentType(x, Master) ^ courseType(y, Beginner)
+6.94235748872+(0.0721497802964*domSize(course))+(-2.87929349062*logx(domSize(course)))  takes(x, y) ^ studentType(x, Master) ^ courseType(y, Advanced)
+0.10364732403+(0.047604796917*domSize(course))+(-0.367772191455*logx(domSize(course)))  !takes(x, y) ^ studentType(x, Bachelor) ^ courseType(y, Beginner)
+-1.61254614786+(-0.0235336276682*domSize(course))+(0.969467435365*logx(domSize(course)))  !takes(x, y) ^ studentType(x, Bachelor) ^ courseType(y, Advanced)
+-1.4981457667+(-0.0150044484878*domSize(course))+(0.840540428854*logx(domSize(course)))  !takes(x, y) ^ studentType(x, Master) ^ courseType(y, Beginner)
+-8.32875040065+(-0.102568824332*domSize(course))+(3.55605805644*logx(domSize(course)))  !takes(x, y) ^ studentType(x, Master) ^ courseType(y, Advanced)
+-0.384540636473  studentType(x, Bachelor)
+-1.16283955905  studentType(x, Master)
+1.33900560966+(0.0129649501995*domSize(course))+(-0.810566071072*logx(domSize(course)))  courseType(x, Beginner)
+-2.8550216538+(-0.0210098565522*domSize(course))+(0.890811483259*logx(domSize(course)))  courseType(x, Advanced)
+
+
