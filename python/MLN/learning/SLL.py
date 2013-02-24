@@ -2,7 +2,7 @@
 #
 # Markov Logic Networks
 #
-# (C) 2011-2012 by Dominik Jain (jain@cs.tum.edu)
+# (C) 2011-2012 by Dominik Jain (jain@cs.tum.edu) and Martin J. Schuster
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
