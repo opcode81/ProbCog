@@ -48,7 +48,7 @@ class Constraint(object):
         '''returns whether this is a logical constraint, i.e. a logical formula'''
         raise Exception("%s does not implement isLogical" % str(type(self)))
 
-    def iterGroundings(self, mrf):
+    def iterGroundings(self, mrf, simplify=False):
         '''iteratively yields the groundings of the formula for the given ground MRF'''
         raise Exception("%s does not implement iterGroundings" % str(type(self)))
     
@@ -867,7 +867,7 @@ class CountConstraint(NonLogicalConstraint):
         if op == "==": op = "="
         return "count(%s | %s) %s %d" % (str(self.literal), ", ".join(self.fixed_params), op, self.count)
     
-    def iterGroundings(self, mrf):
+    def iterGroundings(self, mrf, simplify=False):
         a = {}
         other_params = []
         for param in self.literal.params:
@@ -896,11 +896,16 @@ class CountConstraint(NonLogicalConstraint):
         # otherwise one of the remaining variables in the list...
         varname = variables.pop()
         domName = self.literal.getVarDomain(varname, mrf.mln)
-        for value in mln.domains[domName]: # replacing it with one of the constants
+        for value in mrf.domains[domName]: # replacing it with one of the constants
             assignment[varname] = value
             # recursive descent to ground further variables            
             for a in self._iterAssignment(mrf, variables, assignment):
                 yield a
+    
+    def getVariables(self, mln, vars = None, constants = None):
+        if constants is not None:
+            self.literal.getVariables(mln, vars, constants)
+        return vars
             
 class GroundCountConstraint(NonLogicalConstraint):
     def __init__(self, gndAtoms, op, count):
