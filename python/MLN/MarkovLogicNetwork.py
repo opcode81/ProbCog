@@ -680,7 +680,7 @@ class MLN(object):
         '''
         
         # get a list of database objects
-        dbs = []        
+        dbs = []
         for db in databases:
             if type(db) == str:
                 db = Database(self, db)
@@ -1568,6 +1568,12 @@ class MRF(object):
     def printGroundFormulas(self, weight_transform=lambda x: x):
         for gf in self.gndFormulas:
             print "%7.3f  %s" % (weight_transform(self.formulas[gf.idxFormula].weight), strFormula(gf))
+    
+    def getGroundFormulas(self):
+        '''
+            returns a list of pairs (w, gf)
+        '''
+        return [(self.formulas[gf.idxFormula].weight, gf) for gf in self.gndFormulas]
 
     def printGroundAtoms(self):
         l = self.gndAtoms.keys()
