@@ -21,8 +21,7 @@ class MLNTestCase(unittest.TestCase):
         self.priorCDir = join(self.probConstrDir, "prior")
     
     def assertApproxEqual(self, a, b, delta = 1e-5):
-        self.assertTrue(abs(a-b) < delta)
-            #raise AssertionError("%f !~ %f [max. dev. %f]" % (a, b, delta))
+        self.assertTrue(abs(a-b) < delta, "%f !~ %f [max. dev. %f]" % (a, b, delta))
     
     def assertApproxListEqual(self, a, b, delta = 1e-5):
         self.assertEqual(len(a), len(b))
