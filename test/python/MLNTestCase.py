@@ -21,7 +21,7 @@ class MLNTestCase(unittest.TestCase):
         self.priorCDir = join(self.probConstrDir, "prior")
     
     def assertApproxEqual(self, a, b, delta = 1e-5):
-        self.assertTrue(abs(a-b) < delta, "%f !~ %f [max. dev. %f]" % (a, b, delta))
+        self.assertTrue(abs(a-b) <= delta, "%f !~ %f [max. dev. %f]" % (a, b, delta))
     
     def assertApproxListEqual(self, a, b, delta = 1e-5):
         self.assertEqual(len(a), len(b))
@@ -97,7 +97,12 @@ class MLNTestCase(unittest.TestCase):
         correctResults = [0.6666666666666666, 0.10]
         self.assertApproxListEqual(results, correctResults, 0.04)
     
-    # TODO: multiple database learning, fixed weights
+    # TODO:
+    #  - multiple database learning
+    #  - learning with fixed weights
+    #  - prior prob. constraints
+    #  - learning with constant expansion
+    #  - inference
         
 if __name__ == '__main__':
     unittest.main()
