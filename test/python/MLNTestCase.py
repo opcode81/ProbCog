@@ -59,7 +59,7 @@ class MLNTestCase(unittest.TestCase):
         mln = self.getSmokersModel()
         mln.learnWeights([self.smokingDB], ParameterLearningMeasures.BPLL, optimizer="bfgs")
         weights = mln.getWeights()
-        correctWeights = [1.1267686091064575, 1.5777760206174236]
+        correctWeights = [0.64669600105802549, 1.519900134095767]
         self.assertApproxListEqual(weights, correctWeights)
     
     def __test_learnPLL_Smoking(self):        
