@@ -967,27 +967,30 @@ class MRF(object):
 
         # get combined domain
         self.domains = mergeDomains(mln.domains, db.domains)
-#        print "MLN domains: ", self.mln.domains
-#        print "MRF domains: ", self.domains
+        #print "MLN domains: ", self.mln.domains
+        #print "MRF domains: ", self.domains
 
         # materialize MLN formulas
         if not self.mln.materializedTemplates:
             self.mln._materializeFormulaTemplates(verbose)
         self.formulas = list(mln.formulas) # copy the list of formulas, because we may change or extend it
 
+        # materialize formula weights
+        self._materializeFormulaWeights(verbose)
+
+        # grounding
         groundingMethod = eval('%s(self, db)' % groundingMethod)
         self.groundingMethod = groundingMethod
         groundingMethod.groundMRF(verbose=verbose)
         # ground atoms
-#        self._generateGroundAtoms()
+        #self._generateGroundAtoms()
 
         # set evidence
-#        self.setEvidence(db.evidence)
-#        self.softEvidence = db.softEvidence
-        
+        #self.setEvidence(db.evidence)
+        #self.softEvidence = db.softEvidence
         
         # ground formulas after setting the evidence to apply formula simplification
-#        self._createFormulaGroundings(verbose=verbose)
+        #self._createFormulaGroundings(verbose=verbose)
 
 
     def __getattr__(self, attr):
@@ -1096,44 +1099,37 @@ class MRF(object):
 #                    continue
 #                self._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
 #
-#        # materialize all formula weights
-#        max_weight = 0
-#        for f in self.formulas:
-#            if f.weight is not None:
-#                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (old AMLN learning?)
-#                    f.weight = f.complexWeight
-#                w = str(f.weight)
-#                f.complexWeight = w
-#                while "$" in w:
-#                    try:
-#                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
-#                    except:
-#                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
-#                        raise
-#                    if numReplacements == 0:
-#                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
-#                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
-#                try:
-#                    f.weight = eval(w)
-#                except:
-#                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
-#                    raise
-#                max_weight = max(abs(f.weight), max_weight)
-#
-#        # set weights of hard formulas
-#        hard_weight = 20 + max_weight
-#        if verbose: print "setting %d hard weights to %f" % (len(self.hard_formulas), hard_weight)
-#        for f in self.hard_formulas:
-#            if verbose: print "  ", strFormula(f)
-#            f.weight = hard_weight
-#        if verbose:
-#            pass
-#            #self.printGroundFormulas()
-#            #self.mln.printFormulas()
-#
-#        # for backward compatibility with older code, transfer the members to the MLN
-#        self.mln.gndFormulas = self.gndFormulas
-#        self.mln.gndAtomOccurrencesInGFs = self.gndAtomOccurrencesInGFs
+    def _materializeFormulaWeights(self, verbose=False):
+        # materialize all formula weights
+        max_weight = 0
+        for f in self.formulas:
+            if f.weight is not None:
+                if hasattr(f, "complexWeight"): # TODO check if complexWeight is ever used anywhere (old AMLN learning?)
+                    f.weight = f.complexWeight
+                w = str(f.weight)
+                f.complexWeight = w
+                while "$" in w:
+                    try:
+                        w, numReplacements = re.subn(r'\$\w+', self._substVar, w)
+                    except:
+                        sys.stderr.write("Error substituting variable references in '%s'\n" % w)
+                        raise
+                    if numReplacements == 0:
+                        raise Exception("Undefined variable(s) referenced in '%s'" % w)
+                w = re.sub(r'domSize\((.*?)\)', r'self.domSize("\1")', w)
+                try:
+                    f.weight = eval(w)
+                except:
+                    sys.stderr.write("Evaluation error while trying to compute '%s'\n" % w)
+                    raise
+                max_weight = max(abs(f.weight), max_weight)
+
+        # set weights of hard formulas
+        hard_weight = 20 + max_weight
+        if verbose: print "setting %d hard weights to %f" % (len(self.hard_formulas), hard_weight)
+        for f in self.hard_formulas:
+            if verbose: print "  ", strFormula(f)
+            f.weight = hard_weight
 
     def addGroundAtom(self, gndAtom):
         '''
