@@ -286,7 +286,7 @@ class MLN(object):
                             formula = line[:-1]
                         else: # with weight
                             spacepos = line.find(' ')
-                            weight = float(line[:spacepos])
+                            weight = line[:spacepos]
                             formula = line[spacepos:].strip()
                         try:
                             formula = FOL.parseFormula(formula)
