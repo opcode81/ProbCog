@@ -199,6 +199,6 @@ class BPLL_CG(BPLL):
         print "constructing blocks..."
         self.mrf._getPllBlocks()
         self.mrf._getAtom2BlockIdx()
-        self.fcounts = mrf.groundingMethod.fcounts
-        self.blockRelevantFormulas = mrf.groundingMethod.blockRelevantFormulas
-        self.evidenceIndices = mrf.groundingMethod.evidenceIndices
+        self.fcounts = self.mrf.groundingMethod.fcounts
+        self.blockRelevantFormulas = self.mrf.groundingMethod.blockRelevantFormulas
+        self.evidenceIndices = self.mrf.groundingMethod.evidenceIndices
