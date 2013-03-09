@@ -105,4 +105,10 @@ class MLNTestCase(unittest.TestCase):
     #  - inference
         
 if __name__ == '__main__':
-    unittest.main()
+    runAll = True
+    test = "test_learnBPLL_Smoking"
+    if runAll:
+        unittest.main()
+    else:
+        testCase = MLNTestCase(test)
+        testCase.run()
