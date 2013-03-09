@@ -41,6 +41,7 @@ ParameterLearningMeasures = Enum(
       "PLL": "pseudo-log-likelihood",
       "DPLL": "[discriminative] pseudo-log-likelihood",
       "BPLL": "pseudo-log-likelihood with blocking",
+      "BPLL_CG": "pseudo-log-likelihood with blocking (custom grounding)",
       #"BPLLMemoryEfficient": "pseudo-log-likelihood with blocking, memory-efficient", # NOTE: this method has now been merged into BPLL
       "PLL_fixed": "pseudo-log-likelihood with fixed unitary clauses [deprecated]",
       "BPLL_fixed": "pseudo-log-likelihood with blocking and fixed unitary clauses [deprecated]",
