@@ -38,8 +38,9 @@ class AbstractLearner(object):
     groundingMethod = 'DefaultGroundingFactory'
     
     def __init__(self, mrf, gaussianPriorSigma=None, **params):
-        self.mln = mrf # only for backward compatibility of implementations
+        self.mln = mrf.mln
         self.mrf = mrf
+        self.numFormulas = len(self.mln.formulas)
         self.params = params
         self.gaussianPriorSigma = gaussianPriorSigma
         self.closedWorldAssumption = True
@@ -48,9 +49,9 @@ class AbstractLearner(object):
         if len(self._fixedWeightFormulas) == 0:
             return wt
         
-        wtD = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        wtD = numpy.zeros(self.numFormulas, numpy.float64)
         wtIndex = 0
-        for i, formula in enumerate(self.mln.formulas):
+        for i in xrange(self.numFormulas):
             if (i in self._fixedWeightFormulas):
                 wtD[i] = self._fixedWeightFormulas[i]
                 #print "self._fixedWeightFormulas[i]", self._fixedWeightFormulas[i]
@@ -64,10 +65,10 @@ class AbstractLearner(object):
         if len(self._fixedWeightFormulas) == 0:
             return wt
 
-        wtD = numpy.zeros(len(self.mln.formulas) - len(self._fixedWeightFormulas), numpy.float64)
+        wtD = numpy.zeros(self.numFormulas - len(self._fixedWeightFormulas), numpy.float64)
         #wtD = numpy.array([mpmath.mpf(0) for i in xrange(len(self.formulas) - len(self._fixedWeightFormulas.items()))])
         wtIndex = 0
-        for i, formula in enumerate(self.mln.formulas):
+        for i in xrange(self.numFormulas):
             if (i in self._fixedWeightFormulas):
                 continue
             wtD[wtIndex] = wt[i] #mpmath.mpf(wt[i])
@@ -75,14 +76,14 @@ class AbstractLearner(object):
         return wtD
 
     def _getTruthDegreeGivenEvidence(self, gndFormula):
-        return 1.0 if self.mln._isTrueGndFormulaGivenEvidence(gndFormula) else 0.0
+        return 1.0 if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula) else 0.0
     
     def _fixFormulaWeights(self):
         self._fixedWeightFormulas = {}
         for formula in self.mln.fixedWeightFormulas:
             c = 0.0
             Z = 0.0
-            for gf, referencedAtoms in formula.iterGroundings(self.mln):
+            for gf, referencedAtoms in formula.iterGroundings(self.mrf):
                 Z += 1
                 print "self._getTruthDegreeGivenEvidence(gf), gf", self._getTruthDegreeGivenEvidence(gf), gf
                 c += self._getTruthDegreeGivenEvidence(gf)
@@ -126,16 +127,6 @@ class AbstractLearner(object):
         else:
             self.dummyFValue += sum(abs(self.lastFullGradient))
         print "_f: self.dummyFValue = ", self.dummyFValue
-#        if not hasattr(self, 'lastFullGradient'):
-#            return 0
-#        if not hasattr(self, 'dummyFValue'):
-#            self.dummyFValue = 1
-#        else:
-#            if numpy.any(self.secondlastFullGradient != self.lastFullGradient):
-#                self.dummyFValue += 1
-#            
-#        self.secondlastFullGradient = self.lastFullGradient     
-            
         
         return self.dummyFValue
         
@@ -170,9 +161,9 @@ class AbstractLearner(object):
             raise Exception("Scipy was not imported! Install numpy and scipy if you want to use weight learning.")
         
         # initial parameter vector: all zeros or weights from formulas
-        wt = numpy.zeros(len(self.mln.formulas), numpy.float64)# + numpy.random.ranf(len(self.mln.formulas)) * 100
+        wt = numpy.zeros(self.numFormulas, numpy.float64)# + numpy.random.ranf(len(self.mln.formulas)) * 100
         if initialWts:
-            for i in range(len(self.mln.formulas)):
+            for i in xrange(self.numFormulas):
                 wt[i] = self.mln.formulas[i].weight
                 
         # apply closed world assumption
@@ -235,14 +226,14 @@ class AbstractLearner(object):
         if len(self._fixedWeightFormulas) == 0:
             return matrix
 
-        dim = len(self.mln.formulas) - len(self._fixedWeightFormulas)
+        dim = self.numFormulas - len(self._fixedWeightFormulas)
         proj = numpy.zeros((dim, dim), numpy.float64)
         i2 = 0
-        for i in xrange(len(self.mln.formulas)):
+        for i in xrange(self.numFormulas):
             if (i in self._fixedWeightFormulas):
                 continue
             j2 = 0
-            for j in xrange(len(self.mln.formulas)):
+            for j in xrange(self.numFormulas):
                 if (j in self._fixedWeightFormulas):
                     continue
                 proj[i2][j2] = matrix[i][j]
@@ -259,17 +250,19 @@ class AbstractLearner(object):
     def getName(self):
         return "%s[%s]" % (self.__class__.__name__, "sigma=%f" % self.gaussianPriorSigma if self.gaussianPriorSigma is not None else "no prior")
 
+
 from softeval import truthDegreeGivenSoftEvidence
+
 
 class SoftEvidenceLearner(AbstractLearner):
 
-    def __init__(self, mln, **params):
-        AbstractLearner.__init__(self,mln, **params)
+    def __init__(self, mrf, **params):
+        AbstractLearner.__init__(self, mrf, **params)
         
 
     def _getTruthDegreeGivenEvidence(self, gf, worldValues=None):
-        if worldValues is None: worldValues = self.mln.evidence
-        return truthDegreeGivenSoftEvidence(gf, worldValues, self.mln)
+        if worldValues is None: worldValues = self.mrf.evidence
+        return truthDegreeGivenSoftEvidence(gf, worldValues, self.mrf)
 
 
 class MultipleDatabaseLearner(AbstractLearner):
@@ -277,11 +270,11 @@ class MultipleDatabaseLearner(AbstractLearner):
     learns from multiple databases using an arbitrary sub-learning method for each database, assuming independence between individual databases
     '''
     
-    def __init__(self, mln, method, dbs, verbose=True, **params):
+    def __init__(self, mrf, method, dbs, verbose=True, **params):
         '''
         dbs: list of tuples (domain, evidence) as returned by the database reading method
         '''        
-        AbstractLearner.__init__(self, mln, **params)        
+        AbstractLearner.__init__(self, mrf, **params)        
         self.dbs = dbs
         self.constructor = MLN.ParameterLearningMeasures.byShortName(method)
         self.params = params
@@ -305,7 +298,7 @@ class MultipleDatabaseLearner(AbstractLearner):
         return likelihood
     
     def _grad(self, wt):
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        grad = numpy.zeros(self.numFormulas, numpy.float64)
         for i, learner in enumerate(self.learners):
             grad_i = learner._grad(wt)
             #print "  grad %d: %s" % (i, str(grad_i))
@@ -313,7 +306,7 @@ class MultipleDatabaseLearner(AbstractLearner):
         return grad
 
     def _hessian(self, wt):
-        N = len(self.mln.formulas)
+        N = self.numFormulas
         hessian = numpy.matrix(numpy.zeros((N,N)))
         for learner in self.learners:
             hessian += learner._hessian(wt)

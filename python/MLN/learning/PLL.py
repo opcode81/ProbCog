@@ -59,7 +59,7 @@ class PLL(AbstractLearner):
     # determines the probability of the given ground atom (string) given its Markov blanket
     # (the MLN must have been provided with evidence using combineDB)
     def getAtomProbMB(self, atom):
-        idxGndAtom = self.mln.gndAtoms[atom].idx
+        idxGndAtom = self.mrf.gndAtoms[atom].idx
         weights = self._weights()
         return self._getAtomProbMB(idxGndAtom, weights)
 
@@ -69,16 +69,16 @@ class PLL(AbstractLearner):
         #old_tv = self._getEvidence(idxGndAtom)
         # check if the ground atom is in a block
         block = None
-        if idxGndAtom in self.mln.gndBlockLookup and self.pmbMethod != 'old':
-            blockname = self.mln.gndBlockLookup[idxGndAtom]
-            block = self.mln.gndBlocks[blockname] # list of gnd atom indices that are in the block
+        if idxGndAtom in self.mrf.gndBlockLookup and self.pmbMethod != 'old':
+            blockname = self.mrf.gndBlockLookup[idxGndAtom]
+            block = self.mrf.gndBlocks[blockname] # list of gnd atom indices that are in the block
             sums = [0 for i in range(len(block))] # init sum of weights for each possible assignment of block
                                                   # sums[i] = sum of weights for assignment where the block[i] is set to true
             idxBlockMainGA = block.index(idxGndAtom)
             # find out which one of the ground atoms in the block is true
             idxGATrueone = -1
             for i in block:
-                if self.mln._getEvidence(i):
+                if self.mrf._getEvidence(i):
                     if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
                     idxGATrueone = i                    
             if idxGATrueone == -1: raise Exception("No true gnd atom in block!" % blockname)
@@ -93,7 +93,7 @@ class PLL(AbstractLearner):
             try:
                 relevantGroundFormulas = self.atomRelevantGFs[idxGndAtom]
             except:
-                relevantGroundFormulas = self.mln.gndFormulas
+                relevantGroundFormulas = self.mrf.gndFormulas
                 checkRelevance = True
         # check the ground formulas
         #print self.gndAtomsByIdx[idxGndAtom]
@@ -138,13 +138,13 @@ class PLL(AbstractLearner):
                 for i in block:
                     # set the i-th variable in the block to true
                     if i != idxGATrueone:
-                        self.mln._setTemporaryEvidence(i, True)
-                        self.mln._setTemporaryEvidence(idxGATrueone, False)
+                        self.mrf._setTemporaryEvidence(i, True)
+                        self.mrf._setTemporaryEvidence(idxGATrueone, False)
                     # is the formula true?
-                    if self.mln._isTrueGndFormulaGivenEvidence(gf):
+                    if self.mrf._isTrueGndFormulaGivenEvidence(gf):
                         sums[idxSum] += wt[gf.idxFormula]
                     # restore truth values
-                    self.mln._removeTemporaryEvidence()
+                    self.mrf._removeTemporaryEvidence()
                     idxSum += 1
             expsums = map(exp, sums)
             if self.pmbMethod == 'excl':
@@ -163,17 +163,17 @@ class PLL(AbstractLearner):
             raise Exception("Unknown pmbMethod '%s'" % self.pmbMethod)
     
     def _setInvertedEvidence(self, idxGndAtom):
-        old_tv = self.mln._getEvidence(idxGndAtom)
-        self.mln._setEvidence(idxGndAtom, not old_tv)
+        old_tv = self.mrf._getEvidence(idxGndAtom)
+        self.mrf._setEvidence(idxGndAtom, not old_tv)
 
     # prints the probability of each ground atom truth assignment given its Markov blanket
     def printAtomProbsMB(self):
-        gndAtoms = self.mln.gndAtoms.keys()
+        gndAtoms = self.mrf.gndAtoms.keys()
         gndAtoms.sort()
         values = []
         for gndAtom in gndAtoms:
             v = self.getAtomProbMB(gndAtom)
-            print "%s=%s  %f" % (gndAtom, str(self.mln._getEvidence(self.mln.gndAtoms[gndAtom].idx)), v)
+            print "%s=%s  %f" % (gndAtom, str(self.mrf._getEvidence(self.mrf.gndAtoms[gndAtom].idx)), v)
             values.append(v)
         pll = fsum(map(log, values))
         print "PLL = %f" % pll
@@ -181,7 +181,7 @@ class PLL(AbstractLearner):
     def _calculateAtomProbsMB(self, wt):
         if ('wtsLastAtomProbMBComputation' not in dir(self)) or self.wtsLastAtomProbMBComputation != list(wt):
             print "recomputing atom probabilities...",
-            self.atomProbsMB = [self._getAtomProbMB(i, wt) for i in range(len(self.mln.gndAtomsByIdx))]
+            self.atomProbsMB = [self._getAtomProbMB(i, wt) for i in range(len(self.mrf.gndAtomsByIdx))]
             self.wtsLastAtomProbMBComputation = list(wt)
             print "done."
 
@@ -200,17 +200,17 @@ class PLL(AbstractLearner):
 
     def _computeDiffs(self):
         self.diffs = {}
-        for gndFormula in self.mln.gndFormulas:
+        for gndFormula in self.mrf.gndFormulas:
             for idxGndAtom in gndFormula.idxGroundAtoms():
                 cnt1, cnt2 = 0, 0
                 # check if formula is true if gnd atom maintains its truth value
-                if self.mln._isTrueGndFormulaGivenEvidence(gndFormula): cnt1 = 1
+                if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula): cnt1 = 1
                 # check if formula is true if gnd atom's truth value is inversed
                 cnt2 = 0
-                old_tv = self.mln._getEvidence(idxGndAtom)
-                self.mln._setTemporaryEvidence(idxGndAtom, not old_tv)
-                if self.mln._isTrueGndFormulaGivenEvidence(gndFormula): cnt2 = 1
-                self.mln._removeTemporaryEvidence()
+                old_tv = self.mrf._getEvidence(idxGndAtom)
+                self.mrf._setTemporaryEvidence(idxGndAtom, not old_tv)
+                if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula): cnt2 = 1
+                self.mrf._removeTemporaryEvidence()
                 # save difference
                 diff = cnt2 - cnt1
                 if diff != 0:
@@ -221,9 +221,9 @@ class PLL(AbstractLearner):
                     # if gnd atom x is true, then a change to any of the other k-1 items will flip x.
                     # if gnd atom x is false, then there is a chance of 1/(k-1) that x is flipped
                     if self.diffMethod == 'blocking':
-                        if idxGndAtom in self.mln.gndBlockLookup:
-                            blockname = self.mln.gndBlockLookup[idxGndAtom]
-                            block = self.mln.gndBlocks[blockname] # list of gnd atom indices that are in the block
+                        if idxGndAtom in self.mrf.gndBlockLookup:
+                            blockname = self.mrf.gndBlockLookup[idxGndAtom]
+                            block = self.mrf.gndBlocks[blockname] # list of gnd atom indices that are in the block
                             for i in block:
                                 if i not in gndFormula.idxGroundAtoms(): # for each ground atom in the block besides the one we are just processing (which occurs in the ground formula)
                                     if old_tv:
@@ -232,7 +232,7 @@ class PLL(AbstractLearner):
                                         self._addToDiff(gndFormula.idxFormula, i, diff / (len(block) - 1))
 
     def _grad(self, wt):        
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)
         fullWt = wt
         self._calculateAtomProbsMB(fullWt)
         for (idxFormula, idxGndAtom), diff in self.diffs.iteritems():
@@ -242,7 +242,7 @@ class PLL(AbstractLearner):
 
     def _getAtomRelevantGroundFormulas(self):
         if self.pmbMethod == 'old':
-            self.atomRelevantGFs = self.mln.gndAtomOccurrencesInGFs
+            self.atomRelevantGFs = self.mrf.gndAtomOccurrencesInGFs
         else:
             raise Exception("Not implemented")
 
@@ -262,29 +262,29 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
     
     def _computeDiffs(self):
         self.diffs = {}
-        for gndFormula in self.mln.gndFormulas:
+        for gndFormula in self.mrf.gndFormulas:
             cnt1 = self._getTruthDegreeGivenEvidence(gndFormula)
             for idxGndAtom in gndFormula.idxGroundAtoms():
                 # check if formula is true if gnd atom's truth value is inversed
                 cnt2 = 0
                 # check if it really is a soft evidence:
-                s = strFormula(self.mln.gndAtomsByIdx[idxGndAtom])
+                s = strFormula(self.mrf.gndAtomsByIdx[idxGndAtom])
                 isSoftEvidence = False                 
-                for se in self.mln.softEvidence:
+                for se in self.mrf.softEvidence:
                     if se["expr"] == s:
                         isSoftEvidence = True
                         old_tv = se["p"]
                         break
                     
                 if isSoftEvidence:
-                    self.mln._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+                    self.mrf._setSoftEvidence(self.mrf.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
                     cnt2 = self._getTruthDegreeGivenEvidence(gndFormula)
-                    self.mln._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], old_tv)
+                    self.mrf._setSoftEvidence(self.mrf.gndAtomsByIdx[idxGndAtom], old_tv)
                 else:
-                    old_tv = self.mln._getEvidence(idxGndAtom)
-                    self.mln._setTemporaryEvidence(idxGndAtom, not old_tv)
-                    if self.mln._isTrueGndFormulaGivenEvidence(gndFormula): cnt2 = 1
-                    self.mln._removeTemporaryEvidence()
+                    old_tv = self.mrf._getEvidence(idxGndAtom)
+                    self.mrf._setTemporaryEvidence(idxGndAtom, not old_tv)
+                    if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula): cnt2 = 1
+                    self.mrf._removeTemporaryEvidence()
                     
                 # save difference
                 diff = cnt2 - cnt1
@@ -292,25 +292,25 @@ class PLL_ISE(SoftEvidenceLearner, PLL):
                     self._addToDiff(gndFormula.idxFormula, idxGndAtom, diff)
                     
     def _setInvertedEvidence(self, idxGndAtom):
-        s = strFormula(self.mln.gndAtomsByIdx[idxGndAtom])
+        s = strFormula(self.mrf.gndAtomsByIdx[idxGndAtom])
         isSoftEvidence = False
-        for se in self.mln.softEvidence:
+        for se in self.mrf.softEvidence:
             if se["expr"] == s:
                 isSoftEvidence = True
                 old_tv = se["p"]
                 break
         if isSoftEvidence:
-            self.mln._setSoftEvidence(self.mln.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
+            self.mrf._setSoftEvidence(self.mrf.gndAtomsByIdx[idxGndAtom], 1 - old_tv)
         else:
-            old_tv = self.mln._getEvidence(idxGndAtom)
-            self.mln._setEvidence(idxGndAtom, not old_tv)
+            old_tv = self.mrf._getEvidence(idxGndAtom)
+            self.mrf._setEvidence(idxGndAtom, not old_tv)
             
     def _prepareOpt(self):
         if self.pmbMethod != 'old': raise Exception("Only PMB (probability given Markov blanket) method 'old' supported by PLL_ISE")
         
         # set all soft evidence values to true
         #for se in self.softEvidence:
-        #    self._setEvidence(self.mln.gndAtoms[se["expr"]].idx, True)
+        #    self._setEvidence(self.mrf.gndAtoms[se["expr"]].idx, True)
         
         PLL._prepareOpt(self)
         
@@ -353,17 +353,17 @@ class DPLL(PLL):
         probs = map(lambda x: x if x > 0 else 1e-10, self.atomProbsMB) # prevent 0 probs
         pll = 0
         for i, prob in enumerate(probs):
-            if self._isQueryPredicate(self.mln.gndAtomsByIdx[i].predName):
+            if self._isQueryPredicate(self.mrf.gndAtomsByIdx[i].predName):
                 pll += log(prob)            
         print "discriminative pseudo-log-likelihood:", pll
         return pll
     
     def _grad(self, wt):        
-        grad = numpy.zeros(len(self.mln.formulas), numpy.float64)
+        grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)
         fullWt = wt
         self._calculateAtomProbsMB(fullWt)
         for (idxFormula, idxGndAtom), diff in self.diffs.iteritems():
-            if self._isQueryPredicate(self.mln.gndAtomsByIdx[idxGndAtom].predName):
+            if self._isQueryPredicate(self.mrf.gndAtomsByIdx[idxGndAtom].predName):
                 v = diff * (self.atomProbsMB[idxGndAtom] - 1)
                 grad[idxFormula] += v 
         return grad

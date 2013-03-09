@@ -85,7 +85,7 @@ class BPLL(AbstractLearner):
     def _calculateBlockProbsMB(self, wt):
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
             #print "recomputing block probabilities...",
-            self.blockProbsMB = [self._getBlockProbMB(i, wt) for i in xrange(len(self.mln.pllBlocks))]
+            self.blockProbsMB = [self._getBlockProbMB(i, wt) for i in xrange(len(self.mrf.pllBlocks))]
             self.wtsLastBlockProbMBComputation = list(wt)
     
     def _f(self, wt):
