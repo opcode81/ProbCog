@@ -21,7 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from AbstractGrounding import DefaultGroundingFactory
+from DefaultGrounding import DefaultGroundingFactory
 from FOL import *
 import FOL
 from sys import stdout
