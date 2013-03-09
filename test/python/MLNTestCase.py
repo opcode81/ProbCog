@@ -61,6 +61,13 @@ class MLNTestCase(unittest.TestCase):
         weights = mln.getWeights()
         correctWeights = [0.64669600105802549, 1.519900134095767]
         self.assertApproxListEqual(weights, correctWeights)
+
+    def test_learnBPLLCG_Smoking(self):        
+        mln = self.getSmokersModel()
+        mln.learnWeights([self.smokingDB], ParameterLearningMeasures.BPLL_CG, optimizer="bfgs")
+        weights = mln.getWeights()
+        correctWeights = [0.64669600105802549, 1.519900134095767]
+        self.assertApproxListEqual(weights, correctWeights)
     
     def __test_learnPLL_Smoking(self):        
         mln = self.getSmokersModel()
