@@ -302,9 +302,6 @@ class Lit(Formula):
     def __str__(self):
         return {True:"!", False:""}[self.negated] + self.predName + "(" + ", ".join(self.params) + ")"
 
-    def isTrue(self, world_values):
-        return None
-
     def getVariables(self, mln, vars = None, constants = None):
         if vars == None: vars = {}
         paramDomains = mln.predicates[self.predName]
@@ -333,7 +330,6 @@ class Lit(Formula):
                 else:
                     return -1
         return varIndex
-        
 
     def _getTemplateVariables(self, mln, vars = None):
         if vars == None: vars = {}
@@ -410,9 +406,10 @@ class GroundLit(Formula):
         self.negated = negated
 
     def isTrue(self, world_values):
-        if self.negated and not world_values[self.gndAtom.idx] is None:
-            return (not world_values[self.gndAtom.idx])
-        return world_values[self.gndAtom.idx]
+        tv = world_values[self.gndAtom.idx]
+        if self.negated and not (tv is None):
+            return (not tv)
+        return tv
 
     def __str__(self):
         return {True:"!", False:""}[self.negated] + str(self.gndAtom)
@@ -465,9 +462,10 @@ class Disjunction(ComplexFormula):
     def isTrue(self, world_values):
         dontKnow = False
         for child in self.children:
-            if child.isTrue(world_values):
+            childValue = child.isTrue(world_values)
+            if childValue is True:
                 return True
-            if child.isTrue(world_values) is None:
+            if childValue is None:
                 dontKnow = True
         if dontKnow:
             return None
@@ -578,9 +576,10 @@ class Conjunction(ComplexFormula):
     def isTrue(self, world_values):
         dontKnow = False
         for child in self.children:
-            if child.isTrue(world_values) is False:
+            childValue = child.isTrue(world_values)
+            if childValue is False:
                 return False
-            if child.isTrue(world_values) is None:
+            if childValue is None:
                 dontKnow = True
         if dontKnow:
             return None
@@ -675,11 +674,13 @@ class Implication(ComplexFormula):
         return "(" + str(self.children[0]) + " => " + str(self.children[1]) + ")"
 
     def isTrue(self, world_values):
-        if self.children[0].isTrue(world_values) is None:
+        ant = self.children[0].isTrue(world_values)
+        cons = self.children[1].isTrue(world_values)
+        if ant is False or cons is True:
+            return True
+        if ant is None or cons is None:
             return None
-        elif self.children[0].isTrue(world_values):
-            return self.children[1].isTrue(world_values)
-        return ((not self.children[0].isTrue(world_values)) or self.children[1].isTrue(world_values))
+        return False
         
     def toCNF(self, level=0):
         if DEBUG_NF: print "%-8s %*c%s" % ("impl", level*2, ' ', str(self))
@@ -704,9 +705,11 @@ class Biimplication(ComplexFormula):
         return "(" + str(self.children[0]) + " <=> " + str(self.children[1]) + ")"
 
     def isTrue(self, world_values):
-        if self.children[0].isTrue(world_values) is None or self.children[1].isTrue(world_values) is None:
+        c1 = self.children[0].isTrue(world_values)
+        c2 = self.children[1].isTrue(world_values)
+        if c1 is None or c2 is None:
             return None
-        return (self.children[0].isTrue(world_values) == self.children[1].isTrue(world_values))
+        return (c1 == c2)
     
     def toCNF(self, level=0):
         if DEBUG_NF: print "%-8s %*c%s" % ("biimpl", level*2, ' ', str(self))
@@ -733,9 +736,10 @@ class Negation(ComplexFormula):
         return "!(" + str(self.children[0]) + ")"
 
     def isTrue(self, world_values):
-        if self.children[0].isTrue(world_values) is None:
+        childValue = self.children[0].isTrue(world_values)
+        if childValue is None:
             return None
-        return not self.children[0].isTrue(world_values)
+        return not childValue
     
     def toCNF(self, level=0):
         if DEBUG_NF: print "%-8s %*c%s" % ("neg", level*2, ' ', str(self))
