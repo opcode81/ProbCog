@@ -23,11 +23,13 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from PLL import *
+from AbstractLearner import AbstractLearner
 from collections import defaultdict
+from MLN.util import *
 import numpy
 
-class BPLL(PLL):
+
+class BPLL(AbstractLearner):
     '''
     Pseudo-log-likelihood learning with blocking, i.e. a generalisation
     of PLL which takes into consideration the fact that the truth value of a
@@ -37,10 +39,8 @@ class BPLL(PLL):
     on a sufficient statistic.
     '''    
     
-    #groundingMethod = 'DefaultGroundingFactory'
-    
     def __init__(self, mrf, **params):
-        PLL.__init__(self, mrf, **params)        
+        AbstractLearner.__init__(self, mrf, **params)
         
     def _prepareOpt(self):
         print "constructing blocks..."
@@ -184,10 +184,16 @@ class BPLL(PLL):
                         self.mrf._removeTemporaryEvidence()
 
 
-
-class BPLL_CustomGrounding(BPLL):
+class BPLL_CG(BPLL):
+    '''
+        BPLL learner variant that uses a custom grounding procedure to increase
+        efficiency.
+    '''
     
     groundingMethod = 'BPLLGroundingFactory'
+    
+    def __init__(self, mrf, **params):
+        BPLL.__init__(self, mrf, **params)
     
     def _prepareOpt(self):
         print "constructing blocks..."
