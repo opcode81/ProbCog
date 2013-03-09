@@ -179,6 +179,10 @@ class AbstractLearner(object):
         if self.closedWorldAssumption:
             self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
         
+        # apply closed world assumption
+        if self.closedWorldAssumption:
+            self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
+        
         # precompute fixed formula weights
         self._fixFormulaWeights()
         self.wt = self._projectVectorToNonFixedWeightIndices(wt)
