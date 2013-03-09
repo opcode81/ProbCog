@@ -37,21 +37,18 @@ class BPLL(PLL):
     on a sufficient statistic.
     '''    
     
-    groundingMethod = 'BPLLGroundingFactory'
+    #groundingMethod = 'DefaultGroundingFactory'
     
     def __init__(self, mrf, **params):
-        PLL.__init__(self, mrf, **params)
-        self.fcounts = mrf.groundingMethod.fcounts
-        self.blockRelevantFormulas = mrf.groundingMethod.blockRelevantFormulas
-        self.evidenceIndices = mrf.groundingMethod.evidenceIndices
+        PLL.__init__(self, mrf, **params)        
         
     def _prepareOpt(self):
         print "constructing blocks..."
         self.mrf._getPllBlocks()
-        self.mrf._getAtom2BlockIdx()
-#        self._computeStatistics()
+        self.mrf._getAtom2BlockIdx()        
+        self._computeStatistics()
         # remove data that is now obsolete
-#        self.mrf.removeGroundFormulaData()
+        self.mrf.removeGroundFormulaData()
         self.mrf.atom2BlockIdx = None
     
     def _addMBCount(self, idxVar, size, idxValue, idxWeight, increment=1):
@@ -138,35 +135,38 @@ class BPLL(PLL):
                 self.evidenceIndices.append(idxValueTrueone)
         
         # compute actual statistics
-#        self.fcounts = {}        
-#        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
+        self.fcounts = {}        
+        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
         for idxGndFormula, gndFormula in enumerate(self.mrf.gndFormulas):
             if debug:
-                print "  ground formula %d/%d\r" % (idxGndFormula, len(self.mrf.gndFormulas)),
-                print
+                print "  ground formula %d/%d: %s\r" % (idxGndFormula, len(self.mrf.gndFormulas), str(gndFormula))
             
             # get the set of block indices that the variables appearing in the formula correspond to
             idxBlocks = set()
             for idxGA in gndFormula.idxGroundAtoms():
-                if debug: print self.mrf.gndAtomsByIdx[idxGA]
+                #if debug: print "    ", self.mrf.gndAtomsByIdx[idxGA]
                 idxBlocks.add(self.mrf.atom2BlockIdx[idxGA])
             
             for idxVar in idxBlocks:
                 
                 (idxGA, block) = self.mrf.pllBlocks[idxVar]
+                
             
                 if idxGA is not None: # ground atom is the variable as it's not in a block
+                    if debug: print "    ", self.mrf.gndAtomsByIdx[idxGA]
                     
                     # check if formula is true if gnd atom maintains its truth value
                     if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                         self._addMBCount(idxVar, 2, 0, gndFormula.idxFormula)
+                        if debug: print "      add 0"
                     
                     # check if formula is true if gnd atom's truth value is inverted
                     old_tv = self.mrf._getEvidence(idxGA)
                     self.mrf._setTemporaryEvidence(idxGA, not old_tv)
                     if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                         self._addMBCount(idxVar, 2, 1, gndFormula.idxFormula)
+                        if debug: print "      add 1"
                     self.mrf._removeTemporaryEvidence()
                         
                 else: # the block is the variable (idxGA is None)
@@ -182,3 +182,17 @@ class BPLL(PLL):
                         if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                             self._addMBCount(idxVar, size, idxValue, gndFormula.idxFormula)
                         self.mrf._removeTemporaryEvidence()
+
+
+
+class BPLL_CustomGrounding(BPLL):
+    
+    groundingMethod = 'BPLLGroundingFactory'
+    
+    def _prepareOpt(self):
+        print "constructing blocks..."
+        self.mrf._getPllBlocks()
+        self.mrf._getAtom2BlockIdx()
+        self.fcounts = mrf.groundingMethod.fcounts
+        self.blockRelevantFormulas = mrf.groundingMethod.blockRelevantFormulas
+        self.evidenceIndices = mrf.groundingMethod.evidenceIndices
