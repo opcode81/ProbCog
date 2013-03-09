@@ -40,6 +40,7 @@ class AbstractLearner(object):
         self.mrf = mrf
         self.params = params
         self.gaussianPriorSigma = gaussianPriorSigma
+        self.closedWorldAssumption = True
     
     def _reconstructFullWeightVectorWithFixedWeights(self, wt):        
         if len(self._fixedWeightFormulas) == 0:
@@ -167,11 +168,14 @@ class AbstractLearner(object):
             raise Exception("Scipy was not imported! Install numpy and scipy if you want to use weight learning.")
         
         # initial parameter vector: all zeros or weights from formulas
-
         wt = numpy.zeros(len(self.mln.formulas), numpy.float64)# + numpy.random.ranf(len(self.mln.formulas)) * 100
         if initialWts:
             for i in range(len(self.mln.formulas)):
                 wt[i] = self.mln.formulas[i].weight
+        
+        # apply closed world assumption
+        if self.closedWorldAssumption:
+            self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
         
         # precompute fixed formula weights
         self._fixFormulaWeights()
