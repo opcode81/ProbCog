@@ -95,7 +95,7 @@ class BPLL(AbstractLearner):
             p = self.blockProbsMB[idxVar][self.evidenceIndices[idxVar]]
             if p == 0: p = 1e-10 # prevent 0 probabilities
             probs.append(p)
-        return fsum(map(log, probs))
+        return nympy.array(float(fsum(map(log, probs))))
    
     def _grad(self, wt):
         self._calculateBlockProbsMB(wt)
