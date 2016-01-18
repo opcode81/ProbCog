@@ -633,10 +633,11 @@ class SelN(SelOne):
         ''' if allowFewer=True and the container is smaller than n, selects as many objects as the container permits; otherwise picks n '''
         Selector.__init__(self, container, removeChosenObject)
         self.n = n
+        self.allowFewer = allowFewer
     
     def pick(self):
         ret = []
-        if allowFewer:
+        if self.allowFewer:
             n = min(self.n, len(self.container))
         else:
             n = self.n
