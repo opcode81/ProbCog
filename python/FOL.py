@@ -829,7 +829,7 @@ class Exist(ComplexFormula):
         vars.update(newvars)
         return vars
         
-    def ground(self, mrf, assignment, referencedGroundAtoms = None, allowPartialGroundings=False):
+    def ground(self, mrf, assignment, referencedGroundAtoms = None, simplify=False, allowPartialGroundings=False):
         assert len(self.children) == 1
         # find out variable domains
         vars = {}
