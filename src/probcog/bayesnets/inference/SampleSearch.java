@@ -30,8 +30,10 @@ import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.datastruct.Map2D;
 
 /**
- * simple implementation of the SampleSearch algorithm by Gogate & Dechter.
- * NOTE: This implementation does not properly weight samples
+ * Simple implementation of the SampleSearch algorithm by Gogate & Dechter.
+ * <p>The implementation will apply an unbiased estimator (which uses more memory) 
+ * only if enabled via {@link #setUseProperWeighting}.</p>
+ * 
  * @author Dominik Jain
  */
 public class SampleSearch extends Sampler {
