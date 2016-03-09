@@ -103,6 +103,14 @@ class MLNTestCase(unittest.TestCase):
         results = map(float, (mrf.inferMCSAT("attr")))
         correctResults = [0.6666666666666666, 0.10]
         self.assertApproxListEqual(results, correctResults, 0.04)
+        
+    def test_priorConstraint(self):
+        mln = MLN([os.path.join(self.smokingDir, "wts.smoking.mln"), os.path.join(self.smokingDir, "smoking-prior.emln")])
+        mln.write(sys.stdout)
+        mrf = mln.groundMRF(os.path.join(self.smokingDir, "smoking-test-peopleonly.db"))
+        results = map(float, (mrf.inferEnumerationAsk("Smokes")))
+        correctResults = [0.5, 0.5]
+        self.assertApproxListEqual(results, correctResults, 0.01)
     
     # TODO:
     #  - multiple database learning
@@ -113,7 +121,7 @@ class MLNTestCase(unittest.TestCase):
         
 if __name__ == '__main__':
     runAll = True
-    test = "test_learnBPLL_Smoking"
+    test = "test_priorConstraint"
     if runAll:
         unittest.main()
     else:
