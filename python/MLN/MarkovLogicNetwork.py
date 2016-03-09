@@ -696,7 +696,7 @@ class MLN(object):
         if len(dbs) == 1:
             groundingMethod = eval('learning.%s.groundingMethod' % method)
             print "grounding MRF using %s..." % groundingMethod 
-            mrf = self.groundMRF(dbs[0], method=groundingMethod)
+            mrf = self.groundMRF(dbs[0], method=groundingMethod, verbose=params.get("verbose", False))
             learner = eval("learning.%s(mrf, **params)" % method)
         else:
             learner = learning.MultipleDatabaseLearner(self, method, dbs, **params)
@@ -784,6 +784,7 @@ class Database(object):
         self.domains = {}
         self.evidence = {}
         self.softEvidence = []
+        self.softEvidenceDict = {}
         self.includeNonExplicitDomains = True
         if dbfile is not None:
             self.readFile(dbfile)
@@ -796,13 +797,22 @@ class Database(object):
         '''
         domains = self.domains
         # read file
+        print "reading %s"  % dbfile
         f = file(dbfile, "r")
         db = f.read()
         f.close()
+        print "stripping comments"
         db = stripComments(db)
+        domainDicts = {}
         # expand domains with db constants and save evidence
         evidence = self.evidence
-        for l in db.split("\n"):
+        lineNo = 0
+        lines = db.split("\n")
+        for l in lines:
+            lineNo += 1
+            if lineNo % 10000 == 0 or lineNo == len(lines): 
+                print "read %.2f%%\r" % (100.0*lineNo/len(lines)),
+                if lineNo == len(lines): print
             l = l.strip()
             if l == "":
                 continue
@@ -813,6 +823,7 @@ class Database(object):
                 d = {"expr": gndAtom, "p": float(l[:s])}
                 if self.getSoftEvidence(gndAtom) == None:
                     self.softEvidence.append(d)
+                    self.softEvidenceDict[gndAtom] = d
                 else:
                     raise Exception("Duplicate soft evidence for '%s'" % gndAtom)
                 predName, constants = parsePredicate(gndAtom) # TODO Should we allow soft evidence on non-atoms here? (This assumes atoms)
@@ -839,8 +850,15 @@ class Database(object):
                     if domNames[i] not in domains:
                         domains[domNames[i]] = []
                     d = domains[domNames[i]]
-                    if constants[i] not in d:
+                    dd = domainDicts.get(domNames[i])
+                    if dd is None:
+                        dd = {}
+                        for v in d: 
+                            dd[v] = True
+                        domainDicts[domNames[i]] = dd
+                    if constants[i] not in dd:
                         d.append(constants[i])
+                        dd[constants[i]] = True
                         
     def getSoftEvidence(self, gndAtom):
         '''
@@ -848,10 +866,7 @@ class Database(object):
             returns None if there is no such value
         '''
         s = strFormula(gndAtom)
-        for se in self.softEvidence: # TODO optimize
-            if se["expr"] == s:
-                return se["p"]
-        return None
+        return self.softEvidenceDict.get(s)
     
     def getPseudoMRF(self):
         '''
