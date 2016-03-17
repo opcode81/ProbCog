@@ -86,7 +86,9 @@ class ExactInference(Inference):
 class ExactInferenceLinear(Inference):
     '''
     variant of exact inference, where the possible worlds and associated values are generated dynamically (on demand) - linear space requirements;
-    In particular, possible worlds are not kept in memory, such that memory consumption remains linear in the number of variables.    
+    In particular, possible worlds are not kept in memory, such that memory consumption remains linear in the number of variables.
+    
+    This class is DEPRECATED; it has been superseded by EnumerationAsk.    
     '''
     
     def __init__(self, mln):
@@ -142,12 +144,9 @@ class ExactInferenceLinear(Inference):
         else:     
             # values that can be set for the truth value of the ground atom with index idx
             possible_settings = [True, False]
-            # check for rigid predicates: for rigid predicates, we consider both values only if the evidence value is
-            # unknown, otherwise we use the evidence value
-            restricted = False
             gndAtom = mln.gndAtomsByIdx[idx]
             # check if setting the truth value for idx is critical for a block (which is the case when idx is the highest index in a block)
-            if idx in mln.gndBlockLookup and POSSWORLDS_BLOCKING:
+            if idx in mln.gndBlockLookup:
                 block = mln.gndBlocks[mln.gndBlockLookup[idx]]
                 if idx == max(block):
                     # count number of true values already set
