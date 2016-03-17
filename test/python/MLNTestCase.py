@@ -103,6 +103,16 @@ class MLNTestCase(unittest.TestCase):
         results = map(float, (mrf.inferMCSAT("attr")))
         correctResults = [0.6666666666666666, 0.10]
         self.assertApproxListEqual(results, correctResults, 0.04)
+
+    def test_inferExact_inferEnumerationAsk(self):
+        mln = MLN(os.path.join(self.smokingDir, "wts.smoking.mln"))
+        mln.write(sys.stdout)
+        mrf = mln.groundMRF(os.path.join(self.smokingDir, "smoking-test-peopleonly.db"))
+        results = map(float, (mrf.inferExact(["Smokes", "Cancer"])))
+        results2 = map(float, (mrf.inferEnumerationAsk(["Smokes", "Cancer"])))
+        correctResults = [0.3537297423387627, 0.3537297423387627, 0.5902867352545694, 0.5902867352545694]
+        self.assertApproxListEqual(results, correctResults)
+        self.assertApproxListEqual(results2, correctResults)
         
     def test_priorConstraint(self):
         mln = MLN([os.path.join(self.smokingDir, "wts.smoking.mln"), os.path.join(self.smokingDir, "smoking-prior.emln")])
@@ -121,7 +131,7 @@ class MLNTestCase(unittest.TestCase):
         
 if __name__ == '__main__':
     runAll = True
-    test = "test_priorConstraint"
+    test = "test_inferExact_inferEnumerationAsk"
     if runAll:
         unittest.main()
     else:
