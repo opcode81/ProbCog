@@ -626,7 +626,9 @@ class Conjunction(ComplexFormula):
                 if doAdd:
                     clauses.append(clause)
                     litSets.append(litSet)
-        if len(clauses) == 1:
+        if len(clauses) == 0:
+            return TrueFalse(True)
+        elif len(clauses) == 1:
             return clauses[0]
         return Conjunction(clauses)
     
