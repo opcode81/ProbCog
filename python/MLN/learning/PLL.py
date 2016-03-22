@@ -29,6 +29,19 @@ from AbstractLearner import *
 import re
 from MLN.learning.AbstractLearner import SoftEvidenceLearner
 
+def stableExpSumRatio(s1, s2):
+    # We want to compute 
+    #     exp(s1) / (exp(s1) + exp(s2)) = 1.0 / (1.0 + exp(s2) / exp(s1))
+    smin = min(s1, s2)
+    s1 -= smin
+    s2 -= smin
+    smax2 = max(s1, s2) / 2.0
+    s1 -= smax2
+    s2 -= smax2
+    try:
+        return 1.0 / (1.0 + exp(s2) / exp(s1))
+    except OverflowError:
+        return 1.0 if s1 > s2 else 0.0         
 
 # TODO Note: when counting diffs (PLL), the assumption is made that no formula contains two atoms that are in the same block
 
@@ -122,7 +135,8 @@ class PLL(AbstractLearner):
                 #print "  F%d %f %s %f -> %f" % (gf.idxFormula, wt[gf.idxFormula], str(gf), prob1, prob2)
                 self._setInvertedEvidence(idxGndAtom)
             #print "  %s %s" % (wts_regular, wts_inverted)
-            return exp(wts_regular) / (exp(wts_regular) + exp(wts_inverted))
+            #return exp(wts_regular) / (exp(wts_regular) + exp(wts_inverted)) # not numerically stable
+            return stableExpSumRatio(wts_regular, wts_inverted)
         elif self.pmbMethod == 'excl' or self.pmbMethod == 'excl2': # new method (consider all the formulas that contain one of the ground atoms in the same block as the ground atom)
             for gf in relevantGroundFormulas: # !!! here the relevant ground formulas may not be sufficient!!!! they are different than in the other case
                 # check if one of the ground atoms in the block appears in the ground formula
