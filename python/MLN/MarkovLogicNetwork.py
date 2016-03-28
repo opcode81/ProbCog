@@ -680,6 +680,8 @@ class MLN(object):
             databases: list of Database objects or filenames
         '''
         
+        print "Learning with method %s" % str(method)
+        
         # get a list of database objects
         dbs = []
         for db in databases:
@@ -695,7 +697,7 @@ class MLN(object):
         # run learner
         if len(dbs) == 1:
             groundingMethod = eval('learning.%s.groundingMethod' % method)
-            print "grounding MRF using %s..." % groundingMethod 
+            print "grounding MRF using %s (%s)..." % (groundingMethod, 'learning.%s.groundingMethod' % method) 
             mrf = self.groundMRF(dbs[0], method=groundingMethod, verbose=params.get("verbose", False))
             learner = eval("learning.%s(mrf, **params)" % method)
         else:
@@ -1019,7 +1021,8 @@ class MRF(object):
 
         # set evidence
         #self.setEvidence(db.evidence)
-        #self.softEvidence = db.softEvidence
+        self.softEvidence = db.softEvidence
+        self.softEvidenceDict = db.softEvidenceDict
         
         # ground formulas after setting the evidence to apply formula simplification
         #self._createFormulaGroundings(verbose=verbose)
@@ -1285,18 +1288,22 @@ class MRF(object):
             returns None if there is no such value
         '''
         s = strFormula(gndAtom)
-        for se in self.softEvidence: # TODO optimize
-            if se["expr"] == s:
-                #print "worldValues[gndAtom.idx]", worldValues[gndAtom.idx]
-                return se["p"]
-        return None
+        se = self.softEvidenceDict.get(s)
+        if se is None:
+            return None
+        else:   
+            return se["p"]
 
     def _setSoftEvidence(self, gndAtom, value):
         s = strFormula(gndAtom)
-        for se in self.softEvidence:
-            if se["expr"] == s:
-                se["p"] = value
-                return
+        se = self.softEvidenceDict.get(s)
+        if se is None:
+            if value == 0.0 or value == 1.0: # set hard evidence
+                self._setEvidence(gndAtom.idx, False if value == 0.0 else True)
+            else:    
+                raise Exception("No soft evidence value found for '%s'" % s)
+        else:
+            se["p"] = value
 
     def getTruthDegreeGivenSoftEvidence(self, gf, worldValues):
         cnf = gf.toCNF()
@@ -1919,7 +1926,7 @@ class MRF(object):
     #            * another formula, e.g. "bar(A,B) ^ !baz(A,B)"
     #              Note: it can be an arbitrary formula only for exact inference, otherwise it must be a conjunction
     #              This will overwrite any evidence previously set in the MLN
-    #            * None if the evidence currently set in the MLN is to be used
+    #            * None if the evidence currently set in the MRF is to be used
     #   verbose: whether to print the results
     #   args: any additional arguments to pass on to the actual inference method
     def infer(self, what, given=None, verbose=True, **args):
