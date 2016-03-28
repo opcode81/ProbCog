@@ -193,6 +193,24 @@ class BPLL(AbstractLearner):
                         self.mrf._removeTemporaryEvidence()
 
 
+class DBPLL(BPLL):
+    '''
+    Specialisation of BPLL for discriminative learning.
+    '''    
+    
+    def __init__(self, mrf, queryPreds=None, **params):
+        BPLL.__init__(self, mrf, **params)
+        self.queryPreds = queryPreds
+
+    def _isQueryVar(self, idxVar):
+        idxGA, block = self.mrf.pllBlocks[idxVar]
+        if idxGA is not None:
+            predName = self.mrf.gndAtomsByIdx[idxGA].predName 
+        else:
+            predName = self.mrf.gndAtomsByIdx[block[0]].predName
+        return predName in self.queryPreds
+
+
 class BPLL_CG(BPLL):
     '''
         BPLL learner variant that uses a custom grounding procedure to increase

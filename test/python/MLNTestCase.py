@@ -47,7 +47,7 @@ class MLNTestCase(unittest.TestCase):
         weights = mln.getWeights()
         correctWeights = [16.946119791748266, -5.6487239615488454, -11.297429358877265, 5.6487053973271903]
         self.assertApproxListEqual(weights, correctWeights)
-    
+        
     def test_learnBPLL(self):
         mln = self.getSimpleLearningModel()
         mln.learnWeights([self.simpleLearnDB], ParameterLearningMeasures.BPLL, optimizer="bfgs")
@@ -74,6 +74,20 @@ class MLNTestCase(unittest.TestCase):
         mln.learnWeights([self.smokingDB], ParameterLearningMeasures.PLL, optimizer="bfgs")
         correctWeights = [0.664496216335284, 1.8004196461831026]
         weights = mln.getWeights()
+        self.assertApproxListEqual(weights, correctWeights)
+
+    def test_learnDPLL_Smoking(self):
+        mln = self.getSmokersModel()
+        mln.learnWeights([self.smokingDB], ParameterLearningMeasures.DPLL, optimizer="bfgs", queryPreds=["Smokes", "Cancer"])
+        weights = mln.getWeights()
+        correctWeights = [0.51950112945191118, 0.66335511117447898]
+        self.assertApproxListEqual(weights, correctWeights)
+
+    def test_learnDBPLL_Smoking(self):
+        mln = self.getSmokersModel()
+        mln.learnWeights([self.smokingDB], ParameterLearningMeasures.DBPLL, optimizer="bfgs", queryPreds=["Smokes", "Cancer"])
+        weights = mln.getWeights()
+        correctWeights = [0.51950112945191118, 0.66335511117447898]
         self.assertApproxListEqual(weights, correctWeights)
     
     def test_groundAMLN(self):
@@ -131,7 +145,7 @@ class MLNTestCase(unittest.TestCase):
         
 if __name__ == '__main__':
     runAll = True
-    test = "test_inferExact_inferEnumerationAsk"
+    test = "test_learnDPLL_Smoking"
     if runAll:
         unittest.main()
     else:
