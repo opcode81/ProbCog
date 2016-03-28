@@ -37,18 +37,24 @@ class BPLL(AbstractLearner):
     value from the same block.
     This learner is fairly efficient, as it computes f and grad based only
     on a sufficient statistic.
+    Furthermore, it is memory-efficient, as it does not require the list of
+    ground formulas in memory; it will only iterate over all the groundings.
     '''    
+    
+    groundingMethod = 'GroundedAtomsGroundFormulasIterableFactory'
     
     def __init__(self, mrf, **params):
         AbstractLearner.__init__(self, mrf, **params)
         
+    def _isQueryVar(self, idxVar):
+        return True # for non-discriminative learning, all variables are relevant
+
     def _prepareOpt(self):
         print "constructing blocks..."
         self.mrf._getPllBlocks()
         self.mrf._getAtom2BlockIdx()        
         self._computeStatistics()
         # remove data that is now obsolete
-        self.mrf.removeGroundFormulaData()
         self.mrf.atom2BlockIdx = None
     
     def _addMBCount(self, idxVar, size, idxValue, idxWeight, increment=1):
@@ -59,6 +65,7 @@ class BPLL(AbstractLearner):
         if idxVar not in d:
             d[idxVar] = [0] * size
         d[idxVar][idxValue] += increment
+        #print "adding %f to %d/%d" % (increment, idxVar, idxValue)
 
     def _getBlockProbMB(self, idxVar, wt):        
         (idxGA, block) = self.mrf.pllBlocks[idxVar]
@@ -92,9 +99,10 @@ class BPLL(AbstractLearner):
         self._calculateBlockProbsMB(wt)
         probs = []
         for idxVar in xrange(len(self.mrf.pllBlocks)):
-            p = self.blockProbsMB[idxVar][self.evidenceIndices[idxVar]]
-            if p == 0: p = 1e-10 # prevent 0 probabilities
-            probs.append(p)
+            if self._isQueryVar(idxVar):
+                p = self.blockProbsMB[idxVar][self.evidenceIndices[idxVar]]
+                if p == 0: p = 1e-10 # prevent 0 probabilities
+                probs.append(p)
         return fsum(map(log, probs))
    
     def _grad(self, wt):
@@ -103,13 +111,14 @@ class BPLL(AbstractLearner):
         #print "gradient calculation"
         for idxFormula, d in self.fcounts.iteritems():
             for idxVar, counts in d.iteritems():
-                v = counts[self.evidenceIndices[idxVar]]
-                for i in xrange(len(counts)):
-                    v -= counts[i] * self.blockProbsMB[idxVar][i]
-                grad[idxFormula] += v
+                if self._isQueryVar(idxVar):
+                    v = counts[self.evidenceIndices[idxVar]]
+                    for i in xrange(len(counts)):
+                        v -= counts[i] * self.blockProbsMB[idxVar][i]
+                    grad[idxFormula] += v
         #print "wts =", wt
-        #print "grad =", grad
         self.grad_opt_norm = float(sqrt(fsum(map(lambda x: x * x, grad))))
+        print "grad =", grad, "norm=", self.grad_opt_norm
         return numpy.array(grad)
     
     def _computeStatistics(self):
@@ -138,7 +147,7 @@ class BPLL(AbstractLearner):
         self.fcounts = {}        
         self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
-        for idxGndFormula, gndFormula in enumerate(self.mrf.gndFormulas):
+        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas()):
             if debug:
                 print "  ground formula %d/%d: %s\r" % (idxGndFormula, len(self.mrf.gndFormulas), str(gndFormula))
             
@@ -155,12 +164,12 @@ class BPLL(AbstractLearner):
             
                 if idxGA is not None: # ground atom is the variable as it's not in a block
                     if debug: print "    ", self.mrf.gndAtomsByIdx[idxGA]
-                    
+
                     # check if formula is true if gnd atom maintains its truth value
                     if self.mrf._isTrueGndFormulaGivenEvidence(gndFormula):
                         self._addMBCount(idxVar, 2, 0, gndFormula.idxFormula)
                         if debug: print "      add 0"
-                    
+
                     # check if formula is true if gnd atom's truth value is inverted
                     old_tv = self.mrf._getEvidence(idxGA)
                     self.mrf._setTemporaryEvidence(idxGA, not old_tv)
