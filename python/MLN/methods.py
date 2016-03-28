@@ -50,6 +50,7 @@ ParameterLearningMeasures = Enum(
       "LL_ISE": "[soft evidence] log-likelihood with soft features (independent soft evidence)",
       "PLL_ISE": "[soft evidence] pseudo-log-likelihood with soft features (independent soft evidence)",
       "DPLL_ISE": "[soft evidence][discriminative] pseudo-log-likelihood with soft features (indep. soft ev.)",
+      "DPLL_ISE_ME": "[soft evidence][discriminative] pseudo-log-likelihood with soft features (indep. soft ev.), mem-efficient",
       "LL_ISEWW": "[soft evidence] log-likelihood with independent soft evidence and weighting of worlds",
       "E_ISEWW": "[soft evidence] error with independent soft evidence and weighting of worlds",
       #"SLL_ISE": "[soft evidence] sampling-based log-likelihood with soft features (independent soft evidence)", 

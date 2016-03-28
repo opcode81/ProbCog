@@ -23,7 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from AbstractLearner import AbstractLearner
+from AbstractLearner import AbstractLearner, SoftEvidenceLearner
 from collections import defaultdict
 from MLN.util import *
 import numpy
@@ -132,7 +132,7 @@ class BPLL(AbstractLearner):
         self.evidenceIndices = []
         for (idxGA, block) in self.mrf.pllBlocks:
             if idxGA is not None:
-                self.evidenceIndices.append(0)
+                self.evidenceIndices.append(0) # 0 = value unchanged, 1 = inverted
             else:
                 # find out which ga is true in the block
                 idxValueTrueone = -1
@@ -210,6 +210,78 @@ class DBPLL(BPLL):
             predName = self.mrf.gndAtomsByIdx[block[0]].predName
         return predName in self.queryPreds
 
+
+class DPLL_ISE_ME(SoftEvidenceLearner, DBPLL):
+    '''
+    Discriminative pseudologlikelihood learning with independent soft evidence.
+    This is a more memory-efficient implementation, which is based on DBPLL, but it 
+    does *not* support block variables at all.
+    '''
+    
+    def __init__(self, mrf, queryPreds=None, **params):
+        SoftEvidenceLearner.__init__(self, mrf, **params)
+        DBPLL.__init__(self, mrf, queryPreds=queryPreds, **params)
+        
+    def _computeStatistics(self):
+        '''
+        computes the statistics upon which the optimization is based
+        '''
+        debug = False
+        print "computing statistics..."
+
+        # get evidence indices
+        self.evidenceIndices = []
+        for (idxGA, block) in self.mrf.pllBlocks:
+            if idxGA is not None:
+                self.evidenceIndices.append(0) # 0 = value unchanged, 1 = inverted
+            else:
+                # find out which ga is true in the block
+                idxValueTrueone = -1
+                for idxValue, idxGA in enumerate(block):
+                    if self.mrf._getEvidence(idxGA):
+                        if idxValueTrueone != -1: raise Exception("More than one true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                        idxValueTrueone = idxValue
+                if idxValueTrueone == -1: raise Exception("No true ground atom in block '%s'!" % self.mrf._strBlock(block))
+                self.evidenceIndices.append(idxValueTrueone)
+        
+        # compute actual statistics
+        self.fcounts = {}        
+        self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
+
+        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas()):
+            if debug:
+                print "  ground formula %d/%d: %s\r" % (idxGndFormula, len(self.mrf.gndFormulas), str(gndFormula))
+            
+            # get the set of block indices that the variables appearing in the formula correspond to
+            idxBlocks = set()
+            for idxGA in gndFormula.idxGroundAtoms():
+                #if debug: print "    ", self.mrf.gndAtomsByIdx[idxGA]
+                idxBlocks.add(self.mrf.atom2BlockIdx[idxGA])
+            
+            for idxVar in idxBlocks:
+                
+                (idxGA, block) = self.mrf.pllBlocks[idxVar]
+                
+            
+                if idxGA is not None: # ground atom is the variable as it's not in a block
+                    if debug: print "    ", self.mrf.gndAtomsByIdx[idxGA]
+
+                    ga = self.mrf.gndAtomsByIdx[idxGA]
+                    old_tv = self.mrf._getEvidenceDegree(ga)
+                    
+                    tg1 = self._getTruthDegreeGivenEvidence(gndFormula)
+                    #print "%s: %f (%f)" % (gndFormula, tg1, old_tv)
+                    if tg1 > 0: self._addMBCount(idxVar, 2, 0, gndFormula.idxFormula, increment=tg1)
+                    
+                    self.mrf._setSoftEvidence(ga, 1 - old_tv)
+                    tg2 = self._getTruthDegreeGivenEvidence(gndFormula)
+                    if tg2 > 0: self._addMBCount(idxVar, 2, 1, gndFormula.idxFormula, increment=tg2)
+                    self.mrf._setSoftEvidence(ga, old_tv)
+
+                else: # the block is the variable (idxGA is None)
+
+                    raise Exception("Block variables are not supported by this learner")
+        
 
 class BPLL_CG(BPLL):
     '''
