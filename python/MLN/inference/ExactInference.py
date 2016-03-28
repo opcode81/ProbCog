@@ -255,7 +255,11 @@ class EnumerationAsk(Inference):
         else: # it's a regular ground atom
             gndAtom = self.mln.gndAtomsByIdx[idxGA]
             if self.haveSoftEvidence:
-                e = True if self.mln._getEvidenceDegree(gndAtom) > 0 else False
+                se = self.mln._getEvidenceDegree(gndAtom)
+                if se is None:
+                    e = None
+                else:
+                    e = True if se > 0 else False
             else:
                 e = self.mln._getEvidence(idxGA, False)
             if e is not None:
