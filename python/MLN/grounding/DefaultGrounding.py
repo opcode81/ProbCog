@@ -37,7 +37,6 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
     
     def _createGroundAtoms(self, verbose=False):
         # create ground atoms
-        atoms = []
         for predName, domNames in self.mln.predicates.iteritems():
             self._groundAtoms([], predName, domNames, verbose)
 
@@ -58,23 +57,45 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
             raise Exception("Domain '%s' is empty!" % domNames[0])
         for value in dom:
             self._groundAtoms(cur + [value], predName, domNames[1:])
-        
-    def _createGroundFormulas(self, verbose=False):
+
+    def _iterGroundFormulas(self, verbose=False):
         mrf = self.mrf
         assert len(mrf.gndAtoms) > 0
         
         # generate all groundings
         if verbose: 
-            print "Grounding formulas..."
+            print "Generating ground formulas..."
         for idxFormula, formula in enumerate(mrf.formulas):
             if verbose: 
                 print "  %s" % strFormula(formula)
             for gndFormula, referencedGndAtoms in formula.iterGroundings(mrf, mrf.simplify):
-                gndFormula.isHard = formula.isHard
-                gndFormula.weight = formula.weight
                 if isinstance(gndFormula, FOL.TrueFalse):
                     continue
-                mrf._addGroundFormula(gndFormula, idxFormula, referencedGndAtoms)
+                gndFormula.isHard = formula.isHard
+                gndFormula.weight = formula.weight
+                gndFormula.idxFormula = idxFormula
+                yield (gndFormula, referencedGndAtoms)
+        
+    def _createGroundFormulas(self, verbose=False):
+        mrf = self.mrf
+        for (gndFormula, referencedGndAtoms) in self._iterGroundFormulas(verbose=verbose):
+            mrf._addGroundFormula(gndFormula, gndFormula.idxFormula, referencedGndAtoms)
         
         self.mln.gndFormulas = mrf.gndFormulas
         self.mln.gndAtomOccurrencesInGFs = mrf.gndAtomOccurrencesInGFs
+
+class GroundedAtomsGroundFormulasIterableFactory(DefaultGroundingFactory):
+    '''
+    Generates only ground atoms but not ground formulas. For the generation of ground formulas,
+    an iterator method is added to the MRF: iterGroundFormulas
+    '''
+
+    def _createGroundFormulas(self, verbose=False):
+        self.mrf.gndFormulas = None
+        self.mrf.gndAtomOccurrencesInGFs = None
+        self.mrf.iterGroundFormulas = self.__iterGroundFormulas
+    
+    def __iterGroundFormulas(self, verbose=False):
+        for item in self._iterGroundFormulas(verbose=verbose):
+            yield item[0]
+        

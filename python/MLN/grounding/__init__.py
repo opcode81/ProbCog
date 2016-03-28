@@ -1,3 +1,3 @@
-from DefaultGrounding import DefaultGroundingFactory
+from DefaultGrounding import DefaultGroundingFactory, GroundedAtomsGroundFormulasIterableFactory
 from bpll import BPLLGroundingFactory
 from wcsp import WCSPGroundingFactory
