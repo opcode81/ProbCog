@@ -779,30 +779,45 @@ class MLN(object):
 
 
 class Database(object):
-    def __init__(self, mln, dbfile=None):
+    def __init__(self, mln, dbfile=None, dbContent=None):
+        '''
+        Creates a database, optionally loading content from a file or a string.
+        The optional dbfile and dbContent cannot be specified at the same time.
+        mln: Markov logic network containing the relevant predicate declarations
+        dbfile: (optional) filename from which to load data
+        dbContent: (optional) string containing content to load
+        '''
         self.mln = mln
         self.domains = {}
         self.evidence = {}
         self.softEvidence = []
         self.softEvidenceDict = {}
         self.includeNonExplicitDomains = True
+        if dbfile is not None and dbContent is not None: raise Exception("Cannot specify both dbfile and dbContent")
         if dbfile is not None:
             self.readFile(dbfile)
+        if dbContent is not None:
+            self.readContent(dbContent)
     
     def readFile(self, dbfile):
         '''
             reads a database file containing literals and/or domains
             returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
             and evidence is a dictionary mapping ground atom strings to truth values
+            
+            dbfile: filename from which to load data
         '''
-        domains = self.domains
         # read file
         print "reading %s"  % dbfile
         f = file(dbfile, "r")
-        db = f.read()
+        dbContent = f.read()
         f.close()
+        return self.readContent(dbContent)
+        
+    def readContent(self, content):
+        domains = self.domains
         print "stripping comments"
-        db = stripComments(db)
+        db = stripComments(content)
         domainDicts = {}
         # expand domains with db constants and save evidence
         evidence = self.evidence
@@ -859,6 +874,8 @@ class Database(object):
                     if constants[i] not in dd:
                         d.append(constants[i])
                         dd[constants[i]] = True
+        
+        return (domains, evidence)
                         
     def getSoftEvidence(self, gndAtom):
         '''
