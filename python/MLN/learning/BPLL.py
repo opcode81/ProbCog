@@ -59,11 +59,12 @@ class BPLL(AbstractLearner):
     
     def _addMBCount(self, idxVar, size, idxValue, idxWeight, increment=1):
         self.blockRelevantFormulas[idxVar].add(idxWeight)
-        if idxWeight not in self.fcounts:
-            self.fcounts[idxWeight] = {}
-        d = self.fcounts[idxWeight]
+        d = self.fcounts.get(idxWeight)
+        if d is None:
+            d = {}
+            self.fcounts[idxWeight] = d
         if idxVar not in d:
-            d[idxVar] = [0] * size
+            d[idxVar] = numpy.zeros(size)
         d[idxVar][idxValue] += increment
         #print "adding %f to %d/%d" % (increment, idxVar, idxValue)
 
@@ -75,7 +76,7 @@ class BPLL(AbstractLearner):
         if relevantFormulas is None: # no list was saved, so the truth of all formulas is unaffected by the variable's value
             # uniform distribution applies
             p = 1.0/numValues
-            return [p] * numValues
+            return numpy.repeat(p, numValues)
         
         sums = numpy.zeros(numValues)
         for idxFormula in relevantFormulas:            
@@ -91,12 +92,16 @@ class BPLL(AbstractLearner):
     
     def _calculateBlockProbsMB(self, wt):
         if ('wtsLastBlockProbMBComputation' not in dir(self)) or self.wtsLastBlockProbMBComputation != list(wt):
-            #print "recomputing block probabilities...",
-            self.blockProbsMB = [self._getBlockProbMB(i, wt) for i in xrange(len(self.mrf.pllBlocks))]
+            print "recomputing block probabilities..."
+            self.__calculateBlockProbsMB(wt)
             self.wtsLastBlockProbMBComputation = list(wt)
+
+    def __calculateBlockProbsMB(self, wt):
+        self.blockProbsMB = [self._getBlockProbMB(i, wt) for i in xrange(len(self.mrf.pllBlocks))]
     
     def _f(self, wt):
         self._calculateBlockProbsMB(wt)
+        print "likelihood calculation..."
         probs = []
         for idxVar in xrange(len(self.mrf.pllBlocks)):
             if self._isQueryVar(idxVar):
@@ -108,7 +113,7 @@ class BPLL(AbstractLearner):
     def _grad(self, wt):
         self._calculateBlockProbsMB(wt)
         grad = numpy.zeros(len(self.mrf.formulas), numpy.float64)        
-        #print "gradient calculation"
+        print "gradient calculation..."
         for idxFormula, d in self.fcounts.iteritems():
             for idxVar, counts in d.iteritems():
                 if self._isQueryVar(idxVar):
@@ -147,7 +152,7 @@ class BPLL(AbstractLearner):
         self.fcounts = {}        
         self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
-        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas()):
+        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas(verbose=True)):
             if debug:
                 print "  ground formula %d/%d: %s\r" % (idxGndFormula, len(self.mrf.gndFormulas), str(gndFormula))
             
@@ -158,6 +163,9 @@ class BPLL(AbstractLearner):
                 idxBlocks.add(self.mrf.atom2BlockIdx[idxGA])
             
             for idxVar in idxBlocks:
+                
+                if not self._isQueryVar(idxVar):
+                    continue
                 
                 (idxGA, block) = self.mrf.pllBlocks[idxVar]
                 
@@ -248,7 +256,7 @@ class DPLL_ISE_ME(SoftEvidenceLearner, DBPLL):
         self.fcounts = {}        
         self.blockRelevantFormulas = defaultdict(set) # maps from variable/pllBlock index to a list of relevant formula indices
 
-        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas()):
+        for idxGndFormula, gndFormula in enumerate(self.mrf.iterGroundFormulas(verbose=True)):
             if debug:
                 print "  ground formula %d/%d: %s\r" % (idxGndFormula, len(self.mrf.gndFormulas), str(gndFormula))
             
@@ -259,6 +267,9 @@ class DPLL_ISE_ME(SoftEvidenceLearner, DBPLL):
                 idxBlocks.add(self.mrf.atom2BlockIdx[idxGA])
             
             for idxVar in idxBlocks:
+                
+                if not self._isQueryVar(idxVar):
+                    continue
                 
                 (idxGA, block) = self.mrf.pllBlocks[idxVar]
                 
