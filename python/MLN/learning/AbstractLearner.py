@@ -37,8 +37,11 @@ class AbstractLearner(object):
     
     groundingMethod = 'DefaultGroundingFactory'
     
-    def __init__(self, mrf, gaussianPriorSigma=None, **params):
-        self.mln = mrf.mln
+    def __init__(self, mrf=None, gaussianPriorSigma=None, mln=None, **params):
+        if mln is None and mrf is not None:
+            self.mln = mrf.mln
+        else:
+            self.mln = mln
         self.mrf = mrf
         self.numFormulas = len(self.mln.formulas)
         self.params = params
@@ -168,11 +171,7 @@ class AbstractLearner(object):
                 
         # apply closed world assumption
         if self.closedWorldAssumption:
-            self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
-        
-        # apply closed world assumption
-        if self.closedWorldAssumption:
-            self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
+            self._applyClosedWorldAssumption()
         
         # precompute fixed formula weights
         self._fixFormulaWeights()
@@ -187,6 +186,12 @@ class AbstractLearner(object):
     
     def _prepareOpt(self):
         pass
+    
+    def _applyClosedWorldAssumption(self):
+        if self.mrf is not None:
+            self.mrf.evidence = map(lambda x: False if x is None else x, self.mrf.evidence)
+        else:
+            raise Exception("Cannot apply closed-world assumption without an MRF and its evidence")
     
     def _optimize(self, optimizer = None, **params):
         imposedOptimizer = self.getAssociatedOptimizerName()
@@ -270,11 +275,11 @@ class MultipleDatabaseLearner(AbstractLearner):
     learns from multiple databases using an arbitrary sub-learning method for each database, assuming independence between individual databases
     '''
     
-    def __init__(self, mrf, method, dbs, verbose=True, **params):
+    def __init__(self, mln, method, dbs, verbose=True, **params):
         '''
         dbs: list of tuples (domain, evidence) as returned by the database reading method
         '''        
-        AbstractLearner.__init__(self, mrf, **params)        
+        AbstractLearner.__init__(self, mrf=None, mln=mln, **params)        
         self.dbs = dbs
         self.constructor = MLN.ParameterLearningMeasures.byShortName(method)
         self.params = params
@@ -314,6 +319,10 @@ class MultipleDatabaseLearner(AbstractLearner):
 
     def _prepareOpt(self):
         pass # _prepareOpt is called for individual learners during construction
+    
+    def _applyClosedWorldAssumption(self):
+        for learner in self.learners:
+            learner._applyClosedWorldAssumption()
     
     def _fixFormulaWeights(self):
         self._fixedWeightFormulas = {}
