@@ -64,7 +64,7 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
         
         # generate all groundings
         if verbose: 
-            print "Generating ground formulas..."
+            print "generating ground formulas..."
         for idxFormula, formula in enumerate(mrf.formulas):
             if verbose: 
                 print "  %s" % strFormula(formula)

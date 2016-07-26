@@ -686,7 +686,7 @@ class MLN(object):
         dbs = []
         for db in databases:
             if type(db) == str:
-                db = Database(self, db)
+                db = Database(self, db, verbose=True)
             elif not isinstance(db, Database):
                 raise Exception("Got database of unknown type '%s'" % (str(type(db))))
             dbs.append(db)
@@ -781,7 +781,7 @@ class MLN(object):
 
 
 class Database(object):
-    def __init__(self, mln, dbfile=None, dbContent=None):
+    def __init__(self, mln, dbfile=None, dbContent=None, verbose=False):
         '''
         Creates a database, optionally loading content from a file or a string.
         The optional dbfile and dbContent cannot be specified at the same time.
@@ -797,11 +797,12 @@ class Database(object):
         self.includeNonExplicitDomains = True
         if dbfile is not None and dbContent is not None: raise Exception("Cannot specify both dbfile and dbContent")
         if dbfile is not None:
-            self.readFile(dbfile)
+            self.readFile(dbfile, verbose=verbose)
         if dbContent is not None:
-            self.readContent(dbContent)
+            if verbose: print "reading database from string"
+            self.readContent(dbContent, verbose=verbose)
     
-    def readFile(self, dbfile):
+    def readFile(self, dbfile, verbose=False):
         '''
             reads a database file containing literals and/or domains
             returns (domains, evidence) where domains is dictionary mapping domain names to lists of constants defined in the database
@@ -810,15 +811,15 @@ class Database(object):
             dbfile: filename from which to load data
         '''
         # read file
-        print "reading %s"  % dbfile
+        if verbose: print "reading %s"  % dbfile
         f = file(dbfile, "r")
         dbContent = f.read()
         f.close()
         return self.readContent(dbContent)
         
-    def readContent(self, content):
+    def readContent(self, content, verbose=False):
         domains = self.domains
-        print "stripping comments"
+        if verbose: print "  stripping comments"
         db = stripComments(content)
         domainDicts = {}
         # expand domains with db constants and save evidence
@@ -827,8 +828,8 @@ class Database(object):
         lines = db.split("\n")
         for l in lines:
             lineNo += 1
-            if lineNo % 10000 == 0 or lineNo == len(lines): 
-                print "read %.2f%%\r" % (100.0*lineNo/len(lines)),
+            if verbose and (lineNo % 10000 == 0 or lineNo == len(lines)): 
+                print "  read %.2f%%\r" % (100.0*lineNo/len(lines)),
                 if lineNo == len(lines): print
             l = l.strip()
             if l == "":
