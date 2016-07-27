@@ -128,8 +128,8 @@ public class Object extends Item implements IRelationArgument, java.io.Serializa
 		// check if the attribute is boolean and if so, use a predicate that has no
 		// parameters other than the object name
 		if(ddAttrib.isBoolean()) {
-			BooleanDomain domain = (BooleanDomain) ddAttrib.getDomain(); 
-			out.println((!domain.isTrue(strValue) ? "!" : "") + predicate + "(" + getConstantName() + ")");			
+			BooleanDomain bd = BooleanDomain.getInstance(); 
+			out.println((!bd.isTrue(strValue) ? "!" : "") + predicate + "(" + getConstantName() + ")");			
 		}
 		// otherwise use a predicate with two parameters: object name and value
 		else {			

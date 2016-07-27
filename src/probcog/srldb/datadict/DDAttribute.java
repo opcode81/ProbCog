@@ -170,7 +170,7 @@ public class DDAttribute implements Cloneable, Serializable {
 	}
 	
 	public boolean isBoolean() {
-		return domain instanceof BooleanDomain;
+		return domain.isBoolean();
 	}
 	
 	/**

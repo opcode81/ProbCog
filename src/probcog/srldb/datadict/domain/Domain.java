@@ -58,6 +58,8 @@ public abstract class Domain<T> implements Serializable {
 	}
 	
 	public boolean isBoolean() {
+		if (this instanceof BooleanDomain)
+			return true;
 		if(!isFinite())
 			return false;
 		String[] values = getValues();
