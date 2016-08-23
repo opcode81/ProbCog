@@ -67,6 +67,8 @@ python_apps = [
     {"name": "pmml2graphml", "script": "$SRLDB_HOME/python/pmml2graphml.py"},
 ]
 
+pythonInterpreter = "python"
+
 def adapt(name, arch):
     return name.replace("<ARCH>", arch).replace("$SRLDB_HOME", os.path.abspath(".")).replace("/", os.path.sep)
 
@@ -88,7 +90,7 @@ def getJavaAppData(name, arch):
 
 if __name__ == '__main__':
 
-    archs = ["win32", "linux_amd64", "linux_i386", "macosx", "macosx64"]
+    archs = ["win32", "win64", "linux_amd64", "linux_i386", "macosx", "macosx64"]
         
     print "\nProbCog Apps Generator\n\n"
     print "  usage: make_apps [--arch=%s] [additional JVM args]\n" % "|".join(archs)
@@ -157,7 +159,7 @@ if __name__ == '__main__':
         print "  %s" % filename
         f = file(filename, "w")
         f.write(preamble)
-        f.write("python -O \"%s\" %s\n" % (adapt(app["script"], arch), allargs))
+        f.write("%s -O \"%s\" %s\n" % (pythonInterpreter, adapt(app["script"], arch), allargs))
         f.close()
         if not isWindows: os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
     print
