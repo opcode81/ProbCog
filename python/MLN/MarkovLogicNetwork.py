@@ -1822,7 +1822,7 @@ class MRF(object):
                 pass # TODO !!!! because this is called from inferIPFPM, should perform inference anyhow
             return
         if verbose:
-            print "applying probability fitting...(max. deviation threshold:", fittingThreshold, ")"
+            print "applying probability fitting using %s... (max. deviation threshold: " % str(fittingMethod), fittingThreshold, ")"
         t_start = time.time()
 
         # determine relevant formulas
