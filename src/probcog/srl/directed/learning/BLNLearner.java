@@ -19,6 +19,9 @@
 package probcog.srl.directed.learning;
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -42,6 +45,7 @@ public class BLNLearner implements IParameterHandler {
 	protected ABLModel bn;
 	protected Vector<GenericDatabase<?,?>> dbs = new Vector<GenericDatabase<?,?>>();
 	protected ParameterHandler paramHandler;
+	protected Map<String,Object> params = new HashMap<String,Object>();
 	
 	public BLNLearner() {
 		paramHandler = new ParameterHandler(this);
@@ -75,6 +79,12 @@ public class BLNLearner implements IParameterHandler {
 				uniformDefault = true;					
 			else if(args[i].equals("-debug"))
 				debug = true;
+			else if(args[i].startsWith("--")) { // algorithm-specific parameter
+				String[] pair = args[i].substring(2).split("=");
+				if(pair.length != 2)
+					throw new IllegalArgumentException("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
+				params.put(pair[0], pair[1]);
+			}
 			else 
 				throw new IllegalArgumentException("Unknown parameter: " + args[i]);
 		}
@@ -105,7 +115,7 @@ public class BLNLearner implements IParameterHandler {
 	public ABLModel learn() throws IllegalArgumentException {
 		try {
 			boolean verbose = true;
-
+			
 			if(bn == null) {
 				if(bifFile == null) {
 					throw new IllegalArgumentException("No network file given");
@@ -113,6 +123,9 @@ public class BLNLearner implements IParameterHandler {
 				// 	create an ABL model			
 				bn = new ABLModel(declsFile, bifFile);
 			}
+			
+			// process parameters
+			paramHandler.handle(params, false);
 			
 			// prepare it for learning
 			bn.prepareForLearning();
@@ -206,6 +219,13 @@ public class BLNLearner implements IParameterHandler {
 					bn.save(outFileNetwork);
 				}
 			}
+			
+			Collection<String> unhandledParams = paramHandler.getUnhandledParams();
+			if (!unhandledParams.isEmpty()) {
+				System.err.println("WARNING: There were unhandled parameters: " + unhandledParams.toString());
+				paramHandler.printHelp(System.out);
+			}
+			
 			// write MLN
 			if(toMLN) {
 				String filename = outFileDecls + ".mln";
