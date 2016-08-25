@@ -73,6 +73,17 @@ public class VariableLogicCoupling {
 		variable2groundAtomLookup.put(var, new BlockVariable(b));
 	}
 	
+	/**
+	 * Adds a logical/evidence variable, for which no actual coupling is required, but 
+	 * which still needs to be added to the world variables
+	 * @param functionName
+	 * @param params
+	 */
+	public void addEvidenceVariable(String functionName, String[] params) {
+		GroundAtom ga = new GroundAtom(functionName, params);
+		worldVars.add(ga);
+	}
+	
 	public GroundLiteral getGroundLiteral(BeliefNode var, int domIdx) {
 		IVariableLogicCoupler vlc = variable2groundAtomLookup.get(var);
 		if(vlc == null)

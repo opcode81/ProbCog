@@ -104,6 +104,11 @@ public class GroundBLN extends AbstractGroundBLN {
 		}
 	}
 	
+	@Override
+	protected void onAddEvidenceVariable(String functionName, String[] params) {
+		coupling.addEvidenceVariable(functionName, params);
+	}
+	
 	public GroundLiteral getGroundLiteral(BeliefNode var, int domIdx) {
 		return coupling.getGroundLiteral(var, domIdx);
 	}
@@ -147,7 +152,7 @@ public class GroundBLN extends AbstractGroundBLN {
 					String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
 					parent = groundBN.getNode(parentName);
 					if(parent == null)
-						throw new Exception("Could not find node for ground atom " + strGA);
+						throw new Exception("Could not find node for ground atom " + strGA + ". If this is an evidence variable, this problem can be avoided by enabling formula simplification (e.g. by passing --simplifyFormulas=true when using BLNinfer)");
 				}				
 				parents.add(parent);
 			}

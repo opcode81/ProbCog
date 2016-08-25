@@ -184,4 +184,10 @@ public class GroundBLN extends AbstractGroundBLN {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	protected void onAddEvidenceVariable(String functionName, String[] params) {
+		// TODO Auto-generated method stub
+		
+	}
 }

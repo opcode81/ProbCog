@@ -305,20 +305,25 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 					throw new Exception(error.toString());
 				}
 			}
-			else { // if it's an evidence node, we don't need a template but add a detached dummy node that has a single 1.0 entry for its evidence value
+			else { // it's an evidence variable
+				
+				// add a detached dummy node that has a single 1.0 entry for its evidence value
 				/*
 				String value = this.db.getVariableValue(varName, true);
 				Domain dom = new Discrete(new String[]{value});
 				BeliefNode node = groundBN.addNode(varName, dom);
-				CPF cpf = new CPF(new BeliefNode[]{node});
+				CPT cpf = new CPT(new BeliefNode[]{node});
 				cpf.setValues(new Value[]{new ValueDouble(1.0)});
 				node.setCPF(cpf);
-				ret = node;
+				*/
 				// TODO can't call this because we don't have a relNode; Actually we wouldn't want to have this node at all
 				//onAddGroundAtomNode(relNode, actualParams, mainNode);
-				 */				
+
+				onAddEvidenceVariable(functionName, params);
+
 				if(debug)
 					System.out.println("      " + varName + " (skipped, is evidence)");
+				
 				return null;
 			}
 	    }
@@ -613,6 +618,8 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	protected abstract void groundFormulaicNodes() throws Exception;
 	
 	protected abstract void onAddGroundAtomNode(BeliefNode instance, String[] params, Signature sig);
+	
+	protected abstract void onAddEvidenceVariable(String functionName, String[] params);
 	
 	protected void onAddAuxiliaryNode(BeliefNode var, boolean isBoolean, String functionName, String[] params) {}
 
