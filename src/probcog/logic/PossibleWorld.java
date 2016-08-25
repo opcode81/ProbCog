@@ -24,7 +24,7 @@ import probcog.srl.AbstractVariable;
 import probcog.srl.Database;
 
 /**
- * Represents a set of possible worlds for a given set of world variables (ground atoms).
+ * Represents a possible world for a given set of world variables (ground atoms).
  * @author Dominik Jain
  */
 public class PossibleWorld implements IPossibleWorld {
