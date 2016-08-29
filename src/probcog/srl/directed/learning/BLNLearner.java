@@ -39,6 +39,7 @@ import probcog.srl.directed.ABLModel;
 public class BLNLearner implements IParameterHandler {	
 	
 	protected boolean showBN = false, learnDomains = false, ignoreUndefPreds = false, toMLN = false, debug = false, uniformDefault = false;
+	protected boolean verbose = true;
 	protected String declsFile = null, bifFile = null, dbFile = null, outFileDecls = null, outFileNetwork = null;
 	protected boolean noNormalization = false;
 	protected boolean mergeDomains = false;
@@ -112,10 +113,21 @@ public class BLNLearner implements IParameterHandler {
 		this.outFileDecls = filename;
 	}
 	
+	/**
+	 * Sets a parameter that is to be interpreted by an internal handler of the underlying methods
+	 * @param param the name of the parameter
+	 * @param value the value of the parameter
+	 */
+	public void setParameter(String param, String value) {
+		this.params.put(param, value);
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+	
 	public ABLModel learn() throws IllegalArgumentException {
 		try {
-			boolean verbose = true;
-			
 			if(bn == null) {
 				if(bifFile == null) {
 					throw new IllegalArgumentException("No network file given");
@@ -173,6 +185,7 @@ public class BLNLearner implements IParameterHandler {
 			if(learnDomains) {
 				if(verbose) System.out.println("Learning domains...");
 				DomainLearner domLearner = new DomainLearner(bn);
+				domLearner.setVerbose(verbose);
 				for(GenericDatabase<?,?> db : dbs) {					
 					domLearner.learn(db);					
 				}
@@ -199,7 +212,7 @@ public class BLNLearner implements IParameterHandler {
 				int i = 1; 
 				for(GenericDatabase<?,?> db : dbs) {
 					if(verbose) System.out.printf("database %d/%d\n", i, dbs.size());
-					cptLearner.learnTyped(db, true, true);
+					cptLearner.learnTyped(db, true, verbose);
 					++i;
 				}
 				if(!noNormalization)

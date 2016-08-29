@@ -548,4 +548,8 @@ public class DomainLearner extends Learner {
 		// apply new, sorted domain
 		bn.bn.changeBeliefNodeDomain(node, sorted_domain);
 	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
 }

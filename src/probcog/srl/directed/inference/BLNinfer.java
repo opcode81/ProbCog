@@ -153,11 +153,25 @@ public class BLNinfer implements IParameterHandler {
 			System.exit(1);
 		}
 	}
+	
+	public void setInferenceAlgorithm(Algorithm algo) {
+		this.algo = algo;
+	}
 
 	public void setTimeLimit(double seconds) {
 		timeLimitedInference = true;
 		this.timeLimit = seconds;
 	}
+	
+	/**
+	 * Sets a parameter that is to be interpreted by an internal handler of the underlying methods
+	 * @param param the name of the parameter
+	 * @param value the value of the parameter
+	 */
+	public void setParameter(String param, String value) {
+		this.params.put(param, value);
+	}
+
 
 	public void readArgs(String[] args) throws Exception {
 		// read arguments

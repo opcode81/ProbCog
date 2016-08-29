@@ -100,7 +100,7 @@ public class DomainLearner extends probcog.bayesnets.learning.DomainLearner {
 		BeliefNode[] nodes = bn.bn.getNodes();
 		Map2Set<String, String> guaranteedElements = new Map2Set<String, String>();
 		for(int i = 0; i < nodes.length; i++) {
-			System.out.println("  " + nodes[i].getName());
+			if (verbose) System.out.println("  " + nodes[i].getName());
 			ExtendedNode extNode = bn.getExtendedNode(i);
 			Discrete dom = (Discrete) nodes[i].getDomain();
 			if(RelationalBeliefNetwork.isBooleanDomain(dom)) { // replace boolean domains
