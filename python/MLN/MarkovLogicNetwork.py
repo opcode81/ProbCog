@@ -861,7 +861,7 @@ class Database(object):
 
             # expand domains
             if len(domNames) != len(constants):
-                raise Exception("Ground atom %s in database %s has wrong number of parameters" % (l, dbfile))
+                raise Exception("Ground atom %s has wrong number of parameters" % (l))
 
             if "{" in l or self.includeNonExplicitDomains:
                 for i in range(len(constants)):
@@ -1316,7 +1316,7 @@ class MRF(object):
             prod *= self._noisyOr(worldValues, cnf)
         return prod
 
-    def _noisyOr(mln, worldValues, disj):
+    def _noisyOr(self, worldValues, disj):
         if isinstance(disj, FOL.GroundLit):
             lits = [disj]
         elif isinstance(disj, FOL.TrueFalse):
@@ -1325,7 +1325,7 @@ class MRF(object):
             lits = disj.children
         prod = 1.0
         for lit in lits:
-            p = mln._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)
+            p = self._getEvidenceTruthDegreeCW(lit.gndAtom, worldValues)
             factor = p if not lit.negated else 1.0 - p
             prod *= 1.0 - factor
         return 1.0 - prod
@@ -1394,7 +1394,7 @@ class MRF(object):
         idxGATrueone = -1
         for i in block:
             if self._getEvidence(i):
-                if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % blockname)
+                if idxGATrueone != -1: raise Exception("More than one true ground atom in block %s!" % str(block))
                 idxGATrueone = i
                 break
         if idxGATrueone == -1: raise Exception("No true gnd atom in block %s!" % self._strBlock(block))
