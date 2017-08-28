@@ -17,4 +17,4 @@ def importdir(relative_path):
 
 def importbin():
 	''' adds the ProbCog bin/ directory as an import '''
-	importdir("bin")
+	importdir(os.path.join("target", "classes"))

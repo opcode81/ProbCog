@@ -3,52 +3,33 @@
 import os
 import stat
 import sys
-import platform
-
-includes = {
-    "weka": {"jars": ["$SRLDB_HOME/../WEKA/bin", "$SRLDB_HOME/lib/weka_fipm.jar"]},
-    "srldb": {"jars": ["$SRLDB_HOME/bin", "$SRLDB_HOME/lib/srldb.jar", "$SRLDB_HOME/../TUMUtils/bin", "$SRLDB_HOME/lib/tumutils.jar"]},
-    "jython": {"jars": ["$SRLDB_HOME/lib/jython250.jar", "$SRLDB_HOME/lib/jython250lib.jar"]},
-    "swt": {"jars": ["$SRLDB_HOME/lib/swt_<ARCH>/swt.jar"], "lib":"$SRLDB_HOME/lib/swt_<ARCH>"},
-    "bnj": {"jars": ["$SRLDB_HOME/../BNJ/bin", "$SRLDB_HOME/lib/bnj.jar", "$SRLDB_HOME/lib/bnj_res.jar"]},
-    "smile": {"jars": ["$SRLDB_HOME/lib/jsmile_<ARCH>/smile.jar"], "lib": "$SRLDB_HOME/lib/jsmile_<ARCH>", "optional": True},
-    "proximity": {"jars": ["$SRLDB_HOME/lib/proximity.jar", "$SRLDB_HOME/lib/proximity3.jar"]},
-    "ssj": {"jars": ["$SRLDB_HOME/lib/ssj.jar", "$SRLDB_HOME/lib/optimization.jar"]},
-    "jahmm": {"jars": ["$SRLDB_HOME/../jahmm/bin", "$SRLDB_HOME/lib/jahmm.jar"]},
-    "processing": {"jars": ["$SRLDB_HOME/lib/processing.org/core.jar"], "optional": True},
-    "mysql": {"jars": ["$SRLDB_HOME/lib/mysql-connector-java-3.0.11-stable-bin.jar"]},
-    "vecmath": {"jars": ["$SRLDB_HOME/lib/vecmath.jar"]},
-    "yprolog": {"jars": ["$SRLDB_HOME/lib/yprolog.jar"]},
-    "kipm": {"jars": ["$SRLDB_HOME/../KIPM/bin", "$SRLDB_HOME/lib/kipm.jar", "$SRLDB_HOME/lib/fipmbase.jar", "$SRLDB_HOME/lib/kipmdata.jar"], "optional":True},
-    "choco": {"jars": ["$SRLDB_HOME/lib/choco-2.1.1.jar"], "optional": True},
-    "jdom": {"jars": ["$SRLDB_HOME/lib/jdom.jar"], "optional": True},
-    "proximity_new": {"jars": ["$SRLDB_HOME/lib/proximity.jar"], "optional":True},
-}
+from configurePOM import archs, detectArch
+import subprocess
 
 java_apps = {
-    "BLNinfer": {"class": "probcog.srl.directed.inference.BLNinfer", "includes": ["srldb", "weka", "jython", "swt", "bnj", "smile", "ssj", "yprolog", "choco","jdom","proximity_new"]},
-    "BLN2MLN": {"class": "probcog.BLN2MLN", "includes": ["srldb", "weka", "jython", "swt", "bnj"]},
-    "BLNprintCPT": {"class": "probcog.BLNprintCPT", "includes": ["srldb", "jython", "bnj"]},
-    "BLOGDB2MLNDB": {"class": "probcog.BLOGDB2MLNDB", "includes": ["srldb", "jython", "bnj", "yprolog"]},
-    "BNprintCPT": {"class": "probcog.BNprintCPT", "includes": ["srldb", "bnj"]},
-    "BNinfer": {"class": "probcog.bayesnets.inference.BNinfer", "includes": ["srldb", "swt", "bnj", "smile"]},
-    "ABL2MLN": {"class": "probcog.ABL2MLN", "includes": ["srldb", "weka", "swt", "bnj"]},
-    "BN2CSV": {"class": "probcog.bayesnets.conversion.BN2CSV", "includes": ["srldb", "swt", "bnj"]},
-    "BNsaveAs": {"class": "probcog.bayesnets.conversion.BNsaveAs", "includes": ["srldb", "swt", "bnj"]},
-    "BNlistCPTs": {"class": "probcog.BNlistCPTs", "includes": ["srldb", "swt", "bnj"]},
-    "BNrandomEvidence": {"class": "probcog.BNrandomEvidence", "includes": ["srldb", "swt", "bnj"]},
-    "MLN2WCSP": {"class": "probcog.MLN2WCSP", "includes": ["srldb", "jython"]},
-    "MLNinfer": {"class": "probcog.MLNinfer", "includes": ["srldb", "bnj", "jython","yprolog"]},
-    "bnj": {"class": "probcog.BNJ", "includes": ["srldb", "bnj", "swt"]},
-    "genDB": {"class": "probcog.genDB", "includes": ["srldb", "jython", "proximity", "bnj", "weka"]},
-    "groundABL": {"class": "probcog.groundABL", "includes": ["srldb", "bnj"]},
-    "learnABL": {"class": "probcog.srl.directed.learning.BLNLearner", "includes": ["srldb", "weka", "swt", "bnj", "yprolog"]},
-    "learnABLSoft": {"class": "dev.learnABLSoft", "includes": ["srldb", "weka", "swt", "bnj", "yprolog"]},
-    "jython": {"class": 'org.python.util.jython', "includes": ["jython"]},
-    "syprolog": {"class": "probcog.PrologShell", "includes": ["srldb", "yprolog"]},
-    "yprolog": {"class": "yprolog.Go", "includes": ["yprolog"]},
-    "blogdb2ergevid": {"class": "blogdb2ergevid", "includes": ["srldb", "weka", "jython", "swt", "bnj", "yprolog"]},
-    "bndb2inst": {"class": "probcog.bayesnets.conversion.BNDB2Inst", "includes": ["srldb"]},
+    "BLNinfer": {"class": "probcog.srl.directed.inference.BLNinfer"},
+    "BLN2MLN": {"class": "probcog.BLN2MLN"},
+    "BLNprintCPT": {"class": "probcog.BLNprintCPT"},
+    "BLOGDB2MLNDB": {"class": "probcog.BLOGDB2MLNDB"},
+    "BNprintCPT": {"class": "probcog.BNprintCPT"},
+    "BNinfer": {"class": "probcog.bayesnets.inference.BNinfer"},
+    "ABL2MLN": {"class": "probcog.ABL2MLN"},
+    "BN2CSV": {"class": "probcog.bayesnets.conversion.BN2CSV"},
+    "BNsaveAs": {"class": "probcog.bayesnets.conversion.BNsaveAs"},
+    "BNlistCPTs": {"class": "probcog.BNlistCPTs"},
+    "BNrandomEvidence": {"class": "probcog.BNrandomEvidence"},
+    "MLN2WCSP": {"class": "probcog.MLN2WCSP"},
+    "MLNinfer": {"class": "probcog.MLNinfer"},
+    "bnj": {"class": "probcog.BNJ"},
+    "genDB": {"class": "probcog.genDB"},
+    "groundABL": {"class": "probcog.groundABL"},
+    "learnABL": {"class": "probcog.srl.directed.learning.BLNLearner"},
+    "learnABLSoft": {"class": "dev.learnABLSoft"},
+    "jython": {"class": 'org.python.util.jython'},
+    "syprolog": {"class": "probcog.PrologShell"},
+    "yprolog": {"class": "yprolog.Go"},
+    "blogdb2ergevid": {"class": "blogdb2ergevid"},
+    "bndb2inst": {"class": "probcog.bayesnets.conversion.BNDB2Inst"},
 }
 java_apps["netEd"] = java_apps["bnj"]
 java_apps["pcjython"] = java_apps["jython"]
@@ -72,26 +53,22 @@ pythonInterpreter = "python"
 def adapt(name, arch):
     return name.replace("<ARCH>", arch).replace("$SRLDB_HOME", os.path.abspath(".")).replace("/", os.path.sep)
 
-def getJavaAppData(name, arch):
-    jars = []
-    libs = []
-    skip = False
-    missing = []
-    for inc in java_apps[name]["includes"]:
-        libjars = map(lambda jar: adapt(jar, arch), includes[inc]["jars"])
-        libjars_found = len(filter(lambda x: os.path.exists(x.replace("/", os.path.sep).replace("\\", os.path.sep)), libjars))
-        if libjars_found == 0 and includes[inc].get("optional", False) == False:
-            skip = True
-            missing.append(inc)
-        jars.extend(libjars)
-        if "lib" in includes[inc]:
-            libs.append(adapt(includes[inc]["lib"], arch))
-    return {"cp": jars, "lib": libs, "skip": skip, "missing": missing}
-
+def getDependencyClasspath():
+    p = subprocess.Popen("mvn dependency:build-classpath", shell=True, 
+          stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    (child_stdin, child_stdout) = (p.stdin, p.stdout)
+    lines = child_stdout.readlines()
+    classpath = None
+    for i, line in enumerate(lines):
+        if "Dependencies classpath" in line:
+            classpath = lines[i+1].strip()
+    if classpath is None:
+        print "ERROR: Could not determine classpath via maven. Check for problems in maven's output below:\n\n"
+        print "".join(lines)
+        sys.exit(1)
+    return classpath
+    
 if __name__ == '__main__':
-
-    archs = ["win32", "win64", "linux_amd64", "linux_i386", "macosx", "macosx64"]
-        
     print "\nProbCog Apps Generator\n\n"
     print "  usage: make_apps [--arch=%s] [additional JVM args]\n" % "|".join(archs)
     print
@@ -109,16 +86,11 @@ if __name__ == '__main__':
 
     # determine architecture
     arch = None
-    bits = 64 if "64" in platform.architecture()[0] else 32
     if len(args) > 0 and args[0].startswith("--arch="):
         arch = args[0][len("--arch="):].strip()
         args = args[1:]
-    elif platform.mac_ver()[0] != "":
-        arch = "macosx" if bits == 32 else "macosx64"
-    elif platform.win32_ver()[0] != "":
-        arch = "win32"
-    elif platform.dist()[0] != "":
-        arch = "linux_i386" if bits == 32 else "linux_amd64"
+    else:
+        arch = detectArch()
     if arch is None:
         print "Could not automatically determine your system's architecture. Please supply the --arch argument"
         sys.exit(1)
@@ -131,7 +103,10 @@ if __name__ == '__main__':
     if not os.path.exists("apps"):
         os.mkdir("apps")
 
+    print "\nDetermining dependency classpath..."
+    dep_classpath = getDependencyClasspath()
     print "\nCreating application files for %s..." % arch
+    classpath = os.path.pathsep.join([adapt("$SRLDB_HOME/target/classes", arch), dep_classpath])
     isWindows = "win" in arch
     isMacOSX = "macosx" in arch
     preamble = "@echo off\r\n" if isWindows else "#!/bin/sh\n"
@@ -139,20 +114,12 @@ if __name__ == '__main__':
     pathsep = os.path.pathsep
     for appname, app in java_apps.iteritems():
         filename = os.path.join("apps", "%s%s" % (appname, {True:".bat", False:""}[isWindows]))
-        data = getJavaAppData(appname, arch)
         print "  %s" % filename
-        if data["skip"]:
-            print "    skipped because some dependencies are not included in this distribution: ", data["missing"]
-            continue
-        if len(data["lib"]) > 0:
-            libpath = '"-Djava.library.path=%s"' % pathsep.join(data["lib"])
-        else:
-            libpath = ""
-        f = file(filename, "w")
-        f.write(preamble)
-        addargs = "-XstartOnFirstThread" if arch in ("macosx", "macosx64") else ""
-        f.write('java %s -cp "%s" %s %s %s %s\n' % (addargs, os.path.pathsep.join(data["cp"]), libpath, jvm_userargs, adapt(app["class"], arch), allargs))
-        f.close()
+        with file(filename, "w") as f:
+            f.write(preamble)
+            addargs = "-XstartOnFirstThread" if arch in ("macosx", "macosx64") else ""
+            f.write('java %s -cp "%s" %s %s %s\n' % (addargs, classpath, jvm_userargs, adapt(app["class"], arch), allargs))
+            f.close()
         if not isWindows: os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
     for app in python_apps:
         filename = os.path.join("apps", "%s%s" % (app["name"], {True:".bat", False:""}[isWindows]))

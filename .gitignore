@@ -1,4 +1,5 @@
-bin
 apps
 env.bat
 env.sh
+wiki
+target
