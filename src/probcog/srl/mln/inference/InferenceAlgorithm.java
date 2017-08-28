@@ -65,7 +65,9 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 	public ArrayList<InferenceResult> getResults(Iterable<String> queries) {
 		// generate patterns
 		Vector<Pattern> patterns = new Vector<Pattern>();
+		int numQueries = 0;
 		for(String query : queries) {
+			++numQueries;
 			String p = query;
 			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
 			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
@@ -83,7 +85,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 					numRes++;
 					break;
 				}
-		if(numRes == 0)
+		if(numRes == 0 && numQueries > 0)
 			System.err.println("Warning: None of the queries could be matched to a variable.");
 		return results;
 	}
