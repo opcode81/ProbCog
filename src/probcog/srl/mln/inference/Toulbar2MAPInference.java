@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
 
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
@@ -81,37 +82,63 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		return converter;
 	}
 	
-	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	class Toulbar2Call implements Callable<String> {
+		private String solution = null;
+		private Process toulbar2Process = null;
+		private boolean isTerminated;
+
+		@Override
+		public String call() throws Exception {
+			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
+			if (System.getProperty("os.name").contains("Windows")) {
+				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output buffering problem
+			}
+			if(verbose) System.out.println("running WCSP solver: " + command);
+			toulbar2Process = Runtime.getRuntime().exec(command);
+			InputStream s = toulbar2Process.getInputStream();
+			BufferedReader br = new BufferedReader(new InputStreamReader(s));
+			isTerminated = false;
+			while(!isTerminated) {
+				try {
+					String l = br.readLine();
+					if(l == null)
+						break;
+					if(debug)
+						System.out.println(l);
+					if(l.startsWith("New solution:")) {
+						solution = br.readLine();
+						if(debug)
+							System.out.println(solution);
+					}
+				}
+				catch(IOException e) {
+					break;
+				}			
+			}
+			return solution;
+		}
 		
+		public String getSolution() {
+			return solution;
+		}
+		
+		public void stop() {
+			toulbar2Process.destroyForcibly();
+			isTerminated = true;
+		}
+	}
+	
+	interface InferenceCall {
+		String infer() throws Exception;
+	}
+	
+	protected void runInference(InferenceCall call) throws Exception {
 		// construct WCSP if necessary
 		if(converter == null)
 			constructWCSP(this.wcspFilename, false);
 		
 		// run Toulbar2
-		String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
-		if(verbose) System.out.println("running WCSP solver: " + command);
-		Process p = Runtime.getRuntime().exec(command);
-		InputStream s = p.getInputStream();
-		BufferedReader br = new BufferedReader(new InputStreamReader(s));
-		String solution = null;
-		while(true) {
-			try {
-				String l = br.readLine();
-				if(l == null)
-					break;
-				if(debug)
-					System.out.println(l);
-				if(l.startsWith("New solution:")) {
-					solution = br.readLine();
-					if(debug)
-						System.out.println(solution);
-				}
-			}
-			catch(IOException e) {
-				break;
-			}			
-		}	
+		String solution = call.infer();
 		
 		if(solution == null)
 			throw new Exception("No solution was found");
@@ -129,7 +156,39 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		// clean up
 		new File(this.wcspFilename).delete();
-				
+	}
+	
+	@Override
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
+		runInference(() -> new Toulbar2Call().call());
+		return getResults(queries);
+	}
+	
+	protected class InferenceThread extends Thread {
+		Toulbar2Call toulbar2Call = new Toulbar2Call();
+		
+		public void run() {
+			try {
+				toulbar2Call.call();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		public void signalTermination() {
+			toulbar2Call.stop();
+		}
+	};
+	
+	public ArrayList<InferenceResult> infer(Iterable<String> queries, long inferenceTimeMs) throws Exception {
+		runInference(() -> {
+			InferenceThread thread = new InferenceThread();
+			thread.start();
+			Thread.sleep(inferenceTimeMs);
+			thread.signalTermination();
+			thread.join();
+			return thread.toulbar2Call.getSolution();
+		});
 		return getResults(queries);
 	}
 
@@ -137,5 +196,4 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	public PossibleWorld getSolution() {
 		return state;
 	}
-
 }
