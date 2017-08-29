@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
 
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
+import probcog.logging.PrintLogger;
+import probcog.logging.VerbosePrinter;
 import probcog.logic.GroundAtom;
 import probcog.srl.mln.MarkovRandomField;
 
@@ -32,13 +34,14 @@ import probcog.srl.mln.MarkovRandomField;
  * Base class for MLN inference methods.
  * @author Dominik Jain
  */
-public abstract class InferenceAlgorithm implements IParameterHandler {
+public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePrinter {
 	
 	protected MarkovRandomField mrf;
 	protected ParameterHandler paramHandler;
 	protected boolean debug = false;	
 	protected boolean verbose = true;
 	protected int maxSteps = 5000;
+	protected PrintLogger log;
 	
 	public InferenceAlgorithm(MarkovRandomField mrf) throws Exception {
 		this.mrf = mrf;
@@ -46,6 +49,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 		paramHandler.add("debug", "setDebugMode");
 		paramHandler.add("verbose", "setVerbose");
 		paramHandler.add("maxSteps", "setMaxSteps");
+		this.log = new PrintLogger(this);
 	}
 	
 	public void setDebugMode(boolean active) {
@@ -72,7 +76,6 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
 			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
 			patterns.add(Pattern.compile(p));
-			//System.out.println("pattern: " + p);
 		}
 		// check all ground variables for matches
 		// TODO This should be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
@@ -86,7 +89,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 					break;
 				}
 		if(numRes == 0 && numQueries > 0)
-			System.err.println("Warning: None of the queries could be matched to a variable.");
+			log.printWarn("Warning: None of the queries could be matched to a variable.");
 		return results;
 	}
 	
@@ -98,5 +101,15 @@ public abstract class InferenceAlgorithm implements IParameterHandler {
 
 	public ParameterHandler getParameterHandler() {
 		return paramHandler;
+	}
+	
+	@Override
+	public boolean getVerboseMode() {
+		return verbose;
+	}
+
+	@Override
+	public boolean getDebugMode() {
+		return debug;
 	}
 }

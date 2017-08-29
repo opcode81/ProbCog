@@ -73,11 +73,12 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			throw new Exception("WCSP was already constructed");
 		// perform conversion to WCSP
 		this.wcspFilename = filename;
-		if(verbose) System.out.println("performing WCSP conversion...");
+		log.printInfo("Performing WCSP conversion...");
 		converter = new WCSPConverter(mrf);
 		paramHandler.addSubhandler(converter);
 		converter.setCacheConstraints(cache);
 		WCSP wcsp = converter.run();
+		log.printDebug("Writing WCSP file to " + wcspFilename);
 		wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
 		return converter;
 	}
@@ -93,7 +94,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			if (System.getProperty("os.name").contains("Windows")) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output buffering problem
 			}
-			if(verbose) System.out.println("running WCSP solver: " + command);
+			log.printInfo("Running WCSP solver: " + command);
 			toulbar2Process = Runtime.getRuntime().exec(command);
 			InputStream s = toulbar2Process.getInputStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(s));
@@ -103,12 +104,13 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 					String l = br.readLine();
 					if(l == null)
 						break;
-					if(debug)
-						System.out.println(l);
 					if(l.startsWith("New solution:")) {
+						log.printDebug(l);
 						solution = br.readLine();
-						if(debug)
-							System.out.println(solution);
+						log.printTrace(solution);
+					}
+					else {
+						log.printDebug(l);
 					}
 				}
 				catch(IOException e) {
@@ -147,7 +149,8 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		state.setEvidence(mrf.getDb());
 		
 		// set solution state
-		if(verbose) System.out.println("WCSP solution: " + solution);
+		log.printDebug("WCSP solution: " + solution);
+		log.printInfo("Reading solution");
 		String[] solutionParts = solution.trim().split(" ");		
 		for(int i = 0; i < solutionParts.length; i++) {
 			int domIdx = Integer.parseInt(solutionParts[i]);
@@ -155,6 +158,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		// clean up
+		log.printDebug("Deleting " + wcspFilename);
 		new File(this.wcspFilename).delete();
 	}
 	
