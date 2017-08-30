@@ -93,7 +93,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		public String call() throws Exception {
 			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
-				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix (presumed) output buffering problem (output cannot be read otherwise)
+				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
 			log.printInfo("Running WCSP solver: " + command);
 			toulbar2Process = Runtime.getRuntime().exec(command);
@@ -119,6 +119,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 					break;
 				}			
 			}
+			log.printDebug("Inference call/toulbar2 process complete");
 			isComplete = true;
 			return solution;
 		}
@@ -128,6 +129,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		public void stop() {
+			log.printDebug("Terminating toulbar2 process");
 			toulbar2Process.destroyForcibly();
 			mustTerminate = true;
 		}
@@ -180,6 +182,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		public void run() {
 			try {
+				log.printDebug("Inference thread spawned");
 				toulbar2Call.call();
 			} 
 			catch (Exception e) {
@@ -187,6 +190,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			}
 			finally {
 				notifyAll();
+				log.printDebug("Inference thread completed");
 			}
 		}
 		
