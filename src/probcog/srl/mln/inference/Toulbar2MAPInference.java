@@ -94,6 +94,11 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
+				// While using bas as a workaround allows to read toulbar2's output, it leads to a new problem:
+				// terminating the process via destroy/destroyForcibly will only terminate bash but not its child process
+				// toulbar2, leaving the actual task running in the background.
+				// However, this will be remedied in Java 9, which will implement JEP 102 (http://openjdk.java.net/jeps/102)
+				// TODO switch to Java 9 and fix once it's released
 			}
 			log.printInfo("Running WCSP solver: " + command);
 			toulbar2Process = Runtime.getRuntime().exec(command);
