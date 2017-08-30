@@ -86,20 +86,22 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	class Toulbar2Call implements Callable<String> {
 		private String solution = null;
 		private Process toulbar2Process = null;
-		private boolean isTerminated;
+		private boolean mustTerminate;
+		private boolean isComplete;
 
 		@Override
 		public String call() throws Exception {
 			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
-				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output buffering problem
+				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix (presumed) output buffering problem (output cannot be read otherwise)
 			}
 			log.printInfo("Running WCSP solver: " + command);
 			toulbar2Process = Runtime.getRuntime().exec(command);
 			InputStream s = toulbar2Process.getInputStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(s));
-			isTerminated = false;
-			while(!isTerminated) {
+			isComplete = false;
+			mustTerminate = false;
+			while(!mustTerminate) {
 				try {
 					String l = br.readLine();
 					if(l == null)
@@ -117,6 +119,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 					break;
 				}			
 			}
+			isComplete = true;
 			return solution;
 		}
 		
@@ -126,7 +129,11 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		public void stop() {
 			toulbar2Process.destroyForcibly();
-			isTerminated = true;
+			mustTerminate = true;
+		}
+		
+		public boolean isComplete() {
+			return isComplete;
 		}
 	}
 	
@@ -145,7 +152,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		if(solution == null)
 			throw new Exception("No solution was found");
 		
-		// set evidence (as in the WCSP, evidence variables are removed)
+		// set evidence (as the WCSP does not contain evidence variables)
 		state.setEvidence(mrf.getDb());
 		
 		// set solution state
@@ -174,8 +181,12 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		public void run() {
 			try {
 				toulbar2Call.call();
-			} catch (Exception e) {
+			} 
+			catch (Exception e) {
 				throw new RuntimeException(e);
+			}
+			finally {
+				notifyAll();
 			}
 		}
 		
@@ -188,9 +199,11 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		runInference(() -> {
 			InferenceThread thread = new InferenceThread();
 			thread.start();
-			Thread.sleep(inferenceTimeMs);
-			thread.signalTermination();
-			thread.join();
+			thread.wait(inferenceTimeMs);
+			if (!thread.toulbar2Call.isComplete()) {
+				thread.signalTermination();
+				thread.join();
+			}
 			return thread.toulbar2Call.getSolution();
 		});
 		return getResults(queries);
