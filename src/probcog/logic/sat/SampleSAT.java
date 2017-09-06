@@ -26,6 +26,8 @@ import java.util.Vector;
 
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
+import probcog.logging.PrintLogger;
+import probcog.logging.VerbosePrinter;
 import probcog.logic.GroundAtom;
 import probcog.logic.GroundLiteral;
 import probcog.logic.PossibleWorld;
@@ -35,7 +37,6 @@ import probcog.srl.AbstractVariable;
 import probcog.srl.Database;
 import probcog.srl.directed.bln.BayesianLogicNetwork;
 import probcog.srl.directed.bln.GroundBLN;
-
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 
@@ -45,7 +46,7 @@ import edu.tum.cs.util.StringTool;
  * 
  * @author Dominik Jain
  */
-public class SampleSAT implements IParameterHandler {
+public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	protected HashMap<Integer,Vector<Constraint>> bottlenecks;
 	protected HashMap<Integer,Vector<Constraint>> GAOccurrences;
 	protected PossibleWorld state;
@@ -53,6 +54,7 @@ public class SampleSAT implements IParameterHandler {
 	protected Vector<Constraint> constraints;
 	protected Random rand;
 	protected WorldVariables vars;	
+	protected boolean verbose = true;
 	protected boolean debug = false;
 	protected EvidenceHandler evidenceHandler;
 	protected HashMap<Integer,Boolean> evidence;
@@ -69,7 +71,7 @@ public class SampleSAT implements IParameterHandler {
 	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
 	 */
 	protected double pWalkSAT = 0.5; // 0.5
-	
+	protected PrintLogger log;
 	
 	/**
 	 * @param kb a collection of clauses to satisfy (such as a ClausalKB)
@@ -93,6 +95,8 @@ public class SampleSAT implements IParameterHandler {
 		// read evidence
 		evidenceHandler = new EvidenceHandler(vars, db);
 		evidence = evidenceHandler.getEvidence();
+		
+		log = new PrintLogger(this);
 	}
 
 	/**
@@ -197,7 +201,7 @@ public class SampleSAT implements IParameterHandler {
 			GAOccurrences.remove(lit.gndAtom.index);
 		}
 		int newSize = constraints.size();
-		if(debug || true) System.out.println("unit propagation removed " + (oldSize-newSize) + " constraints");
+		log.debug("unit propagation removed " + (oldSize-newSize) + " constraints");
 	}
 	
 	protected void removeClause(Clause c) {
@@ -237,9 +241,9 @@ public class SampleSAT implements IParameterHandler {
 		// gather constraint data
 		bottlenecks.clear();
 		unsatisfiedConstraints.clear();
-		if(debug) System.out.println("setting random state...");
+		log.debug("setting random state...");
 		setRandomState();
-		if(debug) state.print();
+		if(log.isDebugPrinted()) state.print();
 		for(Constraint c : constraints)
 			c.initState();
 	}
@@ -253,13 +257,12 @@ public class SampleSAT implements IParameterHandler {
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {
 			// debug code
-			if(debug) {				
-				System.out.println("SAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
+			if(log.isDebugEnabled()) {				
+				log.debug("SAT step " + step + ", " + unsatisfiedConstraints.size() + " constraints unsatisfied");
 				if(true) {
-					//state.print();
 					if(unsatisfiedConstraints.size() < 30)
 						for(Constraint c : unsatisfiedConstraints) {
-							System.out.println("  unsatisfied: " + c);
+							log.debug("  unsatisfied: " + c);
 						}
 				}
 				checkIntegrity();
@@ -331,11 +334,11 @@ public class SampleSAT implements IParameterHandler {
 	
 	protected void makeMove() {
 		if(rand.nextDouble() < this.pSampleSAT) {
-			if(debug) System.out.println("  WalkSAT move:");
+			log.debug("  WalkSAT move:");
 			walkSATMove();
 		}
 		else {
-			if(debug) System.out.println("  SA move:");
+			log.debug("  SA move:");
 			SAMove();
 		}
 	}
@@ -453,7 +456,7 @@ public class SampleSAT implements IParameterHandler {
 	}
 	
 	protected void flipGndAtom(GroundAtom gndAtom) {
-		if(debug) System.out.println("  flipping " + gndAtom);
+		log.trace("  flipping " + gndAtom);
 		// modify state
 		boolean value = state.isTrue(gndAtom);
 		state.set(gndAtom, !value);
@@ -658,5 +661,19 @@ public class SampleSAT implements IParameterHandler {
 	
 	public String getAlgorithmName() {
 		return String.format("%s[%f;%f]", this.getClass().getSimpleName(), pSampleSAT, pWalkSAT);
+	}
+
+	@Override
+	public boolean getVerboseMode() {
+		return verbose;
+	}
+
+	@Override
+	public boolean getDebugMode() {
+		return debug;
+	}
+	
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
 	}
 }

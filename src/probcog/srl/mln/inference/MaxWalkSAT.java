@@ -54,6 +54,7 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	@Override
 	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
         sat.setMaxSteps(maxSteps);
+        sat.setVerbose(this.verbose);
         sat.run();	        
 		return getResults(queries);
 	}

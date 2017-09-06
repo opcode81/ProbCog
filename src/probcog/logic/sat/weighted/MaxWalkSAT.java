@@ -20,6 +20,7 @@ package probcog.logic.sat.weighted;
 
 import java.util.Vector;
 
+import probcog.logging.PrintLogger.Level;
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
 import probcog.logic.WorldVariables;
@@ -133,24 +134,28 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 				newBest = true;
 				this.bestState = state.clone();
 			}
-			
+
 			boolean printStatus = newBest || step % 10 == 0;
-			if(printStatus)
-				System.out.printf("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f (%d) %s\n", step, hardMissing, unsatisfiedSum, bestSum, bestHardMissing, newBest ? "[NEW BEST]" : "");
+			if(printStatus) {
+				log.out(Level.INFO, newBest ? Level.DEBUG : Level.TRACE, String.format("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f (%d) %s", step, hardMissing, unsatisfiedSum, bestSum, bestHardMissing, newBest ? "[NEW BEST]" : ""));
+			}
 			
 			if(unsatisfiedSum == 0)
 				break;
 			
 			makeMove();
 		}
-		System.out.printf("solution quality: sum of unsatisfied constraints: %f, hard constraints unsatisfied: %d\n", bestSum, bestHardMissing);
-		
-		PossibleWorld bestState = this.getBestState();
-		for(Constraint c : this.constraints) {
-			WeightedClause wc = (WeightedClause)c;
-			if(wc.isHard) {
-				if(!wc.isTrue(bestState))
-					System.out.println(wc);
+		log.info(String.format("solution quality: sum of unsatisfied constraints: %f, hard constraints unsatisfied: %d", bestSum, bestHardMissing));
+
+		// log unsatisfied hard constraints
+		if (log.isDebugEnabled()) {
+			PossibleWorld bestState = this.getBestState();
+			for(Constraint c : this.constraints) {
+				WeightedClause wc = (WeightedClause)c;
+				if(wc.isHard) {
+					if(!wc.isTrue(bestState))
+						log.debug(wc.toString());
+				}
 			}
 		}
 	}

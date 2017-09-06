@@ -89,7 +89,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 					break;
 				}
 		if(numRes == 0 && numQueries > 0)
-			log.printWarn("Warning: None of the queries could be matched to a variable.");
+			log.warn("Warning: None of the queries could be matched to a variable.");
 		return results;
 	}
 	

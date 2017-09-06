@@ -27,4 +27,5 @@ public interface IMaxSAT {
 	public void setMaxSteps(int steps);
 	public probcog.logic.PossibleWorld getBestState();
 	public String getAlgorithmName();
+	public void setVerbose(boolean verbose);
 }
