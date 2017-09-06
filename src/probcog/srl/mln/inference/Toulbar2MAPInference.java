@@ -124,7 +124,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 					break;
 				}			
 			}
-			log.printDebug("Inference call/toulbar2 process complete");
+			log.debug("Inference call/toulbar2 process complete");
 			isComplete = true;
 			return solution;
 		}
@@ -134,7 +134,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 		
 		public void stop() {
-			log.printDebug("Terminating toulbar2 process");
+			log.debug("Terminating toulbar2 process");
 			toulbar2Process.destroyForcibly();
 			mustTerminate = true;
 		}
@@ -187,7 +187,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		public void run() {
 			try {
-				log.printDebug("Inference thread spawned");
+				log.debug("Inference thread spawned");
 				toulbar2Call.call();
 			} 
 			catch (Exception e) {
@@ -195,7 +195,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 			}
 			finally {
 				notifyAll();
-				log.printDebug("Inference thread completed");
+				log.debug("Inference thread completed");
 			}
 		}
 		
