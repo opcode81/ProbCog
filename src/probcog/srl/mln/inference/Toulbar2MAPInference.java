@@ -91,14 +91,10 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 
 		@Override
 		public String call() throws Exception {
+
 			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
-				// While using bash as a workaround allows to read toulbar2's output, it leads to a new problem:
-				// terminating the process via destroy/destroyForcibly will only terminate bash but not its child process
-				// toulbar2, leaving the actual task running in the background.
-				// However, this will be remedied in Java 9, which will implement JEP 102 (http://openjdk.java.net/jeps/102)
-				// TODO switch to Java 9 and fix once it's released
 			}
 			log.info("Running WCSP solver: " + command);
 			toulbar2Process = Runtime.getRuntime().exec(command);
@@ -135,13 +131,21 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		
 		public void stop() {
 			log.debug("Terminating toulbar2 process");
-			toulbar2Process.destroyForcibly();
+			destroyProcessTree(toulbar2Process);
 			mustTerminate = true;
 		}
 		
 		public boolean isComplete() {
 			return isComplete;
 		}
+	}
+	
+	private static void destroyProcessTree(Process toulbar2Process) {
+		if (System.getProperty("os.name").contains("Windows")) {
+			// destroy the bash shell as well as the toulbar2 process
+			toulbar2Process.descendants().forEach(handle -> handle.destroyForcibly());
+		}
+		toulbar2Process.destroyForcibly();
 	}
 	
 	interface InferenceCall {
@@ -207,6 +211,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	};
 	
 	public ArrayList<InferenceResult> infer(Iterable<String> queries, long inferenceTimeMs) throws Exception {
+
 		runInference(() -> {
 			InferenceThread thread = new InferenceThread();
 			thread.start();
