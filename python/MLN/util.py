@@ -182,13 +182,6 @@ def toCNF(gndFormulas, formulas, allPositive=False):
     # return modified formulas
     return (newGndFormulas, newFormulas)
 
-
-def gaussianZeroMean(x, sigma):
-    return 1.0/sqrt(2 * math.pi * sigma**2) * math.exp(- (x**2) / (2 * sigma**2))
-
-def gradGaussianZeroMean(x, sigma):
-    return - (0.3990434423 * x * math.exp(-0.5 * x**2 / sigma**2) ) / (sigma**3)
-
 def mergeDomains(*domains):
     ''' returning a new domains dictionary that contains the elements of all the given domains '''
     fullDomain = {}

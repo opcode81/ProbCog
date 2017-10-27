@@ -33,6 +33,15 @@ try:
 except:
     pass
 
+def gaussianZeroMean(x, sigma):
+    ''' log of zero-mean Gaussian for learning (without constant factor) '''
+    return -(x**2) / (2 * sigma**2)
+
+def gradGaussianZeroMean(x, sigma):
+    ''' gradient of log of zero-mean Gaussian for learning (without constant factor) '''
+    return -x / sigma**2
+
+
 class AbstractLearner(object):
     
     groundingMethod = 'DefaultGroundingFactory'
