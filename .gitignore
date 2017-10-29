@@ -3,3 +3,6 @@ env.bat
 env.sh
 wiki
 target
+*.pyc
+*.bak
+.settings
