@@ -155,7 +155,7 @@ public class ParameterHandler {
 			out.println("handled by " + owner.getClass().getSimpleName() + ":");
 			for(Entry<String,ParameterMapping> e : this.mappings.entrySet()) {
 				Class<?> paramType = e.getValue().setterMethod.getParameterTypes()[0];
-				System.out.printf("  --%s=%s\n", e.getKey(), paramType.getSimpleName());
+				out.printf("  --%s=%s\n", e.getKey(), paramType.getPackage() == null ? paramType.getSimpleName() : paramType.getName());
 			}
 		}
 		for(ParameterHandler h : subhandlers)

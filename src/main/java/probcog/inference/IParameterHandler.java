@@ -18,10 +18,46 @@
  ******************************************************************************/
 package probcog.inference;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
 /**
  * Interface to be implemented for dynamic parameter handling.
  * @author Dominik Jain
  */
 public interface IParameterHandler {
 	public ParameterHandler getParameterHandler();
+	
+	/**
+	 * Sets a parameter by name.
+	 * Any parameter that is supported by this object's parameter handler can be set.
+	 * To obtain information on the parameters that are supported, use
+	 * {@link #printNamedParameterInfo}.
+	 * @param name the name of the parameter
+	 * @param value the value (the type of which depends on the concrete parameter)
+	 * @throws Exception if the parameter cannot be set
+	 */
+	public default void setParameterByName(String name, Object value) throws Exception {
+		try {
+			boolean handled = getParameterHandler().handle(name, value);
+			if (!handled)
+				throw new Exception("Parameter was not handled");
+		} catch (Exception e) {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			try (PrintStream ps = new PrintStream(bos)) {
+				getParameterHandler().printHelp(ps);
+				throw new Exception("Parameter could not be handled. Supported parameters:\n" + 
+						bos.toString());
+			}
+		}
+	}
+	
+	/**
+	 * Prints information on (named) parameters that can be set via {@link #setParameterByName(String, Object)}
+	 * to the given stream  
+	 * @param out the stream to write to
+	 */
+	public default void printNamedParameterInfo(PrintStream out) {
+		getParameterHandler().printHelp(out);
+	}
 }
