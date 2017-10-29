@@ -9,7 +9,7 @@ class MLNTestCase(unittest.TestCase):
     
     def setUp(self):
         join = os.path.join
-        self.modelsDir = join("..", "models")
+        self.modelsDir = join("..", "resources", "models")
         self.simpleLearnDir = join(self.modelsDir, "simpleLearning")
         self.simpleLearnDB = join(self.simpleLearnDir, "train.db")
         self.smokingDir = join(self.modelsDir, "smokers")
