@@ -51,7 +51,7 @@ public class Constraint {
 	}
 	
 	public long getCost(int[] domainIndices) {
-		Tuple t = tuples.get(domainIndices);
+		Tuple t = tuples.get(new ArrayKey(domainIndices));
 		if(t == null)
 			return defaultCost;
 		return t.cost;

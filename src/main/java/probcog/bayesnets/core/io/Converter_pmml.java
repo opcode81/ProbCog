@@ -212,7 +212,7 @@ public class Converter_pmml
 		if(nodeName == null || nodeID == null)
 			throw new RuntimeException("Missing DataField attribute 'name' or 'id'!");
 		
-		nodeIndices.put(nodeID, new Integer(bnode_cnt));
+		nodeIndices.put(nodeID, Integer.valueOf(bnode_cnt));
 		
 		_Writer.BeginBeliefNode(bnode_cnt);
 		_Writer.SetBeliefNodeName(nodeName);	
@@ -431,7 +431,7 @@ public class Converter_pmml
     public void SetBeliefNodeName(String name) {
     	//System.out.println(name);
 		curNode.name = name;
-        nodeNames.put(new Integer(curNodeIdx), name);
+        nodeNames.put(Integer.valueOf(curNodeIdx), name);
     }
 
     public void MakeContinuous(String s) {

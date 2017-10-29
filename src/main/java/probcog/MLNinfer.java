@@ -164,6 +164,8 @@ public class MLNinfer {
 			case Toulbar2:
 				infer = new Toulbar2MAPInference(mrf);
 				break;
+			default:
+				throw new RuntimeException("Unhandled algorithm: " + algo);
 			}			
 			infer.setDebugMode(debug);
 			if(maxSteps != null)

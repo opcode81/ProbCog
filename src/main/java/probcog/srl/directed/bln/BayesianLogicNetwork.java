@@ -47,8 +47,12 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	}
 	
 	public MarkovLogicNetwork toMLN() throws Exception {
+		return toMLN(false);
+	}
+	
+	public MarkovLogicNetwork toMLN(boolean compactFormulas) throws Exception {
 		MLNConverter.MLNObjectWriter converter = new MLNConverter.MLNObjectWriter();
-		this.rbn.toMLN(converter, false, false);
+		this.rbn.toMLN(converter, false, compactFormulas);
 		for(Formula f : kb) {
 			converter.addHardFormula(f);
 		}

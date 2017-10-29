@@ -51,7 +51,7 @@ public class BLN2MLN {
 			BayesianLogicNetwork bln = new BayesianLogicNetwork(args[0], args[1], args[2]);
 			String outfile = args[3];
 			System.out.println("converting...");
-			MarkovLogicNetwork mln = bln.toMLN();
+			MarkovLogicNetwork mln = bln.toMLN(compact);
 			System.out.printf("saving MLN to %s...\n", outfile);
 			mln.write(new File(outfile));
 		}

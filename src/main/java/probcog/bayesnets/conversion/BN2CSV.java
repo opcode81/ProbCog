@@ -42,45 +42,46 @@ public class BN2CSV {
 		
 		String bnFile = args[0];
 		File f = new File(bnFile + ".csv");
-		PrintStream out = new PrintStream(f);
+		try (PrintStream out = new PrintStream(f)) {
 		
-		BeliefNetworkEx bn = new BeliefNetworkEx(bnFile);
-		for(BeliefNode node : bn.bn.getNodes()) {
-			// get required number of columns
-			int columns = 1;
-			CPF cpf = node.getCPF();
-			BeliefNode[] domProd = cpf.getDomainProduct();
-			for(int i = 1; i < domProd.length; i++)
-				columns *= domProd[i].getDomain().getOrder();
-			columns++; // label column on the left
-			
-			// get required number of rows
-			int numParents = domProd.length-1;
-			int domainSize = domProd[0].getDomain().getOrder();
-			int rows = domainSize + numParents;
-			
-			String[][] table = new String[columns][rows];
-			
-			// leftmost column
-			currentColumn = 0;
-			int row = 0;
-			for(int i = 1; i < domProd.length; i++)
-				table[currentColumn][row++] = domProd[i].getName();
-			for(int i = 0; i < domainSize; i++)
-				table[currentColumn][row++] = node.getDomain().getName(i);
-			
-			// cpt
-			walkCPT(cpf, 1, new int[domProd.length], table);
-			
-			// write
-			out.println("\n" + node.getName());
-			for(int r = 0; r < rows; r++) {
-				for(int c = 0; c < columns; c++) {
-					if(c > 0)
-						out.print('\t');
-					out.print(table[c][r]);
+			BeliefNetworkEx bn = new BeliefNetworkEx(bnFile);
+			for(BeliefNode node : bn.bn.getNodes()) {
+				// get required number of columns
+				int columns = 1;
+				CPF cpf = node.getCPF();
+				BeliefNode[] domProd = cpf.getDomainProduct();
+				for(int i = 1; i < domProd.length; i++)
+					columns *= domProd[i].getDomain().getOrder();
+				columns++; // label column on the left
+				
+				// get required number of rows
+				int numParents = domProd.length-1;
+				int domainSize = domProd[0].getDomain().getOrder();
+				int rows = domainSize + numParents;
+				
+				String[][] table = new String[columns][rows];
+				
+				// leftmost column
+				currentColumn = 0;
+				int row = 0;
+				for(int i = 1; i < domProd.length; i++)
+					table[currentColumn][row++] = domProd[i].getName();
+				for(int i = 0; i < domainSize; i++)
+					table[currentColumn][row++] = node.getDomain().getName(i);
+				
+				// cpt
+				walkCPT(cpf, 1, new int[domProd.length], table);
+				
+				// write
+				out.println("\n" + node.getName());
+				for(int r = 0; r < rows; r++) {
+					for(int c = 0; c < columns; c++) {
+						if(c > 0)
+							out.print('\t');
+						out.print(table[c][r]);
+					}
+					out.println();
 				}
-				out.println();
 			}
 		}
 	}

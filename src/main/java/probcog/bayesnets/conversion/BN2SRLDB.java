@@ -78,7 +78,7 @@ public class BN2SRLDB {
 		// - add all nodes as attributes
 		BeliefNode[] nodes = bn.bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {			
-			probcog.srldb.datadict.domain.Domain domain;
+			probcog.srldb.datadict.domain.Domain<?> domain;
 			// check if the node is boolean...
 			if(isBooleanNode(nodes[i])) {
 				domain = BooleanDomain.getInstance();

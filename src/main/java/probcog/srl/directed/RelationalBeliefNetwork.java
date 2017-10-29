@@ -163,7 +163,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	}
 	
 	public ExtendedNode getExtendedNode(int idx) {
-		return extNodesByIdx.get(new Integer(idx));
+		return extNodesByIdx.get(Integer.valueOf(idx));
 	}
 	
 	public ExtendedNode getExtendedNode(BeliefNode node) {

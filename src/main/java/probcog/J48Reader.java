@@ -92,7 +92,7 @@ public class J48Reader {
 				continue;
 			}
 			FastVector attValues = new FastVector();
-			Domain dom = attribute.getDomain();
+			Domain<?> dom = attribute.getDomain();
 			for(String s : dom.getValues())
 				attValues.addElement(s);
 			Attribute attr = new Attribute(attribute.getName(), attValues);				

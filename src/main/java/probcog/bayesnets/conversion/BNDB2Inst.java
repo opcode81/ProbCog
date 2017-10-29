@@ -34,14 +34,14 @@ import probcog.bayesnets.core.BNDatabase;
 public class BNDB2Inst {
 
 	public static void convert(BNDatabase db, File instFile) throws FileNotFoundException {
-		PrintStream out = new PrintStream(instFile);
-		
-		out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-		out.println("<instantiation>");
-		for(Entry<String,String> e : db.getEntries()) {
-			out.printf("<inst id=\"%s\" value=\"%s\"/>\n", e.getKey(), e.getValue());
+		try (PrintStream out = new PrintStream(instFile)) {
+			out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+			out.println("<instantiation>");
+			for(Entry<String,String> e : db.getEntries()) {
+				out.printf("<inst id=\"%s\" value=\"%s\"/>\n", e.getKey(), e.getValue());
+			}
+			out.println("</instantiation>");
 		}
-		out.println("</instantiation>");
 	}
 	
 	/**

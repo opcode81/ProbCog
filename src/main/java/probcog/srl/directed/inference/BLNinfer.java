@@ -30,6 +30,10 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPT;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.util.Stopwatch;
 import probcog.bayesnets.core.BNDatabase;
 import probcog.bayesnets.inference.ITimeLimitedInference;
 import probcog.bayesnets.inference.SampledDistribution;
@@ -43,10 +47,6 @@ import probcog.srl.directed.bln.AbstractBayesianLogicNetwork;
 import probcog.srl.directed.bln.AbstractGroundBLN;
 import probcog.srl.directed.bln.BayesianLogicNetwork;
 import probcog.srl.directed.bln.py.BayesianLogicNetworkPy;
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.CPT;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
-import edu.tum.cs.util.Stopwatch;
 
 /**
  * BLN inference tool

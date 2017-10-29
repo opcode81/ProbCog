@@ -43,7 +43,7 @@ public class ValueDistribution {
 	}
 	
 	public String getSingleValue() {
-		if (values.size() != 1 || !values.values().iterator().next().equals(new Double(1.0)))
+		if (values.size() != 1 || !values.values().iterator().next().equals(Double.valueOf(1.0)))
 			return null;
 		return values.keySet().iterator().next();
 	}

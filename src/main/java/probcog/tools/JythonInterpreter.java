@@ -33,13 +33,15 @@ public class JythonInterpreter extends PythonInterpreter {
 	}
 	
     public void exec(String command, Object ... args) {
-    	command = new Formatter().format(command, args).toString();
-    	this.exec(command);
+    	try (Formatter fmt = new Formatter()) {
+    		this.exec(fmt.format(command, args).toString());
+    	}
     }
     
     public PyObject eval(String command, Object ... args) {
-    	command = new Formatter().format(command, args).toString();
-    	return this.eval(command);
+    	try (Formatter fmt = new Formatter()) {
+    		return this.eval(fmt.format(command, args).toString());
+    	}
     }
     
     public int evalInt(String command, Object ... args) throws ConversionException {

@@ -354,7 +354,7 @@ public class DomainLearner extends Learner {
 
 		// for direct learning, add outcomes to the set of outcomes
 		for (int i = 0; i < numDirectDomains; i++) {
-			String val = data.get(directDomains[i]);
+			String val = data.get(directDomains[i].getName());
 			if (val == null)
 				throw new Exception("Key " + clusteredDomains[i].nodeName + " not found in data!");
 			directDomainData.get(i).add(val);

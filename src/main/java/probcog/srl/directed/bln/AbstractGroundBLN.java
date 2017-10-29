@@ -366,6 +366,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @return
 	 * @throws Exception
 	 */
+	@SuppressWarnings("incomplete-switch")
 	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<ParentGrounding> groundings) throws Exception {
 		groundNode2TemplateNode.put(mainNode, relNode);
 		// add edges from the parents

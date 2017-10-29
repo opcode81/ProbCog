@@ -156,7 +156,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 *            the name of the variable to retrieve
 	 * @return returns the variable setting with the given name if it is
 	 *         contained in the database), null otherwise
-	 * @deprecated because it does not really work with prolog predicates
+	 * TODO this does not really work with prolog predicates
 	 */	
 	public VariableType getVariable(String varName) {
 		return entries.get(varName.toLowerCase());

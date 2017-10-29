@@ -220,6 +220,8 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 		case Forward:
 			s.nodeDomainIndices[getNodeIndex(p.first)] = -1;
 			break;
+		default:
+			break;
 		}
 	}
 
