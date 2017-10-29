@@ -18,11 +18,10 @@
  ******************************************************************************/
 package probcog.logic.sat.weighted;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.Vector;
-import java.util.Map.Entry;
+import java.util.List;
 
 import probcog.logic.ComplexFormula;
 import probcog.logic.Conjunction;
@@ -55,10 +54,20 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
 		 */
 		NEGATION_IF_CLAUSE_RESULTS
 	}
+	
+	public static class FormulaAndClauses {
+		public final WeightedFormula weightedFormula;
+		public final List<WeightedClause> weightedClauses;
+		
+		public FormulaAndClauses(WeightedFormula weightedFormula, List<WeightedClause> weightedClauses) {
+			super();
+			this.weightedFormula = weightedFormula;
+			this.weightedClauses = weightedClauses;
+		}
+	}
 
-    protected Vector<WeightedClause> clauses;
-    protected HashMap<WeightedClause, Formula> cl2Formula;
-    protected edu.tum.cs.util.datastruct.Map2List<WeightedFormula, WeightedClause> formula2clauses;
+    protected ArrayList<WeightedClause> clauses;
+    protected List<FormulaAndClauses> formulaAndClausesList;
 
     /**
      * constructs a weighted clausal KB from a collection of weighted formulas
@@ -78,7 +87,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     /**
      * constructs a weighted clausal KB from a collection of weighted formulas
      * @param kb some collection of weighted formulas
-     * @param requirePositiveWeights whether to negate formulas with negative weights to yield positive weights only
+     * @param conversionMode the mode to apply when converting formulas to clauses
      * @throws java.lang.Exception
      */
     public WeightedClausalKB(Iterable<WeightedFormula> kb, ConversionMode conversionMode) throws Exception {
@@ -92,9 +101,8 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * constructs an empty weighted clausal KB
      */
     public WeightedClausalKB() {
-        clauses = new Vector<WeightedClause>();
-        cl2Formula = new HashMap<WeightedClause, Formula>();
-        formula2clauses = new edu.tum.cs.util.datastruct.Map2List<WeightedFormula, WeightedClause>();    	
+        clauses = new ArrayList<>();
+        formulaAndClausesList = new ArrayList<>();    	
     }
    
     /**
@@ -117,16 +125,20 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     	if(cnf instanceof Conjunction) { // conjunction of clauses
             Conjunction c = (Conjunction) cnf;
             int numChildren = c.children.length;
+            List<WeightedClause> weightedClauses = new ArrayList<>();
             for(Formula child : c.children) {
             	try {
-            		addClause(wf, new WeightedClause(child, wf.weight / numChildren, wf.isHard));
+            		WeightedClause wc = new WeightedClause(child, wf.weight / numChildren, wf.isHard);
+            		weightedClauses.add(wc);
             	}
             	catch(TautologyException e) {}
             }
+            addFormulaAndClauses(wf, weightedClauses);
         } 
         else if(!(cnf instanceof TrueFalse)) { // clause
             try {
-            	addClause(wf, new WeightedClause(cnf, wf.weight, wf.isHard));
+            	WeightedClause wc = new WeightedClause(cnf, wf.weight, wf.isHard);
+				addFormulaAndClauses(wf, Arrays.asList(wc));
             }
             catch(TautologyException e) {}
         }
@@ -180,15 +192,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     	addFormula(wf, cnf);
     }
     
-    /**
-     * adds a weighted clause to this KB
-     * @param wf the weighted formula whose CNF the clause appears in
-     * @param wc the clause to add
-     */
-    public void addClause(WeightedFormula wf, WeightedClause wc) {
-        cl2Formula.put(wc, wf.formula);
-        clauses.add(wc);
-        formula2clauses.add(wf, wc);
+    protected void addFormulaAndClauses(WeightedFormula wf, List<WeightedClause> wcs) {
+        clauses.addAll(wcs);
+        formulaAndClausesList.add(new FormulaAndClauses(wf, wcs));
     }
     
     /**
@@ -196,7 +202,7 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * @param wc the weighted clause to add
      */
     public void addClause(WeightedClause wc) {
-    	addClause(new WeightedFormula(wc, wc.weight, wc.isHard), wc);
+    	addFormulaAndClauses(new WeightedFormula(wc, wc.weight, wc.isHard), Arrays.asList(wc));
     }
 
     /**
@@ -225,17 +231,10 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
     }
 
     /**
-     * @return a mapping from weighted clauses to the original formulas they were part of. 
+     * gets a list of with formulas and the clauses that the formulas are made up of when converted to CNF
+     * @return the list
      */
-    public HashMap<WeightedClause, Formula> getClause2Formula() {
-        return cl2Formula;
-    }
-
-    /**
-     * gets a set of entries with formulas and the clauses that the formulas are made up of when converted to CNF
-     * @return
-     */
-    public Set<Entry<WeightedFormula,Vector<WeightedClause>>> getFormulasAndClauses() {
-        return formula2clauses.entrySet();
+    public List<FormulaAndClauses> getFormulasAndClauses() {
+        return this.formulaAndClausesList;
     }
 }

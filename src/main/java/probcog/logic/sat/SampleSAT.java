@@ -91,6 +91,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("pSampleSAT", "setPSampleSAT");
 		paramHandler.add("pWalkSAT", "setPWalkSAT");
+		paramHandler.add("random", "setRandom");
 		
 		// read evidence
 		evidenceHandler = new EvidenceHandler(vars, db);
@@ -333,7 +334,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	 * @throws Exception 
 	 */
 	protected void setRandomState() throws Exception {
-		evidenceHandler.setRandomState(state);
+		evidenceHandler.setRandomState(state, this.rand);
 	}
 	
 	protected void makeMove() {
@@ -681,5 +682,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
+	}
+	
+	public void setRandom(Random rand) {
+		this.rand = rand;
 	}
 }

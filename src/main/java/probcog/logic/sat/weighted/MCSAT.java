@@ -18,7 +18,6 @@
  ******************************************************************************/
 package probcog.logic.sat.weighted;
 
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Vector;
 
@@ -30,6 +29,7 @@ import probcog.logic.GroundLiteral;
 import probcog.logic.PossibleWorld;
 import probcog.logic.WorldVariables;
 import probcog.logic.sat.SampleSAT;
+import probcog.logic.sat.weighted.WeightedClausalKB.FormulaAndClauses;
 import probcog.srl.Database;
 
 
@@ -75,42 +75,7 @@ public class MCSAT implements IParameterHandler {
 		paramHandler.addSubhandler(sat.getParameterHandler());
 		paramHandler.add("infoInterval", "setInfoInterval");
 		paramHandler.add("verbose", "setVerbose");
-		
-		/*
-		0.95 similarPos(Square1,SquareN1)
-		0.95 similarPos(Square2,SquareN2)
-		0.05 similarPos(Square1,SquareN2)
-		0.05 similarPos(Square2,SquareN1)
-		0.05 similarPos(Square3,SquareN1)
-		0.05 similarPos(Square3,SquareN2)
-		0.05 similarPos(Circle,SquareN1)
-		0.05 similarPos(Circle,SquareN2)
-		 */
-		
-		/*
-		System.out.println("setting soft ev");
-		addSoftEvidence(vars.get("similarPos(Square1,SquareN1)"), 0.95);
-		addSoftEvidence(vars.get("similarPos(Square2,SquareN2)"), 0.95);
-		addSoftEvidence(vars.get("similarPos(Square1,SquareN2)"), 0.05);
-		addSoftEvidence(vars.get("similarPos(Square2,SquareN1)"), 0.05);
-		addSoftEvidence(vars.get("similarPos(Square3,SquareN1)"), 0.05);
-		addSoftEvidence(vars.get("similarPos(Square3,SquareN2)"), 0.05);
-		addSoftEvidence(vars.get("similarPos(Circle,SquareN1)"), 0.05);
-		addSoftEvidence(vars.get("similarPos(Circle,SquareN2)"), 0.05);
-		*/
-		
-		/*
-		0.9 similarApp(O1,N1)
-		0.9 similarPos(O1,N1)
-		
-		0.9 similarApp(G2,N2)
-		0.0 similarPos(G2,N2)
-		0.9 similarApp(G3,N2)
-		0.0 similarPos(G3,N2)
-		0.9 similarApp(G4,N2)
-		0.0 similarPos(G4,N2)
-		 */
-
+		paramHandler.add("random", "setRandom");
 	}	
 	
 	public WeightedClausalKB getKB() {
@@ -128,6 +93,10 @@ public class MCSAT implements IParameterHandler {
 	public void setInfoInterval(int interval) {
 		this.infoInterval = interval;
 	}
+	
+	public void setRandom(Random random) {
+		this.rand = random;
+	}
 
 	public GroundAtomDistribution run(int steps) throws Exception {
 		if(debug) {
@@ -143,10 +112,10 @@ public class MCSAT implements IParameterHandler {
 		// find initial state satisfying all hard constraints
 		if(verbose) System.out.println("finding initial state...");
 		Vector<WeightedClause> M = new Vector<WeightedClause>();
-		for(Entry<WeightedFormula, Vector<WeightedClause>> e : kb.getFormulasAndClauses()) {
-			WeightedFormula wf = e.getKey();
+		for(FormulaAndClauses fac : kb.getFormulasAndClauses()) {
+			WeightedFormula wf = fac.weightedFormula;
 			if(wf.isHard) {
-				M.addAll(e.getValue());
+				M.addAll(fac.weightedClauses);
 			}
 		}		
 		sat.setDebugMode(debug);
@@ -158,12 +127,12 @@ public class MCSAT implements IParameterHandler {
 			
 			M.clear();
 			
-			for(Entry<WeightedFormula, Vector<WeightedClause>> e : kb.getFormulasAndClauses()) {
-				WeightedFormula wf = e.getKey();
+			for(FormulaAndClauses fac : kb.getFormulasAndClauses()) {
+				WeightedFormula wf = fac.weightedFormula;
 				if(wf.formula.isTrue(sat.getState())){
 					boolean satisfy = wf.isHard || rand.nextDouble() * Math.exp(wf.weight) > 1.0;
 					if(satisfy)
-						M.addAll(e.getValue());					
+						M.addAll(fac.weightedClauses);					
 				}				
 			}
 			

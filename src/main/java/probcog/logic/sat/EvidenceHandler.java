@@ -46,11 +46,9 @@ public class EvidenceHandler {
 	protected HashSet<Block> evidenceBlocks; 
 	protected Map2Set<Block, GroundAtom> blockExclusions;
 	protected WorldVariables vars;
-	protected Random rand;
 	
 	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
 		this.vars = vars;
-		this.rand = new Random();
 
 		this.evidence = new HashMap<Integer,Boolean>();
 		evidenceBlocks = new HashSet<Block>();
@@ -94,12 +92,21 @@ public class EvidenceHandler {
 		for(Entry<Integer, Boolean> e : this.evidence.entrySet()) 
 			state.set(e.getKey(), e.getValue());
 	}
-	
+
 	/**
-	 * sets a random state for the non-evidence atoms
-	 * @param state
+	 * sets a random state for the non-evidence atoms in the given state
+	 * @param state the state in which to set the variable values
 	 */
 	public void setRandomState(PossibleWorld state) throws Exception {
+		setRandomState(state, new Random());
+	}
+	
+	/**
+	 * sets a random state for the non-evidence atoms in the given state
+	 * @param state the state in which to set the variable values
+	 * @param rand the random number generator to use
+	 */
+	public void setRandomState(PossibleWorld state, Random rand) throws Exception {
 		HashSet<Block> handledBlocks = new HashSet<Block>();
 		for(int i = 0; i < vars.size(); i++) {
 			//System.out.println("  setting " + vars.get(i));
