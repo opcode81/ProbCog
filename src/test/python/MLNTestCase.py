@@ -139,9 +139,8 @@ class MLNTestCase(unittest.TestCase):
     # TODO:
     #  - multiple database learning
     #  - learning with fixed weights
-    #  - prior prob. constraints
     #  - learning with constant expansion
-    #  - inference
+    #  - more inference
         
 if __name__ == '__main__':
     runAll = True
