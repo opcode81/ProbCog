@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import probcog.logic.ComplexFormula;
 import probcog.logic.Conjunction;
 import probcog.logic.Formula;
 import probcog.logic.TrueFalse;
@@ -36,6 +37,24 @@ import probcog.logic.sat.Clause.TautologyException;
  * @author Dominik Jain
  */
 public class WeightedClausalKB implements Iterable<WeightedClause> {
+	public enum ConversionMode {
+		/**
+		 * simply convert the original formula to CNF, no negation is applied
+		 */
+		NO_NEGATION,
+		/**
+		 * negate formulas that have negative weights, such that all weights become positive
+		 * (which is required for MC-SAT, for example), and use the negated formula's CNF
+		 */
+		NEGATION_IF_WEIGHT_NEGATIVE,
+		/**
+		 * negate the original formula if the formula becomes a clause as a result (i.e. if the original formula was
+		 * a conjunction of literals), avoiding corresponding splits at conjunctions.
+		 * <p>Choose this if the goal is to obtain as many clauses as possible
+		 * and avoid the generation of conjunctions at which formulas would need to split (e.g. for MaxWalkSAT).</p>
+		 */
+		NEGATION_IF_CLAUSE_RESULTS
+	}
 
     protected Vector<WeightedClause> clauses;
     protected HashMap<WeightedClause, Formula> cl2Formula;
@@ -49,8 +68,23 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      */
     public WeightedClausalKB(Iterable<WeightedFormula> kb, boolean requirePositiveWeights) throws Exception {
     	this();
+    	ConversionMode conversionMode = requirePositiveWeights ? 
+    			ConversionMode.NEGATION_IF_WEIGHT_NEGATIVE : ConversionMode.NO_NEGATION;
         for(WeightedFormula wf : kb) {
-            addFormula(wf, requirePositiveWeights);
+            addFormula(wf, conversionMode);
+        }
+    }
+    
+    /**
+     * constructs a weighted clausal KB from a collection of weighted formulas
+     * @param kb some collection of weighted formulas
+     * @param requirePositiveWeights whether to negate formulas with negative weights to yield positive weights only
+     * @throws java.lang.Exception
+     */
+    public WeightedClausalKB(Iterable<WeightedFormula> kb, ConversionMode conversionMode) throws Exception {
+    	this();
+        for(WeightedFormula wf : kb) {
+            addFormula(wf, conversionMode);
         }
     }
     
@@ -70,14 +104,17 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * @throws java.lang.Exception
      */
     public void addFormula(WeightedFormula wf, boolean makeWeightPositive) throws Exception {
-    	if(makeWeightPositive && wf.weight < 0) {
-    		wf.weight *= -1;
-    		wf.formula = new probcog.logic.Negation(wf.formula);
-    	}
-    	// convert formula to CNF
-        Formula cnf = wf.formula.toCNF();
-        // add its clauses
-        if(cnf instanceof Conjunction) { // conjunction of clauses
+    	addFormula(wf, makeWeightPositive ? ConversionMode.NEGATION_IF_WEIGHT_NEGATIVE : ConversionMode.NO_NEGATION);
+    }
+    
+    /**
+     * Adds a weighted formula with known CNF to this knowledge base
+     * @param wf the weighted formula
+     * @param cnf the formula's CNF
+     * @throws Exception
+     */
+    protected void addFormula(WeightedFormula wf, Formula cnf) throws Exception {
+    	if(cnf instanceof Conjunction) { // conjunction of clauses
             Conjunction c = (Conjunction) cnf;
             int numChildren = c.children.length;
             for(Formula child : c.children) {
@@ -93,6 +130,54 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
             }
             catch(TautologyException e) {}
         }
+	}
+
+	protected boolean isConjunctionOfLiterals(Formula cnf) {
+    	if(cnf instanceof Conjunction) {
+            Conjunction c = (Conjunction) cnf;
+            for(Formula child : c.children) {
+            	if (child instanceof ComplexFormula) {
+            		return false;
+            	}
+            }
+            return true;
+        }     
+    	else {
+    		return false;
+    	}
+    }
+    
+    /**
+     * adds an arbitrary formula to the knowledge base (converting it to CNF and splitting it into clauses) 
+     * @param wf formula whose clauses to add (it is automatically converted to CNF and split into clauses; the association between the formula and its clauses is retained)
+     * @param conversionMode the mode which controls how the conversion process performs the CNF conversion
+     * @throws java.lang.Exception
+     */
+    public void addFormula(WeightedFormula wf, ConversionMode conversionMode) throws Exception {
+    	Formula cnf;
+    	switch (conversionMode) {
+    	case NO_NEGATION:
+    		cnf = wf.formula.toCNF();
+    		break;
+    	case NEGATION_IF_WEIGHT_NEGATIVE:
+    		if(wf.weight < 0) {
+        		wf.weight *= -1;
+        		wf.formula = new probcog.logic.Negation(wf.formula);
+        	}
+    		cnf = wf.formula.toCNF();
+    		break;
+		case NEGATION_IF_CLAUSE_RESULTS:
+			cnf = wf.formula.toCNF();
+			if (isConjunctionOfLiterals(cnf)) { 
+				wf.weight *= -1;
+				wf.formula = new probcog.logic.Negation(wf.formula);
+				cnf = new probcog.logic.Negation(cnf).toCNF();
+			}
+			break;
+		default:
+			throw new RuntimeException("Unhandled conversion mode " + conversionMode);
+    	}
+    	addFormula(wf, cnf);
     }
     
     /**

@@ -40,7 +40,7 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	
 	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends IMaxSAT> mwsClass) throws Exception {
 		super(mrf);
-        WeightedClausalKB wckb = new WeightedClausalKB(mrf, false);
+        WeightedClausalKB wckb = new WeightedClausalKB(mrf, WeightedClausalKB.ConversionMode.NEGATION_IF_CLAUSE_RESULTS);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
         sat = mwsClass.getConstructor(WeightedClausalKB.class, PossibleWorld.class, probcog.logic.WorldVariables.class, probcog.srl.Database.class).newInstance(wckb, state, mrf.getWorldVariables(), mrf.getDb());
         //sat = new edu.tum.cs.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
