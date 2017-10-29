@@ -18,6 +18,8 @@
  ******************************************************************************/
 package probcog.logic.sat.weighted;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import probcog.logging.PrintLogger.Level;
@@ -35,6 +37,8 @@ import probcog.srl.Database;
 public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	protected int maxSteps = 1000;
 	protected PossibleWorld bestState = null;
+	protected double sumOfWeightsOfUnsatisfiedConstraints;
+	protected List<WeightedClause> unsatisfiedHardConstraints;
 
 	public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database db) throws Exception {
 		super(kb, state, vars, db.getEntries());
@@ -80,24 +84,19 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	
 	@Override
 	protected void walkSATMove() {
-		// pick an unsatisfied constraint
-		// with probability p, satisfy the constraint randomly		
+		// with probability p, make a random move (satisfy any unsatisfied constraint randomly)		
 		if(rand.nextDouble() < this.pWalkSAT) {
 			Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
 			c.satisfyRandomly();
 		}			 
-		// with probability 1-p, satisfy it greedily
+		// otherwise, make a greedy move
 		else {
-			Vector<Constraint> hardUnsat = new Vector<Constraint>();
-			for(Constraint c : unsatisfiedConstraints) {
-				WeightedClause wc = (WeightedClause)c;
-				if(wc.isHard)
-					hardUnsat.add(c);
-			}
-			if(!hardUnsat.isEmpty()) {
-				Constraint c = hardUnsat.get(rand.nextInt(hardUnsat.size()));
+			// if there are unsatisfied hard constraints, satisfy one of them greedily
+			if(!unsatisfiedHardConstraints.isEmpty()) {
+				Constraint c = unsatisfiedHardConstraints.get(rand.nextInt(unsatisfiedHardConstraints.size()));
 				c.satisfyGreedily();
 			}
+			// otherwise, pick any unsatisfied constraint
 			else {
 				Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
 				c.satisfyGreedily();
@@ -111,25 +110,47 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	}
 	
 	@Override
-	public void run() throws Exception {		
-		initialize();		
+	protected void addUnsatisfiedConstraint(Constraint c) {
+		super.addUnsatisfiedConstraint(c);
+		
+		WeightedClause wc = (WeightedClause)c;
+		sumOfWeightsOfUnsatisfiedConstraints += wc.weight; 
+		
+		if (wc.isHard)
+			unsatisfiedHardConstraints.add(wc);
+	}
+	
+	@Override
+	protected void removeUnsatisfiedConstraint(Constraint c) {
+		super.removeUnsatisfiedConstraint(c);
+		
+		WeightedClause wc = (WeightedClause)c;
+		sumOfWeightsOfUnsatisfiedConstraints -= wc.weight; 
+		
+		if (wc.isHard)
+			unsatisfiedHardConstraints.remove(wc);
+	}
+	
+	@Override
+	protected void initialize() throws Exception {
+		sumOfWeightsOfUnsatisfiedConstraints = 0;
+		unsatisfiedHardConstraints = new ArrayList<>();
+		
+		super.initialize();
+	}
+	
+	@Override
+	public void run() throws Exception {
+		initialize();	
 		
 		double bestSum = Double.MAX_VALUE;
 		int bestHardMissing = Integer.MAX_VALUE;
 		for(int step = 1; step <= this.maxSteps; step++) {
 			
-			double unsatisfiedSum = 0.0;
-			int hardMissing = 0;
-			for(Constraint c : unsatisfiedConstraints) {
-				WeightedClause wc = (WeightedClause)c;
-				unsatisfiedSum += wc.weight;
-				if(wc.isHard)
-					hardMissing++;
-			}
-			
+			int hardMissing = unsatisfiedHardConstraints.size();
 			boolean newBest = false;
-			if(unsatisfiedSum < bestSum) {
-				bestSum = unsatisfiedSum;
+			if(sumOfWeightsOfUnsatisfiedConstraints < bestSum) {
+				bestSum = sumOfWeightsOfUnsatisfiedConstraints;
 				bestHardMissing = hardMissing;
 				newBest = true;
 				this.bestState = state.clone();
@@ -137,10 +158,15 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 
 			boolean printStatus = newBest || step % 10 == 0;
 			if(printStatus) {
-				log.out(Level.INFO, newBest ? Level.DEBUG : Level.TRACE, String.format("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, best: %f (%d) %s", step, hardMissing, unsatisfiedSum, bestSum, bestHardMissing, newBest ? "[NEW BEST]" : ""));
+				log.out(Level.INFO, newBest ? Level.DEBUG : Level.TRACE, 
+						String.format("  step %d: %d hard constraints unsatisfied, sum of unsatisfied weights: %f, " + 
+								"best: %f (%d) %s", 
+								step, hardMissing, sumOfWeightsOfUnsatisfiedConstraints, 
+								bestSum, bestHardMissing, 
+								newBest ? "[NEW BEST]" : ""));
 			}
 			
-			if(unsatisfiedSum == 0)
+			if(sumOfWeightsOfUnsatisfiedConstraints == 0)
 				break;
 			
 			makeMove();

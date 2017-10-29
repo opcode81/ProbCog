@@ -215,6 +215,10 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		unsatisfiedConstraints.add(c);
 	}
 	
+	protected void removeUnsatisfiedConstraint(Constraint c) {
+		unsatisfiedConstraints.remove(c);
+	}
+	
 	protected void addBottleneck(GroundAtom a, Constraint c) {
 		Vector<Constraint> v = bottlenecks.get(a.index);
 		if(v == null) {
@@ -463,7 +467,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		// the constraints where the literal was a bottleneck are now unsatisfied
 		Vector<Constraint> bn = this.bottlenecks.get(gndAtom.index);
 		if(bn != null) {
-			this.unsatisfiedConstraints.addAll(bn);
+			for (Constraint c : bn) {
+				addUnsatisfiedConstraint(c);
+			}
 			bn.clear();
 		}
 		// other stuff is handled by the constraints themselves
@@ -570,7 +576,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 			}
             else { // the lit was false and is now true, add it to the clause's list of true lits
                 if(numTrueLits == 0) // the clause was previously unsatisfied, it is now satisfied
-                    unsatisfiedConstraints.remove(this);
+                    removeUnsatisfiedConstraint(this);
                 else if(numTrueLits == 1) // we are adding a second true lit, so the first one is no longer a bottleneck of this clause
                     bottlenecks.get(trueOnes.iterator().next().index).remove(this);
                 trueOnes.add(gndAtom);
