@@ -35,17 +35,17 @@ java_apps["netEd"] = java_apps["bnj"]
 java_apps["pcjython"] = java_apps["jython"]
 
 python_apps = [
-    {"name": "mlnquery", "script": "$SRLDB_HOME/python/mlnQueryTool.py"},
-    {"name": "mlnlearn", "script": "$SRLDB_HOME/python/mlnLearningTool.py"},
-    {"name": "amlnlearn", "script": "$SRLDB_HOME/python/amlnLearn.py"},
-    {"name": "blnquery", "script": "$SRLDB_HOME/python/blnQueryTool.py"},
-    {"name": "bnquery", "script": "$SRLDB_HOME/python/bnQueryTool.py"},
-    {"name": "blnlearn", "script": "$SRLDB_HOME/python/blnLearningTool.py"},
-    {"name": "fixCR", "script": "$SRLDB_HOME/python/fixCR.py"},
-    {"name": "MLN", "script": "$SRLDB_HOME/python/MLN.py"},
-    {"name": "trajvis", "script": "$SRLDB_HOME/python/trajvis.py"},
-    {"name": "evalSeqLabels", "script": "$SRLDB_HOME/python/evalSeqLabels.py"},
-    {"name": "pmml2graphml", "script": "$SRLDB_HOME/python/pmml2graphml.py"},
+    {"name": "mlnquery", "script": "$SRLDB_HOME/src/main/python/mlnQueryTool.py"},
+    {"name": "mlnlearn", "script": "$SRLDB_HOME/src/main/python/mlnLearningTool.py"},
+    {"name": "amlnlearn", "script": "$SRLDB_HOME/src/main/python/amlnLearn.py"},
+    {"name": "blnquery", "script": "$SRLDB_HOME/src/main/python/blnQueryTool.py"},
+    {"name": "bnquery", "script": "$SRLDB_HOME/src/main/python/bnQueryTool.py"},
+    {"name": "blnlearn", "script": "$SRLDB_HOME/src/main/python/blnLearningTool.py"},
+    {"name": "fixCR", "script": "$SRLDB_HOME/src/main/python/fixCR.py"},
+    {"name": "MLN", "script": "$SRLDB_HOME/src/main/python/MLN.py"},
+    {"name": "trajvis", "script": "$SRLDB_HOME/src/main/python/trajvis.py"},
+    {"name": "evalSeqLabels", "script": "$SRLDB_HOME/src/main/python/evalSeqLabels.py"},
+    {"name": "pmml2graphml", "script": "$SRLDB_HOME/src/main/python/pmml2graphml.py"},
 ]
 
 pythonInterpreter = "python"
@@ -133,8 +133,8 @@ if __name__ == '__main__':
 
     # write shell script for environment setup
     appsDir = adapt("$SRLDB_HOME/apps", arch)
-    pythonDir = adapt("$SRLDB_HOME/python", arch)
-    jythonDir = adapt("$SRLDB_HOME/jython", arch)
+    pythonDir = adapt("$SRLDB_HOME/src/main/python", arch)
+    jythonDir = adapt("$SRLDB_HOME/src/main/jython", arch)
     if not "win" in arch:
         f = file("env.sh", "w")
         f.write("export PATH=$PATH:%s\n" % appsDir)
