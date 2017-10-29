@@ -1,44 +1,44 @@
 1.2.0  (unreleased)
 	* MLNs (Python)
-		- cleaned up differentiation between mrf & mln, fixing remaining references
-		- grounding
-			* modularisation of grounding methods to support 
-			* added custom grounding method for BPLL/WCSP
-			* fixed grounding of EXIST
-			* added grounding method where ground formulas are not collected but can be iterated on demand
-		- learning
-			* made BPLL more efficient and more memory-efficent 
-			* added new learning method BPLL_CG based on custom grounding
-			* fixed numeric issues in PLL
-			* added learning method DBPLL (discriminative pseudologlikelihood with blocking)
-			* added learning method DPLL_ISE_ME (discriminative pseudologlikelihood learning with independent soft evidence, memory-efficent)
-			* fixed MultipleDatabaseLearner (was broken by explicit closed-world assumption just prior to v1.0 release)
-			* fixed Gaussian prior
-		- inference
-			* fixed handling of soft evidence in EnumerationAsk
-		- logic
+		- Cleaned up differentiation between mrf & mln, fixing remaining references
+		- Grounding
+			* Modularisation of grounding methods to support 
+			* Added custom grounding method for BPLL/WCSP
+			* Fixed grounding of EXIST
+			* Added grounding method where ground formulas are not collected but can be iterated on demand
+		- Learning
+			* Made BPLL more efficient and more memory-efficent 
+			* Added new learning method BPLL_CG based on custom grounding
+			* Fixed numeric issues in PLL
+			* Added learning method DBPLL (discriminative pseudologlikelihood with blocking)
+			* Added learning method DPLL_ISE_ME (discriminative pseudologlikelihood learning with independent soft evidence, memory-efficent)
+			* Fixed MultipleDatabaseLearner (was broken by explicit closed-world assumption just prior to v1.0 release)
+			* Fixed Gaussian prior
+		- Inference
+			* Fixed handling of soft evidence in EnumerationAsk
+		- Logic
 			* Handle corner case where no clauses remain in Conjunction.toCNF
-		- databases
-			* optimised reading of databases with large domains or a large number of soft evidence items
-			* allow to instantiate databases directly from string content
+		- Databases
+			* Optimised reading of databases with large domains or a large number of soft evidence items
+			* Allow to instantiate databases directly from string content
 	* Datagen (Python)
-		- fixed SelN
+		- Fixed SelN
 	* SRLDB (Java)
-		- fixed auto-detection of Boolean domains for MLN database generation
+		- Fixed auto-detection of Boolean domains for MLN database generation
 	* BLNs (Java)
-		- allow BLNLearner and BLNinfer to be more conveniently parametrised/configured 
-		- fixed support for logical variables appearing in hard constraints
+		- Allow BLNLearner and BLNinfer to be more conveniently parametrised/configured 
+		- Fixed support for logical variables appearing in hard constraints
 	* Logging under Java: Added PrintLogger to unify console output and logging for stand-alone and library usage
 	* MLNs (Java)
-		- inference
-			* applied PrintLogger in SampleSAT/MaxWalkSAT and 
-			* added time-limited mode to Toulbar2 inference
+		- Inference
+			* Applied PrintLogger in SampleSAT/MaxWalkSAT and 
+			* Added time-limited mode to Toulbar2 inference
 			* MaxWalkSAT
-				- use specific negation mode prior to CNF conversion in order to avoid splits at conjunctions where possible
-				- optimisations to avoid unnecessary iterations over the set of constraints
+				- Use specific negation mode prior to CNF conversion in order to avoid splits at conjunctions where possible
+				- Optimisations to avoid unnecessary iterations over the set of constraints
 	* Switched to Maven-based build, altering directory structure
 	* Switched to Java 9
 
 1.0.0  2012-03-09
-  * First official release after development at TUM since 2007
+	* First versioned release
   
