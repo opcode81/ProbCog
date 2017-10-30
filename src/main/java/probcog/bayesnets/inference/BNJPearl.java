@@ -19,6 +19,7 @@
 package probcog.bayesnets.inference;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 
 /**
  * Pearl's polytree algorithm (exact).
@@ -26,7 +27,7 @@ import probcog.bayesnets.core.BeliefNetworkEx;
  */
 public class BNJPearl extends BNJInference {
 
-	public BNJPearl(BeliefNetworkEx bn) throws Exception {
+	public BNJPearl(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn, edu.ksu.cis.bnj.ver3.inference.exact.Pearl.class);
 	}
 

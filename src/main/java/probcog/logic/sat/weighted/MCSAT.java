@@ -21,6 +21,7 @@ package probcog.logic.sat.weighted;
 import java.util.Random;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.logic.Formula;
@@ -62,7 +63,7 @@ public class MCSAT implements IParameterHandler {
 		}
 	}
 	
-	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) throws Exception {
+	public MCSAT(WeightedClausalKB kb, WorldVariables vars, Database db) throws ProbCogException {
 		this.kb = kb;
 		this.vars = vars;
 		this.db = db;
@@ -98,7 +99,7 @@ public class MCSAT implements IParameterHandler {
 		this.rand = random;
 	}
 
-	public GroundAtomDistribution run(int steps) throws Exception {
+	public GroundAtomDistribution run(int steps) throws ProbCogException {
 		if(debug) {
 			System.out.println("\nMC-SAT constraints:");
 			for(WeightedClause wc : kb)
@@ -214,10 +215,15 @@ public class MCSAT implements IParameterHandler {
 		return dist.getResult(ga.index);
 	}
 	
-	public GroundAtomDistribution pollResults() throws CloneNotSupportedException {
+	public GroundAtomDistribution pollResults() throws ProbCogException {
 		GroundAtomDistribution ret = null;
 		synchronized(dist) {
-			ret = this.dist.clone();
+			try {
+				ret = this.dist.clone();
+			} 
+			catch (CloneNotSupportedException e) {
+				throw new ProbCogException(e);
+			}
 		}
 		return ret;
 	}
@@ -230,7 +236,7 @@ public class MCSAT implements IParameterHandler {
 		return String.format("%s[%s]", this.getClass().getSimpleName(), sat.getAlgorithmName());
 	}
 	
-	public void addSoftEvidence(GroundAtom ga, double p) throws Exception {
+	public void addSoftEvidence(GroundAtom ga, double p) throws ProbCogException {
 		Formula nga = new GroundLiteral(false, ga);		
 		this.softEvidence.add(new SoftEvidence(new WeightedClause(ga, 0.0, false), p));
 		this.softEvidence.add(new SoftEvidence(new WeightedClause(nga, 0.0, false), 1.0-p));

@@ -19,6 +19,7 @@
 package probcog.bayesnets.inference;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import edu.tum.cs.util.Stopwatch;
 
 /**
@@ -27,7 +28,7 @@ import edu.tum.cs.util.Stopwatch;
 public class LikelihoodWeighting extends Sampler {
 	int[] nodeOrder;
 	
-	public LikelihoodWeighting(BeliefNetworkEx bn) throws Exception {
+	public LikelihoodWeighting(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);		
 	}
 	
@@ -37,7 +38,7 @@ public class LikelihoodWeighting extends Sampler {
 	}
 	
 	@Override
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		out.println("sampling...");
@@ -70,7 +71,7 @@ public class LikelihoodWeighting extends Sampler {
 		out.println(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), dist.steps));
 	}
 	
-	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
+	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws ProbCogException {
 		s.trials = 0;
 		boolean successful = false;
 loop:	while(!successful) {
@@ -78,7 +79,7 @@ loop:	while(!successful) {
 			s.trials++;
 			if(maxTrials > 0 && s.trials > this.maxTrials) {
 				if(!this.skipFailedSteps)
-					throw new Exception("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
+					throw new ProbCogException("Could not obtain a countable sample in the maximum allowed number of trials (" + maxTrials + ")");
 				else
 					return null;
 			}

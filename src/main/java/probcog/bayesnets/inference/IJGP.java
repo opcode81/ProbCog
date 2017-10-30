@@ -28,7 +28,7 @@ import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.IJGP.JoinGraph.Arc;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.util.StringTool;
@@ -48,7 +48,7 @@ public class IJGP extends Sampler {
 	protected int ibound;
 	protected boolean verbose = true;
 
-	public IJGP(BeliefNetworkEx bn) throws Exception {
+	public IJGP(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
@@ -84,7 +84,7 @@ public class IJGP extends Sampler {
 	}
 
 	@Override
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		// Create topological order
 		if(verbose) out.println("determining order...");
 		jgNodes = jg.getTopologicalorder();
@@ -190,7 +190,7 @@ public class IJGP extends Sampler {
 				}
 			}
 			if (u == null)
-				throw new Exception(
+				throw new ProbCogException(
 						"Could not find vertex in join graph containing variable "
 								+ nodes[i].getName());
 			// out.println("\nCalculating results for " + nodes[i]);
@@ -313,7 +313,7 @@ public class IJGP extends Sampler {
 		}
 
 		public Cluster getReducedCluster(HashSet<BeliefNode> nodes)
-				throws CloneNotSupportedException {
+				throws ProbCogException {
 			// deletes all functions and arcs in the cluster whose scope
 			// contains the given nodes
 			Cluster redCluster = this.copy();
@@ -331,8 +331,7 @@ public class IJGP extends Sampler {
 						}
 					}
 				}
-				for (MessageFunction m : ((HashSet<MessageFunction>) functions
-						.clone())) {
+				for (MessageFunction m : ((HashSet<MessageFunction>) functions.clone())) {
 					if (m.scope.contains(bn))
 						redCluster.functions.remove(m);
 				}

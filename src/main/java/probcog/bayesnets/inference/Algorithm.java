@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 
 /**
  * Enumeration of Bayesian network inference algorithms.
@@ -74,8 +75,14 @@ public enum Algorithm {
 		}		
 	}
 	
-	public Sampler createSampler(BeliefNetworkEx bn) throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-		return samplerClass.getConstructor(bn.getClass()).newInstance(bn);
+	public Sampler createSampler(BeliefNetworkEx bn) throws ProbCogException {
+		try {
+			return samplerClass.getConstructor(bn.getClass()).newInstance(bn);
+		} 
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public String getDescription() {

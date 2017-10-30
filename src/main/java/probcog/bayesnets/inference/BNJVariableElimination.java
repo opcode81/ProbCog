@@ -19,6 +19,7 @@
 package probcog.bayesnets.inference;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 
 /**
  * Wrapper for BNJ's Variable Elimination (exact inference).
@@ -26,8 +27,7 @@ import probcog.bayesnets.core.BeliefNetworkEx;
  */
 public class BNJVariableElimination extends BNJInference {
 
-	public BNJVariableElimination(BeliefNetworkEx bn) throws Exception {
+	public BNJVariableElimination(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn, edu.ksu.cis.bnj.ver3.inference.exact.Elimbel.class);
 	}
-
 }

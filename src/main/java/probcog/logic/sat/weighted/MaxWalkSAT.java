@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.logging.PrintLogger.Level;
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
@@ -40,7 +41,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	protected double sumOfWeightsOfUnsatisfiedConstraints;
 	protected List<WeightedClause> unsatisfiedHardConstraints;
 
-	public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database db) throws Exception {
+	public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database db) throws ProbCogException {
 		super(kb, state, vars, db.getEntries());
 		this.pSampleSAT = 1.0; // by default, always make WalkSAT-style moves (never global random moves)
 	}
@@ -128,7 +129,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	}
 	
 	@Override
-	protected void initialize() throws Exception {
+	protected void initialize() throws ProbCogException {
 		sumOfWeightsOfUnsatisfiedConstraints = 0;
 		unsatisfiedHardConstraints = new ArrayList<>();
 		
@@ -136,7 +137,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 	}
 	
 	@Override
-	public void run() throws Exception {
+	public void run() throws ProbCogException {
 		initialize();	
 		
 		double bestSum = Double.MAX_VALUE;

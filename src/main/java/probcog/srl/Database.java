@@ -19,6 +19,7 @@
 package probcog.srl;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.Collection;
@@ -26,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.tum.cs.util.FileUtil;
+import probcog.exception.ProbCogException;
 
 /**
  * Represents a standard relational database (that can be used as training or evidence data)
@@ -34,11 +36,11 @@ import edu.tum.cs.util.FileUtil;
  */
 public class Database extends GenericDatabase<Variable, String> {
 
-	public Database(RelationalModel model) throws Exception {
+	public Database(RelationalModel model) throws ProbCogException {
 		super(model);
 	}
 	
-	public String getVariableValue(String varName, boolean closedWorld) throws Exception {
+	public String getVariableValue(String varName, boolean closedWorld) throws ProbCogException {
 		String lowerCaseName = varName.toLowerCase();
 		Variable var = this.entries.get(lowerCaseName);
 		// if we have the value, return it
@@ -53,7 +55,7 @@ public class Database extends GenericDatabase<Variable, String> {
 		// if it's a logically determined predicate, use prolog to retrieve a value
 		if(sig.isLogical) {
 			if(!sig.isBoolean())
-				throw new Exception("Value for logical/evidence variable '" + varName + "' not found in the database and cannot use Prolog to retrieve a value for non-Boolean functions"); // TODO could allow Prolog via a logical coupling
+				throw new ProbCogException("Value for logical/evidence variable '" + varName + "' not found in the database and cannot use Prolog to retrieve a value for non-Boolean functions"); // TODO could allow Prolog via a logical coupling
 			if(this.isFinalized())
 				return BooleanDomain.False;
 			else {
@@ -69,7 +71,7 @@ public class Database extends GenericDatabase<Variable, String> {
 			if(sig.isBoolean())
 				return BooleanDomain.False;
 			else {
-				throw new Exception("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);
+				throw new ProbCogException("Missing database value of " + varName + " - cannot apply closed-world assumption because domain is not boolean: " + sig.returnType);
 			}
 		}
 		
@@ -93,13 +95,19 @@ public class Database extends GenericDatabase<Variable, String> {
 	/**
      * 
      * */
-	public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
+	public void readMLNDB(String databaseFilename, boolean ignoreUndefinedNodes) throws ProbCogException {
 		boolean verbose = false;
 
 		// read file content
 		if(verbose)
 			System.out.printf("reading contents of %s...\n", databaseFilename);
-		String dbContent = FileUtil.readTextFile(databaseFilename);
+		String dbContent;
+		try {
+			dbContent = FileUtil.readTextFile(databaseFilename);
+		} 
+		catch (IOException e) {
+			throw new ProbCogException(e);
+		}
 
 		// remove comments
 		// if (verbose) System.out.println("  removing comments...");
@@ -116,34 +124,39 @@ public class Database extends GenericDatabase<Variable, String> {
 		BufferedReader br = new BufferedReader(new StringReader(dbContent));
 		String line;
 		Variable var;
-		while((line = br.readLine()) != null) {
-			line = line.trim();
-			// parse variable assignment
-			matcher = re_entry.matcher(line);
-			if(matcher.matches()) {
-				if(matcher.group(1).startsWith("!"))
-					var = new Variable(matcher.group(1).substring(1), matcher.group(2).trim().split("\\s*,\\s*"), "False", model);
-				else
-					var = new Variable(matcher.group(1), matcher.group(2).trim().split("\\s*,\\s*"), "True", model);
-
-				addVariable(var, ignoreUndefinedNodes, true);
-				// if (++numVars % 100 == 0 && verbose)
-				// System.out.println("    " + numVars + " vars read\r");
-				continue;
+		try {
+			while((line = br.readLine()) != null) {
+				line = line.trim();
+				// parse variable assignment
+				matcher = re_entry.matcher(line);
+				if(matcher.matches()) {
+					if(matcher.group(1).startsWith("!"))
+						var = new Variable(matcher.group(1).substring(1), matcher.group(2).trim().split("\\s*,\\s*"), "False", model);
+					else
+						var = new Variable(matcher.group(1), matcher.group(2).trim().split("\\s*,\\s*"), "True", model);
+	
+					addVariable(var, ignoreUndefinedNodes, true);
+					// if (++numVars % 100 == 0 && verbose)
+					// System.out.println("    " + numVars + " vars read\r");
+					continue;
+				}
+	
+				// parse domain extension
+				matcher = re_domDecl.matcher(line);
+				if(matcher.matches()) { // parse
+					String domNam = matcher.group(1);
+					String[] constants = matcher.group(2).trim().split("\\s*,\\s*");
+					for(String c : constants)
+						fillDomain(domNam, c);
+					continue;
+				}
+				// something else
+				if(line.length() != 0)
+					System.err.println("Line could not be read: " + line);
 			}
-
-			// parse domain extension
-			matcher = re_domDecl.matcher(line);
-			if(matcher.matches()) { // parse
-				String domNam = matcher.group(1);
-				String[] constants = matcher.group(2).trim().split("\\s*,\\s*");
-				for(String c : constants)
-					fillDomain(domNam, c);
-				continue;
-			}
-			// something else
-			if(line.length() != 0)
-				System.err.println("Line could not be read: " + line);
+		}
+		catch (IOException e) {
+			throw new ProbCogException(e);
 		}
 	}
 
@@ -152,9 +165,9 @@ public class Database extends GenericDatabase<Variable, String> {
 	 * @return the values of this database as an array of String[2] arrays,
 	 *         where the first element of each is the name of the variable, and
 	 *         the second is the value
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public String[][] getEntriesAsArray() throws Exception {
+	public String[][] getEntriesAsArray() throws ProbCogException {
 		Collection<Variable> vars = getEntries();
 		String[][] ret = new String[entries.size()][2];
 		int i = 0;
@@ -177,21 +190,21 @@ public class Database extends GenericDatabase<Variable, String> {
 	 * @param databaseFilename
 	 * @throws java.lang.Exception
 	 */
-	public void readMLNDB(String databaseFilename) throws Exception {
+	public void readMLNDB(String databaseFilename) throws ProbCogException {
 		readMLNDB(databaseFilename, false);
 	}
 
 	@Override
-	public void fillDomain(String domName, Variable var) throws Exception {
+	public void fillDomain(String domName, Variable var) throws ProbCogException {
 		fillDomain(domName, var.value);		
 	}
 
 	@Override
-	public String getSingleVariableValue(String varName, boolean closedWorld) throws Exception {
+	public String getSingleVariableValue(String varName, boolean closedWorld) throws ProbCogException {
 		return getVariableValue(varName, closedWorld);
 	}
 	
-	public void writeMLNDatabase(PrintStream out) throws Exception {
+	public void writeMLNDatabase(PrintStream out) throws ProbCogException {
 		for(Variable var : this.getEntries()) {
 			out.println(var.getPredicate());
 		}

@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.clustering;
 
+import probcog.exception.ProbCogException;
 import weka.clusterers.EM;
 
 /**
@@ -30,8 +31,13 @@ public class EMClusterer extends BasicClusterer<weka.clusterers.EM> {
 		super(clusterer);
 	}
 	
-	public EMClusterer() throws Exception {
+	public EMClusterer() throws ProbCogException {
 		super(new EM());
-		clusterer.setNumClusters(-1);
+		try {
+			clusterer.setNumClusters(-1);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 	}
 }

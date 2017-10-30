@@ -25,11 +25,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.hmm.IObservationModel;
 import probcog.hmm.Segment;
 import probcog.hmm.SegmentSequence;
@@ -61,7 +63,7 @@ public class LDHMM extends DwellTimeHMM<ObservationVector> implements Serializab
 		this.numSubStates = numSubStates;
 	}
 	
-	public void learn(Iterable<? extends SegmentSequence<? extends ObservationVector>> seqs, Class<? extends ISubHMM> subHMMClass, ParameterMap learningParams) throws Exception {
+	public void learn(Iterable<? extends SegmentSequence<? extends ObservationVector>> seqs, Class<? extends ISubHMM> subHMMClass, ParameterMap learningParams) throws ProbCogException {
 		// for each segment type, learn sub-hmm and dwell time distributions
 		System.out.println("learning...");
 		boolean usePseudoCounts = learningParams.getBoolean("usePseudoCounts");
@@ -79,17 +81,22 @@ public class LDHMM extends DwellTimeHMM<ObservationVector> implements Serializab
 			if(trainingSegs.size() == 0) {
 				for(SegmentSequence<? extends ObservationVector> seq : seqs)
 					System.out.println(seq);
-				throw new Exception("No training data available for label " + i);
+				throw new ProbCogException("No training data available for label " + i);
 			}
 			
 			// learn sub-HMM
 			System.out.printf("  state %d (%d segments as training data)\n", i, trainingSegs.size());
 			int numSubLevels = 0;
 			ISubHMM hmm;
-			if(numSubStates > 0)
-				hmm = subHMMClass.getConstructor(int.class, int.class, int.class).newInstance(numSubStates, numSubLevels, obsDimension);
-			else
-				hmm = subHMMClass.getConstructor(int.class, int.class).newInstance(numSubLevels, obsDimension);
+			try {
+				if(numSubStates > 0)
+					hmm = subHMMClass.getConstructor(int.class, int.class, int.class).newInstance(numSubStates, numSubLevels, obsDimension);
+				else
+					hmm = subHMMClass.getConstructor(int.class, int.class).newInstance(numSubLevels, obsDimension);
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+				throw new ProbCogException(e);
+			}
 			hmm.learn(trainingSegs, learningParams);
 			subHMMs[i] = hmm;
 			System.out.printf("    %d states in sub-HMM\n", hmm.getNumStates());

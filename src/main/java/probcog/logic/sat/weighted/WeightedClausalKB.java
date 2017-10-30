@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.ComplexFormula;
 import probcog.logic.Conjunction;
 import probcog.logic.Formula;
@@ -73,9 +74,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * constructs a weighted clausal KB from a collection of weighted formulas
      * @param kb some collection of weighted formulas
      * @param requirePositiveWeights whether to negate formulas with negative weights to yield positive weights only
-     * @throws java.lang.Exception
+     * @throws ProbCogException
      */
-    public WeightedClausalKB(Iterable<WeightedFormula> kb, boolean requirePositiveWeights) throws Exception {
+    public WeightedClausalKB(Iterable<WeightedFormula> kb, boolean requirePositiveWeights) throws ProbCogException {
     	this();
     	ConversionMode conversionMode = requirePositiveWeights ? 
     			ConversionMode.NEGATION_IF_WEIGHT_NEGATIVE : ConversionMode.NO_NEGATION;
@@ -88,9 +89,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * constructs a weighted clausal KB from a collection of weighted formulas
      * @param kb some collection of weighted formulas
      * @param conversionMode the mode to apply when converting formulas to clauses
-     * @throws java.lang.Exception
+     * @throws ProbCogException
      */
-    public WeightedClausalKB(Iterable<WeightedFormula> kb, ConversionMode conversionMode) throws Exception {
+    public WeightedClausalKB(Iterable<WeightedFormula> kb, ConversionMode conversionMode) throws ProbCogException {
     	this();
         for(WeightedFormula wf : kb) {
             addFormula(wf, conversionMode);
@@ -109,9 +110,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * adds an arbitrary formula to the knowledge base (converting it to CNF and splitting it into clauses) 
      * @param wf formula whose clauses to add (it is automatically converted to CNF and split into clauses; the association between the formula and its clauses is retained)
      * @param makeWeightPositive whether to negate the formula if its weight is negative
-     * @throws java.lang.Exception
+     * @throws ProbCogException
      */
-    public void addFormula(WeightedFormula wf, boolean makeWeightPositive) throws Exception {
+    public void addFormula(WeightedFormula wf, boolean makeWeightPositive) throws ProbCogException {
     	addFormula(wf, makeWeightPositive ? ConversionMode.NEGATION_IF_WEIGHT_NEGATIVE : ConversionMode.NO_NEGATION);
     }
     
@@ -119,9 +120,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * Adds a weighted formula with known CNF to this knowledge base
      * @param wf the weighted formula
      * @param cnf the formula's CNF
-     * @throws Exception
+     * @throws ProbCogException
      */
-    protected void addFormula(WeightedFormula wf, Formula cnf) throws Exception {
+    protected void addFormula(WeightedFormula wf, Formula cnf) throws ProbCogException {
     	if(cnf instanceof Conjunction) { // conjunction of clauses
             Conjunction c = (Conjunction) cnf;
             int numChildren = c.children.length;
@@ -163,9 +164,9 @@ public class WeightedClausalKB implements Iterable<WeightedClause> {
      * adds an arbitrary formula to the knowledge base (converting it to CNF and splitting it into clauses) 
      * @param wf formula whose clauses to add (it is automatically converted to CNF and split into clauses; the association between the formula and its clauses is retained)
      * @param conversionMode the mode which controls how the conversion process performs the CNF conversion
-     * @throws java.lang.Exception
+     * @throws ProbCogException
      */
-    public void addFormula(WeightedFormula wf, ConversionMode conversionMode) throws Exception {
+    public void addFormula(WeightedFormula wf, ConversionMode conversionMode) throws ProbCogException {
     	Formula cnf;
     	switch (conversionMode) {
     	case NO_NEGATION:

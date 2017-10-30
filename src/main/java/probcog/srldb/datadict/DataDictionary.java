@@ -242,7 +242,7 @@ public class DataDictionary implements java.io.Serializable {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void checkLink(Link link) throws DDException, Exception {
+	public void checkLink(Link link) throws DDException {
 		// check existence of corresponding link type in data dictionary
 		DDRelation ddlink = getRelation(link.getName());
 		if(ddlink == null)
@@ -386,7 +386,7 @@ public class DataDictionary implements java.io.Serializable {
 		for(DDAttribute dda : this.getAttributes()) {
 			Domain<?> dom = dda.getDomain();
 			
-			if(dda.isDiscarded() || dda.isBoolean() || handledDomainTypes.contains(dom))
+			if(dda.isDiscarded() || dda.isBoolean() || handledDomainTypes.contains(dom.getName()))
 				continue;
 			
 			handledDomainTypes.add(dom.getName());

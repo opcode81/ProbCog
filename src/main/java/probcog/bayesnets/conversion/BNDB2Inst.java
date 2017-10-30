@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 
 import probcog.bayesnets.core.BNDatabase;
+import probcog.exception.ProbCogException;
 
 
 
@@ -33,7 +34,7 @@ import probcog.bayesnets.core.BNDatabase;
  */
 public class BNDB2Inst {
 
-	public static void convert(BNDatabase db, File instFile) throws FileNotFoundException {
+	public static void convert(BNDatabase db, File instFile) throws ProbCogException {
 		try (PrintStream out = new PrintStream(instFile)) {
 			out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			out.println("<instantiation>");
@@ -41,13 +42,12 @@ public class BNDB2Inst {
 				out.printf("<inst id=\"%s\" value=\"%s\"/>\n", e.getKey(), e.getValue());
 			}
 			out.println("</instantiation>");
+		} 
+		catch (FileNotFoundException e) {
+			throw new ProbCogException(e);
 		}
 	}
 	
-	/**
-	 * @param args
-	 * @throws Exception 
-	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length != 2) {
 			System.err.println("usage: bndb2inst <.bndb input file> <.inst output filename>");

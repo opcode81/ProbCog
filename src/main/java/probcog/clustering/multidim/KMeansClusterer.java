@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.clustering.multidim;
 
+import probcog.exception.ProbCogException;
 import weka.clusterers.SimpleKMeans;
 
 /**
@@ -26,8 +27,13 @@ import weka.clusterers.SimpleKMeans;
  */
 public class KMeansClusterer extends MultiDimClusterer<SimpleKMeans> {
 
-	public KMeansClusterer(SimpleKMeans clusterer, int dimensions, int k) throws Exception {
+	public KMeansClusterer(SimpleKMeans clusterer, int dimensions, int k) throws ProbCogException {
 		super(clusterer, dimensions);
-		clusterer.setNumClusters(k);
+		try {
+			clusterer.setNumClusters(k);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 	}
 }

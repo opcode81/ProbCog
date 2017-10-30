@@ -17,25 +17,23 @@
  * along with ProbCog. If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 package probcog;
-import weka.classifiers.trees.J48;
-
-import weka.core.Attribute;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
-
-import java.io.IOException;
-import java.io.FileNotFoundException;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.srldb.Database;
 import probcog.srldb.Object;
 import probcog.srldb.datadict.DDAttribute;
-import probcog.srldb.datadict.DDException;
 import probcog.srldb.datadict.domain.Domain;
+import weka.classifiers.trees.J48;
+import weka.core.Attribute;
+import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
 
 public class J48Reader {
 	
@@ -72,17 +70,29 @@ public class J48Reader {
 		}
 	}
 	
-	public static J48 readJ48(String dbdir) throws IOException, ClassNotFoundException{
+	public static J48 readJ48(String dbdir) throws ProbCogException {
 		String path = dbdir + "/pcc.j48";
 		//System.out.println("reading tree " + path);
-		ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(path));
-		J48 j48 = (J48) objstream.readObject();
-		objstream.close();
-		return j48;
+		ObjectInputStream objstream;
+		try {
+			objstream = new ObjectInputStream(new FileInputStream(path));
+			J48 j48 = (J48) objstream.readObject();
+			objstream.close();
+			return j48;
+		}
+		catch (IOException | ClassNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
-	public static Instances readDB(String dbname) throws IOException, ClassNotFoundException, DDException, FileNotFoundException, Exception{
-		Database db = Database.fromFile(new FileInputStream(dbname));
+	public static Instances readDB(String dbname) throws ProbCogException {
+		Database db;
+		try {
+			db = Database.fromFile(new FileInputStream(dbname));
+		}
+		catch (FileNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 		probcog.srldb.datadict.DataDictionary dd = db.getDataDictionary();
 		//the vector of attributes
 		FastVector fvAttribs = new FastVector();

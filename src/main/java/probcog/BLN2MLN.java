@@ -19,11 +19,8 @@
 package probcog;
 import java.io.File;
 
-import probcog.srl.directed.ABLModel;
-import probcog.srl.directed.RelationalBeliefNetwork;
 import probcog.srl.directed.bln.BayesianLogicNetwork;
 import probcog.srl.mln.MarkovLogicNetwork;
-
 
 
 public class BLN2MLN {

@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
 import probcog.logic.WorldVariables;
@@ -47,7 +48,7 @@ public class EvidenceHandler {
 	protected Map2Set<Block, GroundAtom> blockExclusions;
 	protected WorldVariables vars;
 	
-	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
+	public EvidenceHandler(WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws ProbCogException {
 		this.vars = vars;
 
 		this.evidence = new HashMap<Integer,Boolean>();
@@ -60,12 +61,12 @@ public class EvidenceHandler {
 				if(var.pertainsToEvidenceFunction()) // pure evidence functions may be missing from the model altogether
 					continue;
 				else
-					throw new Exception("Evidence ground atom '" + strGndAtom + "' not in set of world variables.");
+					throw new ProbCogException("Evidence ground atom '" + strGndAtom + "' not in set of world variables.");
 			}
 			if(!var.isBoolean()) { // if the variable isn't boolean, it is mapped to a block, which we set in its entirety
 				Block block = vars.getBlock(gndAtom.index);
 				if(block == null) 
-					throw new Exception(String.format("There is no variable block to which the non-boolean variable assignment '%s' can be mapped.", var.toString()));				
+					throw new ProbCogException(String.format("There is no variable block to which the non-boolean variable assignment '%s' can be mapped.", var.toString()));				
 				for(GroundAtom ga : block)
 					this.evidence.put(ga.index, var.value.equals(ga.args[ga.args.length-1]));				
 				evidenceBlocks.add(block);
@@ -97,7 +98,7 @@ public class EvidenceHandler {
 	 * sets a random state for the non-evidence atoms in the given state
 	 * @param state the state in which to set the variable values
 	 */
-	public void setRandomState(PossibleWorld state) throws Exception {
+	public void setRandomState(PossibleWorld state) throws ProbCogException {
 		setRandomState(state, new Random());
 	}
 	
@@ -106,7 +107,7 @@ public class EvidenceHandler {
 	 * @param state the state in which to set the variable values
 	 * @param rand the random number generator to use
 	 */
-	public void setRandomState(PossibleWorld state, Random rand) throws Exception {
+	public void setRandomState(PossibleWorld state, Random rand) throws ProbCogException {
 		HashSet<Block> handledBlocks = new HashSet<Block>();
 		for(int i = 0; i < vars.size(); i++) {
 			//System.out.println("  setting " + vars.get(i));
@@ -131,7 +132,7 @@ public class EvidenceHandler {
 							possibleTrueOnes.add(gndAtom);
 					}
 					if(possibleTrueOnes.isEmpty())
-						throw new Exception("Invalid Evidence: The block of variables " + block + " contains only false atoms");
+						throw new ProbCogException("Invalid Evidence: The block of variables " + block + " contains only false atoms");
 					GroundAtom trueOne = possibleTrueOnes.get(rand.nextInt(possibleTrueOnes.size()));
 					for(GroundAtom gndAtom : block) 
 						state.set(gndAtom, trueOne == gndAtom);					

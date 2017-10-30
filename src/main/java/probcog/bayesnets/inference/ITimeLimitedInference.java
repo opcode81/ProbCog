@@ -18,12 +18,14 @@
  ******************************************************************************/
 package probcog.bayesnets.inference;
 
+import probcog.exception.ProbCogException;
+
 /**
  * Interface for inference methods that support time-limited inference.
  * @author Dominik Jain
  */
 public interface ITimeLimitedInference {
-	public void initialize() throws Exception;
-	public SampledDistribution infer() throws Exception;
-	public SampledDistribution pollResults() throws Exception;
+	public void initialize() throws ProbCogException;
+	public SampledDistribution infer() throws ProbCogException;
+	public SampledDistribution pollResults() throws ProbCogException;
 }

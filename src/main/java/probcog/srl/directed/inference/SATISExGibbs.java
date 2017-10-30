@@ -25,6 +25,7 @@ import probcog.bayesnets.inference.GibbsSampling;
 import probcog.bayesnets.inference.SATIS_BSampler;
 import probcog.bayesnets.inference.Sampler;
 import probcog.bayesnets.inference.WeightedSample;
+import probcog.exception.ProbCogException;
 import probcog.logic.sat.SampleSAT;
 import probcog.srl.directed.bln.GroundBLN;
 import probcog.srl.directed.bln.coupling.VariableLogicCoupling;
@@ -40,7 +41,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 public class SATISExGibbs extends SATISEx {
 	protected int gibbsSteps = 9;
 
-	public SATISExGibbs(GroundBLN bln) throws Exception {
+	public SATISExGibbs(GroundBLN bln) throws ProbCogException {
 		super(bln);
 		this.paramHandler.add("gibbsSteps", "setNumGibbsSteps");
 	}
@@ -50,7 +51,7 @@ public class SATISExGibbs extends SATISEx {
 	}
 	
 	@Override
-	protected Sampler getSampler() throws Exception {
+	protected Sampler getSampler() throws ProbCogException {
 		initSATSampler();
 		return new SATIS_BSampler_Gibbs(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}	
@@ -59,12 +60,12 @@ public class SATISExGibbs extends SATISEx {
 
 		public GibbsSampling gibbsSampler;
 		
-		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws Exception {
+		public SATIS_BSampler_Gibbs(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws ProbCogException {
 			super(bn, sat, coupling, determinedVars);
 			gibbsSampler = new GibbsSampling(gbln.getGroundNetwork());
 		}
 		
-		public void onAddedSample(WeightedSample s) throws Exception {
+		public void onAddedSample(WeightedSample s) throws ProbCogException {
 			for(int i = 0; i < gibbsSteps; i++) {
 				System.out.println(s.weight);
 				double p = gibbsSampler.gibbsStep(this.evidenceDomainIndices, s);

@@ -21,6 +21,7 @@ package probcog.srl.mln;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.parser.ParseException;
 import probcog.logic.sat.weighted.WeightedFormula;
@@ -71,22 +73,33 @@ public class MarkovLogicNetwork implements RelationalModel {
     /**
      * constructs a Markov logic network from an MLN file
      * @param mlnFileLoc location of the MLN-file
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    public MarkovLogicNetwork(String mlnFileLoc) throws Exception {
+    public MarkovLogicNetwork(String mlnFileLoc) throws ProbCogException {
     	this();
         // read the complete MLN-File and save it in a String
     	mlnFile = new File(mlnFileLoc);
-        String content = FileUtil.readTextFile(mlnFile);
+        String content;
+		try {
+			content = FileUtil.readTextFile(mlnFile);
+		} 
+		catch (IOException e) {
+			throw new ProbCogException(e);
+		}
         read(content);
     }
     
-    public MarkovLogicNetwork(String[] mlnFiles) throws Exception {
+    public MarkovLogicNetwork(String[] mlnFiles) throws ProbCogException {
     	this();
     	mlnFile = new File(mlnFiles[0]);
     	StringBuffer content = new StringBuffer();
     	for(String filename : mlnFiles) {
-    		content.append(FileUtil.readTextFile(filename));
+    		try {
+				content.append(FileUtil.readTextFile(filename));
+			} 
+    		catch (IOException e) {
+    			throw new ProbCogException(e);
+			}
     		content.append("\n");
     	}
     	read(content.toString());
@@ -111,12 +124,12 @@ public class MarkovLogicNetwork implements RelationalModel {
         signatures.put(sig.functionName, sig);
     }
     
-    public void addFormula(Formula f, double weight) throws Exception {
+    public void addFormula(Formula f, double weight) throws ProbCogException {
     	f.addConstantsToModel(this);
     	this.formulas.add(new WeightedFormula(f, weight, false));
     }
     
-    public void addHardFormula(Formula f) throws Exception {
+    public void addHardFormula(Formula f) throws ProbCogException {
     	f.addConstantsToModel(this);
     	this.formulas.add(new WeightedFormula(f, getHardWeight(), true));
     }
@@ -162,21 +175,21 @@ public class MarkovLogicNetwork implements RelationalModel {
      * Method that grounds MLN to a MarkovRandomField
      * @param dbFileLoc file location of evidence for this scenario
      * @return returns a grounded MLN as a MarkovRandomField MRF
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    public MarkovRandomField ground(Database db) throws Exception {
+    public MarkovRandomField ground(Database db) throws ProbCogException {
     	return ground(db, true, null);
     }
     
-    public MarkovRandomField ground(Database db, boolean storeFormulasInMRF, GroundingCallback gc) throws Exception {
+    public MarkovRandomField ground(Database db, boolean storeFormulasInMRF, GroundingCallback gc) throws ProbCogException {
         return new MarkovRandomField(this, db, storeFormulasInMRF, gc);
     }
 
     /**
      * reads the contents of an MLN file
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    public void read(String content) throws Exception {
+    public void read(String content) throws ProbCogException {
         String actLine;
         ArrayList<Formula> hardFormulas = new ArrayList<Formula>();
     	
@@ -195,88 +208,93 @@ public class MarkovLogicNetwork implements RelationalModel {
         
         JythonInterpreter jython = null;
         
-        // parse line by line         
-        for(actLine = breader.readLine(); breader != null && actLine != null; actLine = breader.readLine()) {
-        	String line = actLine.trim();
-        	if(line.length() == 0)
-            	continue;            
-
-            // hard constraint
-            if(line.endsWith(".")) {
-            	Formula f;
-                String strF = line.substring(0, line.length() - 1);
-                try {
-                	f = Formula.fromString(strF);
-                }
-                catch(ParseException e) {
-                	throw new Exception("The hard formula '" + strF + "' could not be parsed: " + e.toString());
-                }
-                hardFormulas.add(f);
-                continue;
-            } 
-            
-            // predicate declaration
-            Matcher m = predDecl.matcher(line);
-            if(m.matches()) {                 
-                String predName = m.group(1);
-                Signature sig = getSignature(predName);
-                if(sig != null) {
-                	throw new Exception(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
-                }
-                String[] argTypes = m.group(2).trim().split("\\s*,\\s*");
-                for (int c = 0; c < argTypes.length; c++) {
-                    // check whether it's a blockvariable
-                    if(argTypes[c].endsWith("!")) {
-                        argTypes[c] = argTypes[c].replace("!", "");
-                        Integer oldValue = functionalPreds.put(predName, c);
-                        if(oldValue != null)
-                        	throw new Exception(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predName));
-                    }
-                }
-                sig = new Signature(predName, "boolean", argTypes);
-                addSignature(sig);
-                continue;
-            }
-            
-            // domain declaration
-            m = domDecl.matcher(line);
-            if(m.matches()) { 
-                addGuaranteedDomainElements(m.group(1), m.group(2).trim().split("\\s*,\\s*"));
-                continue;
-            }
-            
-            // must be a weighted formula
-            int iSpace = line.indexOf(' ');
-            if(iSpace == -1)
-            	throw new Exception("This line is not a correct declaration of a weighted formula: " + line);
-            String strWeight = line.substring(0, iSpace);
-            Double weight = null;
-            try {
-            	weight = Double.parseDouble(strWeight);
-            }            
-            catch(NumberFormatException e) {
-            	if(jython == null) {
-            		jython = new JythonInterpreter();
-            		jython.exec("from math import *");
-            		jython.exec("def logx(x):\n  if x == 0: return -100\n  return log(x)");
-            	}
-            	try {
-            		weight = jython.evalDouble(strWeight);
-            	}
-            	catch(Exception e2) {
-            		throw new Exception("Could not interpret weight '" + strWeight + "': " + e2.toString());
-            	}            
-            }
-            String strF = line.substring(iSpace+1).trim();
-            Formula f;
-            try {
-            	f = Formula.fromString(strF);
-            }
-            catch(ParseException e) {
-            	throw new Exception("The formula '" + strF + "' could not be parsed: " + e.toString());
-            }
-            addFormula(f, weight);
-            sumAbsWeights += Math.abs(weight);
+        // parse line by line    
+        try {
+	        for(actLine = breader.readLine(); breader != null && actLine != null; actLine = breader.readLine()) {
+	        	String line = actLine.trim();
+	        	if(line.length() == 0)
+	            	continue;            
+	
+	            // hard constraint
+	            if(line.endsWith(".")) {
+	            	Formula f;
+	                String strF = line.substring(0, line.length() - 1);
+	                try {
+	                	f = Formula.fromString(strF);
+	                }
+	                catch(ParseException e) {
+	                	throw new ProbCogException("The hard formula '" + strF + "' could not be parsed: " + e.toString());
+	                }
+	                hardFormulas.add(f);
+	                continue;
+	            } 
+	            
+	            // predicate declaration
+	            Matcher m = predDecl.matcher(line);
+	            if(m.matches()) {                 
+	                String predName = m.group(1);
+	                Signature sig = getSignature(predName);
+	                if(sig != null) {
+	                	throw new ProbCogException(String.format("Signature declared in line '%s' was previously declared as '%s'", line, sig.toString()));
+	                }
+	                String[] argTypes = m.group(2).trim().split("\\s*,\\s*");
+	                for (int c = 0; c < argTypes.length; c++) {
+	                    // check whether it's a blockvariable
+	                    if(argTypes[c].endsWith("!")) {
+	                        argTypes[c] = argTypes[c].replace("!", "");
+	                        Integer oldValue = functionalPreds.put(predName, c);
+	                        if(oldValue != null)
+	                        	throw new ProbCogException(String.format("Predicate '%s' was declared to have more than one functionally determined parameter", predName));
+	                    }
+	                }
+	                sig = new Signature(predName, "boolean", argTypes);
+	                addSignature(sig);
+	                continue;
+	            }
+	            
+	            // domain declaration
+	            m = domDecl.matcher(line);
+	            if(m.matches()) { 
+	                addGuaranteedDomainElements(m.group(1), m.group(2).trim().split("\\s*,\\s*"));
+	                continue;
+	            }
+	            
+	            // must be a weighted formula
+	            int iSpace = line.indexOf(' ');
+	            if(iSpace == -1)
+	            	throw new ProbCogException("This line is not a correct declaration of a weighted formula: " + line);
+	            String strWeight = line.substring(0, iSpace);
+	            Double weight = null;
+	            try {
+	            	weight = Double.parseDouble(strWeight);
+	            }            
+	            catch(NumberFormatException e) {
+	            	if(jython == null) {
+	            		jython = new JythonInterpreter();
+	            		jython.exec("from math import *");
+	            		jython.exec("def logx(x):\n  if x == 0: return -100\n  return log(x)");
+	            	}
+	            	try {
+	            		weight = jython.evalDouble(strWeight);
+	            	}
+	            	catch(Exception e2) {
+	            		throw new ProbCogException("Could not interpret weight '" + strWeight + "': " + e2.toString());
+	            	}            
+	            }
+	            String strF = line.substring(iSpace+1).trim();
+	            Formula f;
+	            try {
+	            	f = Formula.fromString(strF);
+	            }
+	            catch(ParseException e) {
+	            	throw new ProbCogException("The formula '" + strF + "' could not be parsed: " + e.toString());
+	            }
+	            addFormula(f, weight);
+	            sumAbsWeights += Math.abs(weight);
+	        }
+        }
+        catch (IOException e) {
+        	throw new ProbCogException(e);
         }
         
         for (Formula f : hardFormulas)

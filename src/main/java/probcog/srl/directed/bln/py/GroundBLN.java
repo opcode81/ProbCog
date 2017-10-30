@@ -21,7 +21,10 @@ package probcog.srl.directed.bln.py;
 import java.util.Collection;
 import java.util.Vector;
 
+import org.python.core.PyObject.ConversionException;
+
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import probcog.srl.Database;
 import probcog.srl.Signature;
 import probcog.srl.directed.RelationalBeliefNetwork;
@@ -39,21 +42,27 @@ public class GroundBLN extends AbstractGroundBLN {
 	protected Vector<String> hardFormulaNodes;
 	protected Database db;
 	
-	public GroundBLN(BayesianLogicNetworkPy bln, String databaseFile) throws Exception {
+	public GroundBLN(BayesianLogicNetworkPy bln, String databaseFile) throws ProbCogException {
 		super(bln, databaseFile);
 	}
 	
-	public GroundBLN(BayesianLogicNetworkPy bln, Database db) throws Exception {
+	public GroundBLN(BayesianLogicNetworkPy bln, Database db) throws ProbCogException {
 		super(bln, db);
 	}
 	
 	@Override
-	public void groundFormulaicNodes() throws Exception {
+	public void groundFormulaicNodes() throws ProbCogException {
 		BayesianLogicNetworkPy bln = (BayesianLogicNetworkPy)this.bln;
 		// ground formulaic nodes
 		System.out.println("    grounding formulas...");
 		bln.generateGroundFormulas(this.databaseFile);
-		GroundFormulaIteration gfIter = bln.iterGroundFormulas();
+		GroundFormulaIteration gfIter;
+		try {
+			gfIter = bln.iterGroundFormulas();
+		}
+		catch (ConversionException e) {
+			throw new ProbCogException(e);
+		}
 		System.out.printf("      %d formulas instantiated\n", gfIter.getCount());
 		System.out.println("    instantiating nodes and CPFs...");
 		Stopwatch sw_structure = new Stopwatch();
@@ -82,9 +91,9 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param nodeName  	name of the node to add for the constraint
 	 * @param parentGAs		collection of names of parent nodes/ground atoms 
 	 * @return the node that was added
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public BeliefNode addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws Exception {
+	public BeliefNode addHardFormulaNode(String nodeName, Collection<String> parentGAs) throws ProbCogException {
 		BeliefNode[] domprod = new BeliefNode[1+parentGAs.size()];
 		BeliefNode node = groundBN.addNode(nodeName);
 		domprod[0] = node;
@@ -96,7 +105,7 @@ public class GroundBLN extends AbstractGroundBLN {
 				String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
 				parent = groundBN.getNode(parentName);
 				if(parent == null)
-					throw new Exception("Could not find node for ground atom " + strGA);
+					throw new ProbCogException("Could not find node for ground atom " + strGA);
 			}
 			domprod[i++] = parent;
 			groundBN.connect(parent, node, false);
@@ -111,22 +120,28 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param cpf	the CPF of the formulaic node to fill
 	 * @param parents	the parents of the formulaic node
 	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs) throws Exception {
+	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs) throws ProbCogException {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
 		fillFormulaCPF(gf, cpf, parentGAs, 1, addr);
 	}
 	
-	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs, int iDomProd, int[] addr) throws Exception {
+	protected void fillFormulaCPF(GroundFormula gf, CPF cpf, Vector<String> parentGAs, int iDomProd, int[] addr) throws ProbCogException {
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		// if all parents have been set, determine the truth value of the formula and 
 		// fill the corresponding column of the CPT 
 		State state = ((BayesianLogicNetworkPy)bln).getState();
 		if(iDomProd == domprod.length) {
 			// get truth value of formula
-			double value = gf.isTrue(state) ? 1 : 0;
+			double value;
+			try {
+				value = gf.isTrue(state) ? 1 : 0;
+			}
+			catch (ConversionException e) {
+				throw new ProbCogException(e);
+			}
 			/*
 			for(String ga : parentGAs)
 				System.out.print(ga + " = " + state.get(ga) + ", ");
@@ -154,17 +169,22 @@ public class GroundBLN extends AbstractGroundBLN {
 			String outcome = parentGA.substring(iStart, iEnd);
 			trueIndex = domain.findName(outcome);
 			if(trueIndex == -1) 
-				throw new Exception("'" + outcome + "' not found in domain of " + parentGA);			
+				throw new ProbCogException("'" + outcome + "' not found in domain of " + parentGA);			
 		}
 		// - recursively consider all settings
 		for(int i = 0; i < domain.getOrder(); i++) {
 			// set address 
 			addr[iDomProd] = i;
 			// set state for logical reasoner
-			if(i == trueIndex)
-				state.set(parentGA, true);
-			else
-				state.set(parentGA, false);
+			try {
+				if(i == trueIndex)
+					state.set(parentGA, true);
+				else
+					state.set(parentGA, false);
+			}
+			catch (ConversionException e) {
+				throw new ProbCogException(e);
+			}
 			// recurse
 			fillFormulaCPF(gf, cpf, parentGAs, iDomProd+1, addr);
 		}

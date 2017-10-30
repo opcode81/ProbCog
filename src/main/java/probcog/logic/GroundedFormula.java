@@ -20,6 +20,7 @@ package probcog.logic;
 
 import java.util.Map;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 
@@ -40,7 +41,7 @@ public abstract class GroundedFormula extends Formula {
 	}
 
 	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws ProbCogException {
 		// grounded formulas contain no variables; nothing to do
 	}
 }

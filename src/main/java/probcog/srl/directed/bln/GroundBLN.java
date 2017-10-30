@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.GroundAtom;
 import probcog.logic.GroundLiteral;
@@ -63,16 +64,16 @@ public class GroundBLN extends AbstractGroundBLN {
 	 */
 	protected boolean useFormulaSimplification = false;
 	
-	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
+	public GroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws ProbCogException {
 		super(bln, db);
 	}
 	
-	public GroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
+	public GroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws ProbCogException {
 		super(bln, databaseFile);
 	}
 	
 	@Override
-	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws ProbCogException {
 		super.init(bln, db);
 		coupling = new VariableLogicCoupling();
 		this.paramHandler.add("simplifyFormulas", "setFormulaSimplification");
@@ -114,7 +115,7 @@ public class GroundBLN extends AbstractGroundBLN {
 	}
 	
 	@Override	
-	protected void groundFormulaicNodes() throws Exception {
+	protected void groundFormulaicNodes() throws ProbCogException {
 		WorldVariables worldVars = coupling.getWorldVars();
 		state = new PossibleWorld(worldVars);
 		BayesianLogicNetwork bln = (BayesianLogicNetwork)this.bln;
@@ -145,14 +146,14 @@ public class GroundBLN extends AbstractGroundBLN {
 			OrderedSet<BeliefNode> parents = new OrderedSet<BeliefNode>(); // use ordered set here, too, because several ground atoms may map to the same variable (e.g. foo(a,b), foo(a,c) -> foo(a))
 			for(GroundAtom ga : gas) {
 				if(ga == null)
-					throw new Exception("null ground atom encountered");
+					throw new ProbCogException("null ground atom encountered");
 				String strGA = ga.toString();
 				BeliefNode parent = groundBN.getNode(strGA);
 				if(parent == null) { // if the atom cannot be found, e.g. attr(X,Value), it might be a functional, so remove the last argument and try again, e.g. attr(X) (=Value)
 					String parentName = strGA.substring(0, strGA.lastIndexOf(",")) + ")";
 					parent = groundBN.getNode(parentName);
 					if(parent == null)
-						throw new Exception("Could not find node for ground atom " + strGA + ". If this is an evidence variable, this problem can be avoided by enabling formula simplification (e.g. by passing --simplifyFormulas=true when using BLNinfer)");
+						throw new ProbCogException("Could not find node for ground atom " + strGA + ". If this is an evidence variable, this problem can be avoided by enabling formula simplification (e.g. by passing --simplifyFormulas=true when using BLNinfer)");
 				}				
 				parents.add(parent);
 			}
@@ -192,9 +193,9 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param nodeName  	name of the node to add for the constraint
 	 * @param parentGAs		collection of names of parent nodes/ground atoms 
 	 * @return the node that was added
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public BeliefNode addHardFormulaNode(String nodeName, Collection<BeliefNode> parents) throws Exception {
+	public BeliefNode addHardFormulaNode(String nodeName, Collection<BeliefNode> parents) throws ProbCogException {
 		BeliefNode[] domprod = new BeliefNode[1+parents.size()];
 		BeliefNode node = groundBN.addNode(nodeName);
 		domprod[0] = node;
@@ -214,15 +215,15 @@ public class GroundBLN extends AbstractGroundBLN {
 	 * @param cpf	the CPF of the formulaic node to fill
 	 * @param parents	the parents of the formulaic node
 	 * @param parentGAs	the ground atom string names of the parents (in case the node names do not match them)
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void fillFormulaCPF(Formula gf, CPF cpf) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf) throws ProbCogException {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		int[] addr = new int[nodes.length];
 		fillFormulaCPF(gf, cpf, 1, addr);
 	}
 	
-	protected void fillFormulaCPF(Formula gf, CPF cpf, int iDomProd, int[] addr) throws Exception {
+	protected void fillFormulaCPF(Formula gf, CPF cpf, int iDomProd, int[] addr) throws ProbCogException {
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		// if all parents have been set, determine the truth value of the formula and 
 		// fill the corresponding column of the CPT 

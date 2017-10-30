@@ -18,9 +18,12 @@
  ******************************************************************************/
 package probcog.srl.directed.inference;
 
+import java.lang.reflect.InvocationTargetException;
+
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.ITimeLimitedInference;
 import probcog.bayesnets.inference.SampledDistribution;
+import probcog.exception.ProbCogException;
 import probcog.srl.directed.bln.AbstractGroundBLN;
 
 /**
@@ -41,7 +44,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	 */
 	protected int[] evidenceDomainIndices;
 		
-	public BNSampler(AbstractGroundBLN gbln, Class<? extends probcog.bayesnets.inference.Sampler> samplerClass) throws Exception {
+	public BNSampler(AbstractGroundBLN gbln, Class<? extends probcog.bayesnets.inference.Sampler> samplerClass) throws ProbCogException {
 		super(gbln);
 		maxTrials = 5000;
 		this.paramHandler.add("maxTrials", "setMaxTrials");
@@ -58,7 +61,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		// create full evidence
 		String[][] evidence = this.gbln.getDatabase().getEntriesAsArray();
 		evidenceDomainIndices = gbln.getFullEvidence(evidence);
@@ -77,15 +80,21 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public SampledDistribution _infer() throws ProbCogException {
 		// run inference
 		if(verbose) System.out.printf("running %s...\n", sampler.getAlgorithmName());
 		SampledDistribution dist = sampler.infer();
 		return dist;
 	}
 	
-	protected probcog.bayesnets.inference.Sampler getSampler() throws Exception {
-		return samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());	
+	protected probcog.bayesnets.inference.Sampler getSampler() throws ProbCogException {
+		try {
+			return samplerClass.getConstructor(BeliefNetworkEx.class).newInstance(gbln.getGroundNetwork());
+		} 
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			throw new ProbCogException(e);
+		}	
 	}
 
 	@Override
@@ -93,7 +102,7 @@ public class BNSampler extends Sampler implements ITimeLimitedInference {
 		return "BNInference:" + samplerClass.getSimpleName();
 	}
 	
-	public SampledDistribution pollResults() throws Exception {
+	public SampledDistribution pollResults() throws ProbCogException {
 		if(sampler == null)
 			return null;
 		return sampler.pollResults();

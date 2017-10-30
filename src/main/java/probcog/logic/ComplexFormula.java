@@ -18,11 +18,13 @@
  ******************************************************************************/
 package probcog.logic;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 
@@ -46,24 +48,30 @@ public abstract class ComplexFormula extends Formula {
 	}*/
 	
 	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws ProbCogException {
 		for(Formula f : children)
 			f.getVariables(db, ret);
 	}
 	
 	@Override
-	public void addConstantsToModel(RelationalModel m) throws Exception {
+	public void addConstantsToModel(RelationalModel m) throws ProbCogException {
 		for(Formula f : children)
 			f.addConstantsToModel(m);
 	}
 	
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws ProbCogException {
 		Vector<Formula> groundChildren = new Vector<Formula>();
 		for(Formula child : children) {
 			groundChildren.add(child.ground(binding, vars, db));
 		}
-		return this.getClass().getConstructor(Collection.class).newInstance(groundChildren);
+		try {
+			return this.getClass().getConstructor(Collection.class).newInstance(groundChildren);
+		} 
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public void getGroundAtoms(Set<GroundAtom> ret) {

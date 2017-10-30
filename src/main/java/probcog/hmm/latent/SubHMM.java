@@ -24,6 +24,7 @@ import java.util.Vector;
 import probcog.clustering.multidim.EMClusterer;
 import probcog.clustering.multidim.KMeansClusterer;
 import probcog.clustering.multidim.MultiDimClusterer;
+import probcog.exception.ProbCogException;
 import probcog.hmm.DistributionLearner;
 import probcog.hmm.IObservationModel;
 import probcog.hmm.OpdfObservationModel;
@@ -57,9 +58,9 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 	}
 
 	@Override
-	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws Exception {
+	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws ProbCogException {
 		if(learningParams.getBoolean("learnSubHMMViaBaumWelch"))
-			throw new Exception("Baum-Welch learning not supported by class " + this.getClass().getName());
+			throw new ProbCogException("Baum-Welch learning not supported by class " + this.getClass().getName());
 		// learn pi, A and observation models
 		SegmentSequence<? extends ObservationVector> ss = learnViaClustering(this, s, learningParams.getBoolean("usePseudoCounts"));
 		
@@ -72,7 +73,7 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 		}
 	}
 	
-	public static SegmentSequence<? extends ObservationVector> learnViaClustering(IDwellTimeHMM<ObservationVector> hmm, Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws Exception {
+	public static SegmentSequence<? extends ObservationVector> learnViaClustering(IDwellTimeHMM<ObservationVector> hmm, Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws ProbCogException {
 		final int dim = s.iterator().next().firstElement().dimension();
 		Integer numStates = hmm.getNumStates();
 		
@@ -88,7 +89,7 @@ public class SubHMM extends AbstractSubHMM<ObservationVector> implements ISubHMM
 				clusterer.addInstance(p.values()); // TODO slow, performs clone
 		clusterer.buildClusterer();
 		if(numStates == null) {
-			numStates = clusterer.getWekaClusterer().numberOfClusters();
+			numStates = clusterer.numberOfClusters();
 			hmm.setNumStates(numStates);
 		}		
 		

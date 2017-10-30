@@ -18,10 +18,11 @@
  ******************************************************************************/
 package probcog.bayesnets.conversion;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -30,11 +31,7 @@ import edu.ksu.cis.bnj.ver3.core.Discrete;
 public class BN2CSV {
 	public static int currentColumn;
 
-	/**
-	 * @param args
-	 * @throws Exception 
-	 */
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws FileNotFoundException, ProbCogException {
 		if(args.length != 1) {
 			System.out.println("usage: BN2CSV <Bayesian network file>");
 			return;

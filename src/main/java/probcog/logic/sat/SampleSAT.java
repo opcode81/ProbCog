@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.logging.PrintLogger;
@@ -81,9 +82,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
 	 * @param vars the set of variables the SAT problem is defined on
 	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public SampleSAT(Iterable<? extends probcog.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
+	public SampleSAT(Iterable<? extends probcog.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws ProbCogException {
 		this.state = state;
 		this.vars = vars;
 		this.kb = kb;
@@ -108,9 +109,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	 * @param state a possible world to write to (can be arbitrarily initialized, as it is completely reinitialized)
 	 * @param vars the set of variables the SAT problem is defined on
 	 * @param db an evidence database indicating truth values of evidence atoms (which are to be respected by the algorithm); the state is initialized to respect it and the respective variables are never touched again
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public SampleSAT(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception { 
+	public SampleSAT(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws ProbCogException { 
 		this(null, state, vars, db);
 	}
 	
@@ -128,12 +129,12 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	/**
 	 * prepares this sampler for a new set of constraints. NOTE: This method only needs to be called explicitly when switching to a new set of constraints or when using the construction method without the KB
 	 * @param kb
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void initConstraints(Iterable<? extends probcog.logic.sat.Clause> kb) throws Exception {
+	public void initConstraints(Iterable<? extends probcog.logic.sat.Clause> kb) throws ProbCogException {
 		// if constraints were previously instantiated, check whether a reinstantiation is allowed
 		if(constraints != null && useUnitPropagation)
-			throw new Exception("Resetting the set of constraints is not allowed when using unit propagation, because unit propagation extends the evidence database, which currently cannot be reversed.");
+			throw new ProbCogException("Resetting the set of constraints is not allowed when using unit propagation, because unit propagation extends the evidence database, which currently cannot be reversed.");
 		this.kb = kb;
 		
 		// initialize data structures for constraints (used during algorithm) 
@@ -241,7 +242,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		v.add(c);
 	}
 	
-	protected void initialize() throws Exception {
+	protected void initialize() throws ProbCogException {
 		// instantiate constraints
 		if(constraints == null)
 			initConstraints(kb);
@@ -258,9 +259,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	
 	/**
 	 * solves the SAT problem by first initializing the state randomly (respecting the evidence, however) and then performing greedy and SA moves (as determined by parameter p)  
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void run() throws Exception {		
+	public void run() throws ProbCogException {		
 		initialize();		
 		int step = 1;
 		while(unsatisfiedConstraints.size() > 0) {
@@ -283,9 +284,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	
 	/**
 	 * checks the integrity of internal data structures
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected void checkIntegrity() throws Exception {		
+	protected void checkIntegrity() throws ProbCogException {		
 		// - are unsatisfied constraints really unsatisfied?
 		for(Constraint c : this.constraints) {
 			if(c instanceof Clause) {
@@ -295,14 +296,14 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 					if(lit.isTrue(state)) {
 						numTrue++;
 						if(!cl.trueOnes.contains(lit.gndAtom))
-							throw new Exception("Clause.trueOnes corrupted (1)");
+							throw new ProbCogException("Clause.trueOnes corrupted (1)");
 					}
 				if(numTrue != cl.trueOnes.size())
-					throw new Exception("Clause.trueOnes corrupted (2)");
+					throw new ProbCogException("Clause.trueOnes corrupted (2)");
 				boolean isTrue = numTrue > 0;
 				boolean contained = unsatisfiedConstraints.contains(c);
 				if(contained != !isTrue)
-					throw new Exception("Unsatisfied constraints corrupted");
+					throw new ProbCogException("Unsatisfied constraints corrupted");
 			}
 		}
 		// - are bottlenecks really bottlenecks?
@@ -315,13 +316,13 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 					for(GroundLiteral lit : cl.lits) {
 						if(lit.isTrue(state)) {
 							if(haveTrueOne) 
-								throw new Exception("Bottlenecks corrupted: Clause " + cl + " contains a second true literal.");
+								throw new ProbCogException("Bottlenecks corrupted: Clause " + cl + " contains a second true literal.");
 							if(lit.gndAtom != ga)
-								throw new Exception("Bottlenecks corrupted: Clause " + cl + " contains a true literal that isn't the bottleneck.");							
+								throw new ProbCogException("Bottlenecks corrupted: Clause " + cl + " contains a true literal that isn't the bottleneck.");							
 							haveTrueOne = true;
 						}
 						if(lit.gndAtom == ga && !lit.isTrue(state))
-							throw new Exception("Bottlenecks corrupted: Clause " + cl + " has " + ga + " as a bottleneck but contains a literal with " + ga + " that is false; it is likely that the clause is a tautology which should never have bottlenecks.");
+							throw new ProbCogException("Bottlenecks corrupted: Clause " + cl + " has " + ga + " as a bottleneck but contains a literal with " + ga + " that is false; it is likely that the clause is a tautology which should never have bottlenecks.");
 					}
 				}
 			}
@@ -334,9 +335,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	
 	/**
 	 * sets a random state for non-evidence atoms
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected void setRandomState() throws Exception {
+	protected void setRandomState() throws ProbCogException {
 		evidenceHandler.setRandomState(state, this.rand);
 	}
 	
@@ -639,7 +640,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		}
 	}	
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws ProbCogException {
 		/*
 		String blog = "relxy.blog";
 		String net = "relxy.xml";

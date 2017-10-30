@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import yprolog.ParseException;
 
 /**
@@ -36,20 +37,30 @@ public class PrologKnowledgeBase extends yprolog.YProlog {
 	/**
 	 * adds a formula, i.e. a fact or a rule, to the knowledge base, e.g. "person(eve)." or "parent(X,Y) :- father(X,Y)."
 	 * @param formula
-	 * @throws ParseException
+	 * @throws ProbCogException 
 	 */
-	public void tell(String formula) throws ParseException {
-		this.yp_eng.consultStringFront(formula);
+	public void tell(String formula) throws ProbCogException {
+		try {
+			this.yp_eng.consultStringFront(formula);
+		}
+		catch (ParseException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	/**
 	 * queries the value of an atom or conjunction and returns the value
 	 * @param query an atom or conjunction, e.g. a ground atom such as "parent(eve, kain)" or "age(eve, 27)"
 	 * @return true if the formula can be proven to be true given the KB, false otherwise
-	 * @throws ParseException
+	 * @throws ProbCogException 
 	 */
-	public boolean ask(String query) throws ParseException {
-		return this.yp_eng.setQuery(query);
+	public boolean ask(String query) throws ProbCogException {
+		try {
+			return this.yp_eng.setQuery(query);
+		}
+		catch (ParseException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	

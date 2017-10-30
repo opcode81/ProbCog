@@ -18,12 +18,14 @@
  ******************************************************************************/
 package probcog.logic.sat.weighted;
 
+import probcog.exception.ProbCogException;
+
 /**
  * An interface for Maximum SAT
  * @author Dominik Jain
  */
 public interface IMaxSAT {
-	public void run() throws Exception;
+	public void run() throws ProbCogException;
 	public void setMaxSteps(int steps);
 	public probcog.logic.PossibleWorld getBestState();
 	public String getAlgorithmName();

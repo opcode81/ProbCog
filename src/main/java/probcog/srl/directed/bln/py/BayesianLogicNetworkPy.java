@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.python.core.PyObject.ConversionException;
 import org.python.util.PythonInterpreter;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.Database;
 import probcog.srl.directed.RelationalBeliefNetwork;
 import probcog.srl.directed.bln.AbstractBayesianLogicNetwork;
@@ -40,7 +41,7 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	public JythonInterpreter jython;
 	protected State state;
 	
-	public BayesianLogicNetworkPy(String declsFile, String networkFile, String logicFile) throws Exception {
+	public BayesianLogicNetworkPy(String declsFile, String networkFile, String logicFile) throws ProbCogException {
 		super(declsFile, networkFile, logicFile);
 		state = null;
 		
@@ -70,12 +71,12 @@ public class BayesianLogicNetworkPy extends AbstractBayesianLogicNetwork {
 	}
 
 	@Override
-	public GroundBLN ground(Database db) throws Exception {
+	public GroundBLN ground(Database db) throws ProbCogException {
 		return new GroundBLN(this, db);
 	}
 
 	@Override
-	protected void initKB() throws Exception {
+	protected void initKB() throws ProbCogException {
 		System.out.println("loading logic network...");
 		jython.exec("mln = MLN('%s')", logicFile);
 	}

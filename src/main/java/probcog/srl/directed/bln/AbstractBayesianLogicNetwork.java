@@ -23,6 +23,7 @@ import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.logic.parser.ParseException;
@@ -47,9 +48,9 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	 * @param declsFile
 	 * @param networkFile
 	 * @param logicFile may be null
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public AbstractBayesianLogicNetwork(String declsFile, String networkFile, String logicFile) throws Exception {
+	public AbstractBayesianLogicNetwork(String declsFile, String networkFile, String logicFile) throws ProbCogException {
 		super(declsFile, networkFile); // reads declarations
 		if(logicFile != null)
 			setConstraintsFile(new File(logicFile));
@@ -58,7 +59,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 		initKB();
 	}
 	
-	public AbstractBayesianLogicNetwork(String declsFile) throws Exception {
+	public AbstractBayesianLogicNetwork(String declsFile) throws ProbCogException {
 		super(declsFile); // reads declarations
 		this.paramHandler = new ParameterHandler(this);
 		this.rbn = this;
@@ -69,9 +70,9 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 		this.allowPartialInstantiation = allow;
 	}
 
-	protected abstract void initKB() throws Exception;
+	protected abstract void initKB() throws ProbCogException;
 	
-	public abstract AbstractGroundBLN ground(Database db) throws Exception;
+	public abstract AbstractGroundBLN ground(Database db) throws ProbCogException;
 	
 	protected void setConstraintsFile(File f) {
 		if(logicFile != null && !logicFile.getAbsoluteFile().equals(f.getAbsoluteFile())) // if we already have another constraints file, then issue a warning
@@ -84,7 +85,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 	}
 	
 	@Override
-	public boolean readDeclaration(String line) throws Exception {
+	public boolean readDeclaration(String line) throws ProbCogException {
 		if(super.readDeclaration(line))
 			return true;
 		
@@ -96,7 +97,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 				String filename = matcher.group(1);
 				File f = findReferencedFile(filename);
 				if(f == null)
-					throw new Exception("Declared constraints file " + filename + " could not be found");					
+					throw new ProbCogException("Declared constraints file " + filename + " could not be found");					
 				setConstraintsFile(f);
 				return true;
 			}
@@ -112,7 +113,7 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 					return true;
 				}
 				catch(ParseException e) {
-					throw new Exception("Could not parse formula: " + s, e);
+					throw new ProbCogException("Could not parse formula: " + s, e);
 				}				
 			}
 		}
@@ -120,5 +121,5 @@ public abstract class AbstractBayesianLogicNetwork extends ABLModel implements I
 		return false;
 	}
 	
-	protected abstract void addLogicalConstraint(String s) throws Exception;
+	protected abstract void addLogicalConstraint(String s) throws ParseException, ProbCogException;
 }

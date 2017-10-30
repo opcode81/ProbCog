@@ -20,6 +20,7 @@ package probcog.logic;
 
 import java.util.Map;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 
@@ -41,17 +42,17 @@ public class Literal extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws ProbCogException {
 		atom.getVariables(db, ret);	
 	}
 	
 	@Override
-	public void addConstantsToModel(RelationalModel m) throws Exception {
+	public void addConstantsToModel(RelationalModel m) throws ProbCogException {
 		atom.addConstantsToModel(m);
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws ProbCogException {
 		return new GroundLiteral(isPositive, (GroundAtom)atom.ground(binding, vars, db));
 	}
 

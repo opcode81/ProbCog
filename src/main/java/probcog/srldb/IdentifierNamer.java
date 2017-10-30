@@ -81,7 +81,7 @@ public class IdentifierNamer {
 				return id;
 			Integer count = counts.get(category, name);
 			if(count == null) {
-				count = new Integer(0);
+				count = Integer.valueOf(0);
 				counts.put(count);
 			}
 			count++;

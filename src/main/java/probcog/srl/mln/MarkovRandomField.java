@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.GroundAtom;
 import probcog.logic.IPossibleWorld;
@@ -54,10 +55,10 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      * @param db an evidence database containing the set of objects for which to ground the MLN  
      * @param storeFormula whether to store the grounded formulas that are generated
      * @param gc an optional callback (which is called for each grounded formula), may be null
-     * @throws Exception 
-     * @throws Exception 
+     * @throws ProbCogException 
+     * @throws ProbCogException 
      */
-    public MarkovRandomField(MarkovLogicNetwork mln, Database db, boolean storeFormulas, GroundingCallback gc) throws Exception {
+    public MarkovRandomField(MarkovLogicNetwork mln, Database db, boolean storeFormulas, GroundingCallback gc) throws ProbCogException {
         this.db = db;
         this.vars = new WorldVariables();
         this.mln = mln;        
@@ -65,7 +66,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         groundFormulas(storeFormulas, gc);
     }
     
-    public MarkovRandomField(MarkovLogicNetwork mln, Database db) throws Exception {
+    public MarkovRandomField(MarkovLogicNetwork mln, Database db) throws ProbCogException {
     	this(mln, db, true, null);
     }
     
@@ -79,22 +80,22 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     
     /**
      * creates the set ground atoms, considering functional predicates (and extending evidence as needed) 
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    protected void groundVariables() throws Exception {
+    protected void groundVariables() throws ProbCogException {
     	for(Signature sig : mln.getSignatures()) {
     		groundVariables(sig, new String[sig.argTypes.length], 0, mln.getFunctionallyDeterminedArgument(sig.functionName));
     	}
     }
     
-    protected void groundVariables(Signature sig, String[] args, int i, Integer functionallyDeterminedArg) throws Exception {
+    protected void groundVariables(Signature sig, String[] args, int i, Integer functionallyDeterminedArg) throws ProbCogException {
     	if(i == args.length) {
     		if(functionallyDeterminedArg != null) {
     			// build the block of variables and check if we have positive evidence for one of them
     			Vector<GroundAtom> block = new Vector<GroundAtom>();
         		Iterable<String> dom = db.getDomain(sig.argTypes[functionallyDeterminedArg]);
         		if(dom == null)
-        			throw new Exception("Domain " + sig.argTypes[functionallyDeterminedArg] + " not in database");
+        			throw new ProbCogException("Domain " + sig.argTypes[functionallyDeterminedArg] + " not in database");
         		GroundAtom trueOne = null;
         		for(String value : dom) {
         			args[functionallyDeterminedArg] = value;
@@ -103,7 +104,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         			Variable var = db.getVariable(ga.toString());
         			if(var != null && var.isTrue()) {
         				if(trueOne != null)
-        					throw new Exception(String.format("The block the variable '%s' is in contains more than one true ground atom", ga.toString()));
+        					throw new ProbCogException(String.format("The block the variable '%s' is in contains more than one true ground atom", ga.toString()));
         				trueOne = ga; 
         			}
         		}
@@ -128,7 +129,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
     	else {
     		Iterable<String> dom = db.getDomain(sig.argTypes[i]);
     		if(dom == null)
-    			throw new Exception("Domain '" + sig.argTypes[i] + "' not found in the database");
+    			throw new ProbCogException("Domain '" + sig.argTypes[i] + "' not found in the database");
     		for(String value : dom) {
     			args[i] = value;
     			groundVariables(sig, args, i+1, functionallyDeterminedArg);
@@ -140,9 +141,9 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
      * creates groundings for all formulas
      * @param makelist boolean (if true the grounded formula will be saved in a set)
      * @param gc callback method (if not null, the callback method is called for each grounded formula)
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    protected void groundFormulas(boolean makelist, GroundingCallback gc) throws Exception {
+    protected void groundFormulas(boolean makelist, GroundingCallback gc) throws ProbCogException {
         weightedFormulas = new Vector<WeightedFormula>();
         for(WeightedFormula wf : mln.getFormulas()) {
         	double weight = wf.weight;
@@ -153,7 +154,7 @@ public class MarkovRandomField implements Iterable<WeightedFormula> {
         		groundings = wf.formula.getAllGroundings(db, vars, simplification);
         	}
         	catch(Exception e) {
-        		throw new Exception("Error while grounding formula '" + wf.formula.toString() + "'", e);
+        		throw new ProbCogException("Error while grounding formula '" + wf.formula.toString() + "'", e);
         	}
         	//System.out.printf("%d groundings of formula %s\n", groundings.size(), form.toString());
             for(Formula gf : groundings) {            	

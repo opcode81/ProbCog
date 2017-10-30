@@ -21,6 +21,7 @@ package probcog.logic;
 import java.util.Map;
 import java.util.Set;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 
@@ -48,7 +49,7 @@ public class TrueFalse extends Formula {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws ProbCogException {
 		return this;
 	}
 

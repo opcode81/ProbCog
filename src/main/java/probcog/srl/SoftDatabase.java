@@ -18,6 +18,8 @@
  ******************************************************************************/
 package probcog.srl;
 
+import probcog.exception.ProbCogException;
+
 // TODO doesn't consider Prolog
 /**
  * Represents a training database with soft data where the values of variables
@@ -26,17 +28,17 @@ package probcog.srl;
  */
 public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistribution> {
 
-	public SoftDatabase(RelationalModel model) throws Exception {
+	public SoftDatabase(RelationalModel model) throws ProbCogException {
 		super(model);
 	}
 
 	@Override
-	public ValueDistribution getVariableValue(String varName, boolean closedWorld) throws Exception {
+	public ValueDistribution getVariableValue(String varName, boolean closedWorld) throws ProbCogException {
 		return this.getVariable(varName).value;
 	}
 
 	@Override
-	public void fillDomain(String domName, SoftVariable var) throws Exception {
+	public void fillDomain(String domName, SoftVariable var) throws ProbCogException {
 		for(String v : var.value.getDomainElements()) {
 			fillDomain(domName, v);
 		}
@@ -50,12 +52,12 @@ public class SoftDatabase extends GenericDatabase<SoftVariable, ValueDistributio
 	}
 
 	@Override
-	protected SoftVariable readEntry(String line) throws Exception {
+	protected SoftVariable readEntry(String line) throws ProbCogException {
 		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public String getSingleVariableValue(String varName, boolean closedWorld) throws Exception {
+	public String getSingleVariableValue(String varName, boolean closedWorld) throws ProbCogException {
 		ValueDistribution vd = getVariableValue(varName, false);
 		return vd.getSingleValue();
 	}

@@ -27,6 +27,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula.FormulaSimplification;
 import probcog.logic.parser.FormulaParser;
 import probcog.logic.parser.ParseException;
@@ -53,36 +54,40 @@ public class KnowledgeBase implements Iterable<Formula> {
 	/**
 	 * constructor that reads a number of .-terminated formula statements from a file
 	 * @param filename
-	 * @throws IOException
-	 * @throws ParseException
+	 * @throws ProbCogException 
 	 */
-	public KnowledgeBase(String filename) throws IOException, ParseException {
+	public KnowledgeBase(String filename) throws ProbCogException {
 		this();
 		readFile(filename);
 	}	
 	
-	public void readFile(String filename) throws IOException, ParseException {
-		// read KB file
-		String fileContent = FileUtil.readTextFile(filename);
-		// remove comments
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
-		Matcher matcher = comments.matcher(fileContent);
-		fileContent = matcher.replaceAll("");
-		// read lines
-		BufferedReader br = new BufferedReader(new StringReader(fileContent));
-		String line;
-		for(;;) {
-			line = br.readLine();
-			if(line == null)
-				break;
-			line = line.trim();
-			if(line.length() == 0)
-				continue;
-			if(line.endsWith("."))
-				addFormula(FormulaParser.parse(line.substring(0, line.length()-1)));
-			else
-				System.err.println("Warning: Line without terminating period ignored: " + line);
-		}		
+	public void readFile(String filename) throws ProbCogException {
+		try {
+			// read KB file
+			String fileContent = FileUtil.readTextFile(filename);
+			// remove comments
+			Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+			Matcher matcher = comments.matcher(fileContent);
+			fileContent = matcher.replaceAll("");
+			// read lines
+			BufferedReader br = new BufferedReader(new StringReader(fileContent));
+			String line;
+			for(;;) {
+				line = br.readLine();
+				if(line == null)
+					break;
+				line = line.trim();
+				if(line.length() == 0)
+					continue;
+				if(line.endsWith("."))
+					addFormula(FormulaParser.parse(line.substring(0, line.length()-1)));
+				else
+					System.err.println("Warning: Line without terminating period ignored: " + line);
+			}		
+		}
+		catch (IOException|ParseException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public void addFormula(Formula f) {
@@ -99,9 +104,9 @@ public class KnowledgeBase implements Iterable<Formula> {
 	 * @param worldVars the set of ground atoms
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public KnowledgeBase ground(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
+	public KnowledgeBase ground(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws ProbCogException {
 		KnowledgeBase ret = new KnowledgeBase();
 		Integer formulaID = 0;
 		for(Formula f : formulas) {

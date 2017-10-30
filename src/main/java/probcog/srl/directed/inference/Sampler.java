@@ -23,13 +23,13 @@ import java.util.Collections;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.tum.cs.util.Stopwatch;
 import probcog.bayesnets.inference.SampledDistribution;
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.srl.directed.bln.AbstractGroundBLN;
-
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.tum.cs.util.Stopwatch;
 
 /**
  * Base class for sampling-based inference methods.
@@ -47,7 +47,7 @@ public abstract class Sampler implements IParameterHandler {
 	double inferenceTime, initTime;
 	protected boolean initialized = false;
 	
-	public Sampler(AbstractGroundBLN gbln) throws Exception {
+	public Sampler(AbstractGroundBLN gbln) throws ProbCogException {
 		this.gbln = gbln;
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("maxSteps", "setNumSamples");
@@ -101,7 +101,7 @@ public abstract class Sampler implements IParameterHandler {
 		infoInterval = n;
 	}
 	
-	public final void initialize() throws Exception {
+	public final void initialize() throws ProbCogException {
 		if(verbose) 
 			System.out.println("initializing...");
 		Stopwatch sw = new Stopwatch();
@@ -111,10 +111,10 @@ public abstract class Sampler implements IParameterHandler {
 		initialized = true;
 	}
 	
-	protected void _initialize() throws Exception {		
+	protected void _initialize() throws ProbCogException {		
 	}
 	
-	public SampledDistribution infer() throws Exception {
+	public SampledDistribution infer() throws ProbCogException {
 		// initialization
 		if(!initialized)
 			initialize();
@@ -126,9 +126,9 @@ public abstract class Sampler implements IParameterHandler {
 		return ret;
 	}
 	
-	protected abstract SampledDistribution _infer() throws Exception;
+	protected abstract SampledDistribution _infer() throws ProbCogException;
 	
-	public Vector<InferenceResult> inferQueries() throws Exception {
+	public Vector<InferenceResult> inferQueries() throws ProbCogException {
 		return getResults(infer());
 	}
 	

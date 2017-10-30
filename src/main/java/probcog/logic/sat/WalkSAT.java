@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.logic.sat;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.PossibleWorld;
 import probcog.logic.WorldVariables;
 import probcog.srl.AbstractVariable;
@@ -28,7 +29,7 @@ import probcog.srl.AbstractVariable;
  */
 public class WalkSAT extends SampleSAT {
 
-	public WalkSAT(Iterable<? extends probcog.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws Exception {
+	public WalkSAT(Iterable<? extends probcog.logic.sat.Clause> kb, PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db) throws ProbCogException {
 		super(kb, state, vars, db);
 	}
 

@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.logic.ComplexFormula;
@@ -89,9 +90,9 @@ public class WCSPConverter implements IParameterHandler {
 	
     /**
      * @param mrf
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    public WCSPConverter(MarkovRandomField mrf) throws Exception {
+    public WCSPConverter(MarkovRandomField mrf) throws ProbCogException {
         this.mln = mrf.mln;
         this.mrf = mrf;    
         this.paramHandler = new ParameterHandler(this);
@@ -151,9 +152,9 @@ public class WCSPConverter implements IParameterHandler {
     /**
      * performs the conversion of the ground MRF to the WCSP file
      * @param wcspFilename
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    public WCSP run() throws Exception {
+    public WCSP run() throws ProbCogException {
     	initialize();        
 
     	// instantiate WCSP
@@ -267,9 +268,9 @@ public class WCSPConverter implements IParameterHandler {
     /**
      * this method simplifies the generated variables (if a variable is given by the evidence, it's not necessary for the WCSP) 
      * @param db evidence database
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    protected void simplifyVars(Database db) throws Exception {
+    protected void simplifyVars(Database db) throws ProbCogException {
     	ArrayList<String> simplifiedVars = new ArrayList<String>(); // list of simplified variables
     	HashMap<Integer, Integer> sf_gndAtomIdx2varIdx = new HashMap<Integer, Integer>(); // mapping of ground atom indices to simplified variable indices
     	HashMap<Integer, Vector<GroundAtom>> sf_varIdx2groundAtoms = new HashMap<Integer, Vector<GroundAtom>>(); // mapping of simplified variable to ground atom
@@ -310,9 +311,9 @@ public class WCSPConverter implements IParameterHandler {
     /**
      * this method generates a WCSP Constraint for a weighted formula
      * @param wf the weighted formula
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    protected Constraint generateConstraint(WeightedFormula wf) throws Exception {
+    protected Constraint generateConstraint(WeightedFormula wf) throws ProbCogException {
         // if the weight is negative, negate the formula and its weight
     	Formula f = wf.formula;
     	double weight = wf.weight;
@@ -333,7 +334,7 @@ public class WCSPConverter implements IParameterHandler {
             // add simplified variable only if the array doesn't contain this sf_variable already
         	Integer idx = gndAtomIdx2varIdx.get(g.index);
         	if(idx == null)
-        		throw new Exception("Variable index for '" + g + "' is null");
+        		throw new ProbCogException("Variable index for '" + g + "' is null");
         	setVarIndices.add(idx);
         }
         int[] referencedVarIndices = new int[setVarIndices.size()];
@@ -403,7 +404,7 @@ public class WCSPConverter implements IParameterHandler {
         return c;
     }
     
-    protected void generateEvidenceConstraints(WCSP wcsp) throws Exception {
+    protected void generateEvidenceConstraints(WCSP wcsp) throws ProbCogException {
     	long top = wcsp.top;
         // add unary constraints for evidence variables
         String[][] entries = db.getEntriesAsArray();
@@ -456,9 +457,9 @@ public class WCSPConverter implements IParameterHandler {
      * @param cost cost associated with the formula
      * @param settingsZero set to save all possibilities with costs of 0
      * @param settingsOther set to save all possibilities with costs different from 0
-     * @throws Exception 
+     * @throws ProbCogException 
      */
-    protected void gatherConstraintTuples(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Tuple> settingsZero, ArrayList<Tuple> settingsOther) throws Exception {
+    protected void gatherConstraintTuples(Formula f, int[] wcspVarIndices, int i, PossibleWorld w, int[] domIndices, long cost, ArrayList<Tuple> settingsZero, ArrayList<Tuple> settingsOther) throws ProbCogException {
         // if all ground atoms were handled, the costs for this setting can be evaluated
         if (i == wcspVarIndices.length) {
             if(!f.isTrue(w))  // if formula is false, costs correspond to the weight
@@ -482,20 +483,20 @@ public class WCSPConverter implements IParameterHandler {
         }
     }
     
-	public long getWorldCosts(IPossibleWorld world) throws Exception {
+	public long getWorldCosts(IPossibleWorld world) throws ProbCogException {
 		long costs = 0;
 		for (Formula f : wcspConstraints.keySet()) {
 			if (!f.isTrue(world)) {
 				long newCosts = costs + wcspConstraints.get(f);
 				if (newCosts < costs)
-					throw new Exception("Numeric overflow in costs");
+					throw new ProbCogException("Numeric overflow in costs");
 				costs = newCosts;
 			}
 		}
 		return costs;
 	}
     
-    protected void gatherConstraintTuplesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Tuple> settings, boolean isConjunction) throws Exception {
+    protected void gatherConstraintTuplesSimplified(ComplexFormula f, int[] wcspVarIndices, long cost, ArrayList<Tuple> settings, boolean isConjunction) throws ProbCogException {
         // gather assignment
     	HashMap<Integer,Integer> assignment = new HashMap<Integer,Integer>();
         for(Formula child : f.children) {
@@ -565,7 +566,7 @@ public class WCSPConverter implements IParameterHandler {
     	}
     }
     
-    protected class SimplifiedConversionNotSupportedException extends Exception {
+    protected class SimplifiedConversionNotSupportedException extends ProbCogException {
     	public SimplifiedConversionNotSupportedException(String message) { super(message); }
     	
 		private static final long serialVersionUID = 1L;
@@ -592,7 +593,7 @@ public class WCSPConverter implements IParameterHandler {
             w.set(it.next().index, false);
     }
 
-    protected void initialize() throws Exception {
+    protected void initialize() throws ProbCogException {
     	this.db = mrf.getDb();
         this.world = new PossibleWorld(mrf.getWorldVariables());
         doms = mrf.getDb().getDomains();
@@ -607,14 +608,14 @@ public class WCSPConverter implements IParameterHandler {
 	        	long cost = Math.abs(Math.round(wf.weight / divisor));
                 long newSum = sumSoftCosts + cost;
                 if (newSum < sumSoftCosts)
-                    throw new Exception(String.format("Numeric overflow in sumSoftCosts (%d < %d)", newSum, sumSoftCosts));
+                    throw new ProbCogException(String.format("Numeric overflow in sumSoftCosts (%d < %d)", newSum, sumSoftCosts));
 	        	sumSoftCosts = newSum;
         	}
         }
         
         hardCost = sumSoftCosts + 1;
         if (hardCost <= sumSoftCosts)
-            throw new Exception("Numeric overflow in sumSoftCosts");
+            throw new ProbCogException("Numeric overflow in sumSoftCosts");
     }
 
 	@Override

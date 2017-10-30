@@ -19,6 +19,10 @@
 package probcog.bayesnets.inference;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
+
+import java.lang.reflect.InvocationTargetException;
+
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.DiscreteEvidence;
 
@@ -30,21 +34,27 @@ public class BNJInference extends Sampler {
 
 	Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algorithmClass;
 	
-	public BNJInference(BeliefNetworkEx bn, Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algoClass) throws Exception {
+	public BNJInference(BeliefNetworkEx bn, Class<? extends edu.ksu.cis.bnj.ver3.inference.Inference> algoClass) throws ProbCogException {
 		super(bn);
 		this.algorithmClass = algoClass;
 	}
 
 	@Override
-	public void _infer()
-			throws Exception {
+	public void _infer() throws ProbCogException {
 		// set evidence
 		for(int i = 0; i < evidenceDomainIndices.length; i++)
 			if(evidenceDomainIndices[i] != -1)
 				nodes[i].setEvidence(new DiscreteEvidence(evidenceDomainIndices[i]));
 		
 		// run inference
-		edu.ksu.cis.bnj.ver3.inference.Inference algo = algorithmClass.newInstance();
+		edu.ksu.cis.bnj.ver3.inference.Inference algo;
+		try {
+			algo = algorithmClass.getDeclaredConstructor().newInstance();
+		}
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			throw new ProbCogException(e);
+		}
 		algo.run(bn.bn);
 		
 		// retrieve results

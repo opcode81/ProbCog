@@ -26,6 +26,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 
+import probcog.exception.ProbCogException;
+
 /**
  * Generally usable representation of a distribution that can be written to a file.
  * Any BasicSampledDistribution can be converted to this type of object.
@@ -37,7 +39,7 @@ public class GeneralSampledDistribution extends BasicSampledDistribution {
 	protected String[][] domains;
 	protected HashMap<String,Integer> varName2Index;	
 	
-	public GeneralSampledDistribution(double[][] values, Double Z, String[] varNames, String[][] domains) throws Exception {
+	public GeneralSampledDistribution(double[][] values, Double Z, String[] varNames, String[][] domains) throws ProbCogException {
 		this.values = values;
 		this.Z = Z;
 		this.varNames = varNames;
@@ -60,32 +62,42 @@ public class GeneralSampledDistribution extends BasicSampledDistribution {
 	/**
 	 * writes this object to a file
 	 * @param f
-	 * @throws IOException
+	 * @throws ProbCogException 
 	 */
-	public void write(File f) throws IOException {
-		FileOutputStream fos = new FileOutputStream(f);
-		ObjectOutputStream oos = new ObjectOutputStream(fos);
-		oos.writeObject(this.values);
-		oos.writeObject(this.Z);
-		oos.writeObject(varNames);
-		oos.writeObject(domains);
-		oos.close();
+	public void write(File f) throws ProbCogException {
+		try {
+			FileOutputStream fos = new FileOutputStream(f);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(this.values);
+			oos.writeObject(this.Z);
+			oos.writeObject(varNames);
+			oos.writeObject(domains);
+			oos.close();
+		}
+		catch (IOException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	/**
 	 * reads a previously stored distribution from a file
 	 * @param s
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public static GeneralSampledDistribution fromFile(File f) throws Exception {
-		java.io.ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(f));
-	    double[][] values = (double[][])objstream.readObject();
-	    Double Z = (Double)objstream.readObject();
-	    String[] varNames = (String[])objstream.readObject();
-	    String[][] domains = (String[][])objstream.readObject();
-	    objstream.close();
-	    return new GeneralSampledDistribution(values, Z, varNames, domains);
+	public static GeneralSampledDistribution fromFile(File f) throws ProbCogException {
+		try {
+			java.io.ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(f));
+		    double[][] values = (double[][])objstream.readObject();
+		    Double Z = (Double)objstream.readObject();
+		    String[] varNames = (String[])objstream.readObject();
+		    String[][] domains = (String[][])objstream.readObject();
+		    objstream.close();
+		    return new GeneralSampledDistribution(values, Z, varNames, domains);
+		}
+		catch (IOException | ClassNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 	}
 
 	@Override

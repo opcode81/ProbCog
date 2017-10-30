@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import probcog.bayesnets.inference.SATIS_BSampler;
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.Negation;
 import probcog.logic.TrueFalse;
@@ -48,7 +49,7 @@ public class SATISEx extends SATIS {
 	 */
 	boolean exploitCSI = false;
 
-	public SATISEx(GroundBLN bln) throws Exception {
+	public SATISEx(GroundBLN bln) throws ProbCogException {
 		super(bln);
 		this.paramHandler.add("useCSI", "useCSI");
 	}
@@ -58,7 +59,7 @@ public class SATISEx extends SATIS {
 	}
 	
 	@Override
-	public ClausalKB getClausalKB() throws Exception {
+	public ClausalKB getClausalKB() throws ProbCogException {
 		ClausalKB ckb = super.getClausalKB();
 		
 		// extend the KB with formulas based on a CPD analysis		
@@ -82,7 +83,7 @@ public class SATISEx extends SATIS {
 					if(relNode.hasAggregator()) {
 						Formula f = relNode.toFormula(constantAssignment);
 						if(f == null)
-							throw new Exception("Relational node " + relNode + " could not be translated to a formula");
+							throw new ProbCogException("Relational node " + relNode + " could not be translated to a formula");
 						// TODO could fall back to direct reading of CPT in ground network
 						v.add(f);			
 						numDirectTranslations++;

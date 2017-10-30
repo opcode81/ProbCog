@@ -31,7 +31,7 @@ public class BooleanDomain {
 		return BooleanDomain.typeName.equalsIgnoreCase(typeName); 
 	}
 	
-	public static String getStandardValue(String value) throws Exception {
+	public static String getStandardValue(String value) {
 		if(value.equalsIgnoreCase(True))
 			return True;
 		if(value.equalsIgnoreCase(False))

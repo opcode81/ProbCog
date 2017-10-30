@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.srl.directed.bln;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.KnowledgeBase;
 import probcog.logic.parser.FormulaParser;
@@ -34,23 +35,23 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 
 	public KnowledgeBase kb;
 	
-	public BayesianLogicNetwork(String declsFile, String fragmentsFile, String logicFile) throws Exception {
+	public BayesianLogicNetwork(String declsFile, String fragmentsFile, String logicFile) throws ProbCogException {
 		super(declsFile, fragmentsFile, logicFile);
 	}
 	
-	public BayesianLogicNetwork(String declsFile, String fragmentsFile) throws Exception {
+	public BayesianLogicNetwork(String declsFile, String fragmentsFile) throws ProbCogException {
 		super(declsFile, fragmentsFile, null);
 	}
 
-	public BayesianLogicNetwork(String declsFile) throws Exception {
+	public BayesianLogicNetwork(String declsFile) throws ProbCogException {
 		super(declsFile);				
 	}
 	
-	public MarkovLogicNetwork toMLN() throws Exception {
+	public MarkovLogicNetwork toMLN() throws ProbCogException {
 		return toMLN(false);
 	}
 	
-	public MarkovLogicNetwork toMLN(boolean compactFormulas) throws Exception {
+	public MarkovLogicNetwork toMLN(boolean compactFormulas) throws ProbCogException {
 		MLNConverter.MLNObjectWriter converter = new MLNConverter.MLNObjectWriter();
 		this.rbn.toMLN(converter, false, compactFormulas);
 		for(Formula f : kb) {
@@ -60,17 +61,18 @@ public class BayesianLogicNetwork extends AbstractBayesianLogicNetwork {
 	}
 
 	@Override
-	public GroundBLN ground(Database db) throws Exception {
+	public GroundBLN ground(Database db) throws ProbCogException {
 		GroundBLN gbln = new GroundBLN(this, db);
 		this.paramHandler.addSubhandler(gbln);
 		return gbln;
 	}
 	
 	@Override 
-	public void initKB() throws Exception {
+	public void initKB() throws ProbCogException {
 		kb = new KnowledgeBase();
-		if(logicFile != null)
+		if(logicFile != null) {
 			kb.readFile(logicFile.toString());
+		}
 	}
 	
 	@Override

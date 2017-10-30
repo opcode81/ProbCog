@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.CPT;
@@ -40,7 +40,7 @@ public class VariableElimination extends Sampler {
 	protected int[] nodeDomainIndices;
 	protected SampledDistribution dist;
 	
-	public VariableElimination(BeliefNetworkEx bn) throws Exception {
+	public VariableElimination(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 		nodeOrder = bn.getTopologicalOrder();
 	}
@@ -263,7 +263,7 @@ public class VariableElimination extends Sampler {
 		dist.values[nodeIdx] = marginal;
 	}
 	
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		Stopwatch sw = new Stopwatch();
 		
 		sw.start();

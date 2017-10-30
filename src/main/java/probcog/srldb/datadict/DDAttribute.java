@@ -20,22 +20,20 @@ package probcog.srldb.datadict;
 
 import java.io.Serializable;
 
+import kdl.prox3.dbmgr.DataTypeEnum;
 import probcog.clustering.BasicClusterer;
 import probcog.clustering.ClusterNamer;
 import probcog.clustering.EMClusterer;
 import probcog.clustering.SimpleClusterer;
+import probcog.exception.ProbCogException;
 import probcog.srldb.Database;
-import probcog.srldb.Item;
 import probcog.srldb.Database.AttributeClustering;
+import probcog.srldb.Item;
 import probcog.srldb.datadict.domain.AutomaticDomain;
-import probcog.srldb.datadict.domain.BooleanDomain;
 import probcog.srldb.datadict.domain.DiscardedDomain;
 import probcog.srldb.datadict.domain.Domain;
 import probcog.srldb.datadict.domain.OrderedStringDomain;
-
 import weka.clusterers.Clusterer;
-
-import kdl.prox3.dbmgr.DataTypeEnum;
 
 /**
  * Data dictionary definition of an attribute.
@@ -66,7 +64,7 @@ public class DDAttribute implements Cloneable, Serializable {
 			return String.format("%s", numClusters == null ? "auto" : numClusters.toString());
 		}
 		
-		public AttributeClustering perform(Iterable<Item> items) throws Exception {
+		public AttributeClustering perform(Iterable<Item> items) throws ProbCogException {
 			DDAttribute attrib = DDAttribute.this;
 			Domain<?> domain = getDomain();
 			AttributeClustering ac;
@@ -149,7 +147,7 @@ public class DDAttribute implements Cloneable, Serializable {
 		setClustering(numClusters, null);
 	}
 
-	public AttributeClustering doClustering(Iterable<Item> items) throws Exception {
+	public AttributeClustering doClustering(Iterable<Item> items) throws ProbCogException {
 		return clusteringTask.perform(items);
 	}
 	

@@ -19,17 +19,23 @@
 package probcog.srl.directed;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Vector;
 import java.util.Map.Entry;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import edu.ksu.cis.bnj.ver3.core.CPF;
+import edu.ksu.cis.bnj.ver3.core.Discrete;
+import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
+import edu.tum.cs.util.FileUtil;
+import edu.tum.cs.util.StringTool;
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import probcog.srl.BooleanDomain;
 import probcog.srl.Database;
 import probcog.srl.RealDomain;
@@ -39,13 +45,6 @@ import probcog.srl.directed.learning.CPTLearner;
 import probcog.srl.directed.learning.DomainLearner;
 import probcog.srl.taxonomy.Concept;
 import probcog.srl.taxonomy.Taxonomy;
-
-import edu.ksu.cis.bnj.ver3.core.BeliefNode;
-import edu.ksu.cis.bnj.ver3.core.CPF;
-import edu.ksu.cis.bnj.ver3.core.Discrete;
-import edu.ksu.cis.bnj.ver3.core.values.ValueDouble;
-import edu.tum.cs.util.FileUtil;
-import edu.tum.cs.util.StringTool;
 
 /**
  * Advanced Bayesian Logical (ABL) Model
@@ -71,9 +70,9 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * @param declarationsFiles
 	 * @param networkFile
 	 *            a fragment network file
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public ABLModel(String[] declarationsFiles, String networkFile) throws Exception {		
+	public ABLModel(String[] declarationsFiles, String networkFile) throws ProbCogException {		
 		init(declarationsFiles, networkFile);
 	}
 	
@@ -83,18 +82,18 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * 
 	 * @param declarationsFile
 	 * @param networkFile
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public ABLModel(String declarationsFile, String networkFile) throws Exception {
+	public ABLModel(String declarationsFile, String networkFile) throws ProbCogException {
 		String[] decls = null;
 		if(declarationsFile != null)
 			decls = new String[] { declarationsFile };
 		init(decls, networkFile);
 	}
 
-	public ABLModel(String declarationsFile) throws Exception {
+	public ABLModel(String declarationsFile) throws ProbCogException {
 		if(declarationsFile == null)
-			throw new Exception("Declarations file cannot be null");
+			throw new ProbCogException("Declarations file cannot be null");
 		init(new String[]{ declarationsFile }, null);
 	}
 	
@@ -110,7 +109,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 		return regexTypeName.matcher(s).matches();
 	}
 
-	private void init(String[] declarationsFiles, String networkFile) throws Exception {
+	private void init(String[] declarationsFiles, String networkFile) throws ProbCogException {
 		if(networkFile != null)
 			this.networkFile = new File(networkFile);
 		boolean guessedSignatures = true;
@@ -123,7 +122,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			guessedSignatures = false;
 		}
 		if(this.networkFile == null)
-			throw new Exception("No fragment network was given");
+			throw new ProbCogException("No fragment network was given");
 		initNetwork(this.networkFile);
 		if(guessedSignatures)
 			guessSignatures();
@@ -132,7 +131,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 	}
 
 		
-	protected void readDeclarations(String decls) throws Exception {
+	protected void readDeclarations(String decls) throws ProbCogException {
 		// remove comments
 		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher matcher = comments.matcher(decls);
@@ -146,11 +145,11 @@ public class ABLModel extends RelationalBeliefNetwork {
 				continue;
 			if (!readDeclaration(line))
 				if (!line.contains("~"))
-					throw new Exception("Could not interpret the line '" + line	+ "'");
+					throw new ProbCogException("Could not interpret the line '" + line	+ "'");
 		}
 	}
 
-	protected boolean readDeclaration(String line) throws Exception {
+	protected boolean readDeclaration(String line) throws ProbCogException {
 		// function signature
 		// TODO: logical Boolean required - split this into random / logical w/o Boolean / utility?
 		if(line.startsWith("random") || line.startsWith("logical") || line.startsWith("utility")) {
@@ -166,7 +165,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				// functions declared as logical are always given (either implicitly through the closed-world assumption which assumes false)
 				// or explicitly (in the explicit case, we do not insist that the variable must be Boolean, which is why we do not throw the exception).
 				//if(isLogical && !sig.isBoolean())
-				//	throw new Exception("Function '" + sig.functionName + "' was declared as logical but isn't a Boolean function");
+				//	throw new ProbCogException("Function '" + sig.functionName + "' was declared as logical but isn't a Boolean function");
 				// ensure types used in signature exist, adding them if necessary
 				addType(sig.returnType, false);
 				for(String t : sig.argTypes)
@@ -220,7 +219,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 						}
 					}
 					else
-						throw new Exception("The type declaration '" + d + "' is invalid");					
+						throw new ProbCogException("The type declaration '" + d + "' is invalid");					
 				}
 				return true;
 			}
@@ -248,7 +247,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				Signature sig = getSignature(function);
 				CombiningRule rule;
 				if(sig == null) 
-					throw new Exception("Defined combining rule for unknown function '" + function + "'");
+					throw new ProbCogException("Defined combining rule for unknown function '" + function + "'");
 				try {
 					rule = CombiningRule.fromString(strRule);
 				}
@@ -256,7 +255,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 					Vector<String> v = new Vector<String>();
 					for(CombiningRule cr : CombiningRule.values()) 
 						v.add(cr.stringRepresention);
-					throw new Exception("Invalid combining rule '" + strRule + "'; valid options: " + StringTool.join(", ", v));
+					throw new ProbCogException("Invalid combining rule '" + strRule + "'; valid options: " + StringTool.join(", ", v));
 				}
 				this.combiningRules.put(function, rule);
 				return true;
@@ -283,7 +282,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 				String filename = matcher.group(1);
 				File f = findReferencedFile(filename);
 				if(f == null)
-					throw new Exception("Declared fragments file " + filename + " could not be found");					
+					throw new ProbCogException("Declared fragments file " + filename + " could not be found");					
 				if(networkFile != null) { // if we already have another network file, then the one that is declared here is not used
 					if(!networkFile.getAbsoluteFile().equals(f.getAbsoluteFile())) 
 						System.err.println("Notice: Declared network file " + filename + " is overridden by " + networkFile);
@@ -362,18 +361,20 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * 
 	 * @param files
 	 * @return
-	 * @throws FileNotFoundException
-	 * @throws IOException
 	 */
-	protected String readBlogContent(File[] files)
-			throws FileNotFoundException, IOException {
-		// read the blog files
-		StringBuffer buf = new StringBuffer();
-		for (File blogFile : files) {
-			buf.append(FileUtil.readTextFile(blogFile));
-			buf.append('\n');
+	protected String readBlogContent(File[] files) throws ProbCogException {
+		try {
+			// read the blog files
+			StringBuffer buf = new StringBuffer();
+			for (File blogFile : files) {
+				buf.append(FileUtil.readTextFile(blogFile));
+				buf.append('\n');
+			}
+			return buf.toString();
 		}
-		return buf.toString();
+		catch (IOException e) {
+			throw new ProbCogException(e);
+		}
 	}
 
 	/**
@@ -381,10 +382,10 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 * model represents, instantiating it with the guaranteed domain elements
 	 * 
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 * @deprecated no longer maintained; for BLNs superseded by the respective grounding process  
 	 */
-	public BeliefNetworkEx getGroundBN() throws Exception {
+	public BeliefNetworkEx getGroundBN() throws ProbCogException {
 		// create a new Bayesian network
 		BeliefNetworkEx gbn = new BeliefNetworkEx();
 		// add nodes in topological order
@@ -395,7 +396,7 @@ public class ABLModel extends RelationalBeliefNetwork {
 			// get all possible argument groundings
 			Signature sig = getSignature(node.functionName);
 			if (sig == null)
-				throw new Exception("Could not retrieve signature for node "
+				throw new ProbCogException("Could not retrieve signature for node "
 						+ node.functionName);
 			Vector<String[]> argGroundings = groundParams(sig);
 			// create a new node for each grounding with the same domain and CPT
@@ -453,17 +454,17 @@ public class ABLModel extends RelationalBeliefNetwork {
 	 *            the index of the domain from which to choose next
 	 * @param ret
 	 *            the vector in which all settings shall be stored
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	protected void groundParams(String[] domNames, String[] setting, int idx,
-			Vector<String[]> ret) throws Exception {
+			Vector<String[]> ret) throws ProbCogException {
 		if (idx == domNames.length) {
 			ret.add(setting.clone());
 			return;
 		}
 		Collection<String> elems = guaranteedDomElements.get(domNames[idx]);
 		if (elems == null) {
-			throw new Exception("No guaranteed domain elements for "
+			throw new ProbCogException("No guaranteed domain elements for "
 					+ domNames[idx]);
 		}
 		for (String elem : elems) {
@@ -472,13 +473,13 @@ public class ABLModel extends RelationalBeliefNetwork {
 		}
 	}
 
-	protected Vector<String[]> groundParams(Signature sig) throws Exception {
+	protected Vector<String[]> groundParams(Signature sig) throws ProbCogException {
 		Vector<String[]> ret = new Vector<String[]>();
 		groundParams(sig.argTypes, new String[sig.argTypes.length], 0, ret);
 		return ret;
 	}
 
-	public void write(PrintStream out) throws Exception {
+	public void write(PrintStream out) throws ProbCogException {
 		BeliefNode[] nodes = bn.getNodes();
 
 		// write declarations for types, guaranteed domain elements and

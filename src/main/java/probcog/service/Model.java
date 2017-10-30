@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.srl.Signature;
@@ -53,23 +54,23 @@ public abstract class Model implements IParameterHandler {
 	protected HashMap<String, Object> actualParams;
 	protected boolean haveSession = false;
 	
-	public Model(String name) throws Exception {
+	public Model(String name) throws ProbCogException {
 		defaultParameters = new HashMap<String,Object>();
 		this.name = name;
 		constantMapFromProbCog = null;
 		paramHandler = new ParameterHandler(this);
 	}
 	
-	protected abstract void _setEvidence(Iterable<String[]> evidence) throws Exception;
-	public abstract void instantiate() throws Exception;
+	protected abstract void _setEvidence(Iterable<String[]> evidence) throws ProbCogException;
+	public abstract void instantiate() throws ProbCogException;
 	
 	/**
 	 * runs the actual inference method, without mapping constants  
 	 * @param queries
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected abstract java.util.Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception;
+	protected abstract java.util.Vector<InferenceResult> _infer(Iterable<String> queries) throws ProbCogException;
 	public abstract Vector<String[]> getDomains();
 
 	public abstract Vector<String[]> getPredicates();
@@ -93,18 +94,18 @@ public abstract class Model implements IParameterHandler {
 		return ret;
 	}
 	
-	public void beginSession(Map<String, Object> params) throws Exception {
+	public void beginSession(Map<String, Object> params) throws ProbCogException {
 		actualParams = new HashMap<String, Object>(defaultParameters);
 		if(params != null)
 			actualParams.putAll(params);
 		paramHandler.handle(actualParams, false);
 	}
 	
-	public void beginSession() throws Exception {
+	public void beginSession() throws ProbCogException {
 		beginSession(null);
 	}
 	
-	public void setEvidence(Iterable<String[]> evidence) throws Exception {
+	public void setEvidence(Iterable<String[]> evidence) throws ProbCogException {
 		if(haveSession == false)
 			beginSession();
 		// map constants, filtering evidence where constants are mapped to null
@@ -125,7 +126,7 @@ public abstract class Model implements IParameterHandler {
 		_setEvidence(newEvidence);
 	}
 	
-	public java.util.Vector<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public java.util.Vector<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
 		// run inference
 		Vector<InferenceResult> actualResults = _infer(queries);
 		// map results and return

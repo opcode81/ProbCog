@@ -198,6 +198,7 @@ public class WeightedSample implements Cloneable{
 		}
 		return result;
 	}
+	
 	public synchronized WeightedSample clone() throws CloneNotSupportedException {
 		WeightedSample clone = (WeightedSample)super.clone();
 		clone.nodeDomainIndices = this.nodeDomainIndices.clone();

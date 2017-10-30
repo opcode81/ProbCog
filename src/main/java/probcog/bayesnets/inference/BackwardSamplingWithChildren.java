@@ -21,7 +21,7 @@ package probcog.bayesnets.inference;
 import java.util.HashSet;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -256,19 +256,19 @@ public class BackwardSamplingWithChildren extends BackwardSamplingWithPriors {
 		return d;
 	}
 	
-	public BackwardSamplingWithChildren(BeliefNetworkEx bn) throws Exception {
+	public BackwardSamplingWithChildren(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
 	@Override
-	public void _initialize() throws Exception {
+	public void _initialize() throws ProbCogException {
 		probCache = new Cache2D<CPF, Integer, Double>();
 		distCache = new Cache2D<BeliefNode, Long, BackSamplingDistribution>();
 		super._initialize();
 	}
 	
 	@Override
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		probSW = new Stopwatch();
 		distSW = new Stopwatch();
 		super._infer();

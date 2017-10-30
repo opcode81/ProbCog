@@ -21,6 +21,7 @@ package probcog.logic.sat;
 import java.util.Iterator;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Conjunction;
 import probcog.logic.Formula;
 import probcog.logic.TrueFalse;
@@ -37,9 +38,9 @@ public class ClausalKB implements Iterable<Clause> {
 	/**
 	 * creates a clausal KB from a given (non-clausal) KB
 	 * @param kb
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public ClausalKB(probcog.logic.KnowledgeBase kb) throws Exception {
+	public ClausalKB(probcog.logic.KnowledgeBase kb) throws ProbCogException {
 		// obtain clausal form
 		this();
 		for(Formula f : kb) 
@@ -56,9 +57,9 @@ public class ClausalKB implements Iterable<Clause> {
 	/**
 	 * adds a formula to the knowledge bases, converting it into CNF
 	 * @param f
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void addFormula(Formula f) throws Exception {
+	public void addFormula(Formula f) throws ProbCogException {
 		//System.out.println("formula: " + f.toString());
 		f = f.toCNF();
 		//System.out.println("cnf formula: " + f.toString());
@@ -74,7 +75,7 @@ public class ClausalKB implements Iterable<Clause> {
 		else {
 			if(f instanceof probcog.logic.TrueFalse) {
 				if(!((TrueFalse)f).isTrue())
-					throw new Exception("Knowledge base is unsatisfiable!");
+					throw new ProbCogException("Knowledge base is unsatisfiable!");
 			}
 			else {
 				try {

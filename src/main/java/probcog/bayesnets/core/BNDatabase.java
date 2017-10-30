@@ -20,6 +20,7 @@ package probcog.bayesnets.core;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.regex.Pattern;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.FileUtil;
+import probcog.exception.ProbCogException;
 
 /**
  * represents an evidence database for Bayesian networks
@@ -54,17 +56,17 @@ public class BNDatabase {
 	/**
 	 * constructs a database with the data from the given .bndb file
 	 * @param f
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public BNDatabase(File f) throws Exception {
+	public BNDatabase(File f) throws ProbCogException {
 		this();
 		read(f);
 	}
 	
-	public BNDatabase(BeliefNetworkEx bn, int[] evidenceDomainIndices) throws Exception {
+	public BNDatabase(BeliefNetworkEx bn, int[] evidenceDomainIndices) throws ProbCogException {
 		BeliefNode[] nodes = bn.getNodes();
 		if(evidenceDomainIndices.length != nodes.length)
-			throw new Exception("evidence vector length does not match belief network");
+			throw new ProbCogException("Evidence vector length does not match belief network");
 		for(int i = 0; i < evidenceDomainIndices.length; i++) {
 			if(evidenceDomainIndices[i] != -1) {
 				this.add(nodes[i].getName(), nodes[i].getDomain().getName(evidenceDomainIndices[i]));
@@ -75,24 +77,28 @@ public class BNDatabase {
 	/**
 	 * reads a .bndb file
 	 */
-	public void read(File f) throws Exception {
-		// read file content
-		String dbContent = FileUtil.readTextFile(f);				
-		// remove comments
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
-		Matcher matcher = comments.matcher(dbContent);
-		dbContent = matcher.replaceAll("");
-		// read entries
-		BufferedReader br = new BufferedReader(new StringReader(dbContent));
-		String line;
-		while((line = br.readLine()) != null) {
-			line = line.trim();			
-			if(line.length() > 0) {
-				String[] entry = line.split("\\s*=\\s*");
-				if(entry.length != 2)
-					throw new Exception("Incorrectly formatted evidence entry: " + line);
-				add(entry[0], entry[1]);
+	public void read(File f) throws ProbCogException {
+		try {
+			// read file content
+			String dbContent = FileUtil.readTextFile(f);				
+			// remove comments
+			Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+			Matcher matcher = comments.matcher(dbContent);
+			dbContent = matcher.replaceAll("");
+			// read entries
+			BufferedReader br = new BufferedReader(new StringReader(dbContent));
+			String line;
+			while((line = br.readLine()) != null) {
+				line = line.trim();			
+				if(line.length() > 0) {
+					String[] entry = line.split("\\s*=\\s*");
+					if(entry.length != 2)
+						throw new ProbCogException("Incorrectly formatted evidence entry: " + line);
+					add(entry[0], entry[1]);
+				}
 			}
+		} catch (IOException e) {
+			throw new ProbCogException(e);
 		}
 	}
 	

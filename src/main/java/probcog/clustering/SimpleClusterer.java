@@ -19,6 +19,7 @@
 package probcog.clustering;
 import java.util.Arrays;
 
+import probcog.exception.ProbCogException;
 import weka.clusterers.SimpleKMeans;
 
 /**
@@ -37,20 +38,30 @@ public class SimpleClusterer extends BasicClusterer<SimpleKMeans> {
 		this(new SimpleKMeans());
 	}
 	
-	public void buildClusterer(int numClusters) throws Exception {
+	public void buildClusterer(int numClusters) throws ProbCogException {
 		if(numClusters != 0)
 			setNumClusters(numClusters);		
 		buildClusterer();
 	}
 	
 	@Override
-	public void buildClusterer() throws Exception {
-		super.buildClusterer();
+	public void buildClusterer() throws ProbCogException {
+		try {
+			super.buildClusterer();
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 		clusterIndex2sortedClusterIndex = getSortedCentroidIndices();
 	}
 	
-	public void setNumClusters(int n) throws Exception {
-		clusterer.setNumClusters(n);
+	public void setNumClusters(int n) throws ProbCogException {
+		try {
+			clusterer.setNumClusters(n);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public double[] getCentroids() {
@@ -64,11 +75,17 @@ public class SimpleClusterer extends BasicClusterer<SimpleKMeans> {
 	/**
 	 * classifies the given value
 	 * @return *not* the index of the actual cluster but the index into a list of clusters sorted in ascending order of centroid mean 
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
 	@Override
-	public int classify(double value) throws Exception {
-		int i = super.classify(value);
+	public int classify(double value) throws ProbCogException {
+		int i;
+		try {
+			i = super.classify(value);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 		return clusterIndex2sortedClusterIndex[i];
 	}
 	

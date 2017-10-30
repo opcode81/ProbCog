@@ -19,13 +19,14 @@
 package probcog.srl.directed;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
+import probcog.exception.ProbCogException;
 
 /**
  * @author Philipp Meyer
  */
 public class UtilityNode extends RelationalNode {
 
-	public UtilityNode(RelationalBeliefNetwork rbn, BeliefNode node) throws Exception {
+	public UtilityNode(RelationalBeliefNetwork rbn, BeliefNode node) throws ProbCogException {
 		super(rbn, node);
 	}
 	

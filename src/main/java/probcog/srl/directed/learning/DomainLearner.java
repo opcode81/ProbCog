@@ -21,6 +21,7 @@ package probcog.srl.directed.learning;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.BooleanDomain;
 import probcog.srl.GenericDatabase;
 import probcog.srl.Signature;
@@ -42,7 +43,7 @@ public class DomainLearner extends probcog.bayesnets.learning.DomainLearner {
 		super(bn);
 	}
 
-	public void learn(GenericDatabase<?, ?> db) throws Exception {
+	public void learn(GenericDatabase<?, ?> db) throws ProbCogException {
 		// all domains are directly learned
 		boolean debug = false;
 		RelationalBeliefNetwork bn = (RelationalBeliefNetwork) this.bn;
@@ -64,7 +65,7 @@ public class DomainLearner extends probcog.bayesnets.learning.DomainLearner {
 						System.out.println("node: " + node);
 					String returnType = node.getReturnType();
 					if(returnType == null) {
-						throw new Exception("Could not return type of " + node.getFunctionName());
+						throw new ProbCogException("Could not return type of " + node.getFunctionName());
 					}
 					if(BooleanDomain.isBooleanType(returnType))
 						mustApplyBooleanDomain = true;
@@ -72,7 +73,7 @@ public class DomainLearner extends probcog.bayesnets.learning.DomainLearner {
 						Iterable<String> values = db.getDomain(returnType);
 						if(values == null) {
 							db.printDomain(System.out);
-							throw new Exception("Domain '" + returnType + "' of node '" + nodes[i].getName() + "' has no values in the database.");
+							throw new ProbCogException("Domain '" + returnType + "' of node '" + nodes[i].getName() + "' has no values in the database.");
 						}
 						for(String value : values) {
 							if(debug)
@@ -91,7 +92,7 @@ public class DomainLearner extends probcog.bayesnets.learning.DomainLearner {
 		}
 	}
 
-	protected void end_learning() throws Exception {
+	protected void end_learning() throws ProbCogException {
 		super.end_learning();
 
 		// standardize boolean domains and write learnt domains to model

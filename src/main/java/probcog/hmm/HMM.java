@@ -25,6 +25,7 @@ import be.ac.ulg.montefiore.run.jahmm.Hmm;
 import be.ac.ulg.montefiore.run.jahmm.Observation;
 import be.ac.ulg.montefiore.run.jahmm.Opdf;
 import be.ac.ulg.montefiore.run.jahmm.OpdfFactory;
+import probcog.exception.ProbCogException;
 
 /**
  * A standard hidden Markov model (HMM).
@@ -104,12 +105,12 @@ public class HMM<O extends Observation> extends Hmm<O> implements IHMM<O> {
 	
 	/**
 	 * sets the number of states for an HMM whose number of states was previously unknown
-	 * @throws IllegalAccessException
+	 * @throws ProbCogException 
 	 */
 	@Override
-	public void setNumStates(int numStates) throws IllegalAccessException {
+	public void setNumStates(int numStates) throws ProbCogException {
 		if(this.numStates != null)
-			throw new IllegalAccessException("Cannot set number of states in model which was constructed with known number of states");
+			throw new ProbCogException("Cannot set number of states in model which was constructed with known number of states");
 		this.numStates = numStates;
 		// initialize the HMM
 		init(numStates, opdfFactory);		

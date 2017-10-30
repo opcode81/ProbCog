@@ -21,7 +21,7 @@ package probcog.bayesnets.inference;
 import java.util.HashMap;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
 import edu.tum.cs.util.Stopwatch;
@@ -34,7 +34,7 @@ public class GibbsSampling extends Sampler {
 	int[] nodeOrder;	
 	HashMap<BeliefNode, BeliefNode[]> children;
 	
-	public GibbsSampling(BeliefNetworkEx bn) throws Exception {
+	public GibbsSampling(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 		children = new HashMap<BeliefNode, BeliefNode[]>();
 		for(int i = 0; i < nodes.length; i++) {
@@ -43,14 +43,14 @@ public class GibbsSampling extends Sampler {
 		nodeOrder = bn.getTopologicalOrder();
 	}
 	
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		Stopwatch sw = new Stopwatch();
 
 		// get initial setting with non-zero evidence probability
 		out.println("initial setting...");
 		WeightedSample s = bn.getWeightedSample(nodeOrder, evidenceDomainIndices, generator);
 		if(s == null)
-			throw new Exception("Could not find an initial state with non-zero probability in given number of trials.");
+			throw new ProbCogException("Could not find an initial state with non-zero probability in given number of trials.");
 		
 		// do Gibbs sampling
 		out.println("Gibbs sampling...");

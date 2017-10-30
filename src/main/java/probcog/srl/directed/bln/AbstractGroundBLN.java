@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.core.Discretized;
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.srl.BooleanDomain;
@@ -100,18 +101,18 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 */
 	protected HashMap<BeliefNode, RelationalNode> groundNode2TemplateNode;
 	
-	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
+	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, Database db) throws ProbCogException {
 		init(bln, db);
 	}
 	
-	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws Exception {
+	public AbstractGroundBLN(AbstractBayesianLogicNetwork bln, String databaseFile) throws ProbCogException {
 		this.databaseFile = databaseFile;
 		Database db = new Database(bln.rbn);
 		db.readBLOGDB(databaseFile, true);
 		init(bln, db);
 	}
 	
-	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws Exception {
+	protected void init(AbstractBayesianLogicNetwork bln, Database db) throws ProbCogException {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("verbose", "setVerbose");
 		paramHandler.add("debug", "setDebugMode");
@@ -128,18 +129,18 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 
 	/**
 	 * instantiates the auxiliary Bayesian network for this model
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void instantiateGroundNetwork() throws Exception {
+	public void instantiateGroundNetwork() throws ProbCogException {
 		instantiateGroundNetwork(true);
 	}
 	
 	/**
 	 * instantiates the ground Bayesian network for this model
 	 * @param addAuxiliaryVars if true, also adds auxiliary nodes to the network that correspond to the hard logical constraints
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void instantiateGroundNetwork(boolean addAuxiliaryVars) throws Exception {
+	public void instantiateGroundNetwork(boolean addAuxiliaryVars) throws ProbCogException {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
@@ -205,9 +206,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * by looking for a template and applying it, or simply returns the variable if it was previously instantiated
 	 * @param functionName
 	 * @param params
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected BeliefNode instantiateVariable(String functionName, String[] params) throws Exception {
+	protected BeliefNode instantiateVariable(String functionName, String[] params) throws ProbCogException {
 		// check if the variable was previously instantiated and return the node if so
 		String varName = Signature.formatVarName(functionName, params);		
 		
@@ -302,7 +303,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 						error.append('\n');
 						error.append(e.getMessage());
 					}
-					throw new Exception(error.toString());
+					throw new ProbCogException(error.toString());
 				}
 			}
 			else { // it's an evidence variable
@@ -351,7 +352,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			// TODO ground nodes instantiated from combining rules do not have a template assigned to them via the mapping
 			CombiningRule r = bln.rbn.getCombiningRule(functionName);
 			if(r == null)
-				throw new Exception("More than one group of parents for variable " + varName + " but no combining rule was specified");
+				throw new ProbCogException("More than one group of parents for variable " + varName + " but no combining rule was specified");
 			if(debug) System.out.println("        instantiating with combining rule " + r);
 			instantiateVariableWithCombiningRule(mainNode, suitableTemplates, r);			
 		}
@@ -364,16 +365,16 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @param relNode		the node that is to serve as the template
 	 * @param groundings	a vector of node groundings, i.e. mappings from node indices to parameter lists 
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	@SuppressWarnings("incomplete-switch")
-	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<ParentGrounding> groundings) throws Exception {
+	protected void instantiateVariableFromSingleTemplate(BeliefNode mainNode, RelationalNode relNode, Vector<ParentGrounding> groundings) throws ProbCogException {
 		groundNode2TemplateNode.put(mainNode, relNode);
 		// add edges from the parents
 		// - normal case: just CPF application for one set of parents
 		if(!relNode.hasAggregator()) {
 			if(groundings.size() != 1) 
-				throw new Exception("Cannot instantiate " + mainNode.getName() + " for " + groundings.size() + " groups of parents.");			
+				throw new ProbCogException("Cannot instantiate " + mainNode.getName() + " for " + groundings.size() + " groups of parents.");			
 			if(debug) {
 				System.out.println("        relevant nodes/parents");
 				Map<Integer, String[]> grounding = groundings.firstElement().nodeArgs;						
@@ -426,7 +427,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			if(combFunc == Aggregator.FunctionalOr || combFunc == Aggregator.NoisyOr || combFunc == Aggregator.FunctionalAnd) {
 				// check if the domain is really boolean
 				if(!RelationalBeliefNetwork.isBooleanDomain(mainNode.getDomain()))
-					throw new Exception("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
+					throw new ProbCogException("Cannot use OR aggregator on non-Boolean node " + relNode.toString());
 				// determine CPF-id
 				String cpfid = combFunc.getFunctionSyntax();
 				switch(combFunc) {
@@ -472,7 +473,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			else if(combFunc == Aggregator.Sum) {
 				// check if the domain is really real
 				if(!RelationalBeliefNetwork.isRealDomain(mainNode.getDomain()))
-					throw new Exception("Cannot use SUM aggregator on non-Real node " + relNode.toString());
+					throw new ProbCogException("Cannot use SUM aggregator on non-Real node " + relNode.toString());
 				// build the CPF
 				CPT cpf = (CPT)mainNode.getCPF();
 				String cpfid = combFunc.getFunctionSyntax() + String.format("-%d", groundings.size());
@@ -494,11 +495,11 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 				
 			}
 			else
-				throw new Exception("Cannot ground structure because of multiple parent sets for node " + mainNode.getName() + " with unhandled aggregator " + relNode.aggregator);
+				throw new ProbCogException("Cannot ground structure because of multiple parent sets for node " + mainNode.getName() + " with unhandled aggregator " + relNode.aggregator);
 		}
 	}
 	
-	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<ParentGrounding>>> suitableTemplates, CombiningRule r) throws Exception {
+	protected BeliefNode instantiateVariableWithCombiningRule(BeliefNode mainNode, Vector<Pair<RelationalNode, Vector<ParentGrounding>>> suitableTemplates, CombiningRule r) throws ProbCogException {
 		// get the parent set
 		HashMap<BeliefNode, Integer> parentIndices = new HashMap<BeliefNode, Integer>();
 		// * for all the templates (relational nodes) that are involved in the combining rule, we remember
@@ -525,7 +526,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 						// this is OK only if the parent is a precondition
 						if(relParent.isPrecondition)
 							continue;
-						throw new Exception("Could not instantiate " + relParent + " with params [" + StringTool.join(", ", entry.getValue()) + "] as a parent for " + mainNode);
+						throw new ProbCogException("Could not instantiate " + relParent + " with params [" + StringTool.join(", ", entry.getValue()) + "] as a parent for " + mainNode);
 					}					
 					Integer index = parentIndices.get(parent);					
 					if(index == null) {
@@ -555,13 +556,13 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 		return mainNode;
 	}
 	
-	protected void fillCPFCombiningRule(CPF cpf, int i, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) throws Exception {		
+	protected void fillCPFCombiningRule(CPF cpf, int i, int[] addr, Vector<Pair<RelationalNode, Map<BeliefNode,Integer>>> templateDomprodMap, CombiningRule r) throws ProbCogException {		
 		BeliefNode[] domprod = cpf.getDomainProduct();
 		if(i == domprod.length) {
 			int domSize = domprod[0].getDomain().getOrder();
 			if(r.booleanSemantics) {
 				if(domSize != 2)
-					throw new Exception("Cannot apply combining-rule " + r + " with Boolean semantics to non-binary random variable " + domprod[0]);
+					throw new ProbCogException("Cannot apply combining-rule " + r + " with Boolean semantics to non-binary random variable " + domprod[0]);
 				double trueCase = fillCPFCombiningRule_computeColumnEntry(0, addr, templateDomprodMap, r);
 				cpf.put(addr, new ValueDouble(trueCase));
 				addr[0] = 1;
@@ -616,7 +617,7 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	
 	protected void init() {}
 	
-	protected abstract void groundFormulaicNodes() throws Exception;
+	protected abstract void groundFormulaicNodes() throws ProbCogException;
 	
 	protected abstract void onAddGroundAtomNode(BeliefNode instance, String[] params, Signature sig);
 	
@@ -636,9 +637,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @param src2targetParent  a mapping in which to store which node in the template model produced which instantiated parent in the ground network (or null)
 	 * @param constantSettings  a mapping in which to store bindings of constants (or null)
 	 * @return the full domain of the target node's CPF 
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected Vector<BeliefNode> connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws Exception {
+	protected Vector<BeliefNode> connectParents(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode, HashMap<BeliefNode, BeliefNode> src2targetParent, HashMap<BeliefNode, Integer> constantSettings) throws ProbCogException {
 		Vector<BeliefNode> domprod = new Vector<BeliefNode>();
 		domprod.add(targetNode);
 		HashSet<BeliefNode> handledTargetParents = new HashSet<BeliefNode>();
@@ -659,9 +660,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			}
 			BeliefNode parent = instantiateVariable(relParent.getFunctionName(), entry.getValue());
 			if(parent == null)
-				throw new Exception("Error instantiating parent '" + Signature.formatVarName(relParent.getFunctionName(), entry.getValue()) + "' while instantiating " + targetNode);
+				throw new ProbCogException("Error instantiating parent '" + Signature.formatVarName(relParent.getFunctionName(), entry.getValue()) + "' while instantiating " + targetNode);
 			if(handledTargetParents.contains(parent))
-				throw new Exception("Error instantiating " + targetNode + " from " + srcRelNode + ": Duplicate parent " + parent);
+				throw new ProbCogException("Error instantiating " + targetNode + " from " + srcRelNode + ": Duplicate parent " + parent);
 			//System.out.println("Connecting " + parent.getName() + " to " + targetNode.getName());
 			handledTargetParents.add(parent);
 			groundBN.connect(parent, targetNode, false);
@@ -676,9 +677,9 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 	 * @param parentGrounding  a grounding (mapping of indices of relational nodes to an array of actual parameters)
 	 * @param srcRelNode  relational node that the CPF is to be copied from 
 	 * @param targetNode  the target node to connect parents to and whose CPF is to be written
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws Exception {
+	protected void instantiateCPF(Map<Integer, String[]> parentGrounding, RelationalNode srcRelNode, BeliefNode targetNode) throws ProbCogException {
 		// connect parents, determine domain products, and set constant nodes (e.g. "x") to their respective constant value
 		HashMap<BeliefNode, BeliefNode> src2targetParent = new HashMap<BeliefNode, BeliefNode>();
 		HashMap<BeliefNode, Integer> constantSettings = new HashMap<BeliefNode, Integer>();
@@ -701,15 +702,15 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			//System.out.println("Parent corresponding to " + srcDomainProd[i].getName() + " is " + targetParent);			
 			if(targetParent != null) {
 				if(handledParents.contains(targetParent))
-					throw new Exception("Cannot instantiate " + targetNode + " using template " + srcRelNode + ": Duplicate parent " + targetParent);
+					throw new ProbCogException("Cannot instantiate " + targetNode + " using template " + srcRelNode + ": Duplicate parent " + targetParent);
 				if(j >= targetDomainProd.length)
-					throw new Exception("Domain product of " + targetNode + " too small; size = " + targetDomainProd.length + "; tried to add " + targetParent + "; already added " + StringTool.join(",", targetDomainProd));				
+					throw new ProbCogException("Domain product of " + targetNode + " too small; size = " + targetDomainProd.length + "; tried to add " + targetParent + "; already added " + StringTool.join(",", targetDomainProd));				
 				targetDomainProd[j++] = targetParent;
 				handledParents.add(targetParent);
 			}
 		}
 		if(j != targetDomainProd.length)
-			throw new Exception("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);		
+			throw new ProbCogException("CPF domain product not fully filled: handled " + j + ", needed " + targetDomainProd.length);		
 		
 		// transfer the CPF values
 		String cpfID = Integer.toString(srcRelNode.index);
@@ -801,12 +802,12 @@ public abstract class AbstractGroundBLN implements IParameterHandler {
 			nodes = cpf.getDomainProduct();
 		}
 		
-		public void fill() throws Exception {
+		public void fill() throws ProbCogException {
 			int[] addr = new int[nodes.length];
 			fill(0, addr);
 		}
 		
-		protected void fill(int iNode, int[] addr) throws Exception {
+		protected void fill(int iNode, int[] addr) throws ProbCogException {
 			// if all parents have been set, determine the truth value of the formula and 
 			// fill the corresponding entry of the CPT 
 			if(iNode == nodes.length) {

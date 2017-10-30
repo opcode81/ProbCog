@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import umontreal.iro.lecuyer.probdist.BetaDist;
 
 /**
@@ -45,7 +46,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	public Double confidenceLevel = null;
 	public ParameterHandler paramHandler;
 	
-	public BasicSampledDistribution() throws Exception {
+	public BasicSampledDistribution() throws ProbCogException {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("confidenceLevel", "setConfidenceLevel");
 	}
@@ -99,7 +100,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		return values[idx].length;
 	}
 	
-	public GeneralSampledDistribution toGeneralDistribution() throws Exception {
+	public GeneralSampledDistribution toGeneralDistribution() throws ProbCogException {
 		int numVars = values.length;
 		String[] varNames = new String[numVars];
 		String[][] domains = new String[numVars][];
@@ -114,17 +115,17 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	 * gets the mean squared error when comparing to another distribution d, assuming that values of this distribution are correct
 	 * @param d the other distribution
 	 * @return the mean squared error (averaged across all entries of the distribution)
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public double getMSE(BasicSampledDistribution d) throws Exception {
+	public double getMSE(BasicSampledDistribution d) throws ProbCogException {
 		return compare(new MeanSquaredError(this), d);
 	}
 	
-	public double getHellingerDistance(BasicSampledDistribution d) throws Exception {
+	public double getHellingerDistance(BasicSampledDistribution d) throws ProbCogException {
 		return compare(new HellingerDistance(this), d);
 	}
 	
-	public double compare(DistributionEntryComparison dec, BasicSampledDistribution otherDist) throws Exception {
+	public double compare(DistributionEntryComparison dec, BasicSampledDistribution otherDist) throws ProbCogException {
 		DistributionComparison dc = new DistributionComparison(this, otherDist);
 		dc.addEntryComparison(dec);
 		dc.compare();
@@ -148,9 +149,9 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 	 * @param mainDist
 	 * @param referenceDist
 	 * @param evidenceDomainIndices evidence domain indices array (indexed by variable indices in main distribution)
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public static void compareDistributions(BasicSampledDistribution mainDist, BasicSampledDistribution referenceDist, int[] evidenceDomainIndices) throws Exception {
+	public static void compareDistributions(BasicSampledDistribution mainDist, BasicSampledDistribution referenceDist, int[] evidenceDomainIndices) throws ProbCogException {
 		DistributionComparison dc = new DistributionComparison(mainDist, referenceDist);
 		dc.addEntryComparison(new ErrorList(mainDist));
 		dc.addEntryComparison(new MeanSquaredError(mainDist));
@@ -208,8 +209,13 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			processors.add(c);
 		}
 		
-		public void addEntryComparison(Class<? extends DistributionEntryComparison> c) throws IllegalArgumentException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-			addEntryComparison(c.getConstructor(BasicSampledDistribution.class).newInstance(referenceDist));
+		public void addEntryComparison(Class<? extends DistributionEntryComparison> c) throws ProbCogException {
+			try {
+				addEntryComparison(c.getConstructor(BasicSampledDistribution.class).newInstance(referenceDist));
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+				throw new ProbCogException(e);
+			}
 		}
 		
 		/**
@@ -217,16 +223,16 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 		 * non-evidence variables, i.e. variables whose domain indices
 		 * in evidenceDomainIndices are < 0 
 		 * @param evidenceDomainIndices evidence domain indices, indexed by variable index
-		 * @throws Exception
+		 * @throws ProbCogException
 		 */
-		public void compare(int[] evidenceDomainIndices) throws Exception {
+		public void compare(int[] evidenceDomainIndices) throws ProbCogException {
 			for(int i = 0; i < mainDist.values.length; i++) {
 				if(evidenceDomainIndices != null && evidenceDomainIndices[i] >= 0)
 					continue;
 				String varName = mainDist.getVariableName(i);
 				int i2 = referenceDist.getVariableIndex(varName);
 				if(i2 < 0) 
-					throw new Exception("Variable " + varName + " has no correspondence in reference distribution");
+					throw new ProbCogException("Variable " + varName + " has no correspondence in reference distribution");
 				for(int j = 0; j < mainDist.values[i].length; j++) {
 					double v1 = referenceDist.getProbability(i2, j);
 					double v2 = mainDist.getProbability(i, j);
@@ -236,7 +242,7 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 			}			
 		}
 		
-		public void compare() throws Exception {
+		public void compare() throws ProbCogException {
 			compare(null);
 		}
 		
@@ -245,12 +251,12 @@ public abstract class BasicSampledDistribution implements IParameterHandler {
 				dec.printResult();
 		}
 		
-		public double getResult(Class<? extends DistributionEntryComparison> c) throws Exception {
+		public double getResult(Class<? extends DistributionEntryComparison> c) throws ProbCogException {
 			for(DistributionEntryComparison p : processors)
 				if(c.isInstance(p)) {
 					return p.getResult();
 				}
-			throw new Exception(c.getSimpleName() + " was not processed in this comparison");
+			throw new ProbCogException(c.getSimpleName() + " was not processed in this comparison");
 		}
 	}
 		

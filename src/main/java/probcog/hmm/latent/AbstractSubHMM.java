@@ -25,6 +25,7 @@ import java.util.Vector;
 import be.ac.ulg.montefiore.run.jahmm.Observation;
 import be.ac.ulg.montefiore.run.jahmm.Opdf;
 import be.ac.ulg.montefiore.run.jahmm.OpdfFactory;
+import probcog.exception.ProbCogException;
 
 /**
  * @author Dominik Jain
@@ -63,9 +64,9 @@ public abstract class AbstractSubHMM<O extends Observation> extends DwellTimeHMM
 	}
 
 	@Override
-	public void learnObservationModel(int state, Collection<? extends Collection<? extends O>> data) throws Exception {
+	public void learnObservationModel(int state, Collection<? extends Collection<? extends O>> data) throws ProbCogException {
 		if(!isBottom())
-			throw new Exception("hierarchy unsupported");
+			throw new ProbCogException("hierarchy unsupported");
 		else {
 			Vector<O> coll = new Vector<O>();
 			for(Collection<? extends O> segment : data)

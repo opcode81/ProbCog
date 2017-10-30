@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.parser.FormulaParser;
 import probcog.logic.parser.ParseException;
 import probcog.srl.Database;
@@ -39,23 +40,23 @@ public abstract class Formula {
 	 * gets a mapping from names of meta-variables appearing in the formula to the types/domains they apply to
 	 * @param db 
 	 * @param ret mapping in which to store the result
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public abstract void getVariables(GenericDatabase<?, ?> db, Map<String,String> ret) throws Exception;
+	public abstract void getVariables(GenericDatabase<?, ?> db, Map<String,String> ret) throws ProbCogException;
 	/**
 	 * adds any constants appearing in the formula to the given relational model
 	 * @param m
 	 */
-	public abstract void addConstantsToModel(RelationalModel m) throws Exception;
+	public abstract void addConstantsToModel(RelationalModel m) throws ProbCogException;
 	/**
 	 * grounds this formula for a particular binding of its variables
 	 * @param binding		the variable binding
 	 * @param worldVars		the set of ground atoms (which is needed to return the ground versions of atoms)
 	 * @param db			a database containing a set of constants for each type that can be used to ground quantified formulas (can be null if the formula does not contain any quantified variables)
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, GenericDatabase<?, ?> db) throws Exception;
+	public abstract Formula ground(Map<String, String> binding, WorldVariables worldVars, GenericDatabase<?, ?> db) throws ProbCogException;
 	/**
 	 * gets the set of ground atoms appearing in this (grounded) formula
 	 * @param ret the set to write to
@@ -84,9 +85,9 @@ public abstract class Formula {
 	 * @param worldVars  the collection of variables (ground atoms) that defines the set of possible worlds
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public Vector<Formula> getAllGroundings(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
+	public Vector<Formula> getAllGroundings(Database db, WorldVariables worldVars, FormulaSimplification simplify) throws ProbCogException {
 		Vector<Formula> ret = new Vector<Formula>();
 		addAllGroundingsTo(ret, db, worldVars, simplify);
 		return ret;
@@ -98,9 +99,9 @@ public abstract class Formula {
 	 * @param db
 	 * @param worldVars
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void addAllGroundingsTo(Collection<Formula> collection, Database db, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
+	public void addAllGroundingsTo(Collection<Formula> collection, Database db, WorldVariables worldVars, FormulaSimplification simplify) throws ProbCogException {
 		HashMap<String, String> vars = new HashMap<String, String>();
 		getVariables(db, vars);
 		String[] varNames = vars.keySet().toArray(new String[vars.size()]);
@@ -117,9 +118,9 @@ public abstract class Formula {
 	 * @param var2domName  a mapping of variable names to domain names (that contains as keys at least the variables in varNames)
 	 * @param worldVars  the collection of variables (ground atoms) that defines the set of possible worlds
 	 * @param simplify whether to use the evidence in the database to simplify ground formulas
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void generateGroundings(Collection<Formula> ret, GenericDatabase<?,?> db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, FormulaSimplification simplify) throws Exception {
+	protected void generateGroundings(Collection<Formula> ret, GenericDatabase<?,?> db, Map<String, String> binding, String[] varNames, int i, Map<String, String> var2domName, WorldVariables worldVars, FormulaSimplification simplify) throws ProbCogException {
 		// if we have the full set of parameters, add it to the collection
 		if(i == varNames.length) {
             Formula f = (this.ground(binding, worldVars, db));
@@ -127,7 +128,7 @@ public abstract class Formula {
             	f = f.simplify(db);
             if(f instanceof TrueFalse) {
             	if(!((TrueFalse)f).isTrue() && simplify == FormulaSimplification.OnDisallowFalse)
-            		throw new Exception("Unsatisfiable hard formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");            		
+            		throw new ProbCogException("Unsatisfiable hard formula encountered: " + this.toString() + " with binding " + binding.toString() + " cannot be satisfied (given the evidence).");            		
             	return;
             }
             else
@@ -139,7 +140,7 @@ public abstract class Formula {
 		String domName = var2domName.get(varName);
 		Iterable<String> domain = db.getDomain(domName);
 		if(domain == null)
-			throw new Exception("Domain named '" + domName + "' (of variable " + varName + " in formula " + this.toString() + ") not found in the database!");
+			throw new ProbCogException("Domain named '" + domName + "' (of variable " + varName + " in formula " + this.toString() + ") not found in the database!");
 		for(String element : domain) {
 			binding.put(varName, element);
 			generateGroundings(ret, db, binding, varNames, i+1, var2domName, worldVars, simplify);

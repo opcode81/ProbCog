@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.Database;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationKey;
@@ -53,11 +54,11 @@ public class ParentGrounder {
 		 * perform the functional lookup, extending the given variable binding with the result
 		 * @param db
 		 * @param varBindings the variable binding to extend with the results of the lookup
-		 * @throws Exception if a lookup that is required to work failed
+		 * @throws ProbCogException if a lookup that is required to work failed
 		 * @return true if the lookup could be performed to extend the variable binding,
 		 * false if the lookup is not applicable because the precondition is not met
 		 */
-		public boolean doLookup(GenericDatabase<?,?> db, HashMap<String,String> varBindings) throws Exception {
+		public boolean doLookup(GenericDatabase<?,?> db, HashMap<String,String> varBindings) throws ProbCogException {
 			// build the key values
 			String[] keyValues = new String[key.keyIndices.size()];
 			int i = 0;
@@ -76,7 +77,7 @@ public class ParentGrounder {
 				for(int k = 0; k < node.params.length; k++) buf[k] = "_";
 				int j = 0;
 				for(Integer k : key.keyIndices) buf[k] = keyValues[j++];
-				throw new Exception("Could not perform required lookup for " + Signature.formatVarName(node.getFunctionName(), buf));
+				throw new ProbCogException("Could not perform required lookup for " + Signature.formatVarName(node.getFunctionName(), buf));
 			}
 			// update the variable bindings
 			java.util.Iterator<Integer> iter = key.keyIndices.iterator();
@@ -101,7 +102,7 @@ public class ParentGrounder {
 	protected String[] ungroundedParams;
 	protected String[] ungroundedParamDomains;
 	
-	public ParentGrounder(RelationalBeliefNetwork bn, RelationalNode child) throws Exception {
+	public ParentGrounder(RelationalBeliefNetwork bn, RelationalNode child) throws ProbCogException {
 		functionalLookups = new Vector<FunctionalLookup>();
 		mainNode = child;
 		parents = bn.getRelationalParents(child);
@@ -129,7 +130,7 @@ public class ParentGrounder {
 							Signature sig = parent.getSignature();
 							if(sig != null && !parent.isConstant) { // sig can be null for built-in predicates
 								if(sig.argTypes.length != parent.params.length)
-									throw new Exception(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
+									throw new ProbCogException(String.format("Parameter count in signature %s (%d) does not match node %s (%d).", sig.toString(), sig.argTypes.length, parent.toString(), parent.params.length));
 								if(ungroundedParamDomains[i] == null || taxonomy.query_isa(sig.argTypes[j], ungroundedParamDomains[i]))
 									ungroundedParamDomains[i] = sig.argTypes[j];
 							}
@@ -195,7 +196,7 @@ public class ParentGrounder {
 			}
 			// if there weren't any gains in this iteration, then we cannot ground the parents
 			if(gains == 0 && !newWorkingSet.isEmpty()) {
-				throw new Exception("Could not determine how to ground parents of " + mainNode + "; some parameters of " + newWorkingSet + " could not be resolved; handled vars: " + handledVars);
+				throw new ProbCogException("Could not determine how to ground parents of " + mainNode + "; some parameters of " + newWorkingSet + " could not be resolved; handled vars: " + handledVars);
 			}
 			workingSet = newWorkingSet;
 		}
@@ -222,10 +223,10 @@ public class ParentGrounder {
 	 * generates a grounding of all parent nodes (and the main node itself), i.e. a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the man node for which this parameter grounding should be performed
 	 * @return mapping of node indices to lists of corresponding actual parameters or null
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 * @deprecated this method is apparently not required; it is not referenced anywhere
 	 */
-	public Map<Integer, String[]> generateParameterSets(String[] actualParameters, Database db) throws Exception {
+	public Map<Integer, String[]> generateParameterSets(String[] actualParameters, Database db) throws ProbCogException {
 		HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();			
 		m.put(this.mainNode.index, actualParameters);
 		// generate the variable bindings via parameter matching and functional lookups
@@ -248,9 +249,9 @@ public class ParentGrounder {
 	 * generates all possible groundings of all parent nodes (and the main node itself), where a grounding is a list of actual parameters for each node, given a vector of actual parameters for this object's main node 
 	 * @param actualParameters actual parameters of the main node for which this parameter grounding should be performed
 	 * @return vector of mappings of node indices to lists of corresponding actual parameters or null if there is no valid binding for the given actual parameters of the main node
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public Vector<ParentGrounding> getGroundings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
+	public Vector<ParentGrounding> getGroundings(String[] actualParameters, GenericDatabase<?,?> db) throws ProbCogException {
 		// generate all the parameter bindings we can
 		HashMap<String, String> paramBindings = generateParameterBindings(actualParameters, db);
 		if(paramBindings == null)
@@ -277,10 +278,10 @@ public class ParentGrounder {
 	 * @param paramBindings
 	 * @param idx
 	 * @param ret
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
 	@SuppressWarnings("unchecked")
-	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<ParentGrounding> ret) throws Exception {
+	protected void getCompleteGroundings(String[] mainNodeParams, GenericDatabase<?,?> db, HashMap<String, String> paramBindings, int idx, Vector<ParentGrounding> ret) throws ProbCogException {
 		if(ungroundedParams == null || idx == ungroundedParams.length) {
 			// all variables have been grounded, so now generate a mapping: node index -> list of actual parameters
 			HashMap<Integer, String[]> m = new HashMap<Integer, String[]>();
@@ -301,7 +302,7 @@ public class ParentGrounder {
 			String param = ungroundedParams[idx];
 			Iterable<String> s = db.getDomain(ungroundedParamDomains[idx]);
 			if(s == null) 
-				throw new Exception("Domain " + ungroundedParamDomains[idx] + " not found!");			
+				throw new ProbCogException("Domain " + ungroundedParamDomains[idx] + " not found!");			
 			for(String constant : s) {
 				paramBindings.put(param, constant);
 				getCompleteGroundings(mainNodeParams, db, paramBindings, idx+1, ret);
@@ -314,9 +315,9 @@ public class ParentGrounder {
 	 * @param actualParameters
 	 * @param db
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public HashMap<String, String> generateParameterBindings(String[] actualParameters, GenericDatabase<?,?> db) throws Exception {
+	public HashMap<String, String> generateParameterBindings(String[] actualParameters, GenericDatabase<?,?> db) throws ProbCogException {
 		HashMap<String, String> bindings = new HashMap<String, String>();
 		// add known bindings from main node 
 		for(int i = 0; i < mainNode.params.length; i++)

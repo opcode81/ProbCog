@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.Attributes;
@@ -30,7 +31,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import probcog.logic.parser.ParseException;
+import probcog.exception.ProbCogException;
 
 /**
  * Represents a pool of models.
@@ -40,7 +41,7 @@ public class ModelPool {
 	protected HashMap<String, Model> pool;
 	protected File poolPath;
 	
-	public ModelPool(String poolFilename) throws IOException, ParseException, Exception {
+	public ModelPool(String poolFilename) throws ProbCogException {
 		pool = new HashMap<String, Model>();
 		
 		File poolFile = new File(poolFilename);
@@ -48,7 +49,12 @@ public class ModelPool {
 		
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		factory.setValidating(true);
-		factory.newSAXParser().parse(poolFile, new PoolReader());
+		try {
+			factory.newSAXParser().parse(poolFile, new PoolReader());
+		}
+		catch (SAXException | IOException | ParserConfigurationException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public Model getModel(String name) {
@@ -71,17 +77,17 @@ public class ModelPool {
 				constantMap = new HashMap<String,String>();
 			}
 			
-			private void checkFileTypes(String[] requiredTypes) throws Exception {
+			private void checkFileTypes(String[] requiredTypes) throws ProbCogException {
 				for(String t : requiredTypes) {
 					if(!files.containsKey(t))
-						throw new Exception(String.format("Missing file of type '%s' for model '%s'", t, name));
+						throw new ProbCogException(String.format("Missing file of type '%s' for model '%s'", t, name));
 				}
 			}
 			
-			public Model instantiate() throws Exception {
+			public Model instantiate() throws ProbCogException {
 				Model m; 
 				if(name == null)
-					throw new Exception("Model has no 'name' attribute.");
+					throw new ProbCogException("Model has no 'name' attribute.");
 				System.out.println("Loading model " + name + "...");
 				// get model path
 				File fPath;
@@ -101,7 +107,7 @@ public class ModelPool {
 					m = new MLNModel(name, new File(fPath, files.get("network")).getPath());
 				}
 				else
-					throw new Exception(String.format("Unknown model type '%s'", type));
+					throw new ProbCogException(String.format("Unknown model type '%s'", type));
 				m.setConstantMap(constantMap);
 				return m;
 			}

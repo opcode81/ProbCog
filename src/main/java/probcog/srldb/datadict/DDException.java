@@ -18,7 +18,9 @@
  ******************************************************************************/
 package probcog.srldb.datadict;
 
-public class DDException extends Exception {
+import probcog.exception.ProbCogException;
+
+public class DDException extends ProbCogException {
 	private static final long serialVersionUID = 1L;
 
 	public DDException(String reason) {

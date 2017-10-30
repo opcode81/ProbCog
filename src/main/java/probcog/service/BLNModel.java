@@ -19,14 +19,15 @@
 
 package probcog.service;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Vector;
 import java.util.Map.Entry;
+import java.util.Vector;
 
-import probcog.logic.parser.ParseException;
+import edu.tum.cs.util.StringTool;
+import edu.tum.cs.util.datastruct.Pair;
+import probcog.exception.ProbCogException;
 import probcog.srl.Database;
 import probcog.srl.Signature;
 import probcog.srl.Variable;
@@ -34,9 +35,6 @@ import probcog.srl.directed.RelationalNode;
 import probcog.srl.directed.bln.BayesianLogicNetwork;
 import probcog.srl.directed.bln.GroundBLN;
 import probcog.srl.directed.inference.BLNinfer;
-
-import edu.tum.cs.util.StringTool;
-import edu.tum.cs.util.datastruct.Pair;
 
 /**
  * Represents a Bayesian logic network model for use in the ProbCog service.
@@ -49,28 +47,28 @@ public class BLNModel extends Model {
 	protected Database db;
 	protected String filenames;
 	
-	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws IOException, ParseException, Exception {
+	public BLNModel(String modelName, String blogFile, String networkFile, String logicFile) throws ProbCogException {
 		super(modelName);
 		this.filenames = String.format("%s;%s;%s", blogFile, networkFile, logicFile);
 		this.bln = new BayesianLogicNetwork(blogFile, networkFile, logicFile);		
 	}
 	
 	@Override
-	public void instantiate() throws Exception {
+	public void instantiate() throws ProbCogException {
 		gbln = bln.ground(db);
 		paramHandler.addSubhandler(gbln);
 		gbln.instantiateGroundNetwork();
 	}
 	
 	@Override
-	public void beginSession(Map<String, Object> params) throws Exception {
+	public void beginSession(Map<String, Object> params) throws ProbCogException {
 		super.beginSession(params);
 		db = new Database(bln.rbn);
 		paramHandler.addSubhandler(db);
 	}
 
 	@Override
-	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {		
+	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws ProbCogException {		
 		BLNinfer inference = new BLNinfer(actualParams);
 		paramHandler.addSubhandler(inference);		
 		inference.setGroundBLN(gbln);
@@ -103,12 +101,12 @@ public class BLNModel extends Model {
 	}
 
 	@Override
-	protected void _setEvidence(Iterable<String[]> evidence) throws Exception {
+	protected void _setEvidence(Iterable<String[]> evidence) throws ProbCogException {
 		for(String[] tuple : evidence) {
 			String functionName = tuple[0];
 			Signature sig = bln.rbn.getSignature(functionName);
 			if(sig == null)
-				throw new Exception("Function '" + functionName + "' appearing in evidence not found in model " + name);
+				throw new ProbCogException("Function '" + functionName + "' appearing in evidence not found in model " + name);
 			String value;
 			String[] params;
 			if(sig.argTypes.length == tuple.length-1) {
@@ -119,7 +117,7 @@ public class BLNModel extends Model {
 			}
 			else {
 				if(tuple.length < sig.argTypes.length+2)
-					throw new Exception("Evidence entry has too few parameters: " + StringTool.join(", ", tuple));
+					throw new ProbCogException("Evidence entry has too few parameters: " + StringTool.join(", ", tuple));
 				params = new String[sig.argTypes.length];
 				for(int i = 0; i < params.length; i++)
 					params[i] = tuple[i+1];

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.logging.PrintLogger;
@@ -43,7 +44,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 	protected int maxSteps = 5000;
 	protected PrintLogger log;
 	
-	public InferenceAlgorithm(MarkovRandomField mrf) throws Exception {
+	public InferenceAlgorithm(MarkovRandomField mrf) throws ProbCogException {
 		this.mrf = mrf;
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebugMode");
@@ -93,7 +94,7 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		return results;
 	}
 	
-	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception;
+	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException;
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();

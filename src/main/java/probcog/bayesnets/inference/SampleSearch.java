@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.util.Stopwatch;
@@ -54,7 +54,7 @@ public class SampleSearch extends Sampler {
 		Prior, BP, IJGP;
 	}
 	
-	public SampleSearch(BeliefNetworkEx bn) throws Exception {
+	public SampleSearch(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 				
 		this.paramHandler.add("importanceFunction", "setImportanceFunction");
@@ -65,7 +65,7 @@ public class SampleSearch extends Sampler {
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		// TODO could help to guarantee for BLNs that formula nodes appear as early as possible
 		nodeOrder = computeNodeOrdering();
 		samplingProb = new double[nodes.length];
@@ -92,7 +92,7 @@ public class SampleSearch extends Sampler {
 		this.importanceFunctionSteps = steps;
 	}
 	
-	protected int[] computeNodeOrdering() throws Exception {
+	protected int[] computeNodeOrdering() throws ProbCogException {
 		return bn.getTopologicalOrder();
 	}
 	
@@ -105,7 +105,7 @@ public class SampleSearch extends Sampler {
 	}
 	
 	@Override
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		// sample
 		Stopwatch sw = new Stopwatch();
 		out.println("sampling...");
@@ -130,10 +130,10 @@ public class SampleSearch extends Sampler {
 						double p = bn.getCPTProbability(node, s.nodeDomainIndices);
 						out.printf(" %f", p);
 						if(p == 0.0)
-							throw new Exception("Sample has 0 probability.");							
+							throw new ProbCogException("Sample has 0 probability.");							
 						prod *= p;
 						if(prod == 0.0)
-							throw new Exception("Precision loss - product became 0");
+							throw new ProbCogException("Precision loss - product became 0");
 					}
 				out.println();
 				*/
@@ -146,7 +146,7 @@ public class SampleSearch extends Sampler {
 		report(String.format("time taken: %.2fs (%.4fs per sample, %.1f trials/sample, %.4f*N assignments/sample, %d samples)\n", sw.getElapsedTimeSecs(), sw.getElapsedTimeSecs()/numSamples, dist.getTrialsPerStep(), (float)dist.operations/nodes.length/numSamples, dist.steps));
 	}
 	
-	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
+	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws ProbCogException {
 		s.trials = 1;
 		s.operations = 0;	
 		s.weight = 1.0;		
@@ -205,7 +205,7 @@ public class SampleSearch extends Sampler {
 				// add the previous node's setting as an exclusion
 				--i;
 				if(i < 0)
-					throw new Exception("Could not find a sample with non-zero probability. Most likely, the evidence specified has 0 probability.");
+					throw new ProbCogException("Could not find a sample with non-zero probability. Most likely, the evidence specified has 0 probability.");
 				nodeIdx = nodeOrder[i];
 				boolean[] prevExcl = domExclusions.get(nodeIdx);
 				prevExcl[s.nodeDomainIndices[nodeIdx]] = true;
@@ -302,7 +302,7 @@ public class SampleSearch extends Sampler {
 	}
 	
 	@Override
-	protected IDistributionBuilder createDistributionBuilder() throws Exception {
+	protected IDistributionBuilder createDistributionBuilder() throws ProbCogException {
 		if(useProperWeighting)			
 			return new UnbiasedEstimator();
 		else
@@ -314,7 +314,7 @@ public class SampleSearch extends Sampler {
 	 */
 	protected class BiasedEstimator extends DirectDistributionBuilder {
 
-		public BiasedEstimator() throws Exception {
+		public BiasedEstimator() throws ProbCogException {
 			super(createDistribution());
 		}
 		
@@ -339,13 +339,13 @@ public class SampleSearch extends Sampler {
 		protected SampledDistribution dist;
 		protected boolean dirty = false;
 		
-		public UnbiasedEstimator() throws Exception {
+		public UnbiasedEstimator() throws ProbCogException {
 			maxQ = new Map2D<Integer,BigInteger,Double>();
 			samples = new Vector<WeightedSample>();
 		}
 		
 		@Override
-		public synchronized void addSample(WeightedSample s) throws Exception {
+		public synchronized void addSample(WeightedSample s) throws ProbCogException {
 			BigInteger partAssign = BigInteger.valueOf(0);
 			Vector<Integer> partAssign2 = new Vector<Integer>();
 			for(int i = 0; i < nodeOrder.length; i++) {				
@@ -360,12 +360,17 @@ public class SampleSearch extends Sampler {
 					}
 				}
 			}
-			samples.add(s.clone());
+			try {
+				samples.add(s.clone());
+			} 
+			catch (CloneNotSupportedException e) {
+				throw new ProbCogException(e);
+			}
 			dirty = true;
 		}
 
 		@Override
-		public synchronized SampledDistribution getDistribution() throws Exception {			
+		public synchronized SampledDistribution getDistribution() throws ProbCogException {			
 			if(!dirty)
 				return dist;
 			System.out.println("unbiased sample weighting...");

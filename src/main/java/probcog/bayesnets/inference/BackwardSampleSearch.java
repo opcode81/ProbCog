@@ -31,7 +31,7 @@ import java.util.Vector;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.util.TopologicalOrdering;
 import probcog.bayesnets.util.TopologicalSort;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.tum.cs.util.datastruct.Map2D;
@@ -80,7 +80,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 	 */
 	protected boolean useCache = true;
 	
-	public BackwardSampleSearch(BeliefNetworkEx bn) throws Exception {
+	public BackwardSampleSearch(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);		
 		this.paramHandler.add("unbiased","setUseProperWeighting");
 	}
@@ -89,7 +89,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 		useProperWeighting = enabled;
 	}
 	
-	protected boolean sampleForward(BeliefNode node, WeightedSample s, Set<Integer> excluded) throws Exception {
+	protected boolean sampleForward(BeliefNode node, WeightedSample s, Set<Integer> excluded) throws ProbCogException {
 		CPF cpf = node.getCPF();
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		int[] addr = new int[domProd.length];
@@ -130,7 +130,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 		return true;
 	}
 	
-	protected boolean sampleBackward(BeliefNode node, WeightedSample s, Set<Integer> excluded) throws Exception{
+	protected boolean sampleBackward(BeliefNode node, WeightedSample s, Set<Integer> excluded) throws ProbCogException{
 		
 		// get backward sampling distribution
 		BackSamplingDistribution d = backSamplingDistributionCache.get(node);
@@ -204,7 +204,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		super._initialize();
 		sampledIndices = new int[samplingOrder.size()];
 		assignedNodeIndicesByOrderIndex = new Map2List<Integer, Integer>();		
@@ -212,7 +212,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 	}
 	
 	@Override
-	public void getSample(WeightedSample s) throws Exception {
+	public void getSample(WeightedSample s) throws ProbCogException {
 		Map2Set<BeliefNode,Integer> domExclusions = new Map2Set<BeliefNode,Integer>();
 		
 		initSample(s);				
@@ -294,7 +294,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 				backtracking = true;
 				--i;
 				if(i < 0)
-					throw new Exception("Evidence seems to be contradictory");
+					throw new ProbCogException("Evidence seems to be contradictory");
 				s.trials++;
 			}				
 			else {
@@ -308,10 +308,10 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
 	@Override
-	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
+	protected void getOrdering(int[] evidenceDomainIndices) throws ProbCogException {
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();
@@ -363,7 +363,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 		}
 	}
 	
-	public IDistributionBuilder createDistributionBuilder() throws Exception {		
+	public IDistributionBuilder createDistributionBuilder() throws ProbCogException {		
 		return new DistributionBuilder();
 	}
 
@@ -374,7 +374,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 		protected SampledDistribution dist;
 		protected boolean dirty = false;
 		
-		public DistributionBuilder() throws Exception {
+		public DistributionBuilder() throws ProbCogException {
 			if(useProperWeighting) {
 				minFactors = new Map2D<Integer,BigInteger,Double>();
 				samples = new Vector<Pair<WeightedSample,Vector<Pair<Integer,BigInteger>>>>();
@@ -384,7 +384,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 		}
 		
 		@Override
-		public synchronized void addSample(WeightedSample s) throws Exception {
+		public synchronized void addSample(WeightedSample s) throws ProbCogException {
 			dirty = true;
 			s.weight = 1.0;
 
@@ -395,7 +395,7 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 			for(BeliefNode node : outsideSamplingOrder) {
 				double p = getCPTProbability(node, s.nodeDomainIndices);
 				s.weight *= p;
-				if(s.weight == 0.0) throw new Exception(p != 0.0 ? "Precision loss while computing sample weight" : "Sample has 0 probability");
+				if(s.weight == 0.0) throw new ProbCogException(p != 0.0 ? "Precision loss while computing sample weight" : "Sample has 0 probability");
 			}
 			
 			if(!useProperWeighting) {				
@@ -409,12 +409,12 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 				//   then the sampling probability may be higher as a result of backtracking. 
 				for(BeliefNode node : forwardSampledNodes) {
 					s.weight *= weightingFactors.get(node);
-					if(s.weight == 0.0) throw new Exception("Precision loss while computing sample weight");
+					if(s.weight == 0.0) throw new ProbCogException("Precision loss while computing sample weight");
 				}
 
 				for(BeliefNode node : backwardSampledNodes) {
 					s.weight *= weightingFactors.get(node);
-					if(s.weight == 0.0) { throw new Exception("Precision loss while computing sample weight");}
+					if(s.weight == 0.0) { throw new ProbCogException("Precision loss while computing sample weight");}
 				}		
 				
 				// and we just add the sample to the distribution 
@@ -452,13 +452,19 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 					keys.add(new Pair<Integer,BigInteger>(i,partAssign));
 				}
 				
-				Pair<WeightedSample, Vector<Pair<Integer,BigInteger>>> sample = new Pair<WeightedSample, Vector<Pair<Integer,BigInteger>>>(s.clone(), keys);
+				Pair<WeightedSample, Vector<Pair<Integer, BigInteger>>> sample;
+				try {
+					sample = new Pair<WeightedSample, Vector<Pair<Integer,BigInteger>>>(s.clone(), keys);
+				} 
+				catch (CloneNotSupportedException e) {
+					throw new ProbCogException(e);
+				}
 				samples.add(sample);
 			}
 		}
 
 		@Override
-		public synchronized SampledDistribution getDistribution() throws Exception {
+		public synchronized SampledDistribution getDistribution() throws ProbCogException {
 			if(!useProperWeighting)
 				return dist;
 			else {
@@ -473,14 +479,14 @@ public class BackwardSampleSearch extends BackwardSamplingWithPriors {
 					for(BeliefNode node : outsideSamplingOrder) {
 						double p = getCPTProbability(node, s.nodeDomainIndices);
 						s.weight *= p;
-						if(s.weight == 0.0) throw new Exception(p != 0.0 ? "Precision loss while computing sample weight" : "Sample has 0 probability");
+						if(s.weight == 0.0) throw new ProbCogException(p != 0.0 ? "Precision loss while computing sample weight" : "Sample has 0 probability");
 					}
 					
 					for(Pair<Integer,BigInteger> key : sample.second) {
 						Double factor = minFactors.get(key.first, key.second);
 						//System.out.println("factor " + factor);
 						s.weight *= factor;
-						if(s.weight == 0.0) { throw new Exception("Precision loss while computing sample weight");}
+						if(s.weight == 0.0) { throw new ProbCogException("Precision loss while computing sample weight");}
 					}
 					//System.out.println("added sample with weight " + s.weight);
 					dist.addSample(s);

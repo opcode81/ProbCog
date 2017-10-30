@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.PriorityQueue;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.datastruct.PrioritySet;
 
@@ -33,12 +34,12 @@ import edu.tum.cs.util.datastruct.PrioritySet;
 public class SampleSearchBJ extends SampleSearch {
 	protected HashMap<BeliefNode, Integer> node2orderIndex;
 	
-	public SampleSearchBJ(BeliefNetworkEx bn) throws Exception {
+	public SampleSearchBJ(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);			
 	}
 
 	@Override
-	protected int[] computeNodeOrdering() throws Exception {
+	protected int[] computeNodeOrdering() throws ProbCogException {
 		if(verbose)
 			System.out.println("computing node ordering...");
 		
@@ -105,7 +106,7 @@ public class SampleSearchBJ extends SampleSearch {
 	}
 
 	@Override
-	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
+	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws ProbCogException {
 		s.trials = 1;
 		s.operations = 0;
 		s.weight = 1.0;
@@ -172,7 +173,7 @@ public class SampleSearchBJ extends SampleSearch {
 			}
 			else {
 				if(orderIdx == 0) // can't backtrack further
-					throw new Exception("Backtracking past first level. Most likely, the evidence that was specified is contradictory");
+					throw new ProbCogException("Backtracking past first level. Most likely, the evidence that was specified is contradictory");
 				
 				backtracking = true;
 				
@@ -196,7 +197,7 @@ public class SampleSearchBJ extends SampleSearch {
 				// back jump
 				Integer iprev = orderIdx;
 				if(backtrackQueue.isEmpty())
-					throw new Exception("Nowhere left to backjump to from node #" + orderIdx + ". Most likely, the evidence has 0 probability.");
+					throw new ProbCogException("Nowhere left to backjump to from node #" + orderIdx + ". Most likely, the evidence has 0 probability.");
 				else
 					orderIdx = backtrackQueue.remove();
 				

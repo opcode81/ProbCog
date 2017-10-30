@@ -25,6 +25,7 @@ import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.BackwardSamplingWithPriors;
 import probcog.bayesnets.inference.SampledDistribution;
 import probcog.bayesnets.inference.WeightedSample;
+import probcog.exception.ProbCogException;
 import probcog.srl.directed.bln.GroundBLN;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -47,12 +48,12 @@ public class LiftedBackwardSampling extends Sampler {
 	 */
 	HashMap<BeliefNode,Integer> node2class = new HashMap<BeliefNode, Integer>();
 	
-	public LiftedBackwardSampling(GroundBLN gbln) throws Exception {
+	public LiftedBackwardSampling(GroundBLN gbln) throws ProbCogException {
 		super(gbln);
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public SampledDistribution _infer() throws ProbCogException {
 		
 		// compute node equivalence classes with respect to the "backward sampling
 		// with children" procedure		
@@ -76,7 +77,7 @@ public class LiftedBackwardSampling extends Sampler {
 			// check if we already have it
 			String mainCPFID = gbln.getCPFID(node);
 			if(mainCPFID == null)
-				throw new Exception("Node " + node + " has no CPF-ID");
+				throw new ProbCogException("Node " + node + " has no CPF-ID");
 			Integer value = classes.get(mainCPFID, skey);
 			if(value == null) {
 				value = ++classNo;
@@ -338,19 +339,19 @@ public class LiftedBackwardSampling extends Sampler {
 			return d;
 		}
 		
-		public Sampler(BeliefNetworkEx bn) throws Exception {
+		public Sampler(BeliefNetworkEx bn) throws ProbCogException {
 			super(bn);
 		}
 		
 		@Override
-		public void _initialize() throws Exception {
+		public void _initialize() throws ProbCogException {
 			probCache = new Cache2D<String, Integer, Double>();
 			distCache = new Cache2D<Integer, Long, BackSamplingDistribution>();
 			super._initialize();
 		}
 		
 		@Override
-		public void _infer() throws Exception {
+		public void _infer() throws ProbCogException {
 			probSW = new Stopwatch();
 			distSW = new Stopwatch();
 			super._infer();

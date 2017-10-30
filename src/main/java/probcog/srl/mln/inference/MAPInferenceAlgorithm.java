@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.srl.mln.inference;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.IPossibleWorld;
 import probcog.srl.mln.MarkovRandomField;
 
@@ -27,7 +28,7 @@ import probcog.srl.mln.MarkovRandomField;
  */
 public abstract class MAPInferenceAlgorithm extends InferenceAlgorithm {
 
-	public MAPInferenceAlgorithm(MarkovRandomField mrf) throws Exception {
+	public MAPInferenceAlgorithm(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 	}
 

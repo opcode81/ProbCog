@@ -22,6 +22,7 @@ import java.util.Vector;
 
 import probcog.bayesnets.inference.ITimeLimitedInference;
 import probcog.bayesnets.inference.SampledDistribution;
+import probcog.exception.ProbCogException;
 
 /**
  * Time-limited inference wrapper for Bayesian logic networks.
@@ -31,7 +32,7 @@ public class TimeLimitedInference extends probcog.bayesnets.inference.TimeLimite
 
 	Sampler inference;
 	
-	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws Exception {
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws ProbCogException {
 		super(inference, time, interval);
 		this.inference = (Sampler)inference;
 	}

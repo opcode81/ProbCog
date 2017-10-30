@@ -19,6 +19,7 @@
 package probcog.clustering;
 import java.util.Arrays;
 
+import probcog.exception.ProbCogException;
 import weka.clusterers.Clusterer;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
@@ -29,7 +30,7 @@ import weka.core.Instances;
  * @author Dominik Jain
  */
 public interface ClusterNamer<Cl extends Clusterer> {
-	public String[] getNames(Cl clusterer) throws Exception;
+	public String[] getNames(Cl clusterer) throws ProbCogException;
 	
 	/**
 	 * the most basic cluster namer, which simply adds a prefix to each cluster index
@@ -42,8 +43,14 @@ public interface ClusterNamer<Cl extends Clusterer> {
 			this.prefix = prefix;
 		}
 		
-		public String[] getNames(Clusterer clusterer) throws Exception {
-			int n = clusterer.numberOfClusters();
+		public String[] getNames(Clusterer clusterer) throws ProbCogException {
+			int n;
+			try {
+				n = clusterer.numberOfClusters();
+			}
+			catch (Exception e) {
+				throw new ProbCogException(e);
+			}
 			String[] names = new String[n];
 			for(Integer i = 0; i < n; i++)
 				names[i] = prefix + i.toString();
@@ -62,9 +69,13 @@ public interface ClusterNamer<Cl extends Clusterer> {
 			this.names = names;
 		}
 		
-		public String[] getNames(Clusterer clusterer) throws Exception {
-			if(clusterer.numberOfClusters() != names.length)
-				throw new Exception("Number of clusters does not match number of names.");
+		public String[] getNames(Clusterer clusterer) throws ProbCogException {
+			try {
+				if(clusterer.numberOfClusters() != names.length)
+					throw new ProbCogException("Number of clusters does not match number of names.");
+			} catch (Exception e) {
+				throw new ProbCogException(e);
+			}
 			return names;
 		}
 	}

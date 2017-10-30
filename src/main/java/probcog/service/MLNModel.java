@@ -22,6 +22,7 @@ package probcog.service;
 import java.util.Map;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.BooleanDomain;
 import probcog.srl.Database;
 import probcog.srl.Signature;
@@ -41,7 +42,7 @@ public class MLNModel extends Model {
 	protected Database db;
 	protected MarkovRandomField mrf;
 	
-	public MLNModel(String name, String mln) throws Exception {
+	public MLNModel(String name, String mln) throws ProbCogException {
 		super(name);
 		this.mln = new MarkovLogicNetwork(mln);
 	}
@@ -52,13 +53,13 @@ public class MLNModel extends Model {
 	}
 	
 	@Override
-	public void beginSession(Map<String, Object> params) throws Exception {
+	public void beginSession(Map<String, Object> params) throws ProbCogException {
 		super.beginSession(params);
 		db = new Database(mln);
 	}
 
 	@Override
-	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws Exception {
+	protected Vector<InferenceResult> _infer(Iterable<String> queries) throws ProbCogException {
 		InferenceAlgorithm ia = new MCSAT(mrf);
 		paramHandler.addSubhandler(ia);
 		Vector<InferenceResult> res = new Vector<InferenceResult>();
@@ -70,12 +71,12 @@ public class MLNModel extends Model {
 	}
 
 	@Override
-	protected void _setEvidence(Iterable<String[]> evidence) throws Exception {
+	protected void _setEvidence(Iterable<String[]> evidence) throws ProbCogException {
 		for(String[] tuple : evidence) {
 			String functionName = tuple[0];
 			Signature sig = mln.getSignature(functionName);
 			if(sig == null)
-				throw new Exception("Function '" + functionName + "' appearing in evidence not found in model " + name);
+				throw new ProbCogException("Function '" + functionName + "' appearing in evidence not found in model " + name);
 			String value;
 			String[] params;
 			if(sig.argTypes.length == tuple.length-1) {
@@ -105,7 +106,7 @@ public class MLNModel extends Model {
 	}
 
 	@Override
-	public void instantiate() throws Exception {
+	public void instantiate() throws ProbCogException {
 		mrf = mln.ground(db);		
 	}
 }

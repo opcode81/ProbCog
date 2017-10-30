@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
+
 /**
  * Represents a simple taxonomy of concepts.
  * @author Dominik Jain
@@ -48,22 +50,22 @@ public class Taxonomy {
 	 * gets the list of all concepts that are descendants of the concept with the given name (including the concept itself)
 	 * @param conceptName
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public Vector<Concept> getDescendants(String conceptName) throws Exception {
+	public Vector<Concept> getDescendants(String conceptName) throws ProbCogException {
 		Concept c = getConcept(conceptName);
 		if(c == null)
-			throw new Exception("Concept '" + conceptName + "' not in taxonomy.");
+			throw new ProbCogException("Concept '" + conceptName + "' not in taxonomy.");
 		return c.getDescendants();
 	}
 	
-	public boolean query_isa(String subtype, String type) throws Exception {
+	public boolean query_isa(String subtype, String type) throws ProbCogException {
 		Concept c = getConcept(type);
 		Concept sc = getConcept(subtype);
 		if(c == null)
-			throw new Exception("Concept '" + type + "' unknown.");
+			throw new ProbCogException("Concept '" + type + "' unknown.");
 		if(sc == null)
-			throw new Exception("Concept '" + subtype + "' unknown.");
+			throw new ProbCogException("Concept '" + subtype + "' unknown.");
 		Vector<Concept> p1 = sc.getAncestors();		
 		Vector<Concept> p2 = c.getAncestors();
 		if(!(p1.size() > p2.size()))

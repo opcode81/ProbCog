@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.GroundAtom;
 import probcog.logic.IPossibleWorld;
@@ -43,7 +44,7 @@ public class DecisionNode extends ExtendedNode {
 	protected Operator operator;
 	protected Formula formula;
 	
-	public DecisionNode(RelationalBeliefNetwork rbn, edu.ksu.cis.bnj.ver3.core.BeliefNode node) throws Exception {
+	public DecisionNode(RelationalBeliefNetwork rbn, edu.ksu.cis.bnj.ver3.core.BeliefNode node) throws ProbCogException {
 		super(rbn, node);
 		// check if the node is an operator that is to be applied to its parents, which are also decision nodes
 		operator = null;
@@ -56,7 +57,7 @@ public class DecisionNode extends ExtendedNode {
 				formula = FormulaParser.parse(node.getName());
 			}
 			catch(ParseException e) {
-				throw new Exception("Could not parse the formula '" + node.getName() + "'", e);
+				throw new ProbCogException("Could not parse the formula '" + node.getName() + "'", e);
 			}
 		}
 	}
@@ -68,18 +69,18 @@ public class DecisionNode extends ExtendedNode {
 	 * @param worldVars		a set of world variables to take ground atom instances from (for grounding the formula)		
 	 * @param db			a database to take objects from for existential quantification
 	 * @return	true if the formula is satisfied
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public boolean isTrue(Map<String, String> varBinding, IPossibleWorld w, WorldVariables worldVars, GenericDatabase<?,?> db) throws Exception {
+	public boolean isTrue(Map<String, String> varBinding, IPossibleWorld w, WorldVariables worldVars, GenericDatabase<?,?> db) throws ProbCogException {
 		if(operator != null) {
 			Collection<DecisionNode> parents = this.getDecisionParents();
 			switch(operator) {
 			case Negation:
 				if(parents.size() != 1)
-					throw new Exception("Operator neg must have exactly one parent");
+					throw new ProbCogException("Operator neg must have exactly one parent");
 				return !parents.iterator().next().isTrue(varBinding, w, worldVars, db);		
 			default:
-				throw new Exception("Operator not handled");
+				throw new ProbCogException("Operator not handled");
 			}
 		}
 		else {
@@ -88,7 +89,7 @@ public class DecisionNode extends ExtendedNode {
 				return gf.isTrue(w);				
 			}
 			catch(Exception e) {
-				throw new Exception("Cannot evaluate precondition " + formula, e);
+				throw new ProbCogException("Cannot evaluate precondition " + formula, e);
 			}
 		}
 	}
@@ -100,9 +101,9 @@ public class DecisionNode extends ExtendedNode {
 	 * @param db				the database that provides the truth values for all ground atoms (closed-world assumption)
 	 * @param closedWorld		whether to make the closed-world assumption (i.e. that atoms not specified in the database are false)
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public boolean isTrue(String[] paramNames, String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
+	public boolean isTrue(String[] paramNames, String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws ProbCogException {
 		// generate variable bindings
 		HashMap<String, String> varBinding = new HashMap<String, String>();
 		for(int i = 0; i < paramNames.length; i++)
@@ -113,7 +114,7 @@ public class DecisionNode extends ExtendedNode {
 	/**
 	 * a wrapper for the other implementation of isTrue that uses the possible world implied by the database to determine the truth values of ground atoms
 	 */
-	public boolean isTrue(HashMap<String, String> varBinding, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
+	public boolean isTrue(HashMap<String, String> varBinding, GenericDatabase<?,?> db, boolean closedWorld) throws ProbCogException {
 		// construct a dummy collection of world variables that can be used to obtain ground atoms for ground formulas
 		WorldVariables worldVars = new WorldVariables() { 
 			@Override

@@ -22,7 +22,6 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,13 +34,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import probcog.bayesnets.core.io.Converter_ergo;
-import probcog.bayesnets.core.io.Converter_hugin;
-import probcog.bayesnets.core.io.Converter_pmml;
-import probcog.bayesnets.core.io.Converter_uai;
-import probcog.bayesnets.core.io.Converter_xmlbif;
-import probcog.bayesnets.inference.WeightedSample;
 
 import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
@@ -60,6 +52,13 @@ import edu.ksu.cis.bnj.ver3.streams.OmniFormatV1_Reader;
 import edu.ksu.cis.util.graph.algorithms.TopologicalSort;
 import edu.ksu.cis.util.graph.core.Graph;
 import edu.ksu.cis.util.graph.core.Vertex;
+import probcog.bayesnets.core.io.Converter_ergo;
+import probcog.bayesnets.core.io.Converter_hugin;
+import probcog.bayesnets.core.io.Converter_pmml;
+import probcog.bayesnets.core.io.Converter_uai;
+import probcog.bayesnets.core.io.Converter_xmlbif;
+import probcog.bayesnets.inference.WeightedSample;
+import probcog.exception.ProbCogException;
 
 /**
  * An instance of class BeliefNetworkEx represents a full Bayesian Network.
@@ -119,9 +118,9 @@ public class BeliefNetworkEx {
 	/**
 	 * constructs a BeliefNetworkEx object from a saved network file
 	 * @param filename	the name of the file to load the network from
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public BeliefNetworkEx(String filename) throws Exception {
+	public BeliefNetworkEx(String filename) throws ProbCogException {
 		initNetwork(filename);
 	}
 	
@@ -132,7 +131,7 @@ public class BeliefNetworkEx {
 		this.bn = new BeliefNetwork();
 	}
 	
-	protected void initNetwork(String filename) throws Exception {
+	protected void initNetwork(String filename) throws ProbCogException {
 		this.filename = filename;
 		this.bn = load(filename);
 		initAttributeMapping();
@@ -264,30 +263,22 @@ public class BeliefNetworkEx {
 	 * adds an edge to the network, i.e. a dependency
 	 * @param node1		the name of the node that influences another
 	 * @param node2		the name of node that is influenced
-	 * @throws Exception	if either of the node names are invalid
+	 * @throws ProbCogException	if either of the node names are invalid
 	 */
-	public void connect(String node1, String node2) throws Exception {
-		try {
-			//logger.debug("connecting "+node1+" and "+node2);
-			//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
-			BeliefNode n1 = getNode(node1);
-			BeliefNode n2 = getNode(node2);
-			if(n1 == null || n2 == null)
-				throw new Exception("One of the node names "+node1+" or "+node2+" is invalid!");
-			//logger.debug("Domainsize: "+n1.getDomain().getOrder()+"x"+n2.getDomain().getOrder());
-			//logger.debug("Doing the connect...");
-			bn.connect(n1, n2);
-			//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
-			//logger.debug("Connection done.");
-		} catch(Exception e) {
-			System.out.println("Exception occurred in connect!");
-			e.printStackTrace(System.out);
-			throw e;
-		} catch(Error e2) {
-			System.out.println("Error occurred");
-			e2.printStackTrace(System.out);
-			throw e2;
-		}
+	public void connect(String node1, String node2) throws ProbCogException {
+		//logger.debug("connecting "+node1+" and "+node2);
+		//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+		BeliefNode n1 = getNode(node1);
+		if (n1 == null)
+			throw new ProbCogException("Node not found: " + node1);
+		BeliefNode n2 = getNode(node2);
+		if (n2 == null)
+			throw new ProbCogException("Node not found: " + node2);
+		//logger.debug("Domainsize: "+n1.getDomain().getOrder()+"x"+n2.getDomain().getOrder());
+		//logger.debug("Doing the connect...");
+		bn.connect(n1, n2);
+		//logger.debug("Memory free: "+Runtime.getRuntime().freeMemory()+"/"+Runtime.getRuntime().totalMemory());
+		//logger.debug("Connection done.");
 	}
 	
 	/** connect two nodes
@@ -406,16 +397,16 @@ public class BeliefNetworkEx {
 	 * sets evidence for one of the network's node
 	 * @param nodeName		the name of the node for which evidence is to be set
 	 * @param outcome		the outcome, which must be in compliance with the node's domain
-	 * @throws Exception	if the node name does not exist in the network or the outcome is not valid for the node's domain
+	 * @throws ProbCogException	if the node name does not exist in the network or the outcome is not valid for the node's domain
 	 */
-	public void setEvidence(String nodeName, String outcome) throws Exception {
+	public void setEvidence(String nodeName, String outcome) throws ProbCogException {
 		BeliefNode node = getNode(nodeName);
 		if(node == null)
-			throw new Exception("Invalid node reference: " + nodeName);
+			throw new ProbCogException("Invalid node reference: " + nodeName);
 		Discrete domain = (Discrete) node.getDomain();
 		int idx = domain.findName(outcome);
 		if(idx == -1)
-			throw new Exception("Outcome " + outcome + " not in domain of " + nodeName);
+			throw new ProbCogException("Outcome " + outcome + " not in domain of " + nodeName);
 		node.setEvidence(new DiscreteEvidence(idx));
 	}
 	
@@ -425,9 +416,9 @@ public class BeliefNetworkEx {
 	 * 						that represents the conjunction "X=x AND Y=y AND ...";
 	 * @param evidences		the conjunction of evidences, specified in the same way
 	 * @return				the calculated probability
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public double getProbability(String[][] queries, String[][] evidences) throws Exception {
+	public double getProbability(String[][] queries, String[][] evidences) throws ProbCogException {
 		// queries with only one query variable (i.e. Pr[X | A,B,...]) can be solved directly
 		// ... for others, recursion is necessary
 		if(queries.length == 1) { 
@@ -457,7 +448,7 @@ public class BeliefNetworkEx {
 					}
 				done = cpf.addOne(addr);
 			}
-			throw new Exception("Outcome not in domain!");
+			throw new ProbCogException("Outcome not in domain!");
 			//inf.printResults();
 		}
 		else { // Pr[A,B,C,D | E] = Pr[A | B,C,D,E] * Pr[B,C,D | E]
@@ -477,7 +468,7 @@ public class BeliefNetworkEx {
 		}
 	}
 
-	protected void printProbabilities(int node, Stack<String[]> evidence) throws Exception {
+	protected void printProbabilities(int node, Stack<String[]> evidence) throws ProbCogException {
 		BeliefNode[] nodes = bn.getNodes();
 		if(node == nodes.length) {
 			String[][] e = new String[evidence.size()][];
@@ -503,7 +494,7 @@ public class BeliefNetworkEx {
 		}
 	}
 	
-	public void printFullJoint() throws Exception {
+	public void printFullJoint() throws ProbCogException {
 		printProbabilities(0, new Stack<String[]>());
 	}
 
@@ -530,10 +521,15 @@ public class BeliefNetworkEx {
 	 * @param filename					the file containing the network data	
 	 * @param importer					an importer that is capable of understanding the file format
 	 * @return							the loaded network in a new instance of class BeliefNetwork
-	 * @throws FileNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public static BeliefNetwork load(String filename, Importer importer) throws FileNotFoundException {
-		FileInputStream fis = new FileInputStream(filename);
+	public static BeliefNetwork load(String filename, Importer importer) throws ProbCogException {
+		FileInputStream fis;
+		try {
+			fis = new FileInputStream(filename);
+		} catch (FileNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 		OmniFormatV1_Reader ofv1w = new OmniFormatV1_Reader();
 		importer.load(fis, ofv1w);
 		return ofv1w.GetBeliefNetwork(0);
@@ -543,15 +539,15 @@ public class BeliefNetworkEx {
 	 * loads a Bayesian network from the given file (determining a suitable importer from the extension) 
 	 * @param filename
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public static BeliefNetwork load(String filename) throws Exception {
+	public static BeliefNetwork load(String filename) throws ProbCogException {
 		registerDefaultPlugins();
 		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
 		String ext = iopl.GetExt(filename);
 		Importer imp = iopl.GetImporterByExt(ext);
 		if(imp == null) 
-			throw new Exception("Unable to find an importer that can handle " + ext + " files.");
+			throw new ProbCogException("Unable to find an importer that can handle " + ext + " files.");
 		return load(filename, imp);
 	}
 	
@@ -559,15 +555,15 @@ public class BeliefNetworkEx {
 	 * saves a Bayesian network to the given filename (determining a suitable exporter from the extension) 
 	 * @param filename
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public static void save(BeliefNetwork net, String filename) throws Exception {
+	public static void save(BeliefNetwork net, String filename) throws ProbCogException {
 		registerDefaultPlugins();
 		IOPlugInLoader iopl = IOPlugInLoader.getInstance();
 		String ext = iopl.GetExt(filename);
 		Exporter exporter = iopl.GetExportersByExt(ext);
 		if(exporter == null) 
-			throw new Exception("Unable to find an exporter that can handle " + ext + " files.");
+			throw new ProbCogException("Unable to find an exporter that can handle " + ext + " files.");
 		save(net, filename, exporter);
 	}
 	
@@ -576,20 +572,24 @@ public class BeliefNetworkEx {
 	 * @param net						the network to be written
 	 * @param filename					the file to write to
 	 * @param exporter					an exporter for the desired file format
-	 * @throws FileNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public static void save(BeliefNetwork net, String filename, Exporter exporter) throws FileNotFoundException {
-		exporter.save(net, new FileOutputStream(filename));
-		//OmniFormatV1_Writer.Write(net, (OmniFormatV1)exporter);
+	public static void save(BeliefNetwork net, String filename, Exporter exporter) throws ProbCogException {
+		try {
+			exporter.save(net, new FileOutputStream(filename));
+		} 
+		catch (FileNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	/**
 	 * saves a Bayesian network to the given filename (determining a suitable exporter from the extension) 
 	 * @param filename
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void save(String filename) throws Exception {
+	public void save(String filename) throws ProbCogException {
 		save(this.bn, filename);
 	}
 	
@@ -597,39 +597,38 @@ public class BeliefNetworkEx {
 	 * writes the Bayesian network to a file with the given name using an exporter
 	 * @param filename					the file to write to
 	 * @param exporter					an exporter for the desired file format
-	 * @throws FileNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public void save(String filename, Exporter exporter) throws FileNotFoundException {
+	public void save(String filename, Exporter exporter) throws ProbCogException {
 		save(this.bn, filename, exporter);
 	}
 
 	/**
 	 * writes the Bayesian network to a file with the given name in XML-BIF format
 	 * @param filename					the file to write to
-	 * @throws FileNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public void saveXMLBIF(String filename) throws FileNotFoundException {
+	public void saveXMLBIF(String filename) throws ProbCogException {
 		save(filename, new Converter_xmlbif());
 	}
 	
 	/**
 	 * writes the Bayesian network to a file with the given name in a PMML-based format
 	 * @param filename					the file to write to
-	 * @throws FileNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public void savePMML(String filename) throws FileNotFoundException {
+	public void savePMML(String filename) throws ProbCogException {
 		save(filename, new Converter_pmml());
 	}
 	
 	/**
 	 * writes the Bayesian network to the same file it was loaded from
-	 * @throws Exception 
-	 *
+	 * @throws ProbCogException 
 	 */
-	public void save() throws Exception {
+	public void save() throws ProbCogException {
 		IOPlugInLoader pil = IOPlugInLoader.getInstance();
 		if(filename == null)
-			throw new Exception("Cannot save - filename not given!");
+			throw new UnsupportedOperationException("Unknown filename; this function is applicable only in cases where the network was previously loaded from a file");
 		Exporter exporter = pil.GetExportersByExt(pil.GetExt(filename));
 		save(filename, exporter);
 	}
@@ -641,12 +640,12 @@ public class BeliefNetworkEx {
 	 * @param numeric		whether to sort numerically or not. If numeric is true,
 	 * 						all domain values are converted to double for sorting.
 	 * 						If numeric is false, the values are simply sorted alphabetically. 
-	 * @throws Exception	if the node name is invalid
+	 * @throws ProbCogException	if the node name is invalid
 	 */
-	public void sortNodeDomain(String nodeName, boolean numeric) throws Exception {
+	public void sortNodeDomain(String nodeName, boolean numeric) throws ProbCogException {
 		BeliefNode node = getNode(nodeName);
 		if(node == null)
-			throw new Exception("Node not found");
+			throw new ProbCogException("Node not found: " + nodeName);
 		Discrete domain = (Discrete)node.getDomain();
 		int ord = domain.getOrder();
 		String[] strings = new String[ord];
@@ -730,9 +729,8 @@ public class BeliefNetworkEx {
 	 * into an array [["A","a"],["B","b"],...]
 	 * @param list
 	 * @return
-	 * @throws java.lang.Exception
 	 */
-	protected static String[][] readList(String list) throws java.lang.Exception {
+	protected static String[][] readList(String list) {
 		if(list == null)
 			return null;
 		String[] items = list.split(",");
@@ -740,7 +738,7 @@ public class BeliefNetworkEx {
 		for(int i = 0; i < items.length; i++) {
 			res[i] = items[i].split("=");
 			if(res[i].length != 2)
-				throw new java.lang.Exception("syntax error!");
+				throw new IllegalArgumentException("syntax error!");
 		}
 		return res;
 	}
@@ -787,11 +785,8 @@ public class BeliefNetworkEx {
 					}
 				}
 			}
-			catch(IOException e) {
+			catch(Throwable e) {
 				System.err.println(e.getMessage());
-			}
-			catch(java.lang.Exception e) {
-				System.out.println(e.getMessage());
 			}
 	    }
 	}
@@ -803,9 +798,9 @@ public class BeliefNetworkEx {
 	 * @param numSamples	the number of samples to draw from.
 	 * @return				the accumulated samples and their sampled conditional probabilities given the evidences 
 	 * 						or null	if we run out of trials for the first sample. 
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public WeightedSample[] getAssignmentDistribution(String[][] evidences, String[] queryNodeNames, int numSamples) throws Exception {
+	public WeightedSample[] getAssignmentDistribution(String[][] evidences, String[] queryNodeNames, int numSamples) throws ProbCogException {
 		HashMap<WeightedSample, Double> sampleSums = new HashMap<WeightedSample, Double>();
 
 		int[] queryNodes = new int[queryNodeNames.length];
@@ -896,9 +891,9 @@ public class BeliefNetworkEx {
 	 * @param evidences		the conjunction of evidences, specified in the same way.
 	 * @param numSamples	the number of samples to draw.
 	 * @return				the calculated probability.
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) throws Exception {
+	public double getSampledProbability(String[][] queries, String[][] evidences, int numSamples) throws ProbCogException {
 	    String[] queryNodes = new String[queries.length];
 	    for (int i=0; i<queryNodes.length; i++) {
 	    	queryNodes[i]=queries[i][0];
@@ -920,16 +915,16 @@ public class BeliefNetworkEx {
 	 * @param sampleDomainIndexes	the resulting domain indexes for each node.
 	 * 			The length must be initialized to the number of nodes in the net.
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public WeightedSample getWeightedSample(String[][] evidences, Random generator) throws Exception {		
+	public WeightedSample getWeightedSample(String[][] evidences, Random generator) throws ProbCogException {		
 		if (generator == null) {
 			generator = new Random();
 		}		
 		return getWeightedSample(getTopologicalOrder(), evidence2DomainIndices(evidences), generator);
 	}
 	
-	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) throws Exception {
+	public WeightedSample getWeightedSample(int[] nodeOrder, int[] evidenceDomainIndices, Random generator) throws ProbCogException {
 		BeliefNode[] nodes = bn.getNodes();
 		int[] sampleDomainIndices  = new int[nodes.length];
 		boolean successful = false;
@@ -956,7 +951,11 @@ success:while (!successful) {
 					}
 					weight *= prob;
 				} else {
-					domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
+					try {
+						domainIdx = ForwardSampling.sampleForward(nodes[nodeIdx], bn, generator);
+					} catch (Exception e) {
+						throw new ProbCogException(e);
+					}
 					if (domainIdx < 0) {
 						System.out.println("could not sample forward because of column with 0s in CPT of " + nodes[nodeIdx].getName());
 						removeAllEvidences();
@@ -1016,9 +1015,9 @@ success:while (!successful) {
 	 * afterwards in order to retain the original state of the network.
 	 * @return a hashmap of (node name, string value) pairs representing the sample
 	 * @param generator random number generator to use to generate sample (null to create one) 
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public HashMap<String,String> getSample(Random generator) throws Exception {
+	public HashMap<String,String> getSample(Random generator) throws ProbCogException {
 		if(generator == null)
 			generator = new Random();
 		HashMap<String,String> ret = new HashMap<String,String>();
@@ -1034,9 +1033,14 @@ success:while (!successful) {
 			for(int i = 0; i < order.length; i++) {
 				BeliefNode node = nodes[order[i]];
 				if(node.hasEvidence()) {
-					throw new Exception("At least one node has evidence. You can only sample from the marginal distribution!");
+					throw new ProbCogException("At least one node has evidence. You can only sample from the marginal distribution!");
 				}
-				int idxValue = ForwardSampling.sampleForward(node, bn, generator);			
+				int idxValue;
+				try {
+					idxValue = ForwardSampling.sampleForward(node, bn, generator);
+				} catch (Exception e) {
+					throw new ProbCogException(e);
+				}			
 				if(idxValue == -1) {
 					// sampling node failed - most probably because the distribution was all 0 values -> retry from start
 					succeeded = false;

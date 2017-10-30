@@ -20,6 +20,7 @@ package probcog.logic;
 
 import java.util.Map;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 
@@ -46,7 +47,7 @@ public class Equality extends UngroundedFormula {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?,?> db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?,?> db) throws ProbCogException {
 		String a = binding.get(left);
 		if(a == null) a = left;
 		String b = binding.get(right);

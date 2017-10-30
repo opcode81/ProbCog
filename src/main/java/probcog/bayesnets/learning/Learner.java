@@ -25,7 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 
@@ -84,27 +84,31 @@ public abstract class Learner {
 	 * query.
 	 * @param sqlQuery			an SQL query to execute in order to obtain a table (result set) of examples
 	 * @param dbConnectString	the connect string to establish a connection to the database
-	 * @throws Exception
-	 * @throws SQLException
+	 * @throws ProbCogException
 	 */
-	public void learn(String sqlQuery, String dbConnectString) throws Exception, SQLException {
-		// connect to the database
-        Connection conn = DriverManager.getConnection(dbConnectString);
-      
-        // execute the query
-        Statement stmt = conn.createStatement(); 
-        ResultSet rs = stmt.executeQuery(sqlQuery); 
+	public void learn(String sqlQuery, String dbConnectString) throws ProbCogException {
+		try {
+			// connect to the database
+	        Connection conn = DriverManager.getConnection(dbConnectString);
+	      
+	        // execute the query
+	        Statement stmt = conn.createStatement(); 
+	        ResultSet rs = stmt.executeQuery(sqlQuery);
 
-		learn(rs);
+	        learn(rs);
+		}
+		catch (SQLException e) {
+			throw new ProbCogException(e);
+		}
 	}
 
 	/**
 	 * completes the learning process, performing final processing.
 	 * Only when this function has been called can you be sure that all the learnt 
 	 * examples are reflected in the network's properties.
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void finish() throws Exception {
+	public void finish() throws ProbCogException {
 		if(!finished) {
 			end_learning();
 			finished = true;
@@ -115,7 +119,7 @@ public abstract class Learner {
 	 * This function must be overridden by each subclass. It is called
 	 * by finish to complete the learning process.
 	 */
-	protected abstract void end_learning() throws Exception;
+	protected abstract void end_learning() throws ProbCogException;
 	
-	public abstract void learn(ResultSet rs) throws Exception;
+	public abstract void learn(ResultSet rs) throws ProbCogException;
 }

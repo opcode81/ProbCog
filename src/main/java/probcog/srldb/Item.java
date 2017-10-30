@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.srldb.datadict.DDAttribute;
 import probcog.srldb.datadict.DDException;
 import probcog.srldb.datadict.domain.AutomaticDomain;
@@ -52,7 +53,7 @@ public abstract class Item implements Serializable {
 		this.database = database;
 	}
 	
-	public void addAttribsFromResultSet(ResultSet rs, boolean callNext) throws Exception {
+	public void addAttribsFromResultSet(ResultSet rs, boolean callNext) throws ProbCogException {
 		checkMutable();
 		boolean erroneous = false;
 		try {			
@@ -72,7 +73,7 @@ public abstract class Item implements Serializable {
 			e.printStackTrace();
 		}
 		if(erroneous)
-			throw new Exception("Result set contains null entry!");
+			throw new ProbCogException("Result set contains null entry!");
 	}
 	
 	/**

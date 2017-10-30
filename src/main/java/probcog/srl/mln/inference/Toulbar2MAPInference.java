@@ -20,6 +20,7 @@ package probcog.srl.mln.inference;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -27,6 +28,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
 import probcog.srl.mln.MarkovRandomField;
@@ -49,7 +51,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	protected String wcspFilename = "temp.wcsp";
 	protected String toulbar2Args = "";
 
-	public Toulbar2MAPInference(MarkovRandomField mrf) throws Exception {
+	public Toulbar2MAPInference(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
 		this.paramHandler.add("toulbar2Args", "setToulbar2Args");
@@ -68,9 +70,9 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		return state.get(ga.index) ? 1.0 : 0.0;
 	}
 
-	public WCSPConverter constructWCSP(String filename, boolean cache) throws Exception {
+	public WCSPConverter constructWCSP(String filename, boolean cache) throws ProbCogException {
 		if(converter != null)
-			throw new Exception("WCSP was already constructed");
+			throw new ProbCogException("WCSP was already constructed");
 		// perform conversion to WCSP
 		this.wcspFilename = filename;
 		log.info("Performing WCSP conversion...");
@@ -79,7 +81,12 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		converter.setCacheConstraints(cache);
 		WCSP wcsp = converter.run();
 		log.debug("Writing WCSP file to " + wcspFilename);
-		wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
+		try {
+			wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
+		}
+		catch (FileNotFoundException e) {
+			throw new ProbCogException("Error writing temporary WCSP file", e);
+		}
 		return converter;
 	}
 	
@@ -90,14 +97,19 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		private boolean isComplete;
 
 		@Override
-		public String call() throws Exception {
+		public String call() throws ProbCogException {
 
 			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
 			log.info("Running WCSP solver: " + command);
-			toulbar2Process = Runtime.getRuntime().exec(command);
+			try {
+				toulbar2Process = Runtime.getRuntime().exec(command);
+			} 
+			catch (IOException e) {
+				throw new ProbCogException(e);
+			}
 			InputStream s = toulbar2Process.getInputStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(s));
 			isComplete = false;
@@ -149,10 +161,10 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	}
 	
 	interface InferenceCall {
-		String infer() throws Exception;
+		String infer() throws ProbCogException;
 	}
 	
-	protected void runInference(InferenceCall call) throws Exception {
+	protected void runInference(InferenceCall call) throws ProbCogException {
 		// construct WCSP if necessary
 		if(converter == null)
 			constructWCSP(this.wcspFilename, false);
@@ -161,7 +173,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		String solution = call.infer();
 		
 		if(solution == null)
-			throw new Exception("No solution was found");
+			throw new ProbCogException("No solution was found");
 		
 		// set evidence (as the WCSP does not contain evidence variables)
 		state.setEvidence(mrf.getDb());
@@ -181,7 +193,7 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	}
 	
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
 		runInference(() -> new Toulbar2Call().call());
 		return getResults(queries);
 	}
@@ -210,17 +222,22 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 	};
 	
-	public ArrayList<InferenceResult> infer(Iterable<String> queries, long inferenceTimeMs) throws Exception {
+	public ArrayList<InferenceResult> infer(Iterable<String> queries, long inferenceTimeMs) throws ProbCogException {
 
 		runInference(() -> {
 			InferenceThread thread = new InferenceThread();
 			thread.start();
-			synchronized (thread) {
-				thread.wait(inferenceTimeMs);
+			try {
+				synchronized (thread) {
+					thread.wait(inferenceTimeMs);
+				}
+				if (!thread.toulbar2Call.isComplete()) {
+					thread.signalTermination();
+					thread.join();
+				}
 			}
-			if (!thread.toulbar2Call.isComplete()) {
-				thread.signalTermination();
-				thread.join();
+			catch (InterruptedException e) {
+				throw new ProbCogException(e);
 			}
 			return thread.toulbar2Call.getSolution();
 		});

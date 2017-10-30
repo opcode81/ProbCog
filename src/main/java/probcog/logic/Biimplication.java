@@ -28,10 +28,10 @@ import probcog.srl.GenericDatabase;
  */
 public class Biimplication extends ComplexFormula {
 	
-	public Biimplication(Collection<Formula> parts) throws Exception {
+	public Biimplication(Collection<Formula> parts) {
 		super(parts);
 		if(parts.size() != 2)
-			throw new Exception("A biimplication must have exactly two children.");
+			throw new IllegalArgumentException("A biimplication must have exactly two children.");
 	}
 
 	public Biimplication(Formula f1, Formula f2) {

@@ -19,6 +19,7 @@
 package probcog.srl.directed.inference;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.BNJPearl;
@@ -31,6 +32,7 @@ import probcog.bayesnets.inference.IJGP;
 import probcog.bayesnets.inference.LikelihoodWeighting;
 import probcog.bayesnets.inference.SampleSearch;
 import probcog.bayesnets.inference.VariableElimination;
+import probcog.exception.ProbCogException;
 import probcog.srl.directed.bln.AbstractGroundBLN;
 
 /**
@@ -110,7 +112,7 @@ public enum Algorithm {
 			return description;
 		}
 		
-		public Sampler createSampler(AbstractGroundBLN gbln) throws Exception {
+		public Sampler createSampler(AbstractGroundBLN gbln) throws ProbCogException {
 			Sampler sampler = null;
 			if(bnClass != null) {
 				sampler = new BNSampler(gbln, bnClass);
@@ -119,14 +121,15 @@ public enum Algorithm {
 				Constructor<? extends Sampler> constructor;
 				try {
 					 constructor = blnClass.getConstructor(gbln.getClass());
+					sampler = constructor.newInstance(gbln);
+				} 
+				catch (NoSuchMethodException | InstantiationException | IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException e) {
+					throw new ProbCogException("Don't know how to instantiate a sampler for the algorithm '" + toString() + "'", e);
 				}
-				catch(NoSuchMethodException e) {
-					throw new Exception("Don't know how to instantiate a sampler for the algorithm '" + toString() + "'.");
-				}
-				sampler = constructor.newInstance(gbln);
 			}
 			else
-				throw new Exception("Cannot instantiate a sampler for the algorithm '" + toString() + "' - sampler class not found. The algorithm may not be available in your distribution.");
+				throw new ProbCogException("Cannot instantiate a sampler for the algorithm '" + toString() + "' - sampler class not found. The algorithm may not be available in your distribution.");
 			return sampler;
 		}
 		

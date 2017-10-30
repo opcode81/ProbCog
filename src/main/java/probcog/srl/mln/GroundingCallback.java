@@ -19,6 +19,7 @@
 
 package probcog.srl.mln;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.sat.weighted.WeightedFormula;
 
 /**
@@ -26,7 +27,5 @@ import probcog.logic.sat.weighted.WeightedFormula;
  * @author Gregor Wylezich
  */
 public interface GroundingCallback { 
-    
-    public void onGroundedFormula(WeightedFormula wf, MarkovRandomField mrf) throws Exception;
-    
+    public void onGroundedFormula(WeightedFormula wf, MarkovRandomField mrf) throws ProbCogException;
 }

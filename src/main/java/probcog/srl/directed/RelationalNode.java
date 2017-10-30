@@ -27,6 +27,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Atom;
 import probcog.logic.Biimplication;
 import probcog.logic.Conjunction;
@@ -119,11 +120,11 @@ public class RelationalNode extends ExtendedNode {
 			return syntax;
 		}
 		
-		public static Aggregator fromSyntax(String syntax) throws Exception {
+		public static Aggregator fromSyntax(String syntax) throws ProbCogException {
 			for(Aggregator a : Aggregator.values())
 				if(a.syntax.equals(syntax))
 					return a;
-			throw new Exception("There is no aggregator for '" + syntax + "'");
+			throw new ProbCogException("There is no aggregator for '" + syntax + "'");
 		}
 	}
 	
@@ -160,7 +161,7 @@ public class RelationalNode extends ExtendedNode {
 		return Character.isLowerCase(identifier.charAt(0));
 	}
 	
-	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws Exception {
+	public RelationalNode(RelationalBeliefNetwork bn, BeliefNode node) throws ProbCogException {
 		super(bn, node);
 		Pattern namePat = Pattern.compile("(\\w+)\\((.*)\\)");
 		String name = node.getName();
@@ -221,7 +222,7 @@ public class RelationalNode extends ExtendedNode {
 		if(isPrecondition) {
 			Signature sig = bn.getSignature(functionName);
 			if(sig == null)
-				throw new Exception("Function '" + functionName + "' has no signature");
+				throw new ProbCogException("Function '" + functionName + "' has no signature");
 			if(!sig.isLogical)
 				System.err.println("Warning: The function '" + functionName + "' is used as a precondition but is declared as 'random'. Consider declaring it as 'logical'");		
 		}
@@ -342,9 +343,9 @@ public class RelationalNode extends ExtendedNode {
 	 * returns a logical representation of the semantics of this node (only applicable to nodes with aggregators!)
 	 * @param constantValues a mapping of constant parents of this node to values (may be null)
 	 * @return a formula that corresponds to the semantics of this node or null if no translation could be made
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public Formula toFormula(Map<String,String> constantValues) throws Exception {
+	public Formula toFormula(Map<String,String> constantValues) throws ProbCogException {
 		if(!hasAggregator())
 			return null;
 		if(aggregator == Aggregator.FunctionalOr) {
@@ -433,11 +434,11 @@ public class RelationalNode extends ExtendedNode {
 	 * gets the name of the variable (grounded node) that results when applying the given actual parameters to this node 
 	 * @param actualParams
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public String getVariableName(String[] actualParams) throws Exception {
+	public String getVariableName(String[] actualParams) throws ProbCogException {
 		if(actualParams.length != params.length)
-			throw new Exception(String.format("Invalid number of actual parameters suppplied for %s: expected %d, got %d", toString(), params.length, actualParams.length));
+			throw new ProbCogException(String.format("Invalid number of actual parameters suppplied for %s: expected %d, got %d", toString(), params.length, actualParams.length));
 		return Signature.formatVarName(getFunctionName(), actualParams);
 	}
 	
@@ -472,11 +473,11 @@ public class RelationalNode extends ExtendedNode {
 	/**
 	 * gets the node (which must be a relation) that grounds the free parameters of this node (applicable only to nodes that have free parameters)
 	 * @return 
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public RelationalNode getFreeParamGroundingParent() throws Exception {
+	public RelationalNode getFreeParamGroundingParent() throws ProbCogException {
 		if(addParams == null || addParams.length == 0)
-			throw new Exception("This node has no free parameters for which there could be a parent that grounds them.");
+			throw new ProbCogException("This node has no free parameters for which there could be a parent that grounds them.");
 		// find the parent that grounds the free parameters: It must be a relation which contains all of the free params
 		for(RelationalNode parent : getParents()) {
 			if(parent.isRelation() && parent.hasParams(this.addParams)) {
@@ -489,11 +490,11 @@ public class RelationalNode extends ExtendedNode {
 	/**
 	 * @deprecated use toLiteralString
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public String toAtom() throws Exception {
+	public String toAtom() throws ProbCogException {
 		if(!isBoolean())
-			throw new Exception("Cannot convert non-Boolean node to atom without specifying setting");
+			throw new ProbCogException("Cannot convert non-Boolean node to atom without specifying setting");
 		return getCleanName();
 	}
 	
@@ -523,9 +524,9 @@ public class RelationalNode extends ExtendedNode {
 	 * @param paramSets
 	 * @param db
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public String getValueInDB(String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws Exception {
+	public String getValueInDB(String[] actualParams, GenericDatabase<?,?> db, boolean closedWorld) throws ProbCogException {
 		// ** special built-in predicate
 		if(functionName.equals(BUILTINPRED_NEQUALS))
 			return actualParams[0].equals(actualParams[1]) ? "False" : "True";
@@ -537,7 +538,7 @@ public class RelationalNode extends ExtendedNode {
 			// set value
 			String value = db.getSingleVariableValue(curVarName, closedWorld);						
 			if(value == null) {
-				throw new Exception("Could not find the unique value of " + curVarName + " in database. closedWorld = " + closedWorld);
+				throw new ProbCogException("Could not find the unique value of " + curVarName + " in database. closedWorld = " + closedWorld);
 			}
 			return value;
 			//System.out.println("For " + varName + ": " + curVarName + " = " + value);
@@ -616,7 +617,7 @@ public class RelationalNode extends ExtendedNode {
 		return indicesOfConstantArgs;
 	}
 	
-	public ParentGrounder getParentGrounder() throws Exception {
+	public ParentGrounder getParentGrounder() throws ProbCogException {
 		if(parentGrounder != null)
 			return parentGrounder;
 		return (parentGrounder = new ParentGrounder(this.bn, this));
@@ -627,9 +628,9 @@ public class RelationalNode extends ExtendedNode {
 	 * @param actualParams
 	 * @param db an evidence database (containing, e.g. the evidence predicates for functional lookups)
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public HashMap<String,String> getParameterBinding(String[] actualParams, Database db) throws Exception {
+	public HashMap<String,String> getParameterBinding(String[] actualParams, Database db) throws ProbCogException {
 		return getParentGrounder().generateParameterBindings(actualParams, db);
 	}
 	
@@ -647,7 +648,7 @@ public class RelationalNode extends ExtendedNode {
 		return ret;
 	}
 	
-	public Vector<ParentGrounding> checkTemplateApplicability(String[] params, Database db) throws Exception {
+	public Vector<ParentGrounding> checkTemplateApplicability(String[] params, Database db) throws ProbCogException {
 		try {
 			RelationalNode relNode = this;
 			
@@ -711,7 +712,7 @@ public class RelationalNode extends ExtendedNode {
 			return groundings;
 		}
 		catch(Throwable e) {
-			throw new Exception("Error checking template applicability of '" + this.toString() + "' for parameters [" + StringTool.join(", ", params) + "]", e);
+			throw new ProbCogException("Error checking template applicability of '" + this.toString() + "' for parameters [" + StringTool.join(", ", params) + "]", e);
 		}
 	}
 }

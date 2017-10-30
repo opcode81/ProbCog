@@ -20,6 +20,7 @@ package probcog.logic;
 
 import java.io.PrintStream;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.AbstractVariable;
 import probcog.srl.Database;
 
@@ -95,7 +96,7 @@ public class PossibleWorld implements IPossibleWorld {
             throw new IllegalArgumentException("Size of state array does not match number of variables!");        
     }
     
-    public void setEvidence(Database db) throws Exception {
+    public void setEvidence(Database db) throws ProbCogException {
     	for(AbstractVariable<?> var : db.getEntries()) {
     		this.set(var.getPredicate(), var.isTrue()); 
     	}

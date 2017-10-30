@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.Database;
 import probcog.srl.GenericDatabase;
 import probcog.srl.Signature;
@@ -52,11 +53,11 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	protected boolean verbose;
 	protected boolean debug = false;
 	
-	public CPTLearner(RelationalBeliefNetwork bn) throws Exception {
+	public CPTLearner(RelationalBeliefNetwork bn) throws ProbCogException {
 		this(bn, false, false);
 	}
 	
-	public CPTLearner(RelationalBeliefNetwork bn, boolean uniformDefault, boolean debug) throws Exception {
+	public CPTLearner(RelationalBeliefNetwork bn, boolean uniformDefault, boolean debug) throws ProbCogException {
 		super(bn);	
 		setUniformDefault(uniformDefault);
 		this.debug = debug;
@@ -76,9 +77,9 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	 * @param node			node of the variable for which we are counting an example
 	 * @param params		the node's actual parameters
 	 * @param closedWorld	whether the closed-world assumption is to be made
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void processGrounding(GenericDatabase<?,?> db, RelationalNode node, String[] params, boolean closedWorld) throws Exception {
+	protected void processGrounding(GenericDatabase<?,?> db, RelationalNode node, String[] params, boolean closedWorld) throws ProbCogException {
 		// if the node is not CPT-based, skip it
 		if(!node.hasCPT())
 			return;
@@ -168,7 +169,7 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 						int domIdx = dom.findName(value);					
 						if(domIdx < 0) {
 							String[] domain = BeliefNetworkEx.getDiscreteDomainAsArray(ndCurrent.node);
-							throw new Exception("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + StringTool.join(",", domain) + "}");
+							throw new ProbCogException("Could not find value '" + value + "' in domain of " + ndCurrent.toString() + " {" + StringTool.join(",", domain) + "}");
 						}
 						addr += factor * domIdx; 
 						factor *= dom.getOrder();
@@ -252,7 +253,7 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	/**
 	 * helper function that recursively sets the domain indices of parents to learn an entry 
 	 */
-	protected void countVariableR(String varName, GenericDatabase<?,?> db, boolean closedWorld, RelationalBeliefNetwork bn, Map<Integer, String[]> paramSets, ExampleCounter counter, int[] domainIndices, double exampleWeight, int i) throws Exception {
+	protected void countVariableR(String varName, GenericDatabase<?,?> db, boolean closedWorld, RelationalBeliefNetwork bn, Map<Integer, String[]> paramSets, ExampleCounter counter, int[] domainIndices, double exampleWeight, int i) throws ProbCogException {
 		// count the example
 		if(i == counter.nodeIndices.length) {
 			counter.count(domainIndices, exampleWeight);
@@ -291,11 +292,11 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 					Vector<String> availableNodes = new Vector<String>();
 					for(Integer idx : paramSets.keySet())
 						availableNodes.add(idx.toString() + "/" + ndCurrent.getNetwork().getRelationalNode(idx).toString());
-					throw new Exception("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
+					throw new ProbCogException("Relevant node " + ndCurrent.index + "/" + ndCurrent + " has no grounding for main node instantiation " + varName + "; have only " + availableNodes.toString());
 				}
 				Object value = db.getVariableValue(ndCurrent.getVariableName(actualParams), closedWorld); //ndCurrent.getValueInDB(actualParams, db, closedWorld);
 				if(value == null)
-					throw new Exception(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
+					throw new ProbCogException(String.format("Could not find setting for node named '%s' while processing '%s'", ndCurrent.getName(), varName));
 				// get the current node's domain and the index of its setting
 				Discrete dom = (Discrete)(ndCurrent.node.getDomain());
 				if(value instanceof String) {					
@@ -304,7 +305,7 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 						String[] domElems = new String[dom.getOrder()];
 						for(int j = 0; j < domElems.length; j++)
 							domElems[j] = dom.getName(j);
-						throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getVariableName(actualParams), StringTool.join(",", domElems), varName));
+						throw new ProbCogException(String.format("'%s' not found in domain of %s {%s} while processing %s", value, ndCurrent.getVariableName(actualParams), StringTool.join(",", domElems), varName));
 					}
 					domainIndices[extCurrent.index] = domain_idx;
 					countVariableR(varName, db, closedWorld, bn, paramSets, counter, domainIndices, exampleWeight, i+1);
@@ -317,7 +318,7 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 							String[] domElems = new String[dom.getOrder()];
 							for(int j = 0; j < domElems.length; j++)
 								domElems[j] = dom.getName(j);
-							throw new Exception(String.format("'%s' not found in domain of %s {%s} while processing %s", e.getKey(), ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
+							throw new ProbCogException(String.format("'%s' not found in domain of %s {%s} while processing %s", e.getKey(), ndCurrent.getFunctionName(), StringTool.join(",", domElems), varName));
 						}					
 						domainIndices[extCurrent.index] = domain_idx;
 						double p = e.getValue();
@@ -333,11 +334,11 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	/**
 	 * learn the CPTs from only the data that is given in the database (relations not in the database are not considered because the closed-world assumption is not being made)
 	 * @param db
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	@Deprecated
-	public void learn(Database db) throws Exception {
-		throw new Exception("No longer supported");
+	public void learn(Database db) throws ProbCogException {
+		throw new ProbCogException("No longer supported");
 		/*for(Variable var : db.getEntries()) {
 			countVariable(db, var.nodeName, var.params, false); // TODO: the node used is the one with the most parents that fits			
 		}*/
@@ -348,9 +349,9 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	 * @param db
 	 * @param closedWorld
 	 * @param verbose
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void learnTyped(GenericDatabase<?,?> db, boolean closedWorld, boolean verbose) throws Exception {
+	public void learnTyped(GenericDatabase<?,?> db, boolean closedWorld, boolean verbose) throws ProbCogException {
 		if(!initialized) init();
 		
 		this.verbose = verbose;
@@ -419,16 +420,16 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 	 * @param domainNames	list of domain names, with one entry for each parameter
 	 * @param i				index into params at which to insert the next parameter 
 	 * @param closedWorld	whether to make the closed-world assumption
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void processAllGroundings(GenericDatabase<?,?> db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws Exception {
+	protected void processAllGroundings(GenericDatabase<?,?> db, RelationalNode node, String[] params, String[] domainNames, int i, boolean closedWorld) throws ProbCogException {
 		// if we have the full set of parameters, count the example
 		if(i == params.length) {
 			
 			if(!closedWorld) {
 				String varName = Signature.formatVarName(node.getFunctionName(), params);
 				if(!db.contains(varName))
-					throw new Exception("Incomplete data: No value for " + varName);
+					throw new ProbCogException("Incomplete data: No value for " + varName);
 			}
 			
 			processGrounding(db, node, params, closedWorld);
@@ -444,7 +445,7 @@ public class CPTLearner extends probcog.bayesnets.learning.CPTLearner {
 		else {
 			Iterable<String> domain = db.getDomain(domainNames[i]);
 			if(domain == null)
-				throw new Exception("Error while grounding " + node + ": Domain " + domainNames[i] + " not found or is empty.");
+				throw new ProbCogException("Error while grounding " + node + ": Domain " + domainNames[i] + " not found or is empty.");
 			for(String element : domain) {
 				params[i] = element;
 				processAllGroundings(db, node, params, domainNames, i+1, closedWorld);	

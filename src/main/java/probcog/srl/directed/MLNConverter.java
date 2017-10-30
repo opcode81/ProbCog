@@ -20,6 +20,7 @@ package probcog.srl.directed;
 
 import java.util.Collection;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.srl.Signature;
 import probcog.srl.mln.MarkovLogicNetwork;
@@ -33,8 +34,8 @@ public abstract class MLNConverter {
 	public abstract void addGuaranteedDomainElements(String domain, Collection<String> elements);
 	public abstract void addSignature(Signature sig);
 	public abstract void beginCPT(RelationalNode node);
-	public abstract void addFormula(probcog.logic.Formula f, double weight) throws Exception;
-	public abstract void addHardFormula(Formula f) throws Exception;
+	public abstract void addFormula(probcog.logic.Formula f, double weight) throws ProbCogException;
+	public abstract void addHardFormula(Formula f) throws ProbCogException;
 	public abstract void endCPT();
 	public abstract void addFunctionalDependency(String predicate, Integer functionallyDeterminedArg);
 	
@@ -46,7 +47,7 @@ public abstract class MLNConverter {
 		}
 
 		@Override
-		public void addFormula(Formula f, double weight) throws Exception {
+		public void addFormula(Formula f, double weight) throws ProbCogException {
 			mln.addFormula(f, weight);
 		}
 
@@ -79,7 +80,7 @@ public abstract class MLNConverter {
 		}
 
 		@Override
-		public void addHardFormula(Formula f) throws Exception {
+		public void addHardFormula(Formula f) throws ProbCogException {
 			mln.addHardFormula(f);			
 		}	
 	}

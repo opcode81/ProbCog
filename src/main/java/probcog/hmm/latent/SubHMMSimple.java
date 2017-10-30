@@ -20,6 +20,7 @@ package probcog.hmm.latent;
 
 import java.util.List;
 
+import probcog.exception.ProbCogException;
 import probcog.hmm.ForwardCalculator;
 import probcog.hmm.HMM;
 import probcog.hmm.Segment;
@@ -62,7 +63,7 @@ public class SubHMMSimple extends HMM<ObservationVector> implements ISubHMM {
 		this.opdfs = hmm.getOpdfs();
 	}
 	
-	public void learnViaClustering(Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws Exception {
+	public void learnViaClustering(Iterable<? extends Segment<? extends ObservationVector>> s, boolean usePseudoCounts) throws ProbCogException {
 		SubHMM.learnViaClustering(this, s, usePseudoCounts);
 	}
 
@@ -77,7 +78,7 @@ public class SubHMMSimple extends HMM<ObservationVector> implements ISubHMM {
 	}
 
 	@Override
-	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws Exception {
+	public void learn(List<? extends Segment<? extends ObservationVector>> s, ParameterMap learningParams) throws ProbCogException {
 		if(learningParams.getBoolean("learnSubHMMViaBaumWelch"))
 			learnViaBaumWelch(s);
 		else

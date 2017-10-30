@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.inference.BasicSampledDistribution.ConfidenceInterval;
@@ -64,7 +65,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	
 	public boolean debug = false;
 	
-	public Sampler(BeliefNetworkEx bn) throws Exception {	
+	public Sampler(BeliefNetworkEx bn) throws ProbCogException {	
 		this.bn = bn;
 		this.nodes = bn.bn.getNodes();
 		nodeIndices = new HashMap<BeliefNode, Integer>();
@@ -79,19 +80,19 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		paramHandler.add("verbose", "setVerbose");
 	}
 	
-	protected SampledDistribution createDistribution() throws Exception {
+	protected SampledDistribution createDistribution() throws ProbCogException {
 		SampledDistribution dist = new SampledDistribution(bn);
 		dist.setDebugMode(debug);
 		paramHandler.addSubhandler(dist.getParameterHandler());
 		return dist;
 	}
 	
-	protected synchronized void addSample(WeightedSample s) throws Exception {
+	protected synchronized void addSample(WeightedSample s) throws ProbCogException {
 		// security check: in debug mode, check if sample respects evidence
 		if(debug) {
 			for(int i = 0; i < evidenceDomainIndices.length; i++)
 				if(evidenceDomainIndices[i] >= 0 && s.nodeDomainIndices[i] != evidenceDomainIndices[i])
-					throw new Exception("Attempted to add sample to distribution that does not respect evidence");
+					throw new ProbCogException("Attempted to add sample to distribution that does not respect evidence");
 		}
 		// add to distribution builder
 		distributionBuilder.addSample(s);
@@ -102,7 +103,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		initialized = false;
 	}
 	
-	protected boolean converged() throws Exception {
+	protected boolean converged() throws ProbCogException {
 		if(!(this.distributionBuilder instanceof DirectDistributionBuilder))
 			return false;
 		SampledDistribution dist = distributionBuilder.getDistribution();
@@ -111,7 +112,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		// determine convergence based on confidence interval sizes
 		if(confidenceIntervalSizeThreshold != null) {
 			if(!dist.usesConfidenceComputation())
-				throw new Exception("Cannot determine convergence based on confidence interval size: No confidence level specified.");
+				throw new ProbCogException("Cannot determine convergence based on confidence interval size: No confidence level specified.");
 			double max = 0;
 			for(Integer i : queryVars) {
 				ConfidenceInterval interval = dist.getConfidenceInterval(i, 0);
@@ -132,15 +133,20 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	/**
 	 * polls the results during time-limited inference
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public synchronized SampledDistribution pollResults() throws Exception {
+	public synchronized SampledDistribution pollResults() throws ProbCogException {
 		if(distributionBuilder == null)
 			return null;
 		SampledDistribution dist = distributionBuilder.getDistribution();
 		if(dist == null)
 			return null;
-		return dist.clone();
+		try {
+			return dist.clone();
+		} 
+		catch (CloneNotSupportedException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	/**
@@ -240,7 +246,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		this.skipFailedSteps = canSkip;
 	}
 	
-	public void setEvidence(int[] evidenceDomainIndices) throws Exception {
+	public void setEvidence(int[] evidenceDomainIndices) throws ProbCogException {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 		initialized = false;
 	}
@@ -249,13 +255,13 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 		generator.setSeed(seed);
 	}
 	
-	protected abstract void _infer() throws Exception;
-	protected void _initialize() throws Exception {}
+	protected abstract void _infer() throws ProbCogException;
+	protected void _initialize() throws ProbCogException {}
 	
 	/**
 	 * initializes the inference method such that inference can be run
 	 */
-	public final void initialize() throws Exception {
+	public final void initialize() throws ProbCogException {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		_initialize();
@@ -268,7 +274,7 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	/**
 	 * runs the actual inference method (initializing first if necessary)
 	 */
-	public final SampledDistribution infer() throws Exception {
+	public final SampledDistribution infer() throws ProbCogException {
 		// initialize
 		if(!initialized)
 			initialize();
@@ -288,9 +294,9 @@ public abstract class Sampler implements ITimeLimitedInference, IParameterHandle
 	/**
 	 * @return returns the distribution builder that creates the distribution 
 	 * based on weighted samples
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected IDistributionBuilder createDistributionBuilder() throws Exception {
+	protected IDistributionBuilder createDistributionBuilder() throws ProbCogException {
 		return new DirectDistributionBuilder(createDistribution());
 	}
 	

@@ -24,6 +24,7 @@ import be.ac.ulg.montefiore.run.distributions.GaussianDistribution;
 import be.ac.ulg.montefiore.run.jahmm.Observation;
 import be.ac.ulg.montefiore.run.jahmm.ObservationReal;
 import be.ac.ulg.montefiore.run.jahmm.OpdfGaussian;
+import probcog.exception.ProbCogException;
 
 /**
  * Hidden semi-Markov model where state transition probabilities depend
@@ -64,12 +65,12 @@ public abstract class DwellTimeHMM<O extends Observation> implements IDwellTimeH
 	/**
 	 * (re-)initializes this HMM for the given number of states
 	 * @param numStates
-	 * @throws IllegalAccessException 
+	 * @throws ProbCogException 
 	 */
 	@Override
-	public void setNumStates(int numStates) throws IllegalAccessException {
+	public void setNumStates(int numStates) throws ProbCogException {
 		if(this.numStates != null)
-			throw new IllegalAccessException("Cannot set number of states in model which was constructed with known number of states");
+			throw new ProbCogException("Cannot set number of states in model which was constructed with known number of states");
 		init(numStates);
 	}
 	

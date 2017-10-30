@@ -25,6 +25,7 @@ import edu.ksu.cis.bnj.ver3.core.BeliefNetwork;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.util.graph.core.Graph;
 import edu.ksu.cis.util.graph.core.Vertex;
+import probcog.exception.ProbCogException;
 
 /**
  * 
@@ -37,11 +38,11 @@ public class TopologicalSort {
 		this.bn = bn;
 	}
 	
-	public TopologicalOrdering run() throws Exception {
+	public TopologicalOrdering run() throws ProbCogException {
 		return run(false);
 	}
 	
-	public TopologicalOrdering run(boolean createTierMap) throws Exception {
+	public TopologicalOrdering run(boolean createTierMap) throws ProbCogException {
 		Graph g = bn.getGraph();
 		BeliefNode[] nodes = bn.getNodes();
 		HashMap<BeliefNode, Integer> tierMap = null;
@@ -64,7 +65,7 @@ public class TopologicalSort {
 		boolean debug = false;
 		while(numExtracted < vertices.length) {
 			if(prevExtracted == numExtracted)
-				throw new Exception(String.format("Topological ordering could not be obtained because of cycles in the network (%d nodes remain).", vertices.length-numExtracted));
+				throw new ProbCogException(String.format("Topological ordering could not be obtained because of cycles in the network (%d nodes remain).", vertices.length-numExtracted));
 			prevExtracted = numExtracted;
 			if(debug) System.out.println(numExtracted + " of " + vertices.length);
 			Vector<Integer> level = new Vector<Integer>();

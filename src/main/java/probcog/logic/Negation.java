@@ -36,10 +36,10 @@ public class Negation extends ComplexFormula {
         super(new Formula[]{f});
     }
 
-    public Negation(Collection<Formula> children) throws Exception {
+    public Negation(Collection<Formula> children) {
         super(children);
         if (children.size() != 1)
-            throw new Exception("A negation can have but one child.");
+            throw new IllegalArgumentException("A negation must have exactly one child");
     }
 
     public String toString() {

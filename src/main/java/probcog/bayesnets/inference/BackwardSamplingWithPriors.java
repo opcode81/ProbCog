@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -88,7 +88,7 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 		}
 	}
 	
-	public BackwardSamplingWithPriors(BeliefNetworkEx bn) throws Exception {
+	public BackwardSamplingWithPriors(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
@@ -100,7 +100,7 @@ public class BackwardSamplingWithPriors extends BackwardSampling {
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		super._initialize();
 		if(verbose) out.println("computing priors...");
 		computePriors(evidenceDomainIndices);

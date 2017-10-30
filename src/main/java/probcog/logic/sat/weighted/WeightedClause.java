@@ -19,6 +19,7 @@
 package probcog.logic.sat.weighted;
 
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.sat.Clause;
 
@@ -36,13 +37,12 @@ public class WeightedClause extends Clause {
     public boolean isHard;
 
     /**
-     * Constructor to instantiate a weighted clause
-     * @param f
-     * @param weight
-     * @param hard
-     * @throws java.lang.Exception
+     * Creates a weighted clause
+     * @param f the clause
+     * @param weight the weight associated with the clause
+     * @param hard flag indicating whether the constraint is hard
      */
-    public WeightedClause(Formula f, double weight, boolean hard) throws Exception {
+    public WeightedClause(Formula f, double weight, boolean hard) throws ProbCogException {
     	super(f);
         this.weight = weight;
         this.isHard = hard;        

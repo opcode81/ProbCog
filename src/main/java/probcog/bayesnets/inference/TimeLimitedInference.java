@@ -20,6 +20,7 @@ package probcog.bayesnets.inference;
 
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.BasicSampledDistribution;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
@@ -44,7 +45,7 @@ public class TimeLimitedInference implements IParameterHandler {
 	protected boolean verbose = true;
 	protected int[] evidenceDomainIndices = null;
 
-	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws Exception {
+	public TimeLimitedInference(ITimeLimitedInference inference, double time, double interval) throws ProbCogException {
 		this.inference = inference;
 		this.time = time;
 		this.interval = interval;
@@ -64,7 +65,7 @@ public class TimeLimitedInference implements IParameterHandler {
 		MSEs = new Vector<Double>();
 	}
 	
-	public SampledDistribution run() throws Exception {
+	public SampledDistribution run() throws ProbCogException {
 		// start the inference thread
 		thread = new InferenceThread();
 		thread.start();
@@ -72,26 +73,31 @@ public class TimeLimitedInference implements IParameterHandler {
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		boolean useIntervals = true;
-		if(!useIntervals) 
-			Thread.sleep((int)(1000*time));
-		else {
-			int numSteps = (int)(time / interval);
-			for(int i = 1; i <= numSteps && thread.isAlive(); i++) {							
-				Thread.sleep((int)(1000*interval));
-				if(verbose) System.out.printf("polling results after %fs (interval %d)...\n", sw.getElapsedTimeSecs(), i);
-				SampledDistribution dist = pollResults(true);
-				if(verbose && dist != null) System.out.printf("%d samples taken\n", dist.steps);
-				if(referenceDistribution != null) {
-					double mse;
-					if(dist == null)
-						mse = Double.POSITIVE_INFINITY;
-					else {						
-						DistributionComparison dc = doComparison(dist);
-						mse = dc.getResult(MeanSquaredError.class);
+		try {
+			if(!useIntervals) 
+				Thread.sleep((int)(1000*time));
+			else {
+				int numSteps = (int)(time / interval);
+				for(int i = 1; i <= numSteps && thread.isAlive(); i++) {							
+					Thread.sleep((int)(1000*interval));
+					if(verbose) System.out.printf("polling results after %fs (interval %d)...\n", sw.getElapsedTimeSecs(), i);
+					SampledDistribution dist = pollResults(true);
+					if(verbose && dist != null) System.out.printf("%d samples taken\n", dist.steps);
+					if(referenceDistribution != null) {
+						double mse;
+						if(dist == null)
+							mse = Double.POSITIVE_INFINITY;
+						else {						
+							DistributionComparison dc = doComparison(dist);
+							mse = dc.getResult(MeanSquaredError.class);
+						}
+						MSEs.add(mse);					
 					}
-					MSEs.add(mse);					
 				}
 			}
+		}
+		catch (InterruptedException e) {
+			throw new ProbCogException(e);
 		}
 		// get final results, terminating the inference thread if it is still running
 		SampledDistribution results = pollResults(false);
@@ -109,7 +115,7 @@ public class TimeLimitedInference implements IParameterHandler {
 		this.evidenceDomainIndices = evidenceDomainIndices;
 	}
 	
-	protected DistributionComparison doComparison(BasicSampledDistribution dist) throws Exception {
+	protected DistributionComparison doComparison(BasicSampledDistribution dist) throws ProbCogException {
 		DistributionComparison dc = new DistributionComparison(this.referenceDistribution, dist);
 		for(Class<? extends DistributionEntryComparison> c : comparisonClasses) 
 			dc.addEntryComparison(c);
@@ -118,7 +124,7 @@ public class TimeLimitedInference implements IParameterHandler {
 		return dc;
 	}
 	
-	public SampledDistribution pollResults(boolean allowPrint) throws Exception {
+	public SampledDistribution pollResults(boolean allowPrint) throws ProbCogException {
 		SampledDistribution dist = thread.pollResults();
 		if(allowPrint && verbose && dist != null)
 			printResults(dist);
@@ -148,7 +154,7 @@ public class TimeLimitedInference implements IParameterHandler {
 			}			
 		}
 		
-		public SampledDistribution pollResults() throws Exception {
+		public SampledDistribution pollResults() throws ProbCogException {
 			return inference.pollResults();
 		}
 	}

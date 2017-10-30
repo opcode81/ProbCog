@@ -25,7 +25,7 @@ import java.util.*;
 
 import probcog.bayesnets.core.*;
 import probcog.clustering.ClusterNamer;
-
+import probcog.exception.ProbCogException;
 import weka.core.*;
 import weka.clusterers.*;
 //import de.tum.in.fipm.base.data.QueryResult;
@@ -149,11 +149,11 @@ public class DomainLearner extends Learner {
 	 *            item is the name of the node for which the domain will be
 	 *            learnt and all subsequent items are the names of nodes to
 	 *            which the learnt domain is to be transferred.
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	public DomainLearner(BeliefNetworkEx bn, String[] directDomains,
 			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
-			String[][] duplicateDomains) throws Exception {
+			String[][] duplicateDomains) throws ProbCogException {
 		super(bn);
 		init(getBeliefNodes(directDomains), clusteredDomains, namer, duplicateDomains);
 	}
@@ -185,7 +185,7 @@ public class DomainLearner extends Learner {
 	 *            item is the name of the node for which the domain will be
 	 *            learnt and all subsequent items are the names of nodes to
 	 *            which the learnt domain is to be transferred.
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	public DomainLearner(BeliefNetwork bn, String[] directDomains,
 			ClusteredDomain[] clusteredDomains, ClusterNamer<SimpleKMeans> namer,
@@ -266,33 +266,37 @@ public class DomainLearner extends Learner {
 	 * 
 	 * @param rs
 	 *            the result set
-	 * @throws Exception
+	 * @throws ProbCogException
 	 *             if the result set is empty
-	 * @throws SQLException
-	 *             particularly if there is no matching column for one of the
+	 *             or if there is no matching column for one of the
 	 *             node names
 	 */
-	public void learn(ResultSet rs) throws Exception, SQLException {
-		// if it's an empty result set, throw exception
-		if (!rs.next())
-			throw new Exception("empty result set!");
-
-		// gather domain data
-		int numDirectDomains = directDomains != null ? directDomains.length : 0;
-		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length
-				: 0;
-		do {
-			// for direct learning, add outcomes to the set of outcomes
-			for (int i = 0; i < numDirectDomains; i++) {
-				directDomainData.get(i).add(rs.getString(directDomains[i].getName()));
-			}
-			// for clustering, gather all instances
-			for (int i = 0; i < numClusteredDomains; i++) {
-				Instance inst = new Instance(1);
-				inst.setValue(attrValue, rs.getDouble(clusteredDomains[i].nodeName));
-				clusterData[i].add(inst);
-			}
-		} while (rs.next());
+	public void learn(ResultSet rs) throws ProbCogException {
+		try {
+			// if it's an empty result set, throw exception
+			if (!rs.next())
+				throw new ProbCogException("empty result set!");
+	
+			// gather domain data
+			int numDirectDomains = directDomains != null ? directDomains.length : 0;
+			int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length
+					: 0;
+			do {
+				// for direct learning, add outcomes to the set of outcomes
+				for (int i = 0; i < numDirectDomains; i++) {
+					directDomainData.get(i).add(rs.getString(directDomains[i].getName()));
+				}
+				// for clustering, gather all instances
+				for (int i = 0; i < numClusteredDomains; i++) {
+					Instance inst = new Instance(1);
+					inst.setValue(attrValue, rs.getDouble(clusteredDomains[i].nodeName));
+					clusterData[i].add(inst);
+				}
+			} while (rs.next());
+		}
+		catch (SQLException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	/**
@@ -305,16 +309,15 @@ public class DomainLearner extends Learner {
 	 * 
 	 * @param rs
 	 *            the result set
-	 * @throws Exception
+	 * @throws ProbCogException
 	 *             if the result set is empty
-	 * @throws SQLException
-	 *             particularly if there is no matching column for one of the
+	 *             or if there is no matching column for one of the
 	 *             node names
 	 */
-	public void learn(Instances instances) throws Exception, SQLException {
+	public void learn(Instances instances) throws ProbCogException, SQLException {
 		// if it's an empty result set, throw exception
 		if(instances.numInstances() == 0)
-			throw new Exception("empty result set!");
+			throw new ProbCogException("empty result set!");
 
 		// gather domain data
 		int numDirectDomains = directDomains != null ? directDomains.length : 0;
@@ -344,10 +347,10 @@ public class DomainLearner extends Learner {
 	 *            a HashMap containing the data for one example. The names of
 	 *            the random variables (nodes) for which the domains are to be
 	 *            learnt must be found in the set of keys of the hash map.
-	 * @throws Exception
+	 * @throws ProbCogException
 	 *             if required keys are missing from the HashMap
 	 */
-	public void learn(Map<String, String> data) throws Exception {
+	public void learn(Map<String, String> data) throws ProbCogException {
 		int numDirectDomains = directDomains != null ? directDomains.length : 0;
 		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length
 				: 0;
@@ -356,7 +359,7 @@ public class DomainLearner extends Learner {
 		for (int i = 0; i < numDirectDomains; i++) {
 			String val = data.get(directDomains[i].getName());
 			if (val == null)
-				throw new Exception("Key " + clusteredDomains[i].nodeName + " not found in data!");
+				throw new ProbCogException("Key " + clusteredDomains[i].nodeName + " not found in data!");
 			directDomainData.get(i).add(val);
 		}
 		// for clustering, gather all instances
@@ -364,7 +367,7 @@ public class DomainLearner extends Learner {
 			Instance inst = new Instance(1);
 			String val = data.get(clusteredDomains[i].nodeName);
 			if (val == null) {
-				throw new Exception("Key " + clusteredDomains[i].nodeName + " not found in data!");
+				throw new ProbCogException("Key " + clusteredDomains[i].nodeName + " not found in data!");
 			}
 			inst.setValue(attrValue, Double.parseDouble(val));
 			clusterData[i].add(inst);
@@ -377,10 +380,10 @@ public class DomainLearner extends Learner {
 	 * 
 	 * @param res
 	 *            the query result containing the data for a set of examples
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	/*
-	public void learn(QueryResult res) throws Exception {
+	public void learn(QueryResult res) throws ProbCogException {
 		int numDirectDomains = directDomains != null ? directDomains.length : 0;
 		int numClusteredDomains = clusteredDomains != null ? clusteredDomains.length
 				: 0;
@@ -392,14 +395,14 @@ public class DomainLearner extends Learner {
 		for (int i = 0; i < numClusteredDomains; i++) {
 			colIdx_cd[i] = colnames.indexOf(clusteredDomains[i].nodeName);
 			if (colIdx_cd[i] == -1)
-				throw new Exception("Node/column "
+				throw new ProbCogException("Node/column "
 						+ clusteredDomains[i].nodeName
 						+ " was not found in result set");
 		}
 		for (int i = 0; i < numDirectDomains; i++) {
 			colIdx_dd[i] = colnames.indexOf(directDomains[i]);
 			if (colIdx_dd[i] == -1)
-				throw new Exception("Node/column " + directDomains[i]
+				throw new ProbCogException("Node/column " + directDomains[i]
 						+ " was not found in result set");
 		}
 
@@ -430,7 +433,7 @@ public class DomainLearner extends Learner {
 	 * and applies all the new domains. (This method is called by finish(),
 	 * which should be called when all the examples have been passed.)
 	 */
-	protected void end_learning() throws Exception {
+	protected void end_learning() throws ProbCogException {
 		if (directDomains != null)
 			for (int i = 0; i < directDomains.length; i++) {
 				if (verbose)
@@ -485,9 +488,9 @@ public class DomainLearner extends Learner {
 	 * 
 	 * @return the array of clusterers. It is ordered according to the array of
 	 *         "clustered domains" that was passed at construction.
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public SimpleKMeans[] getClusterers() throws Exception {
+	public SimpleKMeans[] getClusterers() throws ProbCogException {
 		finish(); // make sure learning is completed
 		return clusterers;
 	}

@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.logic.sat;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.ComplexFormula;
 import probcog.logic.Disjunction;
 import probcog.logic.Formula;
@@ -35,7 +36,7 @@ public class Clause extends ComplexFormula {
 	
 	public GroundLiteral[] lits;
 	
-	public Clause(Formula f) throws Exception {
+	public Clause(Formula f) throws ProbCogException {
 		//System.out.println("generating clause from " + f.toString());
 		if(f instanceof GroundLiteral) {
 			lits = new GroundLiteral[1];
@@ -50,13 +51,13 @@ public class Clause extends ComplexFormula {
 				if(d.children[i] instanceof GroundLiteral)
 					lits[i] = (GroundLiteral)d.children[i];
 				else
-					throw new Exception("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName() + "; only GroundLiterals allowed.");
+					throw new ProbCogException("Disjunction contains child of unacceptable type " + d.children[i].getClass().getSimpleName() + "; only GroundLiterals allowed.");
 				// check if we previously added the negative literal or the same literal
 				for(int j = 0; j < i; j++)
 					if(lits[i].gndAtom == lits[j].gndAtom) {
 						if(lits[i].isPositive != lits[j].isPositive)
 							throw new TautologyException(d);
-						throw new Exception("Tried to create SAT clause from disjunction with duplicate ground atoms: " + d);
+						throw new ProbCogException("Tried to create SAT clause from disjunction with duplicate ground atoms: " + d);
 					}
 			}
 		}
@@ -65,10 +66,10 @@ public class Clause extends ComplexFormula {
 			lits[0] = new GroundLiteral(true, (GroundAtom)f);
 		}
 		else
-			throw new Exception("Instance of type " + f.getClass().getSimpleName() + " cannot be treated as a clause");
+			throw new ProbCogException("Instance of type " + f.getClass().getSimpleName() + " cannot be treated as a clause");
 	}
 	
-	public static class TautologyException extends Exception {
+	public static class TautologyException extends ProbCogException {
 		private static final long serialVersionUID = 1L;
 
 		public TautologyException(Disjunction d) {

@@ -19,6 +19,7 @@
 package probcog.inference;
 
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Vector;
 
 import edu.tum.cs.util.StringTool;
+import probcog.exception.ProbCogException;
 
 /**
  * Class to support the dynamic handling of parameters by name.
@@ -56,9 +58,9 @@ public class ParameterHandler {
 	 * @param paramName the name of the parameter
 	 * @param setterMethodName the name of the setter method
 	 * @param description parameter description
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void add(String paramName, String setterMethodName, String description) throws Exception {
+	public void add(String paramName, String setterMethodName, String description) throws ProbCogException {
 		for(Method m : owner.getClass().getMethods()) {
 			if(m.getName().equals(setterMethodName)) {
 				Class<?>[] paramTypes = m.getParameterTypes();
@@ -68,22 +70,22 @@ public class ParameterHandler {
 				return;
 			}
 		}
-		throw new Exception("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
+		throw new ProbCogException("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
 	}
 	
 	/**
 	 * Adds a handled parameter
 	 * @param paramName the name of the parameter
 	 * @param setterMethodName the name of the setter method
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void add(String paramName, String setterMethodName) throws Exception {
+	public void add(String paramName, String setterMethodName) throws ProbCogException {
 		add(paramName, setterMethodName, null);
 	}
 	
-	public void addSubhandler(ParameterHandler h) throws Exception {
+	public void addSubhandler(ParameterHandler h) throws ProbCogException {
 		if(h == null)
-			throw new Exception("Subhandler cannot be null");
+			throw new IllegalArgumentException("Subhandler cannot be null");
 		subhandlers.add(h);
 		h.parenthandlers.add(this);
 		// if parameters were previously submitted, pass them on to the new subhandler;
@@ -92,7 +94,7 @@ public class ParameterHandler {
 			h.handle(submittedParams, false);
 	}
 	
-	public void addSubhandler(IParameterHandler h) throws Exception {
+	public void addSubhandler(IParameterHandler h) throws ProbCogException {
 		addSubhandler(h.getParameterHandler());
 	}
 	
@@ -100,22 +102,22 @@ public class ParameterHandler {
 	 * handles all of the parameters given in a parameter mapping
 	 * @param paramMapping a mapping from parameter names to values
 	 * @param exceptionIfUnhandledParam whether to throw an exception if a parameter cannot be handled now. Note that the parameter handling scheme will try to handle parameters later on, should new subhandlers be added after handle() is called
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void handle(Map<String, Object> paramMapping, boolean exceptionIfUnhandledParam) throws Exception {		
+	public void handle(Map<String, Object> paramMapping, boolean exceptionIfUnhandledParam) throws ProbCogException {		
 		submittedParams = paramMapping;
 		for(Entry<String,Object> param : paramMapping.entrySet()) {
 			handle(param.getKey(), param.getValue());
 		}
 		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
-			throw new Exception("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
+			throw new ProbCogException("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
 	}
 	
 	public Collection<String> getUnhandledParams() {
 		return unhandledParams; 
 	}
 	
-	protected boolean handle(String paramName, Object value) throws Exception {
+	protected boolean handle(String paramName, Object value) throws ProbCogException {
 		// try to handle here
 		ParameterMapping m = mappings.get(paramName);
 		boolean handled = false;
@@ -191,30 +193,35 @@ public class ParameterHandler {
 			this.paramDescription = paramDescription;
 		}
 		
-		public void apply(Object value) throws Exception {			
-			Class<?> paramType = setterMethod.getParameterTypes()[0];
-			if(value instanceof String) {
-				String strValue = (String)value;
-				if(paramType == Double.class || paramType == double.class) {
-					setterMethod.invoke(owner, Double.parseDouble(strValue));
-					return;
+		public void apply(Object value) throws ProbCogException {	
+			try {
+				Class<?> paramType = setterMethod.getParameterTypes()[0];
+				if(value instanceof String) {
+					String strValue = (String)value;
+					if(paramType == Double.class || paramType == double.class) {
+						setterMethod.invoke(owner, Double.parseDouble(strValue));
+						return;
+					}
+					if(paramType == Integer.class || paramType == int.class) {
+						setterMethod.invoke(owner, Integer.parseInt(strValue));
+						return;
+					}
+					if(paramType == Boolean.class || paramType == boolean.class) {
+						setterMethod.invoke(owner, Boolean.parseBoolean(strValue));
+						return;
+					}
+					if(paramType == String.class) {
+						setterMethod.invoke(owner, strValue);
+						return;
+					}
+					throw new ProbCogException("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
 				}
-				if(paramType == Integer.class || paramType == int.class) {
-					setterMethod.invoke(owner, Integer.parseInt(strValue));
-					return;
-				}
-				if(paramType == Boolean.class || paramType == boolean.class) {
-					setterMethod.invoke(owner, Boolean.parseBoolean(strValue));
-					return;
-				}
-				if(paramType == String.class) {
-					setterMethod.invoke(owner, strValue);
-					return;
-				}
-				throw new Exception("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
+				else
+					setterMethod.invoke(owner, value);
 			}
-			else
-				setterMethod.invoke(owner, value);			
+			catch (InvocationTargetException|IllegalAccessException e) {
+				throw new ProbCogException("Error calling setter method " + setterMethod, e);
+			}
 		}
 	}
 }

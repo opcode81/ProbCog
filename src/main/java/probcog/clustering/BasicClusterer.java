@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.clustering;
 
+import probcog.exception.ProbCogException;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -48,14 +49,24 @@ public class BasicClusterer<TClusterer extends weka.clusterers.Clusterer> {
 		instances.add(inst);
 	}
 	
-	public void buildClusterer() throws Exception {
-		clusterer.buildClusterer(instances);
+	public void buildClusterer() throws ProbCogException {
+		try {
+			clusterer.buildClusterer(instances);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
-	public int classify(double value) throws Exception {
+	public int classify(double value) throws ProbCogException {
 		Instance inst = new Instance(1);
 		inst.setValue(attrValue, value);
-		return clusterer.clusterInstance(inst);
+		try {
+			return clusterer.clusterInstance(inst);
+		}
+		catch (Exception e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	public TClusterer getWekaClusterer() {

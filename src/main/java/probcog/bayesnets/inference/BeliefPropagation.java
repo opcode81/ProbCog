@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.datastruct.MutableDouble;
 
@@ -231,7 +231,7 @@ public class BeliefPropagation extends Sampler {
 		}
 	}
 	
-	public BeliefPropagation(BeliefNetworkEx bn) throws Exception {
+	public BeliefPropagation(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 		// Initialization of BP
 		nodes = bn.getNodes();
@@ -247,7 +247,7 @@ public class BeliefPropagation extends Sampler {
 	}
 
 	@Override
-	protected void _infer() throws Exception {
+	protected void _infer() throws ProbCogException {
 		// initialization of lambda and pi.
 		priors = bn.computePriors(evidenceDomainIndices);
 		for (BeliefNode n : nodes){

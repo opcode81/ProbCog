@@ -20,11 +20,11 @@ package probcog.bayesnets.inference;
 
 import java.io.PrintStream;
 
-import probcog.bayesnets.core.BeliefNetworkEx;
-import probcog.inference.BasicSampledDistribution;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
+import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
+import probcog.inference.BasicSampledDistribution;
 
 /**
  * class that allows the incremental construction of a probability distribution from (weighted) samples
@@ -45,7 +45,7 @@ public class SampledDistribution extends BasicSampledDistribution implements Clo
 	protected boolean debug = true;
 	protected BeliefNode[] nodes;
 	
-	public SampledDistribution(BeliefNetworkEx bn) throws Exception {
+	public SampledDistribution(BeliefNetworkEx bn) throws ProbCogException {
 		this.bn = bn;
 		this.Z = 0.0;
 		nodes = bn.bn.getNodes();

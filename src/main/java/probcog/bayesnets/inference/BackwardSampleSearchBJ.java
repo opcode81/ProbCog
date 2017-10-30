@@ -29,7 +29,7 @@ import java.util.Vector;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.util.TopologicalOrdering;
 import probcog.bayesnets.util.TopologicalSort;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.tum.cs.util.datastruct.Map2Set;
 import edu.tum.cs.util.datastruct.Pair;
@@ -42,7 +42,7 @@ import edu.tum.cs.util.datastruct.PrioritySet;
  */
 public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 	
-	public BackwardSampleSearchBJ(BeliefNetworkEx bn) throws Exception {
+	public BackwardSampleSearchBJ(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
@@ -56,7 +56,7 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 	}
 	
 	@Override
-	public void getSample(WeightedSample s) throws Exception {
+	public void getSample(WeightedSample s) throws ProbCogException {
 		Map2Set<BeliefNode,Integer> domExclusions = new Map2Set<BeliefNode,Integer>();
 		
 		initSample(s);				
@@ -78,7 +78,7 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 			if(backtracking) {
 				domExclusions.add(node, sampledIndices[i]);
 				if(mode == NodeMode.Outside)
-					throw new Exception("Backtracked to node outside order");
+					throw new ProbCogException("Backtracked to node outside order");
 			}
 			else {
 				// if we get to a node going forward, forget all exclusions and invalidate cache
@@ -133,7 +133,7 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 			}
 			else { // backtrack				
 				if(i == 0) // can't backtrack further
-					throw new Exception("Backtracking past first level. Most likely, the evidence that was specified is contradictory");
+					throw new ProbCogException("Backtracking past first level. Most likely, the evidence that was specified is contradictory");
 				
 				backtracking = true;
 				
@@ -180,7 +180,7 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 				// back jump
 				Integer iprev = i;
 				if(backtrackQueue.isEmpty())
-					throw new Exception("Nowhere left to backjump to from node #" + i + ". Most likely, the evidence has 0 probability.");
+					throw new ProbCogException("Nowhere left to backjump to from node #" + i + ". Most likely, the evidence has 0 probability.");
 				else
 					i = backtrackQueue.remove();
 				
@@ -232,10 +232,10 @@ public class BackwardSampleSearchBJ extends BackwardSampleSearch {
 	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
 	@Override
-	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
+	protected void getOrdering(int[] evidenceDomainIndices) throws ProbCogException {
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();

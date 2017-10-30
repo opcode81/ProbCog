@@ -29,6 +29,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.parser.ParseException;
 
 
@@ -40,7 +41,7 @@ import probcog.logic.parser.ParseException;
 public class Server {
 	ModelPool modelPool; 
 	
-	public Server(String modelPoolFile) throws IOException, ParseException, Exception {
+	public Server(String modelPoolFile) throws ProbCogException {
 		modelPool = new ModelPool(modelPoolFile);
 	}
 	
@@ -57,11 +58,9 @@ public class Server {
 	 * @deprecated
 	 * @param request
 	 * @return
-	 * @throws IOException
-	 * @throws ParseException
-	 * @throws Exception
+	 * @throws ProbCogException 
 	 */
-	public Vector<InferenceResult> query(String request) throws IOException, ParseException, Exception {
+	public Vector<InferenceResult> query(String request) throws ProbCogException {
 		// get request components
 		String[] qs = request.split(";");
 		String query = qs[0];
@@ -121,9 +120,9 @@ public class Server {
 	 * @param queries a collection of queries, i.e. either predicate/function names, partially grounded predicates/terms (variables in lower-case) or fully grounded predicates/terms
 	 * @param evidence a collection of arrays, where each array contains a predicate/function name followed by some arguments and finally the value. For a Boolean function, the value can be omitted (True is default).   
 	 * @return a vector of inference results with constants already mapped
-	 * @throws Exception
+	 * @throws ProbCogException 
 	 */
-	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Collection<String[]> evidence) throws Exception {
+	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Collection<String[]> evidence) throws ProbCogException {
 		// get model
 		Model model = modelPool.getModel(modelName);		
 		// set evidence		
@@ -154,9 +153,9 @@ public class Server {
 	 * @param queries
 	 * @param evidence a list of evidence atoms, e.g. "foo(bar,baz)"; use an atom even if the variable is actually non-boolean, i.e. use "foo(bar,baz)" for "foo(bar)=baz" 
 	 * @return a vector of inference results with constants already mapped
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Iterable<String> evidence) throws Exception {
+	public Vector<InferenceResult> query(String modelName, Collection<String> queries, Iterable<String> evidence) throws ProbCogException {
 		// process the evidence
 		Pattern atom = Pattern.compile("(\\w+)\\((.*?)\\)");
 		Vector<String[]> newEv = new Vector<String[]>();

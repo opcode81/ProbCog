@@ -18,11 +18,13 @@
  ******************************************************************************/
 package probcog.bayesnets.inference;
 
+import probcog.exception.ProbCogException;
+
 /**
  * Interface for the build up of inference results.
  * @author Dominik Jain
  */
 public interface IDistributionBuilder {
-	public void addSample(WeightedSample s) throws Exception;
-	public SampledDistribution getDistribution() throws Exception;
+	public void addSample(WeightedSample s) throws ProbCogException;
+	public SampledDistribution getDistribution() throws ProbCogException;
 }

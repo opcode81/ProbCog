@@ -23,21 +23,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
-import probcog.bayesnets.core.BeliefNetworkEx;
-import probcog.bayesnets.learning.CPTLearner;
-import probcog.srldb.Database;
-import probcog.srldb.Object;
-import probcog.srldb.datadict.DDAttribute;
-import probcog.srldb.datadict.DDException;
-import probcog.srldb.datadict.DDObject;
-import probcog.srldb.datadict.DataDictionary;
-import probcog.srldb.datadict.domain.AutomaticDomain;
-import probcog.srldb.datadict.domain.BooleanDomain;
-
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.ksu.cis.util.graph.core.Graph;
 import edu.ksu.cis.util.graph.core.Vertex;
+import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.bayesnets.learning.CPTLearner;
+import probcog.exception.ProbCogException;
+import probcog.srldb.Database;
+import probcog.srldb.Object;
+import probcog.srldb.datadict.DDAttribute;
+import probcog.srldb.datadict.DDObject;
+import probcog.srldb.datadict.DataDictionary;
+import probcog.srldb.datadict.domain.AutomaticDomain;
+import probcog.srldb.datadict.domain.BooleanDomain;
 
 /**
  * creates an srldb.Database by sampling a Bayesian network
@@ -62,7 +61,7 @@ public class BN2SRLDB {
 		booleanConversion.add(attrName);
 	}
 	
-	public Database getDB(int numSamples) throws DDException, Exception {
+	public Database getDB(int numSamples) throws ProbCogException {
 		return getDB(numSamples, new Random());
 	}
 	
@@ -71,7 +70,7 @@ public class BN2SRLDB {
 		return nodeDomain.getOrder() == 2 && (nodeDomain.getName(0).equalsIgnoreCase("true") || nodeDomain.getName(0).equalsIgnoreCase("false"));
 	}
 	
-	public Database getDB(int numSamples, Random generator) throws DDException, Exception {
+	public Database getDB(int numSamples, Random generator) throws ProbCogException {
 		// create data dictionary with a single object
 		DataDictionary datadict = new DataDictionary();
 		DDObject ddObj = new DDObject(Object.class.getSimpleName());
@@ -129,9 +128,9 @@ public class BN2SRLDB {
 		return db;
 	}
 	
-	public void relearnBN() throws Exception {
+	public void relearnBN() throws ProbCogException {
 		if(db == null)
-			throw new Exception("No sampled data available for learning; call getDB() first!");
+			throw new ProbCogException("No sampled data available for learning; call getDB() first!");
 		// relearn new Bayesian network CPTs from the samples
 		CPTLearner cptLearner = new CPTLearner(bn);
 		for(Object obj : db.getObjects()) {

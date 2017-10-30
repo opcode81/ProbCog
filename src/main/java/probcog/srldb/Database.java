@@ -33,6 +33,7 @@ import java.util.Vector;
 
 import probcog.clustering.BasicClusterer;
 import probcog.clustering.ClusterNamer;
+import probcog.exception.ProbCogException;
 import probcog.srl.directed.ABLModel;
 import probcog.srldb.datadict.AutomaticDataDictionary;
 import probcog.srldb.datadict.DDAttribute;
@@ -79,10 +80,9 @@ public class Database implements Cloneable, Serializable {
 	 * @param objects a vector of objects, some of which (but not necessarily all) must have the attribute
 	 * @param clusterer a clusterer used to perform the clustering 
 	 * @param clusterNamer a namer for the resulting clusters, which is used to redefine the attribute's domain and to update all the attribute values  
-	 * @throws DDException if problems with data dictionary conformity are discovered 
-	 * @throws Exception if there are no instances of the attribute, i.e. the attribute is undefines for all objects 
+	 * @throws ProbCogException if there are no instances of the attribute, i.e. the attribute is undefines for all objects 
 	 */
-	public static AttributeClustering clusterAttribute(DDAttribute attribute, Iterable<Item> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws DDException, Exception {
+	public static AttributeClustering clusterAttribute(DDAttribute attribute, Iterable<Item> objects, BasicClusterer<? extends weka.clusterers.Clusterer> clusterer, ClusterNamer<weka.clusterers.Clusterer> clusterNamer) throws ProbCogException {
 		String attrName = attribute.getName();		
 		// create clusterer and collect instances
 		int instances = 0;
@@ -104,7 +104,7 @@ public class Database implements Cloneable, Serializable {
 			return null;
 		}
 		if(instances == 0) 
-			throw new Exception("The domain is empty; No instances could be clustered for attribute " + attrName);
+			throw new ProbCogException("The domain is empty; No instances could be clustered for attribute " + attrName);
 		// apply cluster assignment to attribute values
 		AttributeClustering ac = new AttributeClustering();
 		ac.clusterer = clusterer;
@@ -113,13 +113,19 @@ public class Database implements Cloneable, Serializable {
 		return ac;
 	}
 	
-	public static void applyClustering(DDAttribute attribute, Iterable<Item> objects, AttributeClustering ac) throws NumberFormatException, Exception {
+	public static void applyClustering(DDAttribute attribute, Iterable<Item> objects, AttributeClustering ac) throws ProbCogException {
 		// apply cluster assignment to attribute values
 		String attrName = attribute.getName();
 		for(Item obj : objects) {
 			String value = obj.attribs.get(attrName); 
 			if(value != null) {
-				int i = ac.clusterer.classify(Double.parseDouble(value));
+				int i;
+				try {
+					i = ac.clusterer.classify(Double.parseDouble(value));
+				} 
+				catch (Exception e) {
+					throw new ProbCogException(e);
+				}
 				String svalue = ac.newDomain.getValues()[i];
 				obj.attribs.put(attrName, svalue);
 				/*if(attrName.equals("radDistRatio")) {
@@ -132,7 +138,7 @@ public class Database implements Cloneable, Serializable {
 		attribute.setDomain(ac.newDomain);
 	}
 	
-	public void writeMLNDatabase(PrintStream out) throws Exception {
+	public void writeMLNDatabase(PrintStream out) throws ProbCogException {
 		out.println("// *** mln database ***\n");
 		// links
 		out.println("// links");
@@ -146,13 +152,13 @@ public class Database implements Cloneable, Serializable {
 		}
 	}
 	
-	public void writeBLOGDatabase(PrintStream out) throws Exception {
+	public void writeBLOGDatabase(PrintStream out) throws ProbCogException {
 		// check function names
 		for(DDAttribute ddattr : this.getDataDictionary().getAttributes()) {
 			if(ddattr.isDiscarded())
 				continue;
 			if(!ABLModel.isValidFunctionName(ddattr.getName()))
-				throw new Exception("'" + ddattr.getName() + "' is not a valid function name");
+				throw new ProbCogException("'" + ddattr.getName() + "' is not a valid function name");
 		}
 		// write all facts
 		for(Object obj : objects) {
@@ -195,14 +201,18 @@ public class Database implements Cloneable, Serializable {
 	 * reads a previously stored database object from a file
 	 * @param s
 	 * @return
-	 * @throws IOException
-	 * @throws ClassNotFoundException
+	 * @throws ProbCogException 
 	 */
-	public static Database fromFile(FileInputStream s) throws IOException, ClassNotFoundException {
-		ObjectInputStream objstream = new ObjectInputStream(s);
-	    java.lang.Object object = objstream.readObject();
-	    objstream.close();
-	    return (Database)object;
+	public static Database fromFile(FileInputStream s) throws ProbCogException {
+		try {
+			ObjectInputStream objstream = new ObjectInputStream(s);
+		    java.lang.Object object = objstream.readObject();
+		    objstream.close();
+		    return (Database)object;
+		}
+		catch (IOException | ClassNotFoundException e) {
+			throw new ProbCogException(e);
+		}
 	}
 	
 	
@@ -247,9 +257,9 @@ public class Database implements Cloneable, Serializable {
 	/**
 	 * outputs the data contained in this database to an XML database file for use with Proximity
 	 * @param out the stream to write to
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void writeProximityDatabase(java.io.PrintStream out) throws Exception {
+	public void writeProximityDatabase(java.io.PrintStream out) throws ProbCogException {
 
 		flattenLinks();
 
@@ -387,7 +397,7 @@ public class Database implements Cloneable, Serializable {
 	 * verifies compatibility of the data with the data dictionary
 	 * and merges domains with overlapping value sets in the data dictionary
 	 */
-	public void check() throws DDException, Exception {
+	public void check() throws DDException {
 		// check objects
 		for(Object obj : objects) {
 			datadict.checkObject(obj);
@@ -407,10 +417,9 @@ public class Database implements Cloneable, Serializable {
 	
 	/**
 	 * performs clustering on the attributes for which it was specified in the data dictionary
-	 * @throws DDException
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */	
-	public HashMap<DDAttribute, AttributeClustering> doClustering(HashMap<DDAttribute, AttributeClustering> clusterers) throws DDException, Exception {
+	public HashMap<DDAttribute, AttributeClustering> doClustering(HashMap<DDAttribute, AttributeClustering> clusterers) throws ProbCogException {
 		System.out.println("clustering...");
 		if(clusterers == null)
 			clusterers = new HashMap<DDAttribute, AttributeClustering>();
@@ -436,7 +445,7 @@ public class Database implements Cloneable, Serializable {
 		return clusterers;
 	}
 	
-	public HashMap<DDAttribute, AttributeClustering> doClustering() throws DDException, Exception {
+	public HashMap<DDAttribute, AttributeClustering> doClustering() throws ProbCogException {
 		return doClustering(null);
 	}
 
@@ -497,9 +506,9 @@ public class Database implements Cloneable, Serializable {
 		public Integer inc(String name) {
 			Integer c = counters.get(name);
 			if(c == null)
-				counters.put(name, c=new Integer(1));
+				counters.put(name, c=Integer.valueOf(1));
 			else
-				counters.put(name, c=new Integer(c+1));
+				counters.put(name, c=Integer.valueOf(c+1));
 			return c;
 		}
 		public String toString() {

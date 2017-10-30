@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import probcog.logic.Formula;
 import probcog.logic.GroundAtom;
 import probcog.srl.RelationKey;
@@ -90,9 +91,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 
 	/**
 	 * constructs an empty relational belief network
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public RelationalBeliefNetwork() throws Exception {
+	public RelationalBeliefNetwork() throws ProbCogException {
 		super();
 		extNodesByIdx = new HashMap<Integer, ExtendedNode>();		
 		signatures = new HashMap<String, Signature>();
@@ -103,14 +104,14 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	/**
 	 * instantiates a relational belief network from a fragment network
 	 * @param networkFile
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public RelationalBeliefNetwork(File networkFile) throws Exception {
+	public RelationalBeliefNetwork(File networkFile) throws ProbCogException {
 		this();
 		initNetwork(networkFile);
 	}
 	
-	protected void initNetwork(File networkFile) throws Exception {
+	protected void initNetwork(File networkFile) throws ProbCogException {
 		super.initNetwork(networkFile.toString());
 		BeliefNode[] nodes = bn.getNodes();
 		for(int i = 0; i < nodes.length; i++) {
@@ -123,9 +124,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * creates a relational node from the given belief node
 	 * @param node
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected ExtendedNode createNode(BeliefNode node) throws Exception {
+	protected ExtendedNode createNode(BeliefNode node) throws ProbCogException {
 		switch(node.getType()) {
 		case BeliefNode.NODE_CHANCE:
 			return new RelationalNode(this, node);
@@ -134,7 +135,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		case BeliefNode.NODE_UTILITY:
 			return new UtilityNode(this, node);
 		default:
-			throw new Exception("Don't know how to treat node " + node.getName() + " of type " + node.getType());
+			throw new ProbCogException("Don't know how to treat node " + node.getName() + " of type " + node.getType());
 		}	
 	}
 	
@@ -206,10 +207,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * @param nodeName 
 	 * @param actualArgs
 	 * @return an array of variable names
-	 * @throws Exception
+	 * @throws ProbCogException
 	 * TODO this should be rewritten with ParentGrounder
 	 */
-	public String[] getParentVariableNames(RelationalNode node, String[] actualArgs) throws Exception {
+	public String[] getParentVariableNames(RelationalNode node, String[] actualArgs) throws ProbCogException {
 		RelationalNode child = node;
 		BeliefNode[] parents = bn.getParents(child.node);
 		String[] ret = new String[parents.length];
@@ -225,7 +226,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					}
 				}
 				if(param == null)
-					throw new Exception(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.getFunctionName(), node.getFunctionName() + actualArgs.toString()));
+					throw new ProbCogException(String.format("Could not determine parameters of parent '%s' for node '%s'", parent.getFunctionName(), node.getFunctionName() + actualArgs.toString()));
 				varName.append(param);
 				if(iCur < parent.params.length-1)
 					varName.append(",");
@@ -236,11 +237,11 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		return ret;
 	}
 	
-	public void addSignature(Signature sig) throws Exception {
+	public void addSignature(Signature sig) throws ProbCogException {
 		String key = sig.functionName; //.toLowerCase()
 		Signature old = signatures.get(key);
 		if(old != null)
-			throw new Exception("Duplicate signature definition for '" + sig.functionName + "'; previously defined as " + old + ", now defined as " + sig);		
+			throw new ProbCogException("Duplicate signature definition for '" + sig.functionName + "'; previously defined as " + old + ", now defined as " + sig);		
 		signatures.put(key, sig);
 	}
 	
@@ -278,10 +279,10 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	/**
 	 * guesses the model's function signatures by assuming the same type whenever the same variable name is used (ignoring any numeric suffixes), setting the domain name to ObjType_x when x is the variable,
 	 * and assuming a different domain of return values for each node, using Dom{NodeName} as the domain name.
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 *
 	 */
-	public void guessSignatures() throws Exception {
+	public void guessSignatures() throws ProbCogException {
 		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isConstant) // signatures for constants are determined in checkSignatures (called below)
 				continue;
@@ -299,9 +300,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	/**
 	 * check fragments for type inconsistencies and write return types for constant nodes
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void checkSignatures() throws Exception {		
+	protected void checkSignatures() throws ProbCogException {		
 		for(RelationalNode node : getRelationalNodes()) {
 			if(node.isFragment()) 
 				checkFragment(node);
@@ -312,9 +313,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * checks the given fragment for type inconsistencies
 	 * @param fragment
 	 * @param relevantNodes
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void checkFragment(RelationalNode fragment) throws Exception {		
+	protected void checkFragment(RelationalNode fragment) throws ProbCogException {		
 		MultiIterator<RelationalNode> relevantNodes = new MultiIterator<RelationalNode>();
 		relevantNodes.add(fragment);
 		relevantNodes.add(getRelationalParents(fragment));
@@ -327,17 +328,17 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				// update constant return types using the mapping
 				String type = types.get(node.getFunctionName());
 				if(type == null) // constants that were referenced by any of their parents must now have a type assigned
-					throw new Exception("Constant " + node + " not referenced and therefore not typed.");
+					throw new ProbCogException("Constant " + node + " not referenced and therefore not typed.");
 				node.constantType = type;
 			}
 			else {
 				Signature sig = getSignature(node);
 				if(sig == null) {
-					throw new Exception("Node " + node + " has no signature!");
+					throw new ProbCogException("Node " + node + " has no signature!");
 				}
 				// check for the right number of arguments and their types
 				if(sig.argTypes.length != node.params.length)
-					throw new Exception(String.format("Signature of '%s' is in conflict with node '%s': Signature requires %d arguments, node has %d.", sig.functionName, node.toString(), sig.argTypes.length, node.params.length));
+					throw new ProbCogException(String.format("Signature of '%s' is in conflict with node '%s': Signature requires %d arguments, node has %d.", sig.functionName, node.toString(), sig.argTypes.length, node.params.length));
 				for(int i = 0; i < node.params.length; i++) {
 					String key = node.params[i];
 					String prevType = types.get(key);
@@ -349,7 +350,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 							if (taxonomy != null && (taxonomy.query_isa(prevType, sig.argTypes[i]) || taxonomy.query_isa(sig.argTypes[i], prevType)))
 								error = false;
 							if(error)
-								throw new Exception(String.format("Type mismatch while processing fragment '%s': '%s' has incompatible types '%s' and '%s'", fragment.getName(), key, prevType, sig.argTypes[i]));
+								throw new ProbCogException(String.format("Type mismatch while processing fragment '%s': '%s' has incompatible types '%s' and '%s'", fragment.getName(), key, prevType, sig.argTypes[i]));
 						}
 					}					
 				}
@@ -379,9 +380,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * @param out  the stream to write to
 	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
 	 * @param numericWeights whether to print weighs as numbers (if false, print as log(x))
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void toMLN(PrintStream out, boolean declarationsOnly, boolean compactFormulas, boolean numericWeights) throws Exception {
+	public void toMLN(PrintStream out, boolean declarationsOnly, boolean compactFormulas, boolean numericWeights) throws ProbCogException {
 		MLNWriter writer = new MLNWriter(out);
 		
 		// write domain declarations
@@ -432,7 +433,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			}
 			for(int i = 0; i < sig.argTypes.length; i++) {
 				if(sig.argTypes[i].length() == 0)
-					throw new Exception("Parameter " + i + " of " + sig.functionName + " has empty type: " + sig);
+					throw new ProbCogException("Parameter " + i + " of " + sig.functionName + " has empty type: " + sig);
 				argTypes[i] = Database.lowerCaseString(sig.argTypes[i]);
 			}
 			out.printf("%s(%s)\n", Database.lowerCaseString(sig.functionName), StringTool.join(", ", argTypes));		
@@ -477,7 +478,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 					// get the relation that is responsible for grounding the free parameters
 					RelationalNode rel = node.getFreeParamGroundingParent();
 					if(rel == null)
-						throw new Exception("Could not determine relevant relational parent");				
+						throw new ProbCogException("Could not determine relevant relational parent");				
 					// add predicate declaration for influence factor
 					String influenceRelation = String.format("inflfac_%s_%s", node.getFunctionName(), rel.getFunctionName());
 					Signature sig = rel.getSignature();
@@ -530,7 +531,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 						out.print("EXIST " + StringTool.join(",", freeparams.toArray(new String[0])) + " " + MLNWriter.formatAsAtom(parent.toAtom()));
 					}
 					if(k == 0)
-						throw new Exception("None of the parents of OR-node " + node + " handle any of the free parameters.");
+						throw new ProbCogException("None of the parents of OR-node " + node + " handle any of the free parameters.");
 					out.println();
 				}					
 			}
@@ -542,9 +543,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * @param out  the stream to write to
 	 * @param compactFormulas  whether to write CPTs more compactly by first learning a classification tree
 	 * @param numericWeights whether to print weighs as numbers (if false, print as log(x))
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void toMLN(MLNConverter converter, boolean declarationsOnly, boolean compactFormulas) throws Exception {
+	public void toMLN(MLNConverter converter, boolean declarationsOnly, boolean compactFormulas) throws ProbCogException {
 		
 		// domain declarations
 		System.out.printf("Converting %d domains...\n", this.getGuaranteedDomainElements().size());
@@ -606,13 +607,13 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			else {
 				Formula f = node.toFormula(null);
 				if(f == null)
-					throw new Exception("Don't know how to generate a formula for " + node);
+					throw new ProbCogException("Don't know how to generate a formula for " + node);
 				converter.addHardFormula(f);
 			}
 		}
 	}
 
-	protected void walkCPD_MLNformulas(MLNConverter converter, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws Exception {
+	protected void walkCPD_MLNformulas(MLNConverter converter, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws ProbCogException {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// collect values of constants in order to replace references to them in the individual predicates 
@@ -657,13 +658,8 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 			try {
 				f = Formula.fromString(sb.toString());
 			}
-			catch(Error e) {
-				System.err.println("Error parsing formula: " + sb.toString());
-				throw e;				
-			}
-			catch(Exception e) {
-				System.err.println("Error parsing formula: " + sb.toString());
-				throw e;
+			catch(Throwable t) {
+				throw new ProbCogException("Error parsing formula: " + sb.toString(), t);
 			}
 			converter.addFormula(f, weight);
 		}
@@ -684,7 +680,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				if(addr[i] == -1)
 					addr[i] = dom.findName("true");
 				if(addr[i] == -1)
-					throw new Exception("Domain of necessary precondition " + extNode + " must contain either 'True' or 'true'!");
+					throw new ProbCogException("Domain of necessary precondition " + extNode + " must contain either 'True' or 'true'!");
 				walkCPD_MLNformulas(converter, cpf, addr, i+1, precondition, numericWeights);
 			}
 			// otherwise consider all domain elements
@@ -705,9 +701,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	 * @param i
 	 * @param precondition
 	 * @param numericWeights
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws Exception {
+	protected void walkCPD_MLNformulas(PrintStream out, CPF cpf, int[] addr, int i, String precondition, boolean numericWeights) throws ProbCogException {
 		BeliefNode[] nodes = cpf.getDomainProduct();
 		if(i == addr.length) { // we have a complete address
 			// collect values of constants in order to replace references to them in the individual predicates 
@@ -752,7 +748,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 				if(addr[i] == -1)
 					addr[i] = dom.findName("true");
 				if(addr[i] == -1)
-					throw new Exception("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
+					throw new ProbCogException("Domain of necessary precondition " + node + " must contain either 'True' or 'true'!");
 				walkCPD_MLNformulas(out, cpf, addr, i+1, precondition, numericWeights);
 			}
 			// otherwise consider all domain elements
@@ -765,7 +761,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 		}
 	}
 	
-	public ParentGrounder getParentGrounder(RelationalNode node) throws Exception {
+	public ParentGrounder getParentGrounder(RelationalNode node) throws ProbCogException {
 		return node.getParentGrounder();
 	}
 	
@@ -782,9 +778,9 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 	
 	/**
 	 * prepares this network for learning by materializing additional nodes (e.g. for noisy-or)
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void prepareForLearning() throws Exception {
+	public void prepareForLearning() throws ProbCogException {
 		for(RelationalNode node : getRelationalNodes()) {
 			if(node.parentMode != null && node.parentMode.equals("AUX")) { // create an auxiliary node that contains the ungrounded parameters 
 				// create fully grounded variant
@@ -821,7 +817,7 @@ public class RelationalBeliefNetwork extends BeliefNetworkEx implements Relation
 							}
 						}
 						if(!haveType) 
-							throw new Exception("Could not determine type of free parameter " + params[j]);
+							throw new ProbCogException("Could not determine type of free parameter " + params[j]);
 					}
 				}
 				// - add signature

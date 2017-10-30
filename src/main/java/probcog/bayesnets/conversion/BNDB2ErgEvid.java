@@ -18,12 +18,14 @@
  ******************************************************************************/
 package probcog.bayesnets.conversion;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import probcog.bayesnets.core.BNDatabase;
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 
 
 /**
@@ -33,11 +35,7 @@ import probcog.bayesnets.core.BeliefNetworkEx;
  */
 public class BNDB2ErgEvid {
 
-	/**
-	 * @param args
-	 * @throws Exception 
-	 */
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws ProbCogException, FileNotFoundException {
 		if (args.length != 5) {
 			System.err.println("usage: bndb2ergevid <Bayesian network file> <.bndb file> <.erg.evid file to write to>");
 			return;
@@ -52,7 +50,7 @@ public class BNDB2ErgEvid {
 				String varName = entry.getKey();
 				int nodeIdx = bn.getNodeIndex(varName);
 				if(nodeIdx == -1)
-					throw new Exception("Node " + varName + " not found in Bayesian network");
+					throw new ProbCogException("Node " + varName + " not found in Bayesian network");
 				Domain dom = bn.getNode(varName).getDomain();
 				String value = entry.getValue();
 				int domIdx = -1;
@@ -63,7 +61,7 @@ public class BNDB2ErgEvid {
 					}					
 				}	
 				if(domIdx == -1)
-					throw new Exception("Value " + value + " not found in domain of " + varName);
+					throw new ProbCogException("Value " + value + " not found in domain of " + varName);
 				out.println(String.format(" %d %d", nodeIdx, domIdx));
 			}
 		}

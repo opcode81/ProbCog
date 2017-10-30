@@ -21,6 +21,7 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.Map.Entry;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.directed.ABLModel;
 import probcog.srl.mln.MLNWriter;
 import probcog.srldb.datadict.DDAttribute;
@@ -101,14 +102,14 @@ public class Link extends Item implements Serializable {
 	/**
 	 * prints facts on this link object (for BLOG databases)
 	 * @param out
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void BLOGprintFacts(PrintStream out) throws Exception {
+	public void BLOGprintFacts(PrintStream out) throws ProbCogException {
 		String[] params = new String[this.arguments.length];
 		for(int i = 0; i < params.length; i++) {
 			params[i] = Database.upperCaseString(arguments[i].getConstantName());
 			if(!ABLModel.isValidEntityName(params[i]))
-				throw new Exception("'" + params[i] + "' is not a valid entity name");
+				throw new ProbCogException("'" + params[i] + "' is not a valid entity name");
 		}
 		String allParams = StringTool.join(", ", params);
 		String atom = linkName + "(" + allParams + ")";

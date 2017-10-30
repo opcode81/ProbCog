@@ -27,6 +27,7 @@ import java.util.Vector;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.util.TopologicalOrdering;
 import probcog.bayesnets.util.TopologicalSort;
+import probcog.exception.ProbCogException;
 import probcog.logic.Disjunction;
 import probcog.logic.Formula;
 import probcog.logic.GroundLiteral;
@@ -67,9 +68,9 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @param sat the SAT sampler to use in each iteration
 	 * @param coupling the logical coupling of the BN's variables
 	 * @param determinedVars the set of variables affected by the SAT sampler, i.e. the variables that will be set if the SAT sampler is run
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws Exception {
+	public SATIS_BSampler(BeliefNetworkEx bn, SampleSAT sat, VariableLogicCoupling coupling, Collection<BeliefNode> determinedVars) throws ProbCogException {
 		super(bn);			
 		this.coupling = coupling;
 		this.sat = sat;
@@ -80,14 +81,14 @@ public class SATIS_BSampler extends BackwardSampling {
 	/**
 	 * constructs a SAT-IS backward sampler for use with (propositional) Bayesian networks, creating a logical coupling and the SAT sampler automatically (using all deterministic constraints in CPTs).
 	 * @param bn
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public SATIS_BSampler(BeliefNetworkEx bn) throws Exception {
+	public SATIS_BSampler(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		// build the variable-logic coupling if we don't have it yet
 		if(coupling == null) {
 			coupling = new VariableLogicCoupling();
@@ -107,7 +108,7 @@ public class SATIS_BSampler extends BackwardSampling {
 				for(GroundLiteral lit : c.lits) {
 					BeliefNode var = coupling.getVariable(lit.gndAtom);
 					if(var == null)
-						throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + coupling.getCoupledGroundAtoms());
+						throw new ProbCogException("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + coupling.getCoupledGroundAtoms());
 					determinedVars.add(var);
 				}
 			}
@@ -134,9 +135,9 @@ public class SATIS_BSampler extends BackwardSampling {
 	 * @param coupling
 	 * @param ckb the clausal KB to extend
 	 * @param db an evidence database with which to simplify the formulas obtained, or null if no simplification is to take place
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public static void extendKBWithDeterministicConstraintsInCPTs(BeliefNetworkEx bn, VariableLogicCoupling coupling, ClausalKB ckb, Database db) throws Exception {
+	public static void extendKBWithDeterministicConstraintsInCPTs(BeliefNetworkEx bn, VariableLogicCoupling coupling, ClausalKB ckb, Database db) throws ProbCogException {
 		int size = ckb.size();
 		System.out.print("gathering deterministic constraints from CPDs... ");
 		for(BeliefNode node : bn.bn.getNodes()) {
@@ -150,7 +151,7 @@ public class SATIS_BSampler extends BackwardSampling {
 		System.out.println((ckb.size()-size) + " constraints added");
 	}
 	
-	protected static void walkCPF4HardConstraints(VariableLogicCoupling coupling, CPF cpf, int[] addr, int i, ClausalKB ckb, Database db) throws Exception {
+	protected static void walkCPF4HardConstraints(VariableLogicCoupling coupling, CPF cpf, int[] addr, int i, ClausalKB ckb, Database db) throws ProbCogException {
 		BeliefNode[] domProd = cpf.getDomainProduct();
 		if(i == addr.length) {
 			double p = cpf.getDouble(addr);
@@ -199,7 +200,7 @@ public class SATIS_BSampler extends BackwardSampling {
 	}
 	
 	@Override
-	public void initSample(WeightedSample s) throws Exception {
+	public void initSample(WeightedSample s) throws ProbCogException {
 		super.initSample(s);
 		
 		// run SampleSAT to find a configuration that satisfies all logical constraints
@@ -219,9 +220,9 @@ public class SATIS_BSampler extends BackwardSampling {
 	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
+	protected void getOrdering(int[] evidenceDomainIndices) throws ProbCogException {
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();

@@ -20,6 +20,8 @@ package probcog.hmm;
 
 import java.util.Collection;
 
+import probcog.exception.ProbCogException;
+
 /**
  * Interface for essential HMM functionality
  * @author Dominik Jain
@@ -28,8 +30,8 @@ public interface IHMM<O> {
 	public IObservationModel<O> getObservationModel(int state);
 	public double getPi(int state);
 	public Integer getNumStates();
-	public void setNumStates(int numStates) throws IllegalAccessException;
+	public void setNumStates(int numStates) throws ProbCogException;
 	public void setA(double[][] A);
 	public void setPi(double[] pi);
-	public void learnObservationModel(int state, Collection<? extends Collection<? extends O>> data) throws Exception;
+	public void learnObservationModel(int state, Collection<? extends Collection<? extends O>> data) throws ProbCogException;
 }

@@ -25,6 +25,7 @@ import java.util.Random;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.SATIS_BSampler;
 import probcog.bayesnets.inference.Sampler;
+import probcog.exception.ProbCogException;
 import probcog.logic.GroundLiteral;
 import probcog.logic.PossibleWorld;
 import probcog.logic.WorldVariables;
@@ -56,7 +57,7 @@ public class SATIS extends BNSampler {
 	HashSet<BeliefNode> determinedVars;
 	boolean unitPropagation = false;
 	
-	public SATIS(GroundBLN bln) throws Exception {
+	public SATIS(GroundBLN bln) throws ProbCogException {
 		super(bln, SATIS_BSampler.class);
 		gbln = bln;
 		this.paramHandler.add("unitPropagation", "setUnitPropagation");
@@ -72,7 +73,7 @@ public class SATIS extends BNSampler {
 		unitPropagation = enabled;
 	}
 	
-	protected void initSATSampler() throws Exception {
+	protected void initSATSampler() throws ProbCogException {
 		System.out.println("initializing SAT sampler...");
 				
 		if(unitPropagation) ss.enableUnitPropagation();
@@ -86,18 +87,18 @@ public class SATIS extends BNSampler {
 			for(GroundLiteral lit : c.lits) {
 				BeliefNode var = gbln.getVariable(lit.gndAtom);
 				if(var == null)
-					throw new Exception("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + gbln.getCoupling().getCoupledGroundAtoms());
+					throw new ProbCogException("Could not find node corresponding to ground atom '" + lit.gndAtom.toString() + "' with index " + lit.gndAtom.index + "; set of mapped ground atoms is " + gbln.getCoupling().getCoupledGroundAtoms());
 				determinedVars.add(var);
 			}
 		}	
 	}
 	
-	protected ClausalKB getClausalKB() throws Exception {
+	protected ClausalKB getClausalKB() throws ProbCogException {
 		return new ClausalKB(gbln.getKB());
 	}
 	
 	@Override
-	protected Sampler getSampler() throws Exception {
+	protected Sampler getSampler() throws ProbCogException {
 		initSATSampler();		
 		return new SATIS_BSampler(gbln.getGroundNetwork(), ss, gbln.getCoupling(), determinedVars);
 	}
@@ -116,7 +117,7 @@ public class SATIS extends BNSampler {
 		HashMap<BeliefNode, double[]> priors = null;
 		Random generator;
 		
-		public SampleSATPriors(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db, BeliefNetworkEx bn) throws Exception {
+		public SampleSATPriors(PossibleWorld state, WorldVariables vars, Iterable<? extends AbstractVariable<?>> db, BeliefNetworkEx bn) throws ProbCogException {
 			super(state, vars, db);
 			this.bn = bn;
 			generator = new Random();

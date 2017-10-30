@@ -19,6 +19,7 @@
 package probcog.srl.directed.inference;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import edu.tum.cs.util.Stopwatch;
 import probcog.bayesnets.core.BNDatabase;
 import probcog.bayesnets.inference.ITimeLimitedInference;
 import probcog.bayesnets.inference.SampledDistribution;
+import probcog.exception.ProbCogException;
 import probcog.inference.BasicSampledDistribution;
 import probcog.inference.GeneralSampledDistribution;
 import probcog.inference.IParameterHandler;
@@ -122,11 +124,11 @@ public class BLNinfer implements IParameterHandler {
 	double groundingTime, inferenceInitTime, inferenceTime;
 	int stepsTaken;
 
-	public BLNinfer() throws Exception {
+	public BLNinfer() throws ProbCogException {
 		this(new HashMap<String, Object>());
 	}
 
-	public BLNinfer(Map<String, Object> params) throws Exception {
+	public BLNinfer(Map<String, Object> params) throws ProbCogException {
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("verbose", "setVerbose");
 		paramHandler.add("maxSteps", "setMaxSteps");
@@ -173,7 +175,7 @@ public class BLNinfer implements IParameterHandler {
 	}
 
 
-	public void readArgs(String[] args) throws Exception {
+	public void readArgs(String[] args) throws ProbCogException {
 		// read arguments
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-b"))
@@ -257,17 +259,17 @@ public class BLNinfer implements IParameterHandler {
 				else if(order.equals("qp"))
 					resultsSortOrder = SortOrder.QueryNumberProbability;
 				else
-					throw new Exception("Unknown sort order '" + order + "'");
+					throw new ProbCogException("Unknown sort order '" + order + "'");
 			}
 			else if(args[i].startsWith("-p") || args[i].startsWith("--")) { // algorithm-specific
 																			// parameter
 				String[] pair = args[i].substring(2).split("=");
 				if(pair.length != 2)
-					throw new Exception("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
+					throw new ProbCogException("Argument '" + args[i] + "' for algorithm-specific parameterization is incorrectly formatted.");
 				params.put(pair[0], pair[1]);
 			}
 			else
-				throw new Exception("Unknown option " + args[i]);
+				throw new ProbCogException("Unknown option " + args[i]);
 		}
 	}
 
@@ -289,7 +291,7 @@ public class BLNinfer implements IParameterHandler {
 		setDatabase(gbln.getDatabase());
 	}
 
-	public Collection<InferenceResult> run() throws Exception {
+	public Collection<InferenceResult> run() throws ProbCogException {
 		if(bln == null) {
 			if(networkFile == null)
 				throw new IllegalArgumentException("No fragment network given");
@@ -360,7 +362,12 @@ public class BLNinfer implements IParameterHandler {
 			BNDatabase bndb = new BNDatabase();
 			for(probcog.srl.Variable var : db.getEntries())
 				bndb.add(var.getName(), var.value);
-			bndb.write(new PrintStream(new File(baseName + ".instance.bndb")));
+			try {
+				bndb.write(new PrintStream(new File(baseName + ".instance.bndb")));
+			}
+			catch (FileNotFoundException e) {
+				throw new ProbCogException("Error saving instance", e);
+			}
 		}
 
 		if(noInference)
@@ -387,7 +394,7 @@ public class BLNinfer implements IParameterHandler {
 		SampledDistribution dist;
 		if(timeLimitedInference) {
 			if(!(sampler instanceof ITimeLimitedInference))
-				throw new Exception(sampler.getAlgorithmName() + " does not support time-limited inference");
+				throw new ProbCogException(sampler.getAlgorithmName() + " does not support time-limited inference");
 			ITimeLimitedInference tliSampler = (ITimeLimitedInference) sampler;
 			if(!useMaxSteps)
 				sampler.setNumSamples(Integer.MAX_VALUE);

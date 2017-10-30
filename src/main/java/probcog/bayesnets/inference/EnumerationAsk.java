@@ -19,6 +19,7 @@
 package probcog.bayesnets.inference;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.util.Stopwatch;
 
@@ -36,13 +37,13 @@ public class EnumerationAsk extends Sampler {
 	 */
 	double numTotalWorlds;
 	
-	public EnumerationAsk(BeliefNetworkEx bn) throws Exception {
+	public EnumerationAsk(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 		nodeOrder = bn.getTopologicalOrder();
 		numTotalWorlds = bn.getNumWorlds();
 	}
 	
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		Stopwatch sw = new Stopwatch();
 		numPathsPruned = 0;
 		numWorldsPruned = numWorldsCounted = 0;
@@ -56,7 +57,7 @@ public class EnumerationAsk extends Sampler {
 		report(String.format("\ntime taken: %.2fs (%f worlds enumerated, %d paths pruned)\n", sw.getElapsedTimeSecs(), numWorldsCounted, numPathsPruned));
 	}
 	
-	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws Exception {
+	public void enumerateWorlds(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices, int i, double combinationsHandled) throws ProbCogException {
 		//out.printf("enum %s, domain size = %d\n", nodes[nodeOrder[i]].getName(), nodes[nodeOrder[i]].getDomain().getOrder());
 		// status messages
 		if(timer.getElapsedTimeSecs() > 1) {

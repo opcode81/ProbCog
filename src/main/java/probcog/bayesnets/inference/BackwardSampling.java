@@ -27,7 +27,7 @@ import java.util.Vector;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.util.TopologicalOrdering;
 import probcog.bayesnets.util.TopologicalSort;
-
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.CPF;
 import edu.ksu.cis.bnj.ver3.core.Discrete;
@@ -112,7 +112,7 @@ public class BackwardSampling extends Sampler {
 		}
 	}
 	
-	public BackwardSampling(BeliefNetworkEx bn) throws Exception {
+	public BackwardSampling(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);
 	}
 	
@@ -137,9 +137,9 @@ public class BackwardSampling extends Sampler {
 	/**
 	 * gets the sampling order by filling the members for backward and forward sampled nodes as well as the set of nodes not in the sampling order
 	 * @param evidenceDomainIndices
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected void getOrdering(int[] evidenceDomainIndices) throws Exception {
+	protected void getOrdering(int[] evidenceDomainIndices) throws ProbCogException {
 		HashSet<BeliefNode> uninstantiatedNodes = new HashSet<BeliefNode>(Arrays.asList(nodes));
 		backwardSampledNodes = new Vector<BeliefNode>();
 		forwardSampledNodes = new Vector<BeliefNode>();
@@ -220,7 +220,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		getOrdering(evidenceDomainIndices);
 		if(debug) {
 			out.println("sampling backward: " + this.backwardSampledNodes);
@@ -230,7 +230,7 @@ public class BackwardSampling extends Sampler {
 	}
 	
 	@Override
-	public void _infer() throws Exception {		
+	public void _infer() throws ProbCogException {		
 		Stopwatch sw = new Stopwatch();
 		sw.start();
 		
@@ -255,9 +255,9 @@ public class BackwardSampling extends Sampler {
 	/**
 	 * gets one full sample of all of the nodes
 	 * @param s
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public void getSample(WeightedSample s) throws Exception {
+	public void getSample(WeightedSample s) throws ProbCogException {
 		int MAX_TRIALS = this.maxTrials;	
 loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 			// initialize sample
@@ -294,7 +294,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 				s.weight *= p;
 				if(s.weight == 0.0) {
 					if(p != 0.0)
-						throw new Exception("Precision loss in weight calculation");
+						throw new ProbCogException("Precision loss in weight calculation");
 					// error diagnosis					
 					if(debug) out.println("!!! weight became zero at unordered node " + node + " in step " + currentStep + "; cond: " + s.getCPDLookupString(node));
 					if(debug && this instanceof BackwardSamplingWithPriors) {
@@ -321,7 +321,7 @@ loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 		throw new RuntimeException("Maximum number of trials exceeded.");
 	}
 	
-	public void initSample(WeightedSample s) throws Exception {
+	public void initSample(WeightedSample s) throws ProbCogException {
 		s.nodeDomainIndices = evidenceDomainIndices.clone();
 		s.weight = 1.0;
 		s.trials = 1;
@@ -336,6 +336,6 @@ loop1:  for(int t = 1; t <= MAX_TRIALS || MAX_TRIALS == 0; t++) {
 		return true;
 	}
 	
-	protected void onAddedSample(WeightedSample s) throws Exception {		
+	protected void onAddedSample(WeightedSample s) throws ProbCogException {		
 	}
 }

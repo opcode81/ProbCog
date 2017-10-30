@@ -23,6 +23,7 @@ import java.util.Vector;
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.inference.ITimeLimitedInference;
 import probcog.bayesnets.inference.SampledDistribution;
+import probcog.exception.ProbCogException;
 import probcog.logic.Disjunction;
 import probcog.logic.Formula;
 import probcog.logic.GroundLiteral;
@@ -50,13 +51,13 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 	protected Vector<Disjunction> hardConstraintsInCPTs = new Vector<Disjunction>();
 	protected probcog.logic.sat.weighted.MCSAT sampler;
 	
-	public MCSAT(GroundBLN gbln) throws Exception {
+	public MCSAT(GroundBLN gbln) throws ProbCogException {
 		super(gbln);
 		this.gbln = gbln;		
 	}
 	
 	@Override
-	protected void _initialize() throws Exception {
+	protected void _initialize() throws ProbCogException {
 		kb = new WeightedClausalKB();		
 		// add weighted clauses for probabilistic constraints
 		for(BeliefNode n : gbln.getRegularVariables()) {
@@ -79,7 +80,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 		paramHandler.addSubhandler(sampler.getParameterHandler());
 	}
 	
-	protected void walkCPT4ClauseCollection(CPF cpf, BeliefNode[] domProd, int[] domainIndices, int i) throws Exception {
+	protected void walkCPT4ClauseCollection(CPF cpf, BeliefNode[] domProd, int[] domainIndices, int i) throws ProbCogException {
 		if(i == domainIndices.length) {
 			// create disjunction of negated literals corresponding to domain index configuration
 			GroundLiteral[] lits = new GroundLiteral[domainIndices.length];
@@ -109,7 +110,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 	}
 	
 	@Override
-	public SampledDistribution _infer() throws Exception {
+	public SampledDistribution _infer() throws ProbCogException {
 		sampler.setDebugMode(this.debug);
 		sampler.setVerbose(true);
 		sampler.setInfoInterval(infoInterval);
@@ -117,7 +118,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 		return getSampledDistribution(gad);	
 	}
 	
-	protected SampledDistribution getSampledDistribution(GroundAtomDistribution gad) throws Exception {
+	protected SampledDistribution getSampledDistribution(GroundAtomDistribution gad) throws ProbCogException {
 		gad.normalize();
 		BeliefNetworkEx bn = gbln.getGroundNetwork();
 		SampledDistribution dist = new SampledDistribution(bn);
@@ -140,7 +141,7 @@ public class MCSAT extends Sampler implements ITimeLimitedInference {
 		return dist;
 	}
 
-	public SampledDistribution pollResults() throws Exception {		
+	public SampledDistribution pollResults() throws ProbCogException {		
 		return getSampledDistribution(sampler.pollResults());
 	}
 }

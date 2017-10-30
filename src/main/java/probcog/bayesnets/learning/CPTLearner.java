@@ -27,6 +27,7 @@ import java.util.*;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
 import probcog.bayesnets.core.Discretized;
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 
@@ -72,9 +73,9 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	/**
 	 * constructs a CPTLearner object from a BeliefNetworkEx object
 	 * @param bn
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	public CPTLearner(BeliefNetworkEx bn) throws Exception {
+	public CPTLearner(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);	
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("pseudoCount", "setPseudoCount");
@@ -99,9 +100,9 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * certain domains manually (duplicate domains are taken into consideration, i.e. clusterers
 	 * will be reused appropriately).
 	 * @param dl			the domain learner
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public CPTLearner(DomainLearner dl) throws Exception {
+	public CPTLearner(DomainLearner dl) throws ProbCogException {
 		super(dl.bn.bn);
 		init();
 		// initialize clusterers from the domain learner
@@ -139,22 +140,21 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * need to be found in each result row as columns that are named accordingly, i.e. for each
 	 * random variable, there must be a column with a matching name in the result set. 
 	 * @param rs			the result set
-	 * @throws Exception 	if the result set is empty
-	 * @throws SQLException particularly if there is no matching column for one of the node names  
+	 * @throws ProbCogException 	if the result set is empty or if an SQL issue occurs
 	 */
-	public void learn(ResultSet rs) throws Exception {
+	public void learn(ResultSet rs) throws ProbCogException {
 		if(!initialized) init();
         try {
 			// if it's an empty result set, throw exception
 			if(!rs.next())
-				throw new Exception("empty result set!");
+				throw new ProbCogException("empty result set!");
 
 			BeliefNode[] nodes = bn.bn.getNodes();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numCols = rsmd.getColumnCount();
 			// Now we can get much more nodes than attributes
 //			if(numCols != nodes.length)
-//				throw new Exception("Result does not contain suitable data (column count = " + numCols + "; node count = " + nodes.length + ")");
+//				throw new ProbCogException("Result does not contain suitable data (column count = " + numCols + "; node count = " + nodes.length + ")");
 			
 			// map node indices to result set column indices
 			int[] nodeIdx2colIdx = new int[nodes.length];
@@ -164,7 +164,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 				for (String nodeName: nodeNames) {
 					int node_idx = bn.getNodeIndex(nodeName);
 					if(node_idx == -1)
-						throw new Exception("Unknown node referenced in result set: " + rsmd.getColumnName(i));
+						throw new ProbCogException("Unknown node referenced in result set: " + rsmd.getColumnName(i));
 					nodeIdx2colIdx[node_idx] = i;
 				}
 			}			
@@ -191,13 +191,18 @@ public class CPTLearner extends Learner implements IParameterHandler {
 						}
 						domain_idx = domain.findName(strValue);
 						if(domain_idx == -1)
-							throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());				
+							throw new ProbCogException(strValue + " not found in domain of " + nodes[node_idx].getName());				
 					}
 					else {
 						Instance inst = new Instance(1);
 						double value = rs.getDouble(bn.getAttributeNameForNode(bn.bn.getNodes()[node_idx].getName()));
 						inst.setValue(0, value);
-						domain_idx = clusterers[node_idx].clusterInstance(inst);
+						try {
+							domain_idx = clusterers[node_idx].clusterInstance(inst);
+						} 
+						catch (Exception e) {
+							throw new ProbCogException(e);
+						}
 					}
 					domainIndices[node_idx] = domain_idx;
 				}
@@ -220,21 +225,20 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * need to be found in each instance as columns that are named accordingly, i.e. for each
 	 * random variable, there must be an attribute with a matching name in the instance. 
 	 * @param instances			the instances
-	 * @throws Exception 	if the result set is empty
-	 * @throws SQLException particularly if there is no matching column for one of the node names  
+	 * @throws ProbCogException 	if the result set is empty or if there is no matching column for one of the node names  
 	 */
-	public void learn(Instances instances) throws Exception {
+	public void learn(Instances instances) throws ProbCogException {
 		if(!initialized) init();
 		
 		// if it's an empty result set, throw exception
 		if(instances.numInstances() == 0)
-			throw new Exception("empty result set!");
+			throw new ProbCogException("empty result set!");
 
 		BeliefNode[] nodes = bn.bn.getNodes();
 		int numAttributes = instances.numAttributes();
 		// Now we can get much more nodes than attributes
 //		if(numAttributes != nodes.length)
-//			throw new Exception("Result does not contain suitable data (attribute count = " + numAttributes + "; node count = " + nodes.length + ")");
+//			throw new ProbCogException("Result does not contain suitable data (attribute count = " + numAttributes + "; node count = " + nodes.length + ")");
 		
 		// map node indices to attribute index
 		int[] nodeIdx2colIdx = new int[nodes.length];
@@ -247,7 +251,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 			for (String nodeName: nodeNames) {
 				int node_idx = bn.getNodeIndex(nodeName);
 				if(node_idx == -1)
-					throw new Exception("Unknown node referenced in result set: " + instances.attribute(i).name());
+					throw new ProbCogException("Unknown node referenced in result set: " + instances.attribute(i).name());
 				nodeIdx2colIdx[node_idx] = i;
 			}
 		}
@@ -286,7 +290,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 							}
 							logger.debug(sb);
 							*/
-							throw new Exception("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
+							throw new ProbCogException("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
 						}
 						double value = instance.value(colIdx);
 						strValue = (((Discretized)domain).getNameFromContinuous(value));
@@ -297,7 +301,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 					} else {
 						int colIdx = nodeIdx2colIdx[node_idx];
 						if (colIdx < 0) {
-							throw new Exception("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
+							throw new ProbCogException("No attribute specified for "+bn.bn.getNodes()[node_idx].getName());
 						}
 						strValue = instance.stringValue(nodeIdx2colIdx[node_idx]);
 					}
@@ -307,13 +311,18 @@ public class CPTLearner extends Learner implements IParameterHandler {
 						for (int i=0; i<myDomain.length; i++) {
 							logger.debug(myDomain[i]);
 						}*/
-						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());
+						throw new ProbCogException(strValue + " not found in domain of " + nodes[node_idx].getName());
 					}
 				}
 				else {
 					Instance inst = new Instance(1);
 					inst.setValue(0, instance.value(nodeIdx2colIdx[node_idx]));
-					domain_idx = clusterers[node_idx].clusterInstance(inst);
+					try {
+						domain_idx = clusterers[node_idx].clusterInstance(inst);
+					}
+					catch (Exception e) {
+						throw new ProbCogException(e);
+					}
 				}
 				domainIndices[node_idx] = domain_idx;
 			}
@@ -330,9 +339,9 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * @param data			a Map containing the data for one example. The names of all the random 
 	 * 						variables (nodes) in the network must be found in the set of keys of the 
 	 * 						hash map. 
-	 * @throws Exception	if required keys are missing from the HashMap
+	 * @throws ProbCogException	if required keys are missing from the HashMap
 	 */
-	public void learn(Map<String,String> data) throws Exception {
+	public void learn(Map<String,String> data) throws ProbCogException {
 		if(!initialized) init();
 		// - get the indices into the domains of each node
 		//   that correspond to the current row of data
@@ -344,17 +353,22 @@ public class CPTLearner extends Learner implements IParameterHandler {
 			int domain_idx;
 			String value = data.get(nodes[node_idx].getName());
 			if(value == null)
-				throw new Exception("Key " + nodes[node_idx].getName() + " not found in data!");
+				throw new ProbCogException("Key " + nodes[node_idx].getName() + " not found in data!");
 			if(clusterers[node_idx] == null) {
 				Discrete domain = (Discrete) nodes[node_idx].getDomain();
 				domain_idx = domain.findName(value);
 				if(domain_idx == -1)
-					throw new Exception(value + " not found in domain of " + nodes[node_idx].getName());				
+					throw new ProbCogException(value + " not found in domain of " + nodes[node_idx].getName());				
 			}
 			else {
 				Instance inst = new Instance(1);
 				inst.setValue(0, Double.parseDouble(value));
-				domain_idx = clusterers[node_idx].clusterInstance(inst);
+				try {
+					domain_idx = clusterers[node_idx].clusterInstance(inst);
+				} 
+				catch (Exception e) {
+					throw new ProbCogException(e);
+				}
 			}
 			domainIndices[node_idx] = domain_idx;
 		}
@@ -367,17 +381,17 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	/**
 	 * learns all the examples in a fipm.data.QueryResult (otherwise analogous to learn(ResultSet))
 	 * @param res			the query result containing the data for a set of examples
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
 	/*
-	public void learn(QueryResult res) throws Exception {
+	public void learn(QueryResult res) throws ProbCogException {
 		// map node indices to result set column indices
 		Vector colnames = res.getColumnNames();
 		int[] nodeIdx2colIdx = new int[nodes.length];
 		for(int i = 0; i < nodes.length; i++) {
 			nodeIdx2colIdx[i] = colnames.indexOf(bn.getAttributeNameForNode(nodes[i].getName()));
 			if(nodeIdx2colIdx[i] == -1)
-				throw new Exception("Incomplete result set; missing: " + nodes[i].getName());			
+				throw new ProbCogException("Incomplete result set; missing: " + nodes[i].getName());			
 		}			
 		
         // gather data, iterating over the result set
@@ -405,7 +419,7 @@ public class CPTLearner extends Learner implements IParameterHandler {
 					}
 					domain_idx = domain.findName(strValue);
 					if(domain_idx == -1)
-						throw new Exception(strValue + " not found in domain of " + nodes[node_idx].getName());				
+						throw new ProbCogException(strValue + " not found in domain of " + nodes[node_idx].getName());				
 				}
 				else {
 					Instance inst = new Instance(1);
@@ -427,15 +441,15 @@ public class CPTLearner extends Learner implements IParameterHandler {
 	 * for a certain node.
 	 * @param nodeName		the name of the node
 	 * @param clusterer		the clusterer to use for categorization
-	 * @throws Exception	if the name of the node is invalid
+	 * @throws ProbCogException	if the name of the node is invalid
 	 */
-	public void addClusterer(String nodeName, Clusterer clusterer) throws Exception {
+	public void addClusterer(String nodeName, Clusterer clusterer) throws ProbCogException {
 		for(int i = 0; i < nodes.length; i++)
 			if(nodes[i].getName().equals(nodeName)) {
 				clusterers[i] = clusterer;
 				return;
 			}
-		throw new Exception("Passed unknown node name!");
+		throw new ProbCogException("Passed unknown node name: " + nodeName);
 	}
 	
 	/**

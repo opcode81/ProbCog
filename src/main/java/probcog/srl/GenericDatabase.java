@@ -19,6 +19,7 @@
 package probcog.srl;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
 import probcog.prolog.PrologKnowledgeBase;
@@ -81,9 +83,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * constructs an empty database for the given model
 	 * 
 	 * @param model
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public GenericDatabase(RelationalModel model) throws Exception {
+	public GenericDatabase(RelationalModel model) throws ProbCogException {
 		this.model = model;
 		entries = new HashMap<String, VariableType>();
 		domains = new HashMap<String, HashSet<String>>();
@@ -119,7 +121,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 				}
 				catch(Throwable e) {
 					System.out.println("DID catch");
-					throw new Exception("Error processing rule '" + rule + "'", e);
+					throw new ProbCogException("Error processing rule '" + rule + "'", e);
 				}
 			}
 		}
@@ -143,11 +145,11 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 *         Otherwise, null is returned - unless the closed world
 	 *         assumption is being made and the variable is boolean, in which
 	 *         case the default value of "False" is returned.
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public abstract VarValueType getVariableValue(String varName, boolean closedWorld) throws Exception;
+	public abstract VarValueType getVariableValue(String varName, boolean closedWorld) throws ProbCogException;
 	
-	public abstract String getSingleVariableValue(String varName, boolean closedWorld) throws Exception;
+	public abstract String getSingleVariableValue(String varName, boolean closedWorld) throws ProbCogException;
 
 	/**
 	 * retrieves a variable setting
@@ -179,13 +181,13 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	/**
 	 * adds the given variable to the database if it isn't already present
 	 */
-	public boolean addVariable(VariableType var) throws Exception {
+	public boolean addVariable(VariableType var) throws ProbCogException {
 		return addVariable(var, false, true);
 	}
 
-	protected boolean addVariable(VariableType var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws Exception {
+	protected boolean addVariable(VariableType var, boolean ignoreUndefinedFunctions, boolean doPrologAssertions) throws ProbCogException {
 		if(immutable)
-			throw new Exception("Tried to add a value to an immutable database");
+			throw new ProbCogException("Tried to add a value to an immutable database");
 		
 		boolean ret = false;
 		String entryKey = var.getKeyString().toLowerCase();
@@ -201,7 +203,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 			if(ignoreUndefinedFunctions)
 				return ret;
 			else
-				throw new Exception(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
+				throw new ProbCogException(String.format("Function %s appears in the data but is not declared in the model.", var.functionName));
 		}
 
 		if(sig.isLogical && doPrologAssertions) { // for logically determined functions, assert any true instances to the Prolog KB
@@ -219,7 +221,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		}
 
 		if(sig.argTypes.length != var.params.length)
-			throw new Exception("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");
+			throw new ProbCogException("The database entry '" + var.getKeyString() + "' is not compatible with the signature definition of the corresponding function: expected " + sig.argTypes.length + " parameters as per the signature, got " + var.params.length + ".");
 		// if(domains.get(sig.returnType) == null || !domains.get(sig.returnType).contains(var.value))
 		// System.out.println("adding " + var.value + " to " + sig.returnType + " because of " + var);
 		if(!sig.isBoolean())
@@ -263,7 +265,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		return ret;
 	}
 	
-	public abstract void fillDomain(String domName, VariableType var) throws Exception;
+	public abstract void fillDomain(String domName, VariableType var) throws ProbCogException;
 
 	
 	public String[] getParameterSet(RelationKey key, String[] keyValues) {
@@ -275,58 +277,63 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		return m.get(StringTool.join(",", keyValues));
 	}
 	
-	public void readBLOGDB(String databaseFilename) throws Exception {
+	public void readBLOGDB(String databaseFilename) throws ProbCogException {
 		readBLOGDB(databaseFilename, false);
 	}
 	
-	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws Exception {
-		// read file content
-		if(verbose)
-			System.out.printf("  reading contents of %s...\n", databaseFilename);
-		String dbContent = FileUtil.readTextFile(databaseFilename);
-
-		// remove comments
-		if(verbose)
-			System.out.println("  removing comments");
-		Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
-		Matcher matcher = comments.matcher(dbContent);
-		dbContent = matcher.replaceAll("");
-
-		// read lines
-		if(verbose)
-			System.out.println("  reading items");		
-		Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(.*?)\\}");
-		BufferedReader br = new BufferedReader(new StringReader(dbContent));
-		String line;
-		int numVars = 0;
-		while((line = br.readLine()) != null) {
-			line = line.trim();
-			// parse domain decls
-			matcher = re_domDecl.matcher(line);
-			if(matcher.matches()) { // parse domain decls
-				String domName = matcher.group(1);
-				String[] constants = matcher.group(2).split("\\s*,\\s*");
-				constants = ABLModel.makeDomainElements(constants);
-				for(String c : constants)
-					fillDomain(domName, c);
-				continue;
+	public void readBLOGDB(String databaseFilename, boolean ignoreUndefinedNodes) throws ProbCogException {
+		try {
+			// read file content
+			if(verbose)
+				System.out.printf("  reading contents of %s...\n", databaseFilename);
+			String dbContent = FileUtil.readTextFile(databaseFilename);
+	
+			// remove comments
+			if(verbose)
+				System.out.println("  removing comments");
+			Pattern comments = Pattern.compile("//.*?$|/\\*.*?\\*/", Pattern.MULTILINE | Pattern.DOTALL);
+			Matcher matcher = comments.matcher(dbContent);
+			dbContent = matcher.replaceAll("");
+	
+			// read lines
+			if(verbose)
+				System.out.println("  reading items");		
+			Pattern re_domDecl = Pattern.compile("(\\w+)\\s*=\\s*\\{(.*?)\\}");
+			BufferedReader br = new BufferedReader(new StringReader(dbContent));
+			String line;
+			int numVars = 0;
+			while((line = br.readLine()) != null) {
+				line = line.trim();
+				// parse domain decls
+				matcher = re_domDecl.matcher(line);
+				if(matcher.matches()) { // parse domain decls
+					String domName = matcher.group(1);
+					String[] constants = matcher.group(2).split("\\s*,\\s*");
+					constants = ABLModel.makeDomainElements(constants);
+					for(String c : constants)
+						fillDomain(domName, c);
+					continue;
+				}
+				// parse variable assignment
+				VariableType var = readEntry(line);
+				if(var != null) {
+					addVariable(var, ignoreUndefinedNodes, true);
+					if(++numVars % 100 == 0 && verbose)
+						System.out.print("    " + numVars + " vars read\r");
+					continue;
+				}
+				// something else
+				if(line.length() != 0) {
+					throw new ProbCogException("Database entry could not be read: " + line);
+				}
 			}
-			// parse variable assignment
-			VariableType var = readEntry(line);
-			if(var != null) {
-				addVariable(var, ignoreUndefinedNodes, true);
-				if(++numVars % 100 == 0 && verbose)
-					System.out.print("    " + numVars + " vars read\r");
-				continue;
-			}
-			// something else
-			if(line.length() != 0) {
-				throw new Exception("Database entry could not be read: " + line);
-			}
+		}
+		catch (IOException e) {
+			throw new ProbCogException(e);
 		}
 	}
 	
-	protected abstract VariableType readEntry(String line) throws Exception;
+	protected abstract VariableType readEntry(String line) throws ProbCogException;
 
 
 	/**
@@ -336,9 +343,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 *            name of the domain/type
 	 * @param value
 	 *            the value/entity name to add
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void fillDomain(String type, String value) throws Exception {
+	public void fillDomain(String type, String value) throws ProbCogException {
 		// if(debug) System.out.printf("  adding %s to domain %s\n", value, type);
 		// if we are working with a taxonomy, we need to check whether we
 		// previously assigned the value to a super-type of type
@@ -408,9 +415,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * 
 	 * @param domName
 	 * @return the domain as a set of strings or null if the domain is not found
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public Iterable<String> getDomain(String domName) throws Exception {
+	public Iterable<String> getDomain(String domName) throws ProbCogException {
 		if(taxonomy == null)
 			return domains.get(domName);
 		else { // if we have a taxonomy, the domain is the combination of domains of the given type and all of its sub-types
@@ -436,18 +443,18 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	/**
 	 * retrieves all entries in the database 
 	 * @return
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public Collection<VariableType> getEntries() throws Exception {
+	public Collection<VariableType> getEntries() throws ProbCogException {
 		finalize();
 		return entries.values();
 	}
 	
 	/**
 	 * If we are using a Prolog KB, extends the database (unless it has already been extended)
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	protected void extendWithPrologValues() throws Exception {
+	protected void extendWithPrologValues() throws ProbCogException {
 		// TODO This does quite a bit of perhaps unnecessary work; it might be better to let Prolog compute just the instances that hold in a single query
 		if(debug) System.out.println("extending database with Prolog values...");
 		if(prolog != null && !prologDatabaseExtended) {			
@@ -467,7 +474,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * have been computed and renders the database immutable.
 	 * There is no harm in calling this function several times.
 	 */
-	public void finalize() throws Exception {
+	public void finalize() throws ProbCogException {
 		extendWithPrologValues();		
 		immutable = true;
 	}
@@ -481,9 +488,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * @param sig
 	 * @param args
 	 * @return
-	 * @throws Exception 
+	 * @throws ProbCogException 
 	 */
-	protected boolean getPrologValue(Signature sig, String[] args, boolean forceAddToDatabase) throws Exception {
+	protected boolean getPrologValue(Signature sig, String[] args, boolean forceAddToDatabase) throws ProbCogException {
 		String[] prologArgs = new String[args.length];
 		for(int j = 0; j < args.length; j++)
 			prologArgs[j] = args[j].substring(0, 1).toLowerCase() + args[j].substring(1);
@@ -504,17 +511,17 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * them to "False". Invoke <i>after</i> the database has been read!
 	 * 
 	 * @param predName
-	 * @throws Exception
+	 * @throws ProbCogException
 	 */
-	public void setClosedWorldPred(String predName) throws Exception {
+	public void setClosedWorldPred(String predName) throws ProbCogException {
 		Signature sig = this.model.getSignature(predName);
 		if(sig == null)
-			throw new Exception("Cannot determine signature of " + predName);
+			throw new ProbCogException("Cannot determine signature of " + predName);
 		String[] params = new String[sig.argTypes.length];
 		setClosedWorldPred(sig, 0, params);
 	}
 
-	protected void setClosedWorldPred(Signature sig, int i, String[] params) throws Exception {
+	protected void setClosedWorldPred(Signature sig, int i, String[] params) throws ProbCogException {
 		if(i == params.length) {
 			String varName = Signature.formatVarName(sig.functionName, params);
 			if(!this.contains(varName)) {
@@ -542,7 +549,7 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 		}
 	}
 
-	public void print() throws Exception {
+	public void print() throws ProbCogException {
 		for(VariableType v : getEntries())
 			System.out.println(v.toString());
 	}
@@ -551,9 +558,9 @@ public abstract class GenericDatabase<VariableType extends AbstractVariable<?>, 
 	 * 
 	 * @return
 	 */
-	public HashMap<String, HashSet<String>> getDomains() throws Exception {
+	public HashMap<String, HashSet<String>> getDomains() throws ProbCogException {
 		if(taxonomy != null)
-			throw new Exception("Cannot safely return the set of domains for a model that uses a taxonomy");
+			throw new ProbCogException("Cannot safely return the set of domains for a model that uses a taxonomy");
 		return domains;
 	}
 

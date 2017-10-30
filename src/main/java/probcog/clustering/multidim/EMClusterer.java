@@ -26,7 +26,7 @@ import weka.clusterers.EM;
  */
 public class EMClusterer extends MultiDimClusterer<EM> {
 
-	public EMClusterer(EM clusterer, int dimensions) throws Exception {
+	public EMClusterer(EM clusterer, int dimensions) {
 		super(clusterer, dimensions);
 		//clusterer.setNumClusters(k);
 	}

@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import probcog.bayesnets.core.BeliefNetworkEx;
+import probcog.exception.ProbCogException;
 import edu.ksu.cis.bnj.ver3.core.BeliefNode;
 import edu.ksu.cis.bnj.ver3.core.Domain;
 import edu.tum.cs.util.datastruct.Pair;
@@ -52,7 +53,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 	 */
 	private boolean verifyNoGoods = false;
 	
-	public SampleSearchBJLearning(BeliefNetworkEx bn) throws Exception {
+	public SampleSearchBJLearning(BeliefNetworkEx bn) throws ProbCogException {
 		super(bn);			
 		this.paramHandler.add("useNoGoods", "setUseNoGoods");
 		this.paramHandler.add("verifyNoGoods", "setVerifyNoGoods");
@@ -253,7 +254,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 	}
 	
 	@Override
-	public void _infer() throws Exception {
+	public void _infer() throws ProbCogException {
 		super._infer();
 		report(String.format("#no-goods: %s; max. size: %d; avg. size: %f; total node checks: %d", numNoGoods, maxNoGoodSize, (float)totalNoGoodSize/numNoGoods, numNoGoodNodeChecks));
 	}
@@ -264,7 +265,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 	}
 
 	@Override
-	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws Exception {
+	public WeightedSample getWeightedSample(WeightedSample s, int[] nodeOrder, int[] evidenceDomainIndices) throws ProbCogException {
 		s.trials = 1;
 		s.operations = 0;
 		s.weight = 1.0;
@@ -377,7 +378,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 										boolean OK1 = verifyNoGoodInContext(ng, s.nodeDomainIndices);
 										boolean OK2 = verifyNoGood(this.nodes[nodeIdx], ng);  
 										if(!OK1 || !OK2)
-											throw new Exception("nogood is bad");
+											throw new ProbCogException("nogood is bad");
 									}
 									earliest[domIdx] = ng;	
 									dist[domIdx] = 0;
@@ -445,7 +446,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 				
 				// back jump				
 				if(backjumpSet.isEmpty())
-					throw new Exception("Nowhere left to backjump to from node #" + orderIdx + ". Most likely, the evidence has 0 probability.");
+					throw new ProbCogException("Nowhere left to backjump to from node #" + orderIdx + ". Most likely, the evidence has 0 probability.");
 				orderIdx = backjumpSet.remove();
 				
 				// record nogood
@@ -492,7 +493,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 	 * @param ng the nogood to check
 	 * @return whether the nogood is OK
 	 */
-	protected boolean verifyNoGood(BeliefNode n, NoGood ng) throws Exception {
+	protected boolean verifyNoGood(BeliefNode n, NoGood ng) throws ProbCogException {
 		if(!verifyNoGoods)
 			return true;
 		if(verifiedNoGoods == null) 
@@ -521,7 +522,7 @@ public class SampleSearchBJLearning extends SampleSearchBJ {
 		return !haveSample; 
 	}
 	
-	protected boolean verifyNoGoodInContext(NoGood ng, int[] nodeDomainIndices) throws Exception {
+	protected boolean verifyNoGoodInContext(NoGood ng, int[] nodeDomainIndices) throws ProbCogException {
 		if(!verifyNoGoods)
 			return true;
 		SampleSearch ss = new SampleSearch(this.bn);

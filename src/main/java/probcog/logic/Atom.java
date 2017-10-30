@@ -21,6 +21,7 @@ package probcog.logic;
 import java.util.Collection;
 import java.util.Map;
 
+import probcog.exception.ProbCogException;
 import probcog.srl.GenericDatabase;
 import probcog.srl.RelationalModel;
 import probcog.srl.Signature;
@@ -48,10 +49,10 @@ public class Atom extends UngroundedFormula {
 	}
 
 	@Override
-	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws Exception {
+	public void getVariables(GenericDatabase<?, ?> db, Map<String, String> ret) throws ProbCogException {
         Signature sig = db.getSignature(predName);
         if(sig == null)
-        	throw new Exception("Unknown predicate '" + predName + "'");
+        	throw new ProbCogException("Unknown predicate '" + predName + "'");
 		int i = 0;
 		for(String param : params) {
 			if(isVariable(param)) {
@@ -64,12 +65,12 @@ public class Atom extends UngroundedFormula {
 				if(oldtype != null && !type.equals(oldtype)) {
 					Taxonomy taxonomy = db.getModel().getTaxonomy();
 					if(taxonomy == null)
-						throw new Exception("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
+						throw new ProbCogException("The variable " + param + " is bound to more than one domain (and domains are incompatible): " + oldtype + " and " + type);
 					else {
 						boolean moreSpecific = taxonomy.query_isa(type, oldtype);
 						boolean lessSpecific = taxonomy.query_isa(oldtype, type);
 						if(!(moreSpecific || lessSpecific))
-							throw new Exception("The variable " + param + " is bound to more than one domain: " + oldtype + " and " + type);
+							throw new ProbCogException("The variable " + param + " is bound to more than one domain: " + oldtype + " and " + type);
 						if(lessSpecific)
 							ret.put(param, oldtype);
 					}	
@@ -80,10 +81,10 @@ public class Atom extends UngroundedFormula {
 	}
 	
 	@Override
-	public void addConstantsToModel(RelationalModel m) throws Exception {
+	public void addConstantsToModel(RelationalModel m) throws ProbCogException {
         Signature sig = m.getSignature(predName);
         if(sig == null)
-        	throw new Exception("Unknown predicate '" + predName + "'");
+        	throw new ProbCogException("Unknown predicate '" + predName + "'");
 		int i = 0;
 		for(String param : params) {
 			if(!isVariable(param)) {
@@ -103,7 +104,7 @@ public class Atom extends UngroundedFormula {
 	}
 
 	@Override
-	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws Exception {
+	public Formula ground(Map<String, String> binding, WorldVariables vars, GenericDatabase<?, ?> db) throws ProbCogException {
 		StringBuffer sb = new StringBuffer(predName + "(");
 		int i = 0;
 		for(String param : params) {
@@ -112,7 +113,7 @@ public class Atom extends UngroundedFormula {
 			String value = binding.get(param);
 			if(value == null) { // if the binding contains no value for a parameter, it must be a constant
 				if(isVariable(param))
-					throw new Exception("Cannot ground " + toString() + " with binding "  + binding + " - variable " + param + " unbound.");
+					throw new ProbCogException("Cannot ground " + toString() + " with binding "  + binding + " - variable " + param + " unbound.");
 				value = param;
 			}
 			sb.append(value);
@@ -121,7 +122,7 @@ public class Atom extends UngroundedFormula {
 		String strGA = sb.toString();
 		GroundAtom ga = vars.get(strGA);
 		if(ga == null)
-			throw new Exception("Could not find ground atom '" + strGA + "' in set of world variables.");
+			throw new ProbCogException("Could not find ground atom '" + strGA + "' in set of world variables.");
 		return ga;
 	}
 

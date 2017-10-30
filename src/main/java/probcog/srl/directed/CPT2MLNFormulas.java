@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.Conjunction;
 import probcog.logic.Formula;
 
@@ -237,9 +238,9 @@ public class CPT2MLNFormulas {
 		 * collects instances for the given constant assignment and learns a decision tree for which it returns the set of rules
 		 * @param constantAssignment
 		 * @return
-		 * @throws Exception
+		 * @throws ProbCogException
 		 */
-		public Rule[] learnRules(Map<String, String> constantAssignment) throws Exception {
+		public Rule[] learnRules(Map<String, String> constantAssignment) throws ProbCogException {
 			// collect instances
 			Instances instances = new Instances("foo", fvAttribs, 60000);
 			walkCPT4InstanceCollection(new int[nodes.length], 0, constantAssignment, instances);
@@ -249,7 +250,12 @@ public class CPT2MLNFormulas {
 			J48 j48 = new J48();
 			j48.setUnpruned(true);
 			j48.setMinNumObj(0); // there is no minimum number of objects that has to end up at each of the tree's leaf nodes 
-			j48.buildClassifier(instances);
+			try {
+				j48.buildClassifier(instances);
+			} 
+			catch (Exception e) {
+				throw new ProbCogException(e);
+			}
 			
 			// output the decision tree
 			//System.out.println(j48);
@@ -257,7 +263,7 @@ public class CPT2MLNFormulas {
 			return j48.getRules();
 		}
 		
-		protected void walkCPT4InstanceCollection(int[] addr, int i, Map<String,String> constantSettings, Instances instances) throws Exception {
+		protected void walkCPT4InstanceCollection(int[] addr, int i, Map<String,String> constantSettings, Instances instances) throws ProbCogException {
 			BeliefNode[] nodes = cpf.getDomainProduct();
 			if(i == addr.length) { // we have a complete address
 				// get the probability value
@@ -293,7 +299,7 @@ public class CPT2MLNFormulas {
 					if(n.isPrecondition) {
 						addr[i] = dom.findName("True");
 						if(addr[i] == -1)
-							throw new Exception("The node " + nodes[i] + " is set as a precondition, but its domain does not contain the value 'True'.");
+							throw new ProbCogException("The node " + nodes[i] + " is set as a precondition, but its domain does not contain the value 'True'.");
 						walkCPT4InstanceCollection(addr, i+1, constantSettings, instances);
 					}
 					else if(n.isConstant) { 
@@ -319,7 +325,7 @@ public class CPT2MLNFormulas {
 			return relNodes.get(c.getAttribute());
 		}
 		
-		public Formula getConjunction(Rule rule, Map<String,String> constantAssignment) throws Exception {
+		public Formula getConjunction(Rule rule, Map<String,String> constantAssignment) throws ProbCogException {
 			Vector<Formula> conjuncts = new Vector<Formula>();
 			for(Condition c : rule.getAntecedent()) {
 				RelationalNode node = this.getRelationalNode(c);

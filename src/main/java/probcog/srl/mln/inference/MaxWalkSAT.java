@@ -20,6 +20,7 @@ package probcog.srl.mln.inference;
 
 import java.util.ArrayList;
 
+import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
 import probcog.logic.PossibleWorld;
 import probcog.logic.sat.weighted.IMaxSAT;
@@ -34,16 +35,11 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	
 	protected IMaxSAT sat;
 	
-	public MaxWalkSAT(MarkovRandomField mrf) throws Exception {
-		this(mrf, probcog.logic.sat.weighted.MaxWalkSAT.class);
-	}
-	
-	public MaxWalkSAT(MarkovRandomField mrf, Class<? extends IMaxSAT> mwsClass) throws Exception {
+	public MaxWalkSAT(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, WeightedClausalKB.ConversionMode.NEGATION_IF_CLAUSE_RESULTS);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
-        sat = mwsClass.getConstructor(WeightedClausalKB.class, PossibleWorld.class, probcog.logic.WorldVariables.class, probcog.srl.Database.class).newInstance(wckb, state, mrf.getWorldVariables(), mrf.getDb());
-        //sat = new edu.tum.cs.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
+        sat = new probcog.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
 	}
 	
 	@Override
@@ -52,7 +48,7 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	}
 
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws Exception {
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
         sat.setMaxSteps(maxSteps);
         sat.setVerbose(this.verbose);
         sat.run();	        
