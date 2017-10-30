@@ -42,6 +42,7 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 
 	public MaxWalkSAT(WeightedClausalKB kb, PossibleWorld state, WorldVariables vars, Database db) throws Exception {
 		super(kb, state, vars, db.getEntries());
+		this.pSampleSAT = 1.0; // by default, always make WalkSAT-style moves (never global random moves)
 	}
 	
 	@Override
@@ -75,11 +76,6 @@ public class MaxWalkSAT extends SampleSAT implements IMaxSAT {
 				if(c.flipSatisfies(gndAtom))
 					delta += ((WeightedClause)c).weight; 
 		return delta;
-	}
-	
-	@Override
-	public void makeMove() {
-		walkSATMove();
 	}
 	
 	@Override

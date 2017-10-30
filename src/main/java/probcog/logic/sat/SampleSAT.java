@@ -62,13 +62,16 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	Iterable<? extends probcog.logic.sat.Clause> kb;
 	protected ParameterHandler paramHandler;
 	/**
-	 * SampleSAT's p parameter: probability of performing a greedy (WalkSAT-style) move rather than a simulated annealing-style move
+	 * SampleSAT's p parameter: probability of performing a WalkSAT-style move rather than a random, simulated 
+	 * annealing-style move where we flip any ground atom (global random move)
 	 */
 	protected double pSampleSAT = 0.9; // 0.5
 	
 	/**
-	 * WalkSAT's p parameter: random walk parameter, probability of non-greedy move (random flip in unsatisfied clause) rather than greedy (locally optimal) move.
-	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6
+	 * WalkSAT's p parameter: random walk parameter controlling the probability of selecting any ground atom
+	 * (local random move) of an unsatisfied constraint rather than the one with the least delta-cost (locally
+	 * optimal greedy move).
+	 * According to the WalkSAT paper, optimal values were always between 0.5 and 0.6.
 	 */
 	protected double pWalkSAT = 0.5; // 0.5
 	protected PrintLogger log;
@@ -89,8 +92,8 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		
 		// parameter handling
 		paramHandler = new ParameterHandler(this);
-		paramHandler.add("pSampleSAT", "setPSampleSAT");
-		paramHandler.add("pWalkSAT", "setPWalkSAT");
+		paramHandler.add("pSampleSAT", "setPSampleSAT", "probability of performing a WalkSAT-style move rather than a global random move/SA-style move");
+		paramHandler.add("pWalkSAT", "setPWalkSAT", "in WalkSAT moves, probability of selecting an atom from an unsatisfied constraint randomly (locally random) rather than greedily (locally optimal)");
 		paramHandler.add("random", "setRandom");
 		
 		// read evidence
@@ -348,6 +351,10 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 		}
 	}
 	
+	/**
+	 * Satisfies a yet unsatisfied constraint either randomly (local random move) or greedily
+	 * (locally optimal move)
+	 */
 	protected void walkSATMove() {
 		// pick an unsatisfied constraint
 		Constraint c = unsatisfiedConstraints.get(rand.nextInt(unsatisfiedConstraints.size()));
@@ -359,6 +366,9 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 			c.satisfyGreedily();
 	}
 	
+	/**
+	 * Makes a global random move
+	 */
 	protected void SAMove() {
 		boolean done = false;
 		while(!done) {
