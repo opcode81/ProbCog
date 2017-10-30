@@ -236,7 +236,7 @@ public class BLNLearner implements IParameterHandler {
 			Collection<String> unhandledParams = paramHandler.getUnhandledParams();
 			if (!unhandledParams.isEmpty()) {
 				System.err.println("WARNING: There were unhandled parameters: " + unhandledParams.toString());
-				paramHandler.printHelp(System.out);
+				paramHandler.printHelp(System.out, true);
 			}
 			
 			// write MLN

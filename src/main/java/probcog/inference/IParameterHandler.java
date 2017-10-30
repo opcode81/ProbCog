@@ -45,7 +45,7 @@ public interface IParameterHandler {
 		} catch (Exception e) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			try (PrintStream ps = new PrintStream(bos)) {
-				getParameterHandler().printHelp(ps);
+				getParameterHandler().printHelp(ps, false);
 				throw new Exception("Parameter could not be handled. Supported parameters:\n" + 
 						bos.toString());
 			}
@@ -58,6 +58,6 @@ public interface IParameterHandler {
 	 * @param out the stream to write to
 	 */
 	public default void printNamedParameterInfo(PrintStream out) {
-		getParameterHandler().printHelp(out);
+		getParameterHandler().printHelp(out, false);
 	}
 }

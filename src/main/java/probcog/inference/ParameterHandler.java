@@ -30,7 +30,7 @@ import java.util.Vector;
 import edu.tum.cs.util.StringTool;
 
 /**
- * Class to support the dynamic handling of user parameters.
+ * Class to support the dynamic handling of parameters by name.
  * @author Dominik Jain
  */
 public class ParameterHandler {
@@ -52,22 +52,33 @@ public class ParameterHandler {
 	}
 	
 	/**
-	 * 
-	 * @param paramName
-	 * @param setterMethodName
+	 * Adds a handled parameter
+	 * @param paramName the name of the parameter
+	 * @param setterMethodName the name of the setter method
+	 * @param description parameter description
 	 * @throws Exception 
 	 */
-	public void add(String paramName, String setterMethodName) throws Exception {
+	public void add(String paramName, String setterMethodName, String description) throws Exception {
 		for(Method m : owner.getClass().getMethods()) {
 			if(m.getName().equals(setterMethodName)) {
 				Class<?>[] paramTypes = m.getParameterTypes();
 				if(paramTypes.length != 1)
 					continue;
-				mappings.put(paramName, new ParameterMapping(m));				
+				mappings.put(paramName, new ParameterMapping(m, description));				
 				return;
 			}
 		}
 		throw new Exception("Could not find an appropriate setter method with 1 parameter in class " + owner.getClass().getName());
+	}
+	
+	/**
+	 * Adds a handled parameter
+	 * @param paramName the name of the parameter
+	 * @param setterMethodName the name of the setter method
+	 * @throws Exception 
+	 */
+	public void add(String paramName, String setterMethodName) throws Exception {
+		add(paramName, setterMethodName, null);
 	}
 	
 	public void addSubhandler(ParameterHandler h) throws Exception {
@@ -150,23 +161,34 @@ public class ParameterHandler {
 			h.getHandledParameters(ret);
 	}
 	
-	public void printHelp(PrintStream out) {
+	/**
+	 * Prints help on handled parameters
+	 * @param out the stream to write to
+	 * @param argFormat if true, use the command-line argument style "--param=type (description)" instead of "param: type (description)"
+	 */
+	public void printHelp(PrintStream out, boolean argFormat) {
+		String formatString = argFormat ? "  --%s=%s%s\n" : "  %s: %s%s\n";
 		if(!mappings.isEmpty()) {
 			out.println("handled by " + owner.getClass().getSimpleName() + ":");
 			for(Entry<String,ParameterMapping> e : this.mappings.entrySet()) {
 				Class<?> paramType = e.getValue().setterMethod.getParameterTypes()[0];
-				out.printf("  --%s=%s\n", e.getKey(), paramType.getPackage() == null ? paramType.getSimpleName() : paramType.getName());
+				String paramDescription = e.getValue().paramDescription;
+				out.printf(formatString, e.getKey(), 
+						paramType.getPackage() == null ? paramType.getSimpleName() : paramType.getName(),
+						paramDescription != null ? " (" + paramDescription + ")" : "");
 			}
 		}
 		for(ParameterHandler h : subhandlers)
-			h.printHelp(out);
+			h.printHelp(out, argFormat);
 	}
 	
 	protected class ParameterMapping {
-		protected Method setterMethod;		
+		protected Method setterMethod;
+		private String paramDescription;		
 		
-		public ParameterMapping(Method setterMethod) {
+		public ParameterMapping(Method setterMethod, String paramDescription) {
 			this.setterMethod = setterMethod;
+			this.paramDescription = paramDescription;
 		}
 		
 		public void apply(Object value) throws Exception {			
