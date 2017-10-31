@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 import probcog.exception.ProbCogException;
@@ -37,24 +36,26 @@ import probcog.wcsp.WCSPConverter;
 
 
 /**
- * Toulbar2 branch & bound inference wrapper.
+ * A wrapper around the Toulbar2 branch & bound WCSP solver for MPE inference in MLNs.
  * Requires installation of the toulbar2 executable in the system PATH.
  * 
  * @author Gregor Wylezich
  * @author Dominik Jain
  * @author Paul Maier
  */
-public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
+public class Toulbar2Inference extends MPEInferenceAlgorithm {
 	
 	protected PossibleWorld state;
 	protected WCSPConverter converter = null;
 	protected String wcspFilename = "temp.wcsp";
 	protected String toulbar2Args = "";
+	protected Long timeLimitMs = null;
 
-	public Toulbar2MAPInference(MarkovRandomField mrf) throws ProbCogException {
+	public Toulbar2Inference(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
 		this.paramHandler.add("toulbar2Args", "setToulbar2Args");
+		this.paramHandler.add("timeLimitMs", "setTimeLimitMs");
 	}
 	
 	/**
@@ -164,6 +165,12 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		String infer() throws ProbCogException;
 	}
 	
+	/**
+	 * Constructs a WCSP from the MRF, makes the toulbar2 inference call and
+	 * subsequently writes the result back to the state/possible world
+	 * @param call the toulbar2 inference call, which computes the solution as a string with variable value indices
+	 * @throws ProbCogException
+	 */
 	protected void runInference(InferenceCall call) throws ProbCogException {
 		// construct WCSP if necessary
 		if(converter == null)
@@ -193,9 +200,37 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 	}
 	
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
-		runInference(() -> new Toulbar2Call().call());
-		return getResults(queries);
+	public PossibleWorld inferMPE() throws ProbCogException {
+		if (timeLimitMs == null) {
+			log.info("Starting toulbar2 inference without a time limit");
+			runInference(() -> new Toulbar2Call().call());
+		}
+		else {
+			log.info("Starting toulbar2 inference with time limit: " + timeLimitMs + " ms");
+			runInference(() -> {
+				// start thread 
+				InferenceThread thread = new InferenceThread();
+				thread.start();
+				
+				// wait specified time limit, terminating thread if necessary
+				try {
+					synchronized (thread) {
+						thread.wait(timeLimitMs);
+					}
+					if (!thread.toulbar2Call.isComplete()) {
+						thread.signalTermination();
+						thread.join();
+					}
+				}
+				catch (InterruptedException e) {
+					throw new ProbCogException(e);
+				}
+				
+				// read result from thread
+				return thread.toulbar2Call.getSolution();
+			});
+		}
+		return state;
 	}
 	
 	protected class InferenceThread extends Thread {
@@ -222,30 +257,12 @@ public class Toulbar2MAPInference extends MAPInferenceAlgorithm {
 		}
 	};
 	
-	public ArrayList<InferenceResult> infer(Iterable<String> queries, long inferenceTimeMs) throws ProbCogException {
-
-		runInference(() -> {
-			InferenceThread thread = new InferenceThread();
-			thread.start();
-			try {
-				synchronized (thread) {
-					thread.wait(inferenceTimeMs);
-				}
-				if (!thread.toulbar2Call.isComplete()) {
-					thread.signalTermination();
-					thread.join();
-				}
-			}
-			catch (InterruptedException e) {
-				throw new ProbCogException(e);
-			}
-			return thread.toulbar2Call.getSolution();
-		});
-		return getResults(queries);
-	}
-
 	@Override
 	public PossibleWorld getSolution() {
 		return state;
+	}
+
+	public void setTimeLimitMs(Long timeLimitMs) {
+		this.timeLimitMs = timeLimitMs;
 	}
 }

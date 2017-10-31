@@ -18,8 +18,6 @@
  ******************************************************************************/
 package probcog.srl.mln.inference;
 
-import java.util.ArrayList;
-
 import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
 import probcog.logic.sat.weighted.WeightedClausalKB;
@@ -31,7 +29,7 @@ import probcog.srl.mln.MarkovRandomField;
  */
 public class MCSAT extends InferenceAlgorithm {
 
-	probcog.logic.sat.weighted.MCSAT sampler;
+	protected probcog.logic.sat.weighted.MCSAT sampler;
 	
 	public MCSAT(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
@@ -46,10 +44,9 @@ public class MCSAT extends InferenceAlgorithm {
 	}
 
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
+	protected void infer() throws ProbCogException {
 		sampler.setDebugMode(debug);
 		sampler.run(maxSteps);
-		return getResults(queries);
 	}
 	
 	public String getAlgorithmName() {

@@ -65,6 +65,11 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		this.maxSteps = maxSteps;
 	}
 	
+	/**
+	 * Retrieves an inference result for a particular ground atom
+	 * @param ga the ground atom
+	 * @return the probability of the given ground atom being true (as inferred by the algorithm) 
+	 */
 	public abstract double getResult(GroundAtom ga);	
 	
 	public ArrayList<InferenceResult> getResults(Iterable<String> queries) {
@@ -74,12 +79,12 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		for(String query : queries) {
 			++numQueries;
 			String p = query;
-			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?");
+			p = Pattern.compile("([,\\(])([a-z][^,\\)]*)").matcher(p).replaceAll("$1.*?"); // replace variables with wildcards
 			p = p.replace("(", "\\(").replace(")", "\\)") + ".*";			
 			patterns.add(Pattern.compile(p));
 		}
 		// check all ground variables for matches
-		// TODO This should be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
+		// TODO This could be done more efficiently by explicitly grounding the requested nodes instead of using pattern matchers
 		ArrayList<InferenceResult> results = new ArrayList<InferenceResult>();
 		int numRes = 0;
 		for(GroundAtom ga : mrf.getWorldVariables())
@@ -94,7 +99,23 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		return results;
 	}
 	
-	public abstract ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException;
+	/**
+	 * Computes inference results for the given queries.
+	 * Further results can subsequently be retrieved via {@link #getResult(GroundAtom)} and {@link #getResults(Iterable)}.
+	 * @param queries a list of queries, where a query is a fully or partially grounded atom or a predicate name 
+	 * @return a list of inference results containing one element for each ground atom matching a query
+	 * @throws ProbCogException
+	 */
+	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
+		infer();
+		return getResults(queries);
+	}
+	
+	/**
+	 * Runs the inference method in order to compute results for all (non-evidence) ground atoms 
+	 * @throws ProbCogException
+	 */
+	protected abstract void infer() throws ProbCogException;
 	
 	public String getAlgorithmName() {
 		return this.getClass().getSimpleName();

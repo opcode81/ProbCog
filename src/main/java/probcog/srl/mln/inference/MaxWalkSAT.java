@@ -18,22 +18,22 @@
  ******************************************************************************/
 package probcog.srl.mln.inference;
 
-import java.util.ArrayList;
-
 import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
+import probcog.logic.IPossibleWorld;
 import probcog.logic.PossibleWorld;
 import probcog.logic.sat.weighted.IMaxSAT;
 import probcog.logic.sat.weighted.WeightedClausalKB;
 import probcog.srl.mln.MarkovRandomField;
 
 /**
- * MaxWalkSAT MAP inference for MLNs.
+ * MaxWalkSAT MPE inference for MLNs.
  * @author Dominik Jain
  */
-public class MaxWalkSAT extends MAPInferenceAlgorithm {
+public class MaxWalkSAT extends MPEInferenceAlgorithm {
 	
 	protected IMaxSAT sat;
+	protected PossibleWorld solution;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
@@ -44,19 +44,20 @@ public class MaxWalkSAT extends MAPInferenceAlgorithm {
 	
 	@Override
 	public double getResult(GroundAtom ga) {
-		return sat.getBestState().get(ga.index) ? 1.0 : 0.0;
+		return solution.get(ga.index) ? 1.0 : 0.0;
 	}
 
 	@Override
-	public ArrayList<InferenceResult> infer(Iterable<String> queries) throws ProbCogException {
+	public IPossibleWorld inferMPE() throws ProbCogException {
         sat.setMaxSteps(maxSteps);
         sat.setVerbose(this.verbose);
-        sat.run();	        
-		return getResults(queries);
+        sat.run();	 
+        solution = sat.getBestState();
+        return solution;
 	}
 
 	public PossibleWorld getSolution() {
-		return sat.getBestState();
+		return solution;
 	}
 
 	@Override

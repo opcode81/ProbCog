@@ -23,18 +23,31 @@ import probcog.logic.IPossibleWorld;
 import probcog.srl.mln.MarkovRandomField;
 
 /**
- * Base class for maximum a posteriori (MAP) inference methods.
+ * Base class for inference methods that compute the most probable explanation (MPE) of the
+ * evidence, i.e. the most probable possible world among the worlds satisfying the evidence.
+ * 
  * @author Dominik Jain
  */
-public abstract class MAPInferenceAlgorithm extends InferenceAlgorithm {
+public abstract class MPEInferenceAlgorithm extends InferenceAlgorithm {
 
-	public MAPInferenceAlgorithm(MarkovRandomField mrf) throws ProbCogException {
+	public MPEInferenceAlgorithm(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 	}
 
 	/**
-	 * gets the most likely state found by the algorithm
-	 * @return the most likely possible world
+	 * Gets the most probable possible world found by the algorithm
+	 * @return the most probable possible world
 	 */
 	public abstract IPossibleWorld getSolution();
+	
+	/**
+	 * Infers the most probable explanation of the evidence (MPE)
+	 * @return the most probable possible world given the evidence
+	 */
+	public abstract IPossibleWorld inferMPE() throws ProbCogException;
+	
+	@Override
+	protected void infer() throws ProbCogException {
+		inferMPE();
+	}
 }

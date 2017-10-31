@@ -33,10 +33,10 @@ import probcog.srl.mln.MarkovLogicNetwork;
 import probcog.srl.mln.MarkovRandomField;
 import probcog.srl.mln.inference.InferenceAlgorithm;
 import probcog.srl.mln.inference.InferenceResult;
-import probcog.srl.mln.inference.MAPInferenceAlgorithm;
+import probcog.srl.mln.inference.MPEInferenceAlgorithm;
 import probcog.srl.mln.inference.MCSAT;
 import probcog.srl.mln.inference.MaxWalkSAT;
-import probcog.srl.mln.inference.Toulbar2MAPInference;
+import probcog.srl.mln.inference.Toulbar2Inference;
 import edu.tum.cs.util.Stopwatch;
 import edu.tum.cs.util.StringTool;
 
@@ -160,7 +160,7 @@ public class MLNinfer {
 			infer = new MaxWalkSAT(mrf); 
 			break;
 		case Toulbar2:
-			infer = new Toulbar2MAPInference(mrf);
+			infer = new Toulbar2Inference(mrf);
 			break;
 		default:
 			throw new RuntimeException("Unhandled algorithm: " + algo);
@@ -186,8 +186,8 @@ public class MLNinfer {
         		out.printf("%s %f\n", r.ga.toString().replace(" ", ""), r.value);
         }
         if(out != null) out.close();
-        if(infer instanceof MAPInferenceAlgorithm) {
-        	MAPInferenceAlgorithm mapi = (MAPInferenceAlgorithm)infer;
+        if(infer instanceof MPEInferenceAlgorithm) {
+        	MPEInferenceAlgorithm mapi = (MPEInferenceAlgorithm)infer;
         	double value = mrf.getWorldValue(mapi.getSolution());
         	System.out.printf("\nsolution value: %f\n", value);
         	System.out.printf("\nsum of unsatisfied formula weights: %f\n", mrf.getSumOfUnsatClauseWeights(mapi.getSolution()));
