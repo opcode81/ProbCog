@@ -22,7 +22,6 @@ import probcog.exception.ProbCogException;
 import probcog.logic.GroundAtom;
 import probcog.logic.IPossibleWorld;
 import probcog.logic.PossibleWorld;
-import probcog.logic.sat.weighted.IMaxSAT;
 import probcog.logic.sat.weighted.WeightedClausalKB;
 import probcog.srl.mln.MarkovRandomField;
 
@@ -32,14 +31,21 @@ import probcog.srl.mln.MarkovRandomField;
  */
 public class MaxWalkSAT extends MPEInferenceAlgorithm {
 	
-	protected IMaxSAT sat;
+	protected probcog.logic.sat.weighted.MaxWalkSAT sat;
 	protected PossibleWorld solution;
+	protected int maxSteps = 5000;
 	
 	public MaxWalkSAT(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
         WeightedClausalKB wckb = new WeightedClausalKB(mrf, WeightedClausalKB.ConversionMode.NEGATION_IF_CLAUSE_RESULTS);
         PossibleWorld state = new PossibleWorld(mrf.getWorldVariables());
         sat = new probcog.logic.sat.weighted.MaxWalkSAT(wckb, state, mrf.getWorldVariables(), mrf.getDb());
+        paramHandler.add("maxSteps", "setMaxSteps");
+        paramHandler.addSubhandler(sat);        
+	}
+	
+	public void setMaxSteps(int maxSteps) {
+		this.maxSteps = maxSteps;
 	}
 	
 	@Override

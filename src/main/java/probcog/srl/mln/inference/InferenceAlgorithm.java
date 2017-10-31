@@ -41,7 +41,6 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 	protected ParameterHandler paramHandler;
 	protected boolean debug = false;	
 	protected boolean verbose = true;
-	protected int maxSteps = 5000;
 	protected PrintLogger log;
 	
 	public InferenceAlgorithm(MarkovRandomField mrf) throws ProbCogException {
@@ -49,7 +48,6 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		paramHandler = new ParameterHandler(this);
 		paramHandler.add("debug", "setDebugMode");
 		paramHandler.add("verbose", "setVerbose");
-		paramHandler.add("maxSteps", "setMaxSteps");
 		this.log = new PrintLogger(this);
 	}
 	
@@ -61,10 +59,6 @@ public abstract class InferenceAlgorithm implements IParameterHandler, VerbosePr
 		this.verbose = verbose;
 	}
 
-	public void setMaxSteps(int maxSteps) {
-		this.maxSteps = maxSteps;
-	}
-	
 	/**
 	 * Retrieves an inference result for a particular ground atom
 	 * @param ga the ground atom

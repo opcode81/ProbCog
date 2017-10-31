@@ -30,12 +30,18 @@ import probcog.srl.mln.MarkovRandomField;
 public class MCSAT extends InferenceAlgorithm {
 
 	protected probcog.logic.sat.weighted.MCSAT sampler;
+	protected int maxSteps = 5000;
 	
 	public MCSAT(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 		WeightedClausalKB wckb = new WeightedClausalKB(mrf, true);
 		sampler = new probcog.logic.sat.weighted.MCSAT(wckb, mrf.getWorldVariables(), mrf.getDb());
+		paramHandler.add("maxSteps", "setMaxSteps");
 		paramHandler.addSubhandler(sampler.getParameterHandler());
+	}
+	
+	public void setMaxSteps(int maxSteps) {
+		this.maxSteps = maxSteps;
 	}
 
 	@Override
