@@ -94,7 +94,7 @@ public class MLNinfer {
 		}			
 		if(mlnFiles == null || dbFile == null || query == null) {
 			System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
-								 "    -maxSteps #      the maximum number of steps to take (default determined by algorithm, if any)\n" +
+								 "    -maxSteps #      the maximum number of steps to take, where applicable (default determined by algorithm, if any)\n" +
 								 "    -r <filename>    save results to file\n" + 
 								 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
 								 "    -mcsat           algorithm: MC-SAT (default)\n" +
@@ -166,8 +166,12 @@ public class MLNinfer {
 			throw new RuntimeException("Unhandled algorithm: " + algo);
 		}			
 		infer.setDebugMode(debug);
-		if(maxSteps != null)
-			infer.setMaxSteps(maxSteps);
+		if(maxSteps != null) {
+			if (!infer.getParameterHandler().isSupportedParameter("maxSteps"))
+				System.out.println("Note: Parameter 'maxSteps' not handled by " + algo + ", ignored."); 
+			else
+				infer.setParameterByName("maxSteps", maxSteps);	
+		}
 		infer.getParameterHandler().handle(params, true);
 		System.out.printf("algorithm: %s\n", infer.getAlgorithmName());
 		List<InferenceResult> results = infer.infer(queries);

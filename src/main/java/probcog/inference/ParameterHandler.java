@@ -157,10 +157,18 @@ public class ParameterHandler {
 	}
 	
 	protected void getHandledParameters(Vector<String> ret) {
-		for(String param : mappings.keySet())
-			ret.add(param);
+		ret.addAll(mappings.keySet());
 		for(ParameterHandler h : subhandlers)
 			h.getHandledParameters(ret);
+	}
+	
+	public boolean isSupportedParameter(String paramName) {
+		if (mappings.containsKey(paramName))
+			return true;
+		for(ParameterHandler h : subhandlers)
+			if (h.isSupportedParameter(paramName))
+				return true;
+		return false;
 	}
 	
 	/**
