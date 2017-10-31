@@ -39,7 +39,7 @@ public class ParameterHandler {
 	/**
 	 * maps parameter names to ParameterMapping objects that can apply them
 	 */
-	protected java.util.HashMap<String, ParameterMapping> mappings;
+	protected java.util.HashMap<String, Parameter> parameters;
 	protected Object owner;
 	protected Vector<ParameterHandler> subhandlers;
 	protected Vector<ParameterHandler> parenthandlers;
@@ -47,7 +47,7 @@ public class ParameterHandler {
 	protected HashSet<String> unhandledParams = new HashSet<String>();
 	
 	public ParameterHandler(IParameterHandler owner) {
-		mappings = new HashMap<String, ParameterMapping>();
+		parameters = new HashMap<String, Parameter>();
 		subhandlers = new Vector<ParameterHandler>();
 		parenthandlers = new Vector<ParameterHandler>();
 		this.owner = owner;
@@ -66,7 +66,7 @@ public class ParameterHandler {
 				Class<?>[] paramTypes = m.getParameterTypes();
 				if(paramTypes.length != 1)
 					continue;
-				mappings.put(paramName, new ParameterMapping(m, description));				
+				parameters.put(paramName, new ParameterWithSetterMethod(m, description));				
 				return;
 			}
 		}
@@ -81,6 +81,18 @@ public class ParameterHandler {
 	 */
 	public void add(String paramName, String setterMethodName) throws ProbCogException {
 		add(paramName, setterMethodName, null);
+	}
+	
+	public interface Setter<T> {
+		void setValue(T value);
+	}
+	
+	public <T> void add(String paramName, Class<T> parameterValueClass, Setter<T> lambdaSetter, String description) {
+		parameters.put(paramName, new ParameterWithLambdaSetter<T>(lambdaSetter, parameterValueClass, description));
+	}
+	
+	public <T> void add(String paramName, Class<T> parameterValueClass, Setter<T> lambdaSetter) {
+		add(paramName, parameterValueClass, lambdaSetter, null);
 	}
 	
 	public void addSubhandler(ParameterHandler h) throws ProbCogException {
@@ -110,7 +122,7 @@ public class ParameterHandler {
 			handle(param.getKey(), param.getValue());
 		}
 		if(exceptionIfUnhandledParam && !unhandledParams.isEmpty())
-			throw new ProbCogException("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getHandledParameters().toString());
+			throw new ProbCogException("Parameters " + StringTool.join(", ", unhandledParams) + " unhandled! Known parameters: " + this.getSupportedParameters().toString());
 	}
 	
 	public Collection<String> getUnhandledParams() {
@@ -119,7 +131,7 @@ public class ParameterHandler {
 	
 	protected boolean handle(String paramName, Object value) throws ProbCogException {
 		// try to handle here
-		ParameterMapping m = mappings.get(paramName);
+		Parameter m = parameters.get(paramName);
 		boolean handled = false;
 		if(m != null) {
 			m.apply(value);
@@ -150,20 +162,20 @@ public class ParameterHandler {
 	 * gets the names of all parameters that can be handled
 	 * @return
 	 */
-	public Vector<String> getHandledParameters() {
+	public Vector<String> getSupportedParameters() {
 		Vector<String> ret = new Vector<String>();
-		getHandledParameters(ret);
+		getSupportedParameters(ret);
 		return ret; 
 	}
 	
-	protected void getHandledParameters(Vector<String> ret) {
-		ret.addAll(mappings.keySet());
+	protected void getSupportedParameters(Vector<String> ret) {
+		ret.addAll(parameters.keySet());
 		for(ParameterHandler h : subhandlers)
-			h.getHandledParameters(ret);
+			h.getSupportedParameters(ret);
 	}
 	
 	public boolean isSupportedParameter(String paramName) {
-		if (mappings.containsKey(paramName))
+		if (parameters.containsKey(paramName))
 			return true;
 		for(ParameterHandler h : subhandlers)
 			if (h.isSupportedParameter(paramName))
@@ -178,11 +190,11 @@ public class ParameterHandler {
 	 */
 	public void printHelp(PrintStream out, boolean argFormat) {
 		String formatString = argFormat ? "  --%s=%s%s\n" : "  %s: %s%s\n";
-		if(!mappings.isEmpty()) {
+		if(!parameters.isEmpty()) {
 			out.println("handled by " + owner.getClass().getSimpleName() + ":");
-			for(Entry<String,ParameterMapping> e : this.mappings.entrySet()) {
-				Class<?> paramType = e.getValue().setterMethod.getParameterTypes()[0];
-				String paramDescription = e.getValue().paramDescription;
+			for(Entry<String,Parameter> e : this.parameters.entrySet()) {
+				Class<?> paramType = e.getValue().getParameterValueClass();
+				String paramDescription = e.getValue().getDescription();
 				out.printf(formatString, e.getKey(), 
 						paramType.getPackage() == null ? paramType.getSimpleName() : paramType.getName(),
 						paramDescription != null ? " (" + paramDescription + ")" : "");
@@ -192,37 +204,81 @@ public class ParameterHandler {
 			h.printHelp(out, argFormat);
 	}
 	
-	protected class ParameterMapping {
-		protected Method setterMethod;
-		private String paramDescription;		
+	interface String2Value {
+		Object valueFromString(String s);
+	}
+	
+	interface ApplicableClassChecker {
+		boolean appliesToClass(Class<?> cls);
+	}
+
+	enum ParameterValueType {
+		DOUBLE(s -> Double.parseDouble(s), 
+				cls -> cls == Double.class || cls == double.class),
+		INTEGER(s -> Integer.parseInt(s), 
+				cls -> cls == Integer.class || cls == int.class),
+		BOOLEAN(s -> Boolean.parseBoolean(s), 
+				cls -> cls == Boolean.class || cls == boolean.class),
+		STRING(s -> s, 
+				cls -> cls == String.class),
+		OTHER(null, cls -> true);
 		
-		public ParameterMapping(Method setterMethod, String paramDescription) {
+		private String2Value stringConverter;
+		private ApplicableClassChecker applicableClassChecker;
+
+		private ParameterValueType(String2Value stringConverter, ApplicableClassChecker applicableClassChecker) {
+			this.stringConverter = stringConverter;
+			this.applicableClassChecker = applicableClassChecker;
+		}
+		
+		public Object valueFromString(String s) throws ProbCogException {
+			if (stringConverter == null) 
+				throw new ProbCogException("Cannot convert String to value of type " + this);
+			return stringConverter.valueFromString(s);
+		}
+		
+		public static ParameterValueType typeForClass(Class<?> cls) {
+			for (ParameterValueType type : ParameterValueType.values()) {
+				if (type.applicableClassChecker.appliesToClass(cls))
+					return type;
+			}
+			throw new IllegalStateException("Found no matching type");
+		}
+	}
+	
+	protected abstract class Parameter {
+		private String description;
+
+		public Parameter(String description) {
+			this.description = description;
+		}
+		
+		public abstract void apply(Object value)  throws ProbCogException;
+		
+		public String getDescription() {
+			return description;
+		}
+		
+		public abstract Class<?> getParameterValueClass();
+	}
+	
+	protected class ParameterWithSetterMethod extends Parameter {
+		protected Method setterMethod;
+		protected ParameterValueType valueType;
+		protected Class<?> valueClass;
+		
+		public ParameterWithSetterMethod(Method setterMethod, String paramDescription) {
+			super(paramDescription);
 			this.setterMethod = setterMethod;
-			this.paramDescription = paramDescription;
+			this.valueClass = setterMethod.getParameterTypes()[0];
+			this.valueType = ParameterValueType.typeForClass(valueClass);
 		}
 		
 		public void apply(Object value) throws ProbCogException {	
 			try {
-				Class<?> paramType = setterMethod.getParameterTypes()[0];
 				if(value instanceof String) {
 					String strValue = (String)value;
-					if(paramType == Double.class || paramType == double.class) {
-						setterMethod.invoke(owner, Double.parseDouble(strValue));
-						return;
-					}
-					if(paramType == Integer.class || paramType == int.class) {
-						setterMethod.invoke(owner, Integer.parseInt(strValue));
-						return;
-					}
-					if(paramType == Boolean.class || paramType == boolean.class) {
-						setterMethod.invoke(owner, Boolean.parseBoolean(strValue));
-						return;
-					}
-					if(paramType == String.class) {
-						setterMethod.invoke(owner, strValue);
-						return;
-					}
-					throw new ProbCogException("Don't know how to handle setter argument of type " + paramType.getCanonicalName() + " for " + setterMethod.getName() + "; allowed types are: Double, Integer, String, Boolean");
+					setterMethod.invoke(owner, valueType.valueFromString(strValue));
 				}
 				else
 					setterMethod.invoke(owner, value);
@@ -230,6 +286,40 @@ public class ParameterHandler {
 			catch (InvocationTargetException|IllegalAccessException e) {
 				throw new ProbCogException("Error calling setter method " + setterMethod, e);
 			}
+		}
+
+		@Override
+		public Class<?> getParameterValueClass() {
+			return valueClass;
+		}
+	}
+	
+	protected class ParameterWithLambdaSetter<T> extends Parameter {
+		protected Setter<T> setter;
+		protected ParameterValueType valueType;
+		protected Class<T> valueClass;
+		
+		public ParameterWithLambdaSetter(Setter<T> setter, Class<T> cls, String paramDescription) {
+			super(paramDescription);
+			this.setter = setter;
+			this.valueClass = cls;
+			this.valueType = ParameterValueType.typeForClass(valueClass);
+		}
+		
+		@SuppressWarnings("unchecked")
+		@Override
+		public void apply(Object value) throws ProbCogException {	
+			if(value instanceof String) {
+				String strValue = (String)value;
+				setter.setValue((T)valueType.valueFromString(strValue));
+			}
+			else
+				setter.setValue((T)value);
+		}
+
+		@Override
+		public Class<?> getParameterValueClass() {
+			return valueClass;
 		}
 	}
 }
