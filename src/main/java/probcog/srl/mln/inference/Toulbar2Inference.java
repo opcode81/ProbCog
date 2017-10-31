@@ -46,16 +46,21 @@ import probcog.wcsp.WCSPConverter;
 public class Toulbar2Inference extends MPEInferenceAlgorithm {
 	
 	protected PossibleWorld state;
-	protected WCSPConverter converter = null;
-	protected String wcspFilename = "temp.wcsp";
+	protected String wcspFilename = null;
 	protected String toulbar2Args = "";
 	protected Long timeLimitMs = null;
+	protected boolean keepWCSPFile = false;
+	protected File wcspFile;
 
 	public Toulbar2Inference(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
 		this.paramHandler.add("toulbar2Args", "setToulbar2Args");
 		this.paramHandler.add("timeLimitMs", "setTimeLimitMs");
+		this.paramHandler.add("keepWCSPFile", boolean.class, b -> { this.keepWCSPFile = b; }, 
+				"whether to keep the WCSP file (it is deleted upon completion by default)");
+		this.paramHandler.add("wcspFilename", String.class, filename -> { this.wcspFilename = filename; }, 
+				"the name of the file to which the WCSP is written to");
 	}
 	
 	/**
@@ -71,22 +76,17 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		return state.get(ga.index) ? 1.0 : 0.0;
 	}
 
-	public WCSPConverter constructWCSP(String filename, boolean cache) throws ProbCogException {
-		if(converter != null)
-			throw new ProbCogException("WCSP was already constructed");
-		// perform conversion to WCSP
-		this.wcspFilename = filename;
-		log.info("Performing WCSP conversion...");
-		converter = new WCSPConverter(mrf);
+	protected WCSPConverter constructWCSP(File wcspFile, boolean cache) throws ProbCogException {
+		log.info("Writing WCSP to " + wcspFile);
+		WCSPConverter converter = new WCSPConverter(mrf);
 		paramHandler.addSubhandler(converter);
 		converter.setCacheConstraints(cache);
 		WCSP wcsp = converter.run();
-		log.debug("Writing WCSP file to " + wcspFilename);
-		try {
-			wcsp.writeWCSP(new PrintStream(wcspFilename), "WCSPFromMLN");
+		try (PrintStream ps = new PrintStream(wcspFile)) {
+			wcsp.writeWCSP(ps, "WCSPFromMLN");
 		}
 		catch (FileNotFoundException e) {
-			throw new ProbCogException("Error writing temporary WCSP file", e);
+			throw new ProbCogException("Error writing WCSP content to " + wcspFile, e);
 		}
 		return converter;
 	}
@@ -100,7 +100,7 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		@Override
 		public String call() throws ProbCogException {
 
-			String command = "toulbar2 " + wcspFilename + " -s "  + toulbar2Args;
+			String command = "toulbar2 " + wcspFile + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
@@ -172,31 +172,41 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 	 * @throws ProbCogException
 	 */
 	protected void runInference(InferenceCall call) throws ProbCogException {
-		// construct WCSP if necessary
-		if(converter == null)
-			constructWCSP(this.wcspFilename, false);
-		
-		// run Toulbar2
-		String solution = call.infer();
-		
-		if(solution == null)
-			throw new ProbCogException("No solution was found");
-		
-		// set evidence (as the WCSP does not contain evidence variables)
-		state.setEvidence(mrf.getDb());
-		
-		// set solution state
-		log.debug("WCSP solution: " + solution);
-		log.info("Reading solution");
-		String[] solutionParts = solution.trim().split(" ");		
-		for(int i = 0; i < solutionParts.length; i++) {
-			int domIdx = Integer.parseInt(solutionParts[i]);
-			converter.setGroundAtomState(state, i, domIdx);
+		// construct WCSP
+		try {
+			this.wcspFile = (wcspFilename != null ? new File(this.wcspFilename) :
+				File.createTempFile("probcog-toulbar2-", ".wcsp")).getAbsoluteFile();
 		}
+		catch (IOException e) {
+			throw new ProbCogException(e);
+		}
+		WCSPConverter wcspConverter = constructWCSP(wcspFile, false);
 		
-		// clean up
-		log.debug("Deleting " + wcspFilename);
-		new File(this.wcspFilename).delete();
+		try {
+			// run Toulbar2
+			String solution = call.infer();
+			if(solution == null)
+				throw new ProbCogException("No solution was found by toulbar2");
+			
+			// set evidence (as the WCSP does not contain evidence variables)
+			state.setEvidence(mrf.getDb());
+			
+			// set solution state
+			log.debug("WCSP solution: " + solution);
+			log.info("Reading solution");
+			String[] solutionParts = solution.trim().split(" ");		
+			for(int i = 0; i < solutionParts.length; i++) {
+				int domIdx = Integer.parseInt(solutionParts[i]);
+				wcspConverter.setGroundAtomState(state, i, domIdx);
+			}
+		}
+		finally {
+			if (!keepWCSPFile) {
+				// clean up
+				log.info("Deleting " + wcspFile);
+				wcspFile.delete();
+			}
+		}
 	}
 	
 	@Override
