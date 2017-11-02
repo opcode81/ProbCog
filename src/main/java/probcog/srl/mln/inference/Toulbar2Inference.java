@@ -102,7 +102,7 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 
 			String command = "toulbar2 " + wcspFile + " -s "  + toulbar2Args;
 			if (System.getProperty("os.name").contains("Windows")) {
-				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
+				command = "bash -c \"exec " + command.replace('\\','/') + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
 			log.info("Running WCSP solver: " + command);
 			try {

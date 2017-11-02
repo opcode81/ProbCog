@@ -5,4 +5,5 @@ wiki
 target
 *.pyc
 *.bak
+*.iml
 .settings
