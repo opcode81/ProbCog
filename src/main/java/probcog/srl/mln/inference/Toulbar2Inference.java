@@ -99,11 +99,18 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 
 		@Override
 		public String call() throws ProbCogException {
-
-			String command = "toulbar2 " + wcspFile + " -s "  + toulbar2Args;
-			if (System.getProperty("os.name").contains("Windows")) {
+			// generate command
+			boolean isWindows = System.getProperty("os.name").contains("Windows");
+			boolean useBash = isWindows;
+			String wcspPath = wcspFile.toString();
+			if (useBash && isWindows)
+				wcspPath = wcspPath.replace('\\', '/');
+			String command = "toulbar2 " + wcspPath + " -s "  + toulbar2Args;
+			if (useBash) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
+			
+			// spawn toulbar2 process
 			log.info("Running WCSP solver: " + command);
 			try {
 				toulbar2Process = Runtime.getRuntime().exec(command);
@@ -111,6 +118,8 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 			catch (IOException e) {
 				throw new ProbCogException(e);
 			}
+			
+			// read toulbar2 output
 			InputStream s = toulbar2Process.getInputStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(s));
 			isComplete = false;
