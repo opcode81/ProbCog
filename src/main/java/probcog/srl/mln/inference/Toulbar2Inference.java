@@ -51,10 +51,13 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 	protected Long timeLimitMs = null;
 	protected boolean keepWCSPFile = false;
 	protected File wcspFile;
+	private WCSPConverter wcspConverter;
 
 	public Toulbar2Inference(MarkovRandomField mrf) throws ProbCogException {
 		super(mrf);
 		state = new PossibleWorld(mrf.getWorldVariables());
+		this.wcspConverter = new WCSPConverter(mrf);
+		paramHandler.addSubhandler(wcspConverter);
 		this.paramHandler.add("toulbar2Args", "setToulbar2Args");
 		this.paramHandler.add("timeLimitMs", "setTimeLimitMs");
 		this.paramHandler.add("keepWCSPFile", boolean.class, b -> { this.keepWCSPFile = b; }, 
@@ -76,19 +79,16 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		return state.get(ga.index) ? 1.0 : 0.0;
 	}
 
-	protected WCSPConverter constructWCSP(File wcspFile, boolean cache) throws ProbCogException {
+	protected void writeWCSP(File wcspFile, boolean cache) throws ProbCogException {
 		log.info("Writing WCSP to " + wcspFile);
-		WCSPConverter converter = new WCSPConverter(mrf);
-		paramHandler.addSubhandler(converter);
-		converter.setCacheConstraints(cache);
-		WCSP wcsp = converter.run();
+		wcspConverter.setCacheConstraints(cache);
+		WCSP wcsp = wcspConverter.run();
 		try (PrintStream ps = new PrintStream(wcspFile)) {
 			wcsp.writeWCSP(ps, "WCSPFromMLN");
 		}
 		catch (FileNotFoundException e) {
 			throw new ProbCogException("Error writing WCSP content to " + wcspFile, e);
 		}
-		return converter;
 	}
 	
 	class Toulbar2Call implements Callable<String> {
@@ -181,7 +181,7 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 	 * @throws ProbCogException
 	 */
 	protected void runInference(InferenceCall call) throws ProbCogException {
-		// construct WCSP
+		// write WCSP
 		try {
 			this.wcspFile = (wcspFilename != null ? new File(this.wcspFilename) :
 				File.createTempFile("probcog-toulbar2-", ".wcsp")).getAbsoluteFile();
@@ -189,7 +189,7 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		catch (IOException e) {
 			throw new ProbCogException(e);
 		}
-		WCSPConverter wcspConverter = constructWCSP(wcspFile, false);
+		writeWCSP(wcspFile, false);
 		
 		try {
 			// run Toulbar2
