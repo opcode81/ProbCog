@@ -103,7 +103,7 @@ public class WCSPConverter implements IParameterHandler, VerbosePrinter {
         paramHandler.add("verbose", "setVerbose");
         paramHandler.add("debug", "setDebug");
         paramHandler.add("wcspWeightScalingFactor", Double.class, f -> { this.divisor = 1.0/f; },
-        		"the scaling factor with which to multiply weights for the integer cost conversion");
+        		"the scaling factor with which to multiply weights for the weight to integer cost conversion (by default, it is automatically computed from the weights)");
     }
     
     public void setCacheConstraints(boolean cache) {
