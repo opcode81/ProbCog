@@ -117,14 +117,14 @@ public class WCSPConverter implements IParameterHandler {
      * @return
      */
     protected double computeDivisor() {
-        // get minimum weight and build sorted tree set of weights
+        // get minimum absolute weight and build sorted set of absolute weights
     	TreeSet<Double> weight = new TreeSet<Double>();
-        double minWeight = Double.MAX_VALUE;
+        double minAbsWeight = Double.MAX_VALUE;
         for(WeightedFormula wf : mln.getFormulas()) {
-        	double w = Math.abs(wf.weight);
-            weight.add(w);
-            if(w < minWeight && w != 0)
-            	minWeight = w;
+        	double absWeight = Math.abs(wf.weight);
+            weight.add(absWeight);
+            if(absWeight < minAbsWeight && absWeight != 0)
+            	minAbsWeight = absWeight;
         }       
         
         // calculate the smallest difference between consecutive weights
@@ -140,8 +140,8 @@ public class WCSPConverter implements IParameterHandler {
         }
         
         double divisor = 1.0;
-        if(minWeight < 1.0)
-        	divisor *= minWeight;
+        if(minAbsWeight < 1.0)
+        	divisor *= minAbsWeight;
         if(deltaMin < 1.0)
         	divisor *= deltaMin;
         
