@@ -59,45 +59,54 @@ public class PrintLogger {
 		this.printer = printer;
 	}
 	
-	public void debug(String s) {
-		printDebug(s);
-		logger.debug(s);
+	public void debug(String format, Object ... args) {
+		printDebug(format, args);
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format(format, args));
+		}
 	}
 	
-	protected void printDebug(String s) {
+	protected void printDebug(String format, Object ... args) {
 		if (printer.getVerboseMode() && printer.getDebugMode()) {
-			System.out.println(s);
+			System.out.println(String.format(format, args));
 		}
 	}
 	
-	public void trace(String s) {
-		printTrace(s);
-		logger.trace(s);
+	public void trace(String format, Object ... args) {
+		printTrace(format, args);
+		if (logger.isTraceEnabled()) {
+			logger.trace(String.format(format, args));
+		}
 	}
 	
-	protected void printTrace(String s) {
+	protected void printTrace(String format, Object ... args) {
+		String s = String.format(format, args);
 		printDebug(s);
 	}
 
-	public void info(String s) {
-		printInfo(s);
-		logger.info(s);
+	public void info(String format, Object ... args) {
+		printInfo(format, args);
+		if (logger.isInfoEnabled()) {
+			logger.info(String.format(format, args));
+		}
 	}
 
-	protected void printInfo(String s) {
+	protected void printInfo(String format, Object ... args) {
 		if (printer.getVerboseMode()) {
-			System.out.println(s);
+			System.out.println(String.format(format, args));
 		}
 	}
 	
-	public void warn(String s) {
-		printWarn(s);
-		logger.warn(s);
+	public void warn(String format, Object ... args) {
+		printWarn(format, args);
+		if (logger.isWarnEnabled()) {
+			logger.warn(String.format(format, args));
+		}
 	}
 
-	protected void printWarn(String s) {
+	protected void printWarn(String format, Object ... args) {
 		if (printer.getVerboseMode()) {
-			System.err.println(s);
+			System.err.println(String.format(format, args));
 		}
 	}
 	
@@ -106,7 +115,8 @@ public class PrintLogger {
 	 * @param level the level
 	 * @param s the message
 	 */
-	public void out(Level level, String s) {
+	public void out(Level level, String format, Object ... args) {
+		String s = String.format(format, args);
 		switch(level) {
 		case DEBUG:
 			debug(s);
@@ -131,43 +141,44 @@ public class PrintLogger {
 	 * @param logLevel the level for logging
 	 * @param s the message
 	 */
-	public void out(Level printLevel, Level logLevel, String s) {
+	public void out(Level printLevel, Level logLevel, String format, Object ... args) {
+		String s = String.format(format, args);
 		print(printLevel, s);
 		log(logLevel, s);
 	}
 
-	public void log(Level logLevel, String s) {
+	public void log(Level logLevel, String format, Object ... args) {
 		switch (logLevel) {
 		case DEBUG:
-			logger.debug(s);
+			logger.debug(format, args);
 			break;
 		case INFO:
-			logger.info(s);
+			logger.info(format, args);
 			break;
 		case TRACE:
-			logger.trace(s);
+			logger.trace(format, args);
 			break;
 		case WARN:
-			logger.warn(s);
+			logger.warn(format, args);
 			break;
 		default:
 			throw new RuntimeException("Unhandled level");
 		}
 	}
 
-	public void print(Level printLevel, String s) {
+	public void print(Level printLevel, String format, Object ... args) {
 		switch (printLevel) {
 		case DEBUG:
-			printDebug(s);
+			printDebug(format, args);
 			break;
 		case INFO:
-			printInfo(s);
+			printInfo(format, args);
 			break;
 		case TRACE:
-			printTrace(s);
+			printTrace(format, args);
 			break;
 		case WARN:
-			printWarn(s);
+			printWarn(format, args);
 			break;
 		default:
 			throw new RuntimeException("Unhandled level");
