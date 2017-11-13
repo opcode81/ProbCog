@@ -71,7 +71,7 @@ public class PrintLogger {
 		logDebug(format, args);
 	}
 
-	public void logDebug(String format, Object... args) {
+	protected void logDebug(String format, Object... args) {
 		if (logger.isDebugEnabled()) {
 			logger.debug(format(format, args));
 		}
@@ -88,7 +88,7 @@ public class PrintLogger {
 		logTrace(format, args);
 	}
 
-	public void logTrace(String format, Object... args) {
+	protected void logTrace(String format, Object... args) {
 		if (logger.isTraceEnabled()) {
 			logger.trace(format(format, args));
 		}
@@ -104,7 +104,7 @@ public class PrintLogger {
 		logInfo(format, args);
 	}
 
-	public void logInfo(String format, Object... args) {
+	protected void logInfo(String format, Object... args) {
 		if (logger.isInfoEnabled()) {
 			logger.info(format(format, args));
 		}
@@ -121,7 +121,7 @@ public class PrintLogger {
 		logWarn(format, args);
 	}
 
-	public void logWarn(String format, Object... args) {
+	protected void logWarn(String format, Object... args) {
 		if (logger.isWarnEnabled()) {
 			logger.warn(format(format, args));
 		}
