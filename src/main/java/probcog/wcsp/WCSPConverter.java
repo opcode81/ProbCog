@@ -31,6 +31,8 @@ import java.util.Vector;
 import probcog.exception.ProbCogException;
 import probcog.inference.IParameterHandler;
 import probcog.inference.ParameterHandler;
+import probcog.logging.PrintLogger;
+import probcog.logging.VerbosePrinter;
 import probcog.logic.ComplexFormula;
 import probcog.logic.Conjunction;
 import probcog.logic.Disjunction;
@@ -59,7 +61,7 @@ import edu.tum.cs.util.StringTool;
  * @author Dominik Jain
  * @author Paul Maier
  */
-public class WCSPConverter implements IParameterHandler {
+public class WCSPConverter implements IParameterHandler, VerbosePrinter {
 
 	protected MarkovLogicNetwork mln;
 	protected MarkovRandomField mrf;
@@ -87,17 +89,21 @@ public class WCSPConverter implements IParameterHandler {
 	protected Database db;
 	protected boolean cacheConstraints = false;
 	protected ParameterHandler paramHandler;
+	protected PrintLogger log;
 	
     /**
      * @param mrf
      * @throws ProbCogException 
      */
     public WCSPConverter(MarkovRandomField mrf) throws ProbCogException {
+    	this.log = new PrintLogger(this);
         this.mln = mrf.mln;
         this.mrf = mrf;    
         this.paramHandler = new ParameterHandler(this);
         paramHandler.add("verbose", "setVerbose");
         paramHandler.add("debug", "setDebug");
+        paramHandler.add("wcspWeightScalingFactor", Double.class, f -> this.divisor = 1.0/f,
+        		"the scaling factor with which to multiply weights for the integer cost conversion");
     }
     
     public void setCacheConstraints(boolean cache) {
@@ -167,12 +173,11 @@ public class WCSPConverter implements IParameterHandler {
     	WCSP wcsp = new WCSP(domSizes, top);
     	
     	// generate evidence constraints
-    	if(verbose)
-    		System.out.println("generating evidence constraints...");
+    	log.info("Generating evidence constraints...");
         generateEvidenceConstraints(wcsp);
         
         // generate constraints for weighted formulas, merging constraints with the same domains
-        if(verbose) System.out.printf("generating constraints for %d weighted formulas...\n", mrf.getNumFormulas());
+        log.info("Generating constraints for %d weighted formulas...", mrf.getNumFormulas());
         HashMap<ArrayKey, Constraint> collectedConstraints = new HashMap<ArrayKey, Constraint>();
         for(WeightedFormula wf : mrf) {
         	Constraint c = generateConstraint(wf);
@@ -189,8 +194,7 @@ public class WCSPConverter implements IParameterHandler {
         	}
         }
         
-        if(verbose)
-        	System.out.printf("constructed %d constraints in total\n", wcsp.size());;
+       log.info("Constructed %d constraints in total", wcsp.size());
         
         return wcsp;
     }
@@ -257,10 +261,10 @@ public class WCSPConverter implements IParameterHandler {
             }
         }
         
-        if(debug) {
-        	System.out.println("WCSP variables:");
+        if(log.isDebugEnabled()) {
+        	log.debug("WCSP variables:");
         	for(Entry<Integer,Vector<GroundAtom>> e : varIdx2groundAtoms.entrySet()) {
-        		System.out.printf("%s %s\n", e.getKey(), StringTool.join(", ", e.getValue()));
+        		log.debug("%s %s", e.getKey(), StringTool.join(", ", e.getValue()));
         	}
         }
     }
@@ -301,7 +305,7 @@ public class WCSPConverter implements IParameterHandler {
             }
         }
         
-        if(verbose) System.out.printf("simplification: reduced %d to %d variables\n", vars.size(), simplifiedVars.size());
+        log.info("Simplification: reduced %d to %d variables", vars.size(), simplifiedVars.size());
         this.vars = simplifiedVars;
         this.gndAtomIdx2varIdx = sf_gndAtomIdx2varIdx;
         this.varIdx2groundAtoms = sf_varIdx2groundAtoms; 
@@ -343,7 +347,7 @@ public class WCSPConverter implements IParameterHandler {
         	referencedVarIndices[i++] = varIdx;
         Arrays.sort(referencedVarIndices); // have the array sorted to simplify constraint unification
 
-        // get cost value for this constraint
+        // get cost value for this constraint (which will apply if the formula is false)
         long cost;
         if(wf.isHard)
         	cost = hardCost;
@@ -364,7 +368,7 @@ public class WCSPConverter implements IParameterHandler {
         		defaultCosts = isConjunction ? cost : 0;
         	}
         	catch(SimplifiedConversionNotSupportedException e) {
-        		if(debug) System.out.printf("No simplified conversion (%s): %s\n", e.getMessage(), f.toString());
+        		log.debug("No simplified conversion (%s): %s", e.getMessage(), f.toString());
         		generateAllPossibilities = true;
         	}
         }
@@ -599,9 +603,15 @@ public class WCSPConverter implements IParameterHandler {
         doms = mrf.getDb().getDomains();
         createVariables();
         simplifyVars(mrf.getDb());
-        divisor = computeDivisor();
-        if(verbose) System.out.printf("divisor: %g\n", divisor);
+        if (divisor == null) {
+        	divisor = computeDivisor();
+        	log.info("Computed divisor for weight to cost conversion: %g", divisor);
+        }
+        else {
+        	log.info("Using divisor based on given scaling factor: %g", divisor);
+        }
         
+        // compute hard cost
     	long sumSoftCosts = 0;
         for(WeightedFormula wf : mrf) {
         	if(!wf.isHard) {
@@ -621,5 +631,15 @@ public class WCSPConverter implements IParameterHandler {
 	@Override
 	public ParameterHandler getParameterHandler() {		
 		return paramHandler;
+	}
+
+	@Override
+	public boolean getVerboseMode() {
+		return verbose;
+	}
+
+	@Override
+	public boolean getDebugMode() {
+		return debug;
 	}
 }
