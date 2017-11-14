@@ -343,11 +343,11 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	
 	protected void makeMove() {
 		if(rand.nextDouble() < this.pSampleSAT) {
-			log.debug("  WalkSAT move:");
+			log.trace("  WalkSAT move:");
 			walkSATMove();
 		}
 		else {
-			log.debug("  SA move:");
+			log.trace("  SA move:");
 			SAMove();
 		}
 	}
@@ -472,7 +472,7 @@ public class SampleSAT implements IParameterHandler, VerbosePrinter {
 	}
 	
 	protected void flipGndAtom(GroundAtom gndAtom) {
-		log.trace("  flipping " + gndAtom);
+		log.trace("    flipping " + gndAtom);
 		// modify state
 		boolean value = state.isTrue(gndAtom);
 		state.set(gndAtom, !value);
