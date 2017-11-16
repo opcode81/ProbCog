@@ -18,6 +18,7 @@
  ******************************************************************************/
 package probcog.logic;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,7 +62,7 @@ public class Disjunction extends ComplexFormula {
         */
         if(this.children.length == 1)
         	return this.children[0].toCNF();
-        HashSet<Formula> clause = new HashSet<Formula>();
+        ArrayList<Formula> clause = new ArrayList<Formula>();
         HashSet<String> strClause = new HashSet<String>();
         Vector<Conjunction> conjunctions = new Vector<Conjunction>();
         // convert children to CNF and group by disjunction (flattened) and conjunction
