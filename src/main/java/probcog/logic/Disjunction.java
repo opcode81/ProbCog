@@ -104,7 +104,7 @@ public class Disjunction extends ComplexFormula {
             Vector<Formula> elems = new Vector<Formula>();
             for (Formula Ci : conjuncts) {
             	@SuppressWarnings("unchecked")
-				HashSet<Formula> newClause = (HashSet<Formula>)clause.clone();
+				ArrayList<Formula> newClause = (ArrayList<Formula>)clause.clone();
             	newClause.add(Ci);
                 elems.add(new Disjunction(newClause));
             }
