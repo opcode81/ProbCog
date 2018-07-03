@@ -129,8 +129,11 @@ class DiagonalNewton(object):
 
 class SciPyOpt(object):
 	def __init__(self, optimizer, wt, problem, **optParams):
+		'''
+		problem: an instance of AbstractLearner, e.g. a MultipleDatabaseLearner or a specialized single learner
+		'''
 		self.wt = wt
-		self.problem = problem		
+		self.problem = problem
 		self.optParams = optParams
 		self.optimizer = optimizer
 	
@@ -147,8 +150,8 @@ class SciPyOpt(object):
 		# negate for minimization
 		neg_f = lambda wt: -f(wt)
 		neg_grad = lambda wt: -grad(wt)
-		#if not useGrad or not p.useGrad(): neg_grad = None
-		#if not useF or not p.useF(): neg_f = lambda wt: -p.__fDummy(wt)
+		if not p.useGrad(): neg_grad = None
+		if not p.useF(): neg_f = lambda wt: -p.__fDummy(wt)
 	
 		if optimizer == "bfgs":
 			params = dict(filter(lambda (k,v): k in ["gtol", "epsilon", "maxiter"], self.optParams.iteritems()))

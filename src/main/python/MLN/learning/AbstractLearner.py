@@ -301,6 +301,12 @@ class MultipleDatabaseLearner(AbstractLearner):
             learner = eval("MLN.learning.%s(mrf, **self.params)" % self.constructor)
             self.learners.append(learner)
             learner._prepareOpt()
+            
+    def useGrad(self):
+        return self.learners[0].useGrad()
+    
+    def useF(self):
+        return self.learners[0].useF()
     
     def getName(self):
         return "MultipleDatabaseLearner[%d*%s]" % (len(self.learners), self.learners[0].getName())
