@@ -36,8 +36,8 @@ if __name__ == '__main__':
     swtArtifactId = {
         "win32": "org.eclipse.swt.win32.win32.x86", 
         "win64": "org.eclipse.swt.win32.win32.x86_64", 
-        "linux_i386": "org.eclipse.swt.gtk.linux.x86_64", 
-        "linux_amd64": "org.eclipse.swt.gtk.linux.x86",         
+        "linux_i386": "org.eclipse.swt.gtk.linux.x86", 
+        "linux_amd64": "org.eclipse.swt.gtk.linux.x86_64",         
         "macosx": "org.eclipse.swt.cocoa.macosx", 
         "macosx64": "org.eclipse.swt.cocoa.macosx.x86_64"
     }[arch]
