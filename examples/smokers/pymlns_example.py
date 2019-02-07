@@ -8,6 +8,6 @@ from MLN import *
 mln = MLN("wts.pybpll.smoking-train-smoking.mln")
 mrf = mln.groundMRF("smoking-test-smaller.db")
 queries = ["Smokes(Ann)", "Smokes(Bob)", "Smokes(Ann) ^ Smokes(Bob)"]
-results = mrf.inferMCSAT(queries, verbose=False)
-for query, prob in zip(queries, results):
+mrf.inferMCSAT(queries, verbose=False)
+for query, prob in mrf.getResultsDict().iteritems():
     print "  %f  %s" % (prob, query)
