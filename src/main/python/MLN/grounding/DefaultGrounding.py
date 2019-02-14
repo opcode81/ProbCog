@@ -36,9 +36,13 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
     '''
     
     def _createGroundAtoms(self, verbose=False):
-        # create ground atoms
+        # create ground atoms for all predicates
+        if verbose:
+            print "generating ground atoms...",
         for predName, domNames in self.mln.predicates.iteritems():
             self._groundAtoms([], predName, domNames, verbose)
+        if verbose:
+            print "%d atoms generated." % (len(self.mrf.gndAtoms))
 
     def _groundAtoms(self, cur, predName, domNames, verbose=False):
         # if there are no more parameters to ground, we're done
@@ -64,17 +68,20 @@ class DefaultGroundingFactory(AbstractGroundingFactory):
         
         # generate all groundings
         if verbose: 
-            print "generating ground formulas..."
+            print "generating ground formulas (simplify=%s)..."  % (mrf.simplify)
         for idxFormula, formula in enumerate(mrf.formulas):
             if verbose: 
                 print "  %s" % strFormula(formula)
+            numGroundings = 0
             for gndFormula, referencedGndAtoms in formula.iterGroundings(mrf, mrf.simplify):
                 if isinstance(gndFormula, FOL.TrueFalse):
                     continue
                 gndFormula.isHard = formula.isHard
                 gndFormula.weight = formula.weight
                 gndFormula.idxFormula = idxFormula
+                numGroundings += 1
                 yield (gndFormula, referencedGndAtoms)
+            print "    %d groundings generated" % numGroundings
         
     def _createGroundFormulas(self, verbose=False):
         mrf = self.mrf
