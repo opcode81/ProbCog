@@ -1288,6 +1288,8 @@ class MRF(object):
             gets the soft evidence value (probability) for a given ground atom (or complex formula)
             returns None if there is no such value
         '''
+        if len(self.softEvidenceDict) == 0:
+            return None
         s = strFormula(gndAtom)
         se = self.softEvidenceDict.get(s)
         if se is None:
