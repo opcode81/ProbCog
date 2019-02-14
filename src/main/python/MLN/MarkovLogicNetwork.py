@@ -458,7 +458,7 @@ class MLN(object):
         self._createFormulaGroundings(verbose)
         if verbose: print "ground formulas: %d" % len(self.gndFormulas)
 
-    def groundMRF(self, db, verbose=False, simplify=False, method='DefaultGroundingFactory'):
+    def groundMRF(self, db, verbose=False, simplify=True, method='DefaultGroundingFactory'):
         '''
             creates and returns a ground Markov random field for the given database
                 db: database filename (string) or Database object
