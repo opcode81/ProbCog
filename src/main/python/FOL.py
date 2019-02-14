@@ -725,8 +725,8 @@ class Biimplication(ComplexFormula):
         return Conjunction([Implication([self.children[0], self.children[1]]), Implication([self.children[1], self.children[0]])]).toRRF()
 
     def simplify(self, mrf):
-        c1 = Disjunction([Negation(self.children[0]), self.children[1]])
-        c2 = Disjunction([self.children[0], Negation(self.children[1])])
+        c1 = Disjunction([Negation([self.children[0]]), self.children[1]])
+        c2 = Disjunction([self.children[0], Negation([self.children[1]])])
         return Conjunction([c1,c2]).simplify(mrf)
     
 class Negation(ComplexFormula):    
