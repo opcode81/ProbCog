@@ -61,11 +61,9 @@ class GibbsSampler(MCMCInference):
                 #time.sleep(1)
                 pass
             # reassign values by sampling from the conditional distributions given the Markov blanket
-            wt = mln._weights()
-            for idxBlock, (idxGA, block) in enumerate(mln.pllBlocks):
+            wt = self.gs.wt # formula weight vector
+            for idxBlock, (idxGA, block) in self.gs.nonEvidenceBlocks:
                 # compute distribution to sample from
-                if idxBlock in self.gs.evidenceBlocks: # do not sample if we have evidence 
-                    continue
                 if block != None:
                     expsums = self.gs.mln._getBlockExpsums(block, wt, self.state, None, mln.blockRelevantGFs[idxBlock])
                     if idxBlock in self.gs.blockExclusions:
@@ -76,7 +74,7 @@ class GibbsSampler(MCMCInference):
                 Z = sum(expsums)           
                 # check for soft evidence and greedily satisfy it if possible                
                 idx = None
-                if block == None:
+                if block is None and self.haveSoftEvidence():
                     formula = self.gs.mln.gndAtomsByIdx[idxGA]
                     p = self.gs.mln._getSoftEvidence(formula)
                     if p is not None:
@@ -105,18 +103,18 @@ class GibbsSampler(MCMCInference):
             # update results
             self.update()
     
-    def __init__(self, mln):
+    def __init__(self, mrf):
         print "initializing Gibbs sampler...",
         self.useConvergenceTest = False
-        MCMCInference.__init__(self, mln)
+        MCMCInference.__init__(self, mrf)
         # check compatibility with MLN
-        for f in mln.formulas:
+        for f in mrf.formulas:
             if not f.isLogical():
                 raise Exception("GibbsSampler does not support non-logical constraints such as '%s'!" % strFormula(f))
         # get the pll blocks
-        mln._getPllBlocks()
+        mrf._getPllBlocks()
         # get the list of relevant ground atoms for each block
-        mln._getBlockRelevantGroundFormulas()
+        mrf._getBlockRelevantGroundFormulas()
         print "done."
 
     # infer one or more probabilities P(F1 | F2)
@@ -139,6 +137,9 @@ class GibbsSampler(MCMCInference):
             chainGroup.addChain(chain)
             if self.softEvidence is not None:
                 chain.setSoftEvidence(self.softEvidence)
+        # prepare some data
+        self.wt = self.mln._weights()
+        self.nonEvidenceBlocks = [(idxBlock, (idxGA, block)) for (idxBlock, (idxGA, block)) in enumerate(self.mrf.pllBlocks) if idxBlock not in self.evidenceBlocks]
         # do Gibbs sampling
         if verbose and details: print "sampling..."
         converged = 0

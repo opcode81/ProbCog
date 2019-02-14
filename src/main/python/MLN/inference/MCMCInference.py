@@ -113,6 +113,9 @@ class MCMCInference(Inference):
                 #print "  --> %s" % str(self.state),
                 #print "after %d steps: P(%s | e) = %f" % (self.numSteps, str(self.query), float(self.numTrue) / self.numSteps)
                 pass
+            
+        def haveSoftEvidence(self):
+            return self.softEvidence is not None and len(self.softEvidence) > 0
         
         def setSoftEvidence(self, softEvidence):
             self.softEvidence = softEvidence
