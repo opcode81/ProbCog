@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
+from __future__ import print_function
 import os
 import stat
 import sys
-from configurePOM import archs, detectArch
+from configurePOM import archs, detectArch, checkPythonVersion
 import subprocess
 
 java_apps = {
@@ -63,25 +64,26 @@ def getDependencyClasspath():
         if "Dependencies classpath" in line:
             classpath = lines[i+1].strip()
     if classpath is None:
-        print "ERROR: Could not determine classpath via maven. Check for problems in maven's output below:\n\n"
-        print "".join(lines)
+        print("ERROR: Could not determine classpath via maven. Check for problems in maven's output below:\n\n")
+        print("".join(lines))
         sys.exit(1)
     return classpath
     
 if __name__ == '__main__':
-    print "\nProbCog Apps Generator\n\n"
-    print "  usage: make_apps [--arch=%s] [additional JVM args]\n" % "|".join(archs)
-    print
-    print "  Note: Some useful JVM args include"
-    print "    -Xmx8000m   set maximum Java heap space to 8000 MB"
-    print "    -ea         enable assertions"
-    print
+    checkPythonVersion()
+    print("\nProbCog Apps Generator\n\n")
+    print("  usage: make_apps [--arch=%s] [additional JVM args]\n" % "|".join(archs))
+    print()
+    print("  Note: Some useful JVM args include")
+    print("    -Xmx8000m   set maximum Java heap space to 8000 MB")
+    print("    -ea         enable assertions")
+    print()
 
     args = sys.argv[1:]
     
     # check if ProbCog binaries exist
     if not os.path.exists(os.path.join("target", "classes")):
-        print "ERROR: No ProbCog binaries found. If you are using the source version of ProbCog, please compile it first using 'mvn compile'"
+        print("ERROR: No ProbCog binaries found. If you are using the source version of ProbCog, please compile it first using 'mvn compile'")
         sys.exit(1)
 
     # determine architecture
@@ -92,10 +94,10 @@ if __name__ == '__main__':
     else:
         arch = detectArch()
     if arch is None:
-        print "Could not automatically determine your system's architecture. Please supply the --arch argument"
+        print("Could not automatically determine your system's architecture. Please supply the --arch argument")
         sys.exit(1)
     if arch not in archs:
-        print "Unknown architecture '%s'" % arch
+        print("Unknown architecture '%s'" % arch)
         sys.exit(1)
         
     jvm_userargs = " ".join(args)
@@ -103,9 +105,9 @@ if __name__ == '__main__':
     if not os.path.exists("apps"):
         os.mkdir("apps")
 
-    print "\nDetermining dependency classpath..."
+    print("\nDetermining dependency classpath...")
     dep_classpath = getDependencyClasspath()
-    print "\nCreating application files for %s..." % arch
+    print("\nCreating application files for %s..." % arch)
     classpath = os.path.pathsep.join([adapt("$SRLDB_HOME/target/classes", arch), dep_classpath])
     isWindows = "win" in arch
     isMacOSX = "macosx" in arch
@@ -114,7 +116,7 @@ if __name__ == '__main__':
     pathsep = os.path.pathsep
     for appname, app in java_apps.iteritems():
         filename = os.path.join("apps", "%s%s" % (appname, {True:".bat", False:""}[isWindows]))
-        print "  %s" % filename
+        print("  %s" % filename)
         with file(filename, "w") as f:
             f.write(preamble)
             addargs = "-XstartOnFirstThread" if arch in ("macosx", "macosx64") else ""
@@ -123,13 +125,13 @@ if __name__ == '__main__':
         if not isWindows: os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
     for app in python_apps:
         filename = os.path.join("apps", "%s%s" % (app["name"], {True:".bat", False:""}[isWindows]))
-        print "  %s" % filename
+        print("  %s" % filename)
         f = file(filename, "w")
         f.write(preamble)
         f.write("%s -O \"%s\" %s\n" % (pythonInterpreter, adapt(app["script"], arch), allargs))
         f.close()
         if not isWindows: os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-    print
+    print()
 
     # write shell script for environment setup
     appsDir = adapt("$SRLDB_HOME/apps", arch)
@@ -142,12 +144,12 @@ if __name__ == '__main__':
         f.write("export JYTHONPATH=$JYTHONPATH:%s:%s\n" % (jythonDir, pythonDir))
         f.write("export PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
         f.close()
-        print 'Now, to set up your environment type:'
-        print '    source env.sh'
-        print
-        print 'To permantly configure your environment, add this line to your shell\'s initialization script (e.g. ~/.bashrc):'
-        print '    source %s' % adapt("$SRLDB_HOME/env.sh", arch)
-        print
+        print('Now, to set up your environment type:')
+        print('    source env.sh')
+        print()
+        print('To permantly configure your environment, add this line to your shell\'s initialization script (e.g. ~/.bashrc):')
+        print('    source %s' % adapt("$SRLDB_HOME/env.sh", arch))
+        print()
     else:
         f = file("env.bat", "w")
         f.write("SET PATH=%%PATH%%;%s\r\n" % appsDir)
@@ -155,11 +157,11 @@ if __name__ == '__main__':
         f.write("SET JYTHONPATH=%%JYTHONPATH%%;%s;%s\r\n" % (jythonDir, pythonDir))
         f.write("SET PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
         f.close()
-        print 'To temporarily set up your environment for the current session, type:'
-        print '    env.bat'
-        print
-        print 'To permanently configure your environment, use Windows Control Panel to set the following environment variables:'
-        print '  To the PATH variable add the directory "%s"' % appsDir
-        print '  To the PYTHONPATH variable add the directory "%s"' % pythonDir
-        print '  To the JYTHONPATH variable add the directories "%s" and "%s"' % (jythonDir, pythonDir)
-        print 'Should any of these variables not exist, simply create them.'
+        print('To temporarily set up your environment for the current session, type:')
+        print('    env.bat')
+        print()
+        print('To permanently configure your environment, use Windows Control Panel to set the following environment variables:')
+        print('  To the PATH variable add the directory "%s"' % appsDir)
+        print('  To the PYTHONPATH variable add the directory "%s"' % pythonDir)
+        print('  To the JYTHONPATH variable add the directories "%s" and "%s"' % (jythonDir, pythonDir))
+        print('Should any of these variables not exist, simply create them.')
