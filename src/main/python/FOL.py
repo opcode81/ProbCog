@@ -274,6 +274,8 @@ class ComplexFormula(Formula):
         for variant in variants:
             if type(self) == Exist:
                 final_variants.append(Exist(self.vars, variant[0]))
+            elif type(self) == ForAll:
+                final_variants.append(ForAll(self.vars, variant[0]))
             else:
                 final_variants.append(apply(type(self), (variant,)))
                 
@@ -809,13 +811,15 @@ class Negation(ComplexFormula):
         else:
             return Negation([f])
         
-class Exist(ComplexFormula):
-    def __init__(self, vars, formula):
+class QuantifiedFormula(ComplexFormula):
+    def __init__(self, vars, formula, quantifierName, complexCombiner):
         self.children = [formula]
         self.vars = vars
+        self.quantifierName = quantifierName
+        self.complexCombiner = complexCombiner
 
     def __str__(self):
-        return "EXIST " + ", ".join(self.vars) + " (" + str(self.children[0]) + ")"
+        return self.quantifierName + " " + ", ".join(self.vars) + " (" + str(self.children[0]) + ")"
 
     def getVariables(self, mln, vars = None, constants = None):
         if vars == None: vars = {}
@@ -849,7 +853,7 @@ class Exist(ComplexFormula):
         self._ground(self.children[0], vars, assignment, gndings, mrf, referencedGroundAtoms)
         if len(gndings) == 1:
             return gndings[0]
-        return Disjunction(gndings)
+        return self.complexCombiner(gndings)
             
     def _ground(self, formula, variables, assignment, gndings, mrf, referencedGroundAtoms = None):
         # if all variables have been grounded...
@@ -869,6 +873,14 @@ class Exist(ComplexFormula):
 
     def isTrue(self, w):
         raise Exception("'%s' does not implement isTrue()")
+        
+class Exist(QuantifiedFormula):
+    def __init__(self, vars, formula):
+        QuantifiedFormula.__init__(self, vars, formula, "EXIST", Disjunction)
+
+class ForAll(QuantifiedFormula):
+    def __init__(self, vars, formula):
+        QuantifiedFormula.__init__(self, vars, formula, "FORALL", Conjunction)
 
 class Equality(Formula):
     def __init__(self, params):
@@ -1079,6 +1091,10 @@ class TreeBuilder(object):
             if len(toks) == 2:
                 formula = self.stack.pop()
                 self.stack.append(Exist(toks[0], formula))
+        elif op == "fa":
+            if len(toks) == 2:
+                formula = self.stack.pop()
+                self.stack.append(ForAll(toks[0], formula))
         elif op == '=>':
             if len(toks) == 2:
                 children = self.stack[-2:]
@@ -1142,9 +1158,10 @@ count_constraint = Literal("count(").suppress() + atom + Optional(Literal("|").s
 
 formula = Forward()
 exist = Literal("EXIST ").suppress() + Group(delimitedList(variable)) + openRB + Group(formula) + closeRB
+forall = Literal("FORALL ").suppress() + Group(delimitedList(variable)) + openRB + Group(formula) + closeRB
 equality = (constant|variable) + Literal("=").suppress() + (constant|variable)
 negation = Literal("!").suppress() + openRB + Group(formula) + closeRB
-item = literal | exist | equality | openRB + formula + closeRB | negation
+item = literal | exist | forall | equality | openRB + formula + closeRB | negation
 disjunction = Group(item) + ZeroOrMore(Literal("v").suppress() + Group(item))
 conjunction = Group(disjunction) + ZeroOrMore(Literal("^").suppress() + Group(disjunction))
 implication = Group(conjunction) + Optional(Literal("=>").suppress() + Group(conjunction))
@@ -1162,6 +1179,7 @@ def parseFormula(input):
     disjunction.setParseAction(lambda a,b,c: tree.trigger(a,b,c,'v'))
     conjunction.setParseAction(lambda a,b,c: tree.trigger(a,b,c,'^'))
     exist.setParseAction(lambda a,b,c: tree.trigger(a,b,c,"ex"))
+    forall.setParseAction(lambda a,b,c: tree.trigger(a,b,c,"fa"))
     implication.setParseAction(lambda a,b,c: tree.trigger(a,b,c,"=>"))
     biimplication.setParseAction(lambda a,b,c: tree.trigger(a,b,c,"<=>"))
     equality.setParseAction(lambda a,b,c: tree.trigger(a,b,c,"="))
@@ -1175,14 +1193,14 @@ def parseFormula(input):
 
 # main app for testing purposes only
 if __name__=='__main__':
-    test = 'count'
+    test = 'parsing'
     if test == 'parsing':
         tests = ["numberEats(o,2) <=> EXIST p, p2 (eats(o,p) ^ eats(o,p2) ^ !(o=p) ^ !(o=p2) ^ !(p=p2) ^ !(EXIST q (eats(o,q) ^ !(p=q) ^ !(p2=q))))",
                  "EXIST y (rel(x,y) ^ EXIST y2 (!(y2=y) ^ rel(x,y2)) ^ !(EXIST y3 (!(y3=y) ^ !(y3=y2) ^ rel(x,y3))))",
                  "((a(x) ^ b(x)) v (c(x) ^ !(d(x) ^ e(x) ^ g(x)))) => f(x)"
                  ]#,"foo(x) <=> !(EXIST p (foo(p)))", "numberEats(o,1) <=> !(EXIST p (eats(o,p) ^ !(o=p)))", "!a(c,d) => c=d", "c(b) v !(a(b) ^ b(c))"]
         tests = ["EXIST y1 (rel(x,y1) ^ EXIST y2 (rel(x,y2) ^ !(y1=y2) ^ !(EXIST y3 (rel(x,y3) ^ !(y1=y3) ^ !(y2=y3)))))"]
-        #tests = ["EXIST x (a(x))"]
+        tests = ["FORALL x (a(x) ^ b(x))"]
         for test in tests:
             print "trying to parse %s..." % test
             f = parseFormula(test)
