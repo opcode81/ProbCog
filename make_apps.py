@@ -52,7 +52,15 @@ python_apps = [
 pythonInterpreter = "python"
 
 def adapt(name, arch):
-    return name.replace("<ARCH>", arch).replace("$SRLDB_HOME", os.path.abspath(".")).replace("/", os.path.sep)
+    home = os.path.abspath(".")
+    if arch == "msys":
+        sep = "/"
+        home_drive = home[0]
+        home = "/" + home_drive + "/" + home[3:]
+        home = home.replace(os.path.sep, sep)
+    else:
+        sep = os.path.sep
+    return name.replace("<ARCH>", arch).replace("$SRLDB_HOME", home).replace("/", sep)
 
 def getDependencyClasspath():
     p = subprocess.Popen("mvn dependency:build-classpath", shell=True, 
@@ -68,7 +76,34 @@ def getDependencyClasspath():
         print("".join(lines))
         sys.exit(1)
     return classpath
-    
+
+def createEnvScript(arch):
+    appsDir = adapt("$SRLDB_HOME/apps", arch)
+    pythonDir = adapt("$SRLDB_HOME/src/main/python", arch)
+    jythonDir = adapt("$SRLDB_HOME/src/main/jython", arch)
+    if not "win" in arch:
+        with open("env.sh", "w") as f: 
+            f.write("export PATH=$PATH:%s\n" % appsDir)
+            f.write("export PYTHONPATH=$PYTHONPATH:%s\n" % pythonDir)
+            f.write("export JYTHONPATH=$JYTHONPATH:%s:%s\n" % (jythonDir, pythonDir))
+            f.write("export PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
+            if arch == "msys":
+                # create aliases to be able to run batch files
+                apps = []
+                for appname, app in java_apps.iteritems():
+                    apps.append(appname)
+                for app in python_apps:
+                    apps.append(app["name"])
+                for app in apps:
+                    f.write("alias %s=%s/%s.bat\n" % (app, appsDir, app))
+    else:
+        with open("env.bat", "w") as f:
+            f.write("SET PATH=%%PATH%%;%s\r\n" % appsDir)
+            f.write("SET PYTHONPATH=%%PYTHONPATH%%;%s\r\n" % pythonDir)
+            f.write("SET JYTHONPATH=%%JYTHONPATH%%;%s;%s\r\n" % (jythonDir, pythonDir))
+            f.write("SET PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
+    return appsDir, pythonDir, jythonDir
+
 if __name__ == '__main__':
     checkPythonVersion()
     print("\nProbCog Apps Generator\n\n")
@@ -134,16 +169,8 @@ if __name__ == '__main__':
     print()
 
     # write shell script for environment setup
-    appsDir = adapt("$SRLDB_HOME/apps", arch)
-    pythonDir = adapt("$SRLDB_HOME/src/main/python", arch)
-    jythonDir = adapt("$SRLDB_HOME/src/main/jython", arch)
-    if not "win" in arch:
-        f = file("env.sh", "w")
-        f.write("export PATH=$PATH:%s\n" % appsDir)
-        f.write("export PYTHONPATH=$PYTHONPATH:%s\n" % pythonDir)
-        f.write("export JYTHONPATH=$JYTHONPATH:%s:%s\n" % (jythonDir, pythonDir))
-        f.write("export PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
-        f.close()
+    if not isWindows:
+        createEnvScript(arch)
         print('Now, to set up your environment type:')
         print('    source env.sh')
         print()
@@ -151,14 +178,11 @@ if __name__ == '__main__':
         print('    source %s' % adapt("$SRLDB_HOME/env.sh", arch))
         print()
     else:
-        f = file("env.bat", "w")
-        f.write("SET PATH=%%PATH%%;%s\r\n" % appsDir)
-        f.write("SET PYTHONPATH=%%PYTHONPATH%%;%s\r\n" % pythonDir)
-        f.write("SET JYTHONPATH=%%JYTHONPATH%%;%s;%s\r\n" % (jythonDir, pythonDir))
-        f.write("SET PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
-        f.close()
+        appsDir, pythonDir, jythonDir = createEnvScript(arch)
+        createEnvScript("msys")
         print('To temporarily set up your environment for the current session, type:')
-        print('    env.bat')
+        print('    env.bat        [when using CMD]')
+        print('    source env.sh  [when using MSYS bash/git-bash]')
         print()
         print('To permanently configure your environment, use Windows Control Panel to set the following environment variables:')
         print('  To the PATH variable add the directory "%s"' % appsDir)
