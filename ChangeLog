@@ -37,7 +37,6 @@
 				- Use specific negation mode prior to CNF conversion in order to avoid splits at conjunctions where possible
 				- Optimisations to avoid unnecessary iterations over the set of constraints
 	* Switched to Maven-based build, altering directory structure
-	* Switched to Java 9
 
 1.0.0  2012-03-09
 	* First versioned release

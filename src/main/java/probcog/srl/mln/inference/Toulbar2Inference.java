@@ -101,7 +101,7 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		public String call() throws ProbCogException {
 			// generate command
 			boolean isWindows = System.getProperty("os.name").contains("Windows");
-			boolean useBash = isWindows;
+			boolean useBash = false; // workaround for Windows no longer necessary
 			String wcspPath = wcspFile.toString();
 			if (useBash && isWindows)
 				wcspPath = wcspPath.replace('\\', '/');
@@ -110,7 +110,8 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 				toulbar2App += ".exe";
 			String command = toulbar2App + " " + wcspPath + " -s " + " -ub=" + wcspConverter.getCostUpperBound() + " " + toulbar2Args;
 			if (useBash) {
-				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
+				// use bash as a wrapper to fix output problems (no toulbar2 output could be read through standard shell on Windows)
+				command = "bash -c \"exec " + command + "\""; 
 			}
 			
 			// spawn toulbar2 process
@@ -156,21 +157,13 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 		
 		public void stop() {
 			log.debug("Terminating toulbar2 process");
-			destroyProcessTree(toulbar2Process);
+			toulbar2Process.destroyForcibly();
 			mustTerminate = true;
 		}
 		
 		public boolean isComplete() {
 			return isComplete;
 		}
-	}
-	
-	private static void destroyProcessTree(Process toulbar2Process) {
-		if (System.getProperty("os.name").contains("Windows")) {
-			// destroy the bash shell as well as the toulbar2 process
-			toulbar2Process.descendants().forEach(handle -> handle.destroyForcibly());
-		}
-		toulbar2Process.destroyForcibly();
 	}
 	
 	interface InferenceCall {
