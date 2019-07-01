@@ -63,14 +63,11 @@ alchemy_versions = {
     #"Alchemy - current (AMD64)": {"path": os.getenv("ALCHEMY_HOME"), "usage": new_usage},
     #"Alchemy - July 2009 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2009-07-07/bin", "usage": new_usage},
     #"Alchemy - June 2008 (AMD64)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/amd64", "usage": new_usage},
-    "Alchemy - August 2010 (AMD64)": {"path": os.getenv("ALCHEMY_HOME").replace("\\", "/"), "usage": new_usage},
+    #"Alchemy - August 2010 (AMD64)": {"path": os.getenv("ALCHEMY_HOME").replace("\\", "/"), "usage": new_usage},
     #"Alchemy - June 2008 (i386)": {"path": r"/usr/wiss/jain/work/code/alchemy-2008-06-30/bin/i386", "usage": new_usage},
-	#"Alchemy (Win32 desktop)": {"path": r"c:\users\Domini~1\Research\code\alchemy-2010-08-23\bin", "usage": new_usage},
+    #"Alchemy (Win32 desktop)": {"path": r"c:\users\Domini~1\Research\code\alchemy-2010-08-23\bin", "usage": new_usage},
     #"Alchemy (Win32 laptop)": {"path": r"c:\research\code\alchemy\bin", "usage": new_usage},
 }
-'''
-# snapshot, snapshot original and (if the weights in the input MLN are all 0) all yield the same results when weight learning
-# snapshot is a lot faster than snapshot original though
-# snapshot learnwts-startpnt modifies the start point of the optimization, using the weights given in the mln (if any) instead of a zero vector - these weights are not used as priors for penalizing though (reset to 0)
-# snapshot dev has a different counting method (which I think is correct - unlike the original one)
-'''
+alchemy_home = os.getenv("ALCHEMY_HOME")
+if alchemy_home is not None:
+    alchemy_versions["Alchemy"] = {"path": alchemy_home, "usage": new_usage}
