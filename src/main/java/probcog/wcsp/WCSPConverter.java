@@ -627,6 +627,10 @@ public class WCSPConverter implements IParameterHandler, VerbosePrinter {
         if (hardCost <= sumSoftCosts)
             throw new ProbCogException("Numeric overflow in sumSoftCosts");
     }
+    
+    public long getCostUpperBound() {
+    	return hardCost;
+    }
 
 	@Override
 	public ParameterHandler getParameterHandler() {		
