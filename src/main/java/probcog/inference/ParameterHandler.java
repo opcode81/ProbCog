@@ -217,6 +217,8 @@ public class ParameterHandler {
 				cls -> cls == Double.class || cls == double.class),
 		INTEGER(s -> Integer.parseInt(s), 
 				cls -> cls == Integer.class || cls == int.class),
+		LONG(s -> Long.parseLong(s), 
+				cls -> cls == Long.class || cls == long.class),
 		BOOLEAN(s -> Boolean.parseBoolean(s), 
 				cls -> cls == Boolean.class || cls == boolean.class),
 		STRING(s -> s, 
