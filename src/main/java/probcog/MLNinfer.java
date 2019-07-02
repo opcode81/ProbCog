@@ -92,8 +92,8 @@ public class MLNinfer {
 			else
 				System.err.println("Warning: unknown option " + args[i] + " ignored!");
 		}			
-		if(mlnFiles == null || dbFile == null || query == null) {
-			System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> <-e <evidence db file>> <-q <comma-sep. queries>> [options]\n\n"+
+		if(mlnFiles == null || query == null) {
+			System.out.println("\n usage: MLNinfer <-i <(comma-sep.) MLN file(s)>> [-e <evidence db file>] <-q <comma-sep. queries>> [options]\n\n"+
 								 "    -maxSteps #      the maximum number of steps to take, where applicable (default determined by algorithm, if any)\n" +
 								 "    -r <filename>    save results to file\n" + 
 								 "    -mws             algorithm: MaxWalkSAT (MAP inference)\n" +
@@ -130,9 +130,14 @@ public class MLNinfer {
 		MarkovLogicNetwork mln = new MarkovLogicNetwork(mlnFiles);
 		
 		// instantiate ground model
-		System.out.printf("reading database %s...\n", dbFile);
 		Database db = new Database(mln);
-		db.readMLNDB(dbFile);
+		if (dbFile == null) {
+			System.out.printf("evidence database is empty\n", dbFile);
+		}
+		else {
+			System.out.printf("reading database %s...\n", dbFile);
+			db.readMLNDB(dbFile);
+		}
 		if(cwPreds != null) {
 			for(String predName : cwPreds)
 				db.setClosedWorldPred(predName);
