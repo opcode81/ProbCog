@@ -124,8 +124,8 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 			}
 			
 			// read toulbar2 output
-			InputStream s = toulbar2Process.getInputStream();
-			BufferedReader br = new BufferedReader(new InputStreamReader(s));
+			BufferedReader brError = new BufferedReader(new InputStreamReader(toulbar2Process.getErrorStream()));
+			BufferedReader br = new BufferedReader(new InputStreamReader(toulbar2Process.getInputStream()));
 			isComplete = false;
 			mustTerminate = false;
 			while(!mustTerminate) {
@@ -148,6 +148,28 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 			}
 			log.debug("Inference call/toulbar2 process complete");
 			isComplete = true;
+
+			// if there is no solution, read the error output (if any)
+			if (solution == null) {
+				StringBuilder sb = new StringBuilder();
+				while(true) {
+					String l;
+					try {
+						l = brError.readLine();
+						if (l == null)
+							break;
+						sb.append(l);
+					}
+					catch (IOException e) {
+						break;
+					}
+				}
+				String errorOutput = sb.toString();
+				if (!errorOutput.isEmpty()) {
+					log.warn("Produced no solution with the following error output:\n%s", errorOutput); 
+				}
+			}
+			
 			return solution;
 		}
 		
