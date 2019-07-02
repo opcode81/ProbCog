@@ -105,7 +105,10 @@ public class Toulbar2Inference extends MPEInferenceAlgorithm {
 			String wcspPath = wcspFile.toString();
 			if (useBash && isWindows)
 				wcspPath = wcspPath.replace('\\', '/');
-			String command = "toulbar2 " + wcspPath + " -s "  + toulbar2Args;
+			String toulbar2App = "toulbar2";
+			if (isWindows)
+				toulbar2App += ".exe";
+			String command = toulbar2App + " " + wcspPath + " -s "  + toulbar2Args;
 			if (useBash) {
 				command = "bash -c \"exec " + command + "\""; // use bash on Windows to fix output problem (no output can be read through standard shell on Win10)
 			}
