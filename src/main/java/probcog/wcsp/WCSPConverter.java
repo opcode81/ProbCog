@@ -264,7 +264,7 @@ public class WCSPConverter implements IParameterHandler, VerbosePrinter {
         if(log.isDebugEnabled()) {
         	log.debug("WCSP variables:");
         	for(Entry<Integer,Vector<GroundAtom>> e : varIdx2groundAtoms.entrySet()) {
-        		log.debug("%s %s", e.getKey(), StringTool.join(", ", e.getValue()));
+        		log.debug("WCSP variable %s = { %s }", e.getKey(), StringTool.join(", ", e.getValue()));
         	}
         }
     }
