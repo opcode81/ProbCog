@@ -53,7 +53,7 @@ pythonInterpreter = "python"
 
 def adapt(name, arch):
     home = os.path.abspath(".")
-    if arch == "msys":
+    if arch == "msyss":
         sep = "/"
         home_drive = home[0]
         home = "/" + home_drive + "/" + home[3:]
@@ -79,14 +79,21 @@ def getDependencyClasspath():
 
 def createEnvScript(arch):
     appsDir = adapt("$SRLDB_HOME/apps", arch)
-    pythonDir = adapt("$SRLDB_HOME/src/main/python", arch)
-    jythonDir = adapt("$SRLDB_HOME/src/main/jython", arch)
+    if arch != "msys":
+        pythonDir = adapt("$SRLDB_HOME/src/main/python", arch)
+        jythonDir = adapt("$SRLDB_HOME/src/main/jython", arch)
+    else:  # msys must use Windows-style paths in PYTHONPATH/JYTHONPATH when using regular Windows Python
+        pythonDir = adapt("$SRLDB_HOME/src/main/python", "win64")
+        jythonDir = adapt("$SRLDB_HOME/src/main/jython", "win64")
     if not "win" in arch:
         with open("env.sh", "w") as f: 
-            f.write("export PATH=$PATH:%s\n" % appsDir)
-            f.write("export PYTHONPATH=$PYTHONPATH:%s\n" % pythonDir)
-            f.write("export JYTHONPATH=$JYTHONPATH:%s:%s\n" % (jythonDir, pythonDir))
-            f.write("export PROBCOG_HOME=%s\n" % adapt("$SRLDB_HOME", arch))
+            f.write("export PATH=\"$PATH:%s\"\n" % appsDir)
+            f.write("export PROBCOG_HOME=\"%s\"\n" % adapt("$SRLDB_HOME", arch))
+            pythonpath = ["$PYTHONPATH", pythonDir]
+            jythonpath = ["$JYTHONPATH", jythonDir, pythonDir]
+            pythonpath_sep = ":" if not arch == "msys" else ";"
+            f.write("export PYTHONPATH=\"%s\"\n" % pythonpath_sep.join(pythonpath))
+            f.write("export JYTHONPATH=\"%s\"\n" % pythonpath_sep.join(jythonpath))
             if arch == "msys":
                 # create aliases to be able to run batch files
                 apps = []
@@ -95,7 +102,7 @@ def createEnvScript(arch):
                 for app in python_apps:
                     apps.append(app["name"])
                 for app in apps:
-                    f.write("alias %s=%s/%s.bat\n" % (app, appsDir, app))
+                    f.write("alias %s='\"%s/%s.bat\"'\n" % (app, appsDir, app))
     else:
         with open("env.bat", "w") as f:
             f.write("SET PATH=%%PATH%%;%s\r\n" % appsDir)
