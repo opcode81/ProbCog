@@ -1,0 +1,10 @@
+name: probcog
+channels:
+  - defaults
+dependencies:
+  - python=2.7
+  - tk
+  - pip
+  - pip:
+    - numpy==1.10.4
+    - scipy==1.2.3
